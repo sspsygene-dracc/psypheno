@@ -1,40 +1,26 @@
-import Head from "next/head";
-import Link from "next/link";
+import Link from 'next/link';
 
-export default function Home() {
+export default function PhenoHome() {
   return (
     <div style={{ padding: 12 }}>
-      <Head>
-        <title>SSPsyGene</title>
-      </Head>
-      <h1>SSPsyGene</h1>
-      <p>Welcome. Explore phenotype data:</p>
-      <ul>
-        <li>
-          <Link href="/pheno">Phenotypes Home</Link>
-        </li>
-        <li>
-          <Link href="/pheno/deg">
-            Mouse Perturb-Seq: Gene/Gene expression changes
-          </Link>
-        </li>
-        <li>
-          <Link href="/pheno/comp">
-            Mouse Perturb-Seq: Cell type composition changes
-          </Link>
-        </li>
-        <li>
-          <Link href="/pheno/sizes">Zebrafish brain region sizes</Link>
-        </li>
-        <li>
-          <Link href="/pheno/perturbFishAstr">
-            Perturb-Fish astrocyte expression changes
-          </Link>
-        </li>
-        <li>
-          <Link href="/pheno/all">Integrated assays</Link>
-        </li>
-      </ul>
+      <h1>SSPsyGene Phenotype Knowledgebase</h1>
+      <h3>Individual assays:</h3>
+      <p>
+        <Link href="/pheno/deg">Xin Jin: Mouse Perturb-Seq Gene/Gene expression changes</Link>
+      </p>
+      <p>
+        <Link href="/pheno/comp">Xin Jin: Mouse Perturb-Seq Gene/Cell type composition changes</Link>
+      </p>
+      <p>
+        <Link href="/pheno/sizes">Ellen Hoffman: Zebrafish Brain Region Sizes - Gene/Brain Size</Link>
+      </p>
+      <p>
+        <Link href="/pheno/perturbFishAstr">Sami Farhi: Human Astrocyte Perturb-Fish Expr Changes - Gene/Gene</Link>
+      </p>
+      <h3>All assays:</h3>
+      <p>
+        <Link href="/pheno/all">Integrated assays</Link>
+      </p>
     </div>
   );
 }
