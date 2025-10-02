@@ -1,0 +1,23 @@
+first database to add before mid-Nov 2025 is Psychencode differentially expressed genes, and then Mouse Phenotypes, then Bakken et al, in this order
+
+1) probably, and easy: SFARI genes, gene.sfari.org
+2) primary todo item for Johannes in 2025: add Psychencode https://pubmed.ncbi.nlm.nih.gov/38781369/
+- first step: the differentially expression genes: https://psychscreen.wenglab.org/psychscreen/single-cell/celltype/Oligodendrocyte%20Precursor%20Cells
+2) Then, add mouse phenotype data https://phenome.jax.org/projects/Kumar2
+3) Probably also add mouse phenotype text descriptions from https://www.informatics.jax.org/marker/MGI:1920635
+4) Add data from Bakken 2021 https://pubmed.ncbi.nlm.nih.gov/34616062/ (I forgot how exactly)
+
+All data should use the BICAN taxonomy for cell types, whenever cell types are referenced:
+1) BICAN taxonomy for motor-cortex: published, will find the link
+2) BICAN taxonomy for PFC: published, see https://brainscope.gersteinlab.org/integrative_files.html
+3) BICAN has a basal ganglia package coming up, need to reach out to find when this is coming out
+
+
+The current list, to be added in this order is:
+
+0) the existing placeholder phenotype data from Hoffman, Xin Jing and Sami: https://hgwdev-max.gi.ucsc.edu/pheno/show.py
+1) first dataset: add Psychencode differentially expressed genes: https://psychscreen.wenglab.org/psychscreen/single-cell/celltype/Oligodendrocyte%20Precursor%20Cells
+2) second, very easy: SFARI genes, gene.sfari.org
+3) mouse phenotypes from Jax, data https://phenome.jax.org/
+4) add mouse phenotype short text descriptions from MGI https://www.informatics.jax.org/marker/MGI:1920635
+5) Bakken 2021 expression values across primates https://pubmed.ncbi.nlm.nih.gov/34616062/ (probably as a celltype + expression value barchart diagram?)
