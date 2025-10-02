@@ -1,0 +1,38 @@
+{
+  "name": "nextjs_amelie2_2",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.0",
+    "@heroicons/react": "^2.2.0",
+    "better-sqlite3": "^11.5.0",
+    "headlessui": "^0.0.0",
+    "igv": "^3.0.8",
+    "lucide-react": "^0.454.0",
+    "next": "15.3.1",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-highlight-words": "^0.21.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/react-highlight-words": "^0.20.0",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.16",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
