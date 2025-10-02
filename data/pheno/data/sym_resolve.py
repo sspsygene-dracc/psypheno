@@ -2,29 +2,30 @@
 
 import logging
 import sys
-import optparse
+import argparse
 import gzip
 from collections import defaultdict
 
 
-def parseArgs() -> tuple[list[str], optparse.Values]:
+def parseArgs() -> argparse.Namespace:
     "setup logging, parse command line arguments and options. -h shows auto-generated help page"
-    parser = optparse.OptionParser(
-        """usage: %prog [options] -g hgncFile inputTsv outputTsv - convert human symbols to more stable HGNC identifiers.
+    parser = argparse.ArgumentParser(
+        """usage: %prog [options] -g hgncFile inputTsv outputTsv - 
+    convert human symbols to more stable HGNC identifiers.
     Recognizes outdated or deprecrated symbols and gene names. Input file must have a header line.
     By default, assumes that the first field is the symbol and converts that field to a HGNC:ID.
 
-    Examplex:
-       symResolve -g ../../hgnc_complete_set.txt brennan.tsv brennan.hgnc.tsv -m ensembl_id=ensembl -r brennan.dropped.txt 
-       symResolve -m gene_id=ensembl schema.tsv schema.hgnc.tsv -r schema.dropped.tsv
-       symResolve ../hgnc/hgnc_complete_set.txt sfari.tsv sfari.hgnc.tsv -f 1
+    Examples:
+symResolve -g ../../hgnc_complete_set.txt brennan.tsv brennan.hgnc.tsv -m ensembl_id=ensembl -r brennan.dropped.txt 
+symResolve -m gene_id=ensembl schema.tsv schema.hgnc.tsv -r schema.dropped.tsv
+symResolve ../hgnc/hgnc_complete_set.txt sfari.tsv sfari.hgnc.tsv -f 1
     """
     )
 
-    parser.add_option(
+    parser.add_argument(
         "-d", "--debug", dest="debug", action="store_true", help="show debug messages"
     )
-    parser.add_option(
+    parser.add_argument(
         "-f",
         "--outField",
         dest="outField",
@@ -32,73 +33,84 @@ def parseArgs() -> tuple[list[str], optparse.Values]:
         help="Write HGNC to this field, default is first field. A number, 0-based.",
         default="0",
     )
-    parser.add_option(
+    parser.add_argument(
         "-i",
         "--insert",
         dest="insert",
         action="store_true",
-        help="Instead of replacing the value in field -f, insert a new column in front of it with the HGNC-ID",
+        help="Instead of replacing the value in field -f, "
+        "insert a new column in front of it with the HGNC-ID",
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--removed",
         dest="removedFname",
         action="store",
         help="Write genes that were removed to this file",
     )
-    parser.add_option(
+    parser.add_argument(
         "-m",
         "--mapFields",
         dest="mapFields",
         action="store",
-        help="process this field from the input file, default is first field. If file has a header line, can be a comma-sep list of field names. Can have format <fieldName>=<idName>, with <idName> being one of the HGNC ID names, e.g. 'ensembl'."
-        "For each column, you can specify the content of the field, e.g. ens=ensembl,uip=uniprot,symbol=sym",
+        help=(
+            "process this field from the input file, default is first field. "
+            "If file has a header line, can be a comma-sep list of field names. "
+            "Can have format <fieldName>=<idName>, with <idName> "
+            "being one of the HGNC ID names, e.g. 'ensembl'."
+            "For each column, you can specify the content of the "
+            "field, e.g. ens=ensembl,uip=uniprot,symbol=sym"
+        ),
         default=None,
     )
-    parser.add_option(
+    parser.add_argument(
         "-g",
         "--hgncInfo",
         dest="hgncFname",
         action="store",
         help="read hgnc_complete_set.txt from this file, default is %default. "
-        "Grab one with wget https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/hgnc_complete_set.txt",
+        "Grab one with wget "
+        "https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/hgnc_complete_set.txt",
         default="/hive/data/outside/hgnc/current/hgnc_complete_set.txt",
     )
-    parser.add_option(
+    parser.add_argument(
         "",
         "--mgi",
         dest="mgi",
         action="store",
         help="To map mouse symbols. Read HGNC_AllianceHomology.rpt from this file. "
-        "Get this file with wget https://www.informatics.jax.org/downloads/reports/HGNC_AllianceHomology.rpt. Use key 'mgiSym' in -m.",
+        "Get this file with wget "
+        "https://www.informatics.jax.org/downloads/reports/HGNC_AllianceHomology.rpt. "
+        "Use key 'mgiSym' in -m.",
     )
     # default="/hive/data/outside/mgi/HGNC_AllianceHomology.rpt")
 
-    parser.add_option(
+    parser.add_argument(
         "",
         "--zfin",
         dest="zfin",
         action="store",
         help="To map zebrafish symbols. Read human-orthos.tsv. "
-        "Get this file with wget https://zfin.org/downloads/human_orthos.txt. Use key 'zfinSym' if using -m.",
+        "Get this file with wget "
+        "https://zfin.org/downloads/human_orthos.txt. Use key 'zfinSym' if using -m.",
     )
     # default="/hive/data/outside/zfin/human_orthos.txt")
     # parser.add_option("-f", "--file", dest="file", action="store", help="run on file")
     # parser.add_option("", "--test", dest="test", action="store_true", help="do something")
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
     if args == []:
         parser.print_help()
         exit(1)
 
-    if options.debug:
+    if args.debug:
         logging.basicConfig(level=logging.DEBUG)
         logging.getLogger().setLevel(logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
         logging.getLogger().setLevel(logging.INFO)
 
-    return args, options
+    return args
 
 
 def getSyms(
@@ -126,7 +138,7 @@ def addSyms(row: list[str], syms: list[str], fieldIdx: int) -> None:
         aliasList = [x.upper() for x in aliasList]
         for alSym in aliasList:
             if alSym in syms:
-                logging.error("sym %s is already in the list" % alSym)
+                logging.error("sym %s is already in the list", alSym)
                 sys.exit(1)
             else:
                 syms.append(alSym)
@@ -141,7 +153,7 @@ def parseZfin(fname: str) -> dict[str, str]:
     # ZFIN has no headers!! The headers are on the website as:
     # ZFIN ID	ZFIN Symbol	ZFIN Name	Human Symbol	Human Name	OMIM ID	Gene ID	HGNC ID	Evidence	Pub ID
     skipped: list[str] = []
-    logging.info("Parsing %s" % fname)
+    logging.info("Parsing %s", fname)
     lines = openSplit(fname)
     symToId: dict[str, str] = {}
     for l in lines:
@@ -157,7 +169,7 @@ def parseZfin(fname: str) -> dict[str, str]:
 
 def parseMgi(fname: str) -> dict[str, str]:
     "parse MGI HGNC_AllianceHomology.rpt file, return symbol -> HGNC-ID"
-    logging.info("Parsing %s" % fname)
+    logging.info("Parsing %s", fname)
     lines = openSplit(fname)
     headers: list[str] = lines[0].split("\t")
     assert headers[-1] == "HGNC ID"
@@ -192,8 +204,10 @@ def openSplit(fname: str) -> list[str]:
 
 
 def parseHgnc(fname: str) -> tuple[dict[str, str], dict[str, dict[str, str]]]:
-    """parse HGNC return two dictionaries with symbol -> HGNC ID and another dict with accession -> HGNC ID.
-    Make sure that these are unique, so remove all symbols and accessions that point to two HGNC IDs
+    """parse HGNC return two dictionaries with symbol -> HGNC ID
+    and another dict with accession -> HGNC ID.
+    Make sure that these are unique, so remove all symbols
+    and accessions that point to two HGNC IDs
     """
     logging.info("Parsing %s", fname)
     lines: list[str] = openSplit(fname)
@@ -260,7 +274,10 @@ def parseHgnc(fname: str) -> tuple[dict[str, str], dict[str, dict[str, str]]]:
         len(altsAreMains),
     )
     logging.debug(
-        "The following alt symbols are identical to main symbols and cannot be used as alts anymore: %s",
+        (
+            "The following alt symbols are identical to main symbols "
+            "and cannot be used as alts anymore: %s"
+        ),
         altsAreMains,
     )
     for rs in altsAreMains:
@@ -277,7 +294,7 @@ def parseHgnc(fname: str) -> tuple[dict[str, str], dict[str, dict[str, str]]]:
         newAccs: dict[str, str] = accToSym[accType].copy()
         for acc in delAccs:
             del newAccs[acc]
-        newAccToSym[accType.split("_")[0]] = newAccs
+        newAccToSym[accType.split("_", maxsplit=1)[0]] = newAccs
 
     logging.info(
         "HGNC symbols: %d genes / main symbols, %d alternate unique symbols",
@@ -363,30 +380,31 @@ def getHgncId(
 
 
 def main() -> None:
-    args, options = parseArgs()
+    args = parseArgs()
 
-    hgncFname: str = options.hgncFname
+    hgncFname: str = args.hgncFname
 
-    inFname = args[0]
-    outFname = args[1]
-    if options.mgi:
-        symToId = parseMgi(options.mgi)
+    inFname = args.inFname
+    outFname = args.outFname
+    if args.mgi:
+        symToId = parseMgi(args.mgi)
         accToId = {}
-    elif options.zfin:
-        symToId = parseZfin(options.zfin)
+    elif args.zfin:
+        symToId = parseZfin(args.zfin)
         accToId = {}
     else:
         symToId, accToId = parseHgnc(hgncFname)
-    outFieldIdx = int(options.outField)
-    mapFields = options.mapFields
+    outFieldIdx = int(args.outField)
+    mapFields = args.mapFields
 
     ofh = open(outFname, "w")
 
     lineCount = 0
     duplCount = 0
-    notFound: list[list[str]] = []
+    notFound: list[list[tuple[str, str, str]]] = []
     notFoundSyms: list[str] = []
     nameToIdx = None
+    mapStrategy: list[tuple[int, str]] | None = None
     for line in open(inFname, encoding="utf8"):
         row = line.rstrip("\n\r").split("\t")
         if nameToIdx is None:
@@ -398,11 +416,12 @@ def main() -> None:
             )
             nameToIdx = dict([(h, i) for i, h in enumerate(headers)])
             mapStrategy = parseMapFields(mapFields, nameToIdx, accToId, outFieldIdx)
-            if options.insert is not None:
+            if args.insert is not None:
                 row.insert(outFieldIdx, "hgnc_id")
             else:
                 row[outFieldIdx] = "hgnc_id"
         else:
+            assert mapStrategy is not None
             hgncId, triedIds, triedSyms = getHgncId(row, mapStrategy, symToId, accToId)
             if hgncId is None:
                 logging.debug("Not resolved: %s", line.rstrip())
@@ -411,7 +430,7 @@ def main() -> None:
                 notFoundSyms.extend(triedSyms)
                 continue
             else:
-                if not options.insert:
+                if not args.insert:
                     row[outFieldIdx] = hgncId
                 else:
                     row.insert(outFieldIdx, hgncId)
@@ -437,11 +456,11 @@ def main() -> None:
             len(notFound),
         )
         logging.debug(repr(notFound))
-        if options.removedFname:
-            rmfh = open(options.removedFname, "w")
+        if args.removedFname:
+            rmfh = open(args.removedFname, "w")
             for s in notFound:
-                rmfh.write("%s\n" % s[0][-1])
-            logging.info("Wrote missing genes to %s", options.removedFname)
+                rmfh.write(f"{s[0][-1]}\n")
+            logging.info("Wrote missing genes to %s", args.removedFname)
 
         if len(notFoundSyms) != 0:
             solidSyms = set(findSolidSyms(notFoundSyms))

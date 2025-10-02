@@ -2,18 +2,18 @@
 
 import logging
 import sys
-import optparse
 import os
 from collections import Counter
 import sqlite3
 from typing import Optional
 from os.path import dirname, join
 from os.path import normpath
+import argparse
 
 
-def parseArgs() -> tuple[list[str], optparse.Values]:
+def parseArgs() -> argparse.Namespace:
     "setup logging, parse command line arguments and options. -h shows auto-generated help page"
-    parser = optparse.OptionParser(
+    parser = argparse.ArgumentParser(
         """usage: %prog [options] dbFname tabSepFname - load a tab-file file into a database.
             
     Examples:
@@ -29,10 +29,10 @@ def parseArgs() -> tuple[list[str], optparse.Values]:
     Use the clean field names in the options below."""
     )
 
-    parser.add_option(
+    parser.add_argument(
         "-d", "--debug", dest="debug", action="store_true", help="show debug messages"
     )
-    parser.add_option(
+    parser.add_argument(
         "-f",
         "--useFields",
         dest="useFields",
@@ -43,56 +43,55 @@ def parseArgs() -> tuple[list[str], optparse.Values]:
             "By default all fields will be loaded."
         ),
     )
-    parser.add_option(
+    parser.add_argument(
         "-i",
         "--index",
         dest="index",
         action="store",
         help="list of fields for which an index should be created, comma-separated list. By default only the first field is indexed.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-t",
         "--table",
         dest="table",
         action="store",
         help="name of table, default is basename of infile",
     )
-    parser.add_option(
+    parser.add_argument(
         "",
         "--int",
         dest="intFields",
         action="store",
         help="comma-sep list of fields that are integers",
     )
-    parser.add_option(
+    parser.add_argument(
         "",
         "--float",
         dest="floatFields",
         action="store",
         help="comma-sep list of fields that are floats",
     )
-    parser.add_option(
+    parser.add_argument(
         "",
         "--noDupl",
         dest="noDupl",
         action="store_true",
         help="stop if first field is duplicated",
     )
-    # parser.add_option("", "--defaults", dest="defaults", action="store", help="comma-sep list of fieldName=value.")
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
     if args == []:
         parser.print_help()
         exit(1)
 
-    if options.debug:
+    if args.debug:
         logging.basicConfig(level=logging.DEBUG)
         logging.getLogger().setLevel(logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
         logging.getLogger().setLevel(logging.INFO)
 
-    return args, options
+    return args
 
 
 def parseTsv(fname: str) -> tuple[list[str], list[list[str]]]:
@@ -177,20 +176,20 @@ def loadRows(
         fieldDefs.append(" " + field + " " + fieldType)
     fieldStr = ", ".join(fieldDefs)
 
-    sqlParts = ["CREATE TABLE %s (" % table, fieldStr, ")"]
+    sqlParts = [f"CREATE TABLE {table} ({fieldStr})"]
     sql = "".join(sqlParts)
 
     runSql(conn, sql)
-    print("Created table %s with: %s" % (table, sql))
+    print(f"Created table {table} with: {sql}")
 
     if noDupl:
         checkDupl(rows)
 
     print("Loading rows")
     questMarkStr = ",".join(["?"] * len(loadFields))
-    sql = "INSERT INTO %s VALUES (%s)" % (table, questMarkStr)
+    sql = f"INSERT INTO {table} VALUES {questMarkStr}"
     conn.executemany(sql, rows)
-    print("Loaded %d rows" % len(rows))
+    print(f"Loaded {len(rows)} rows")
     conn.commit()
 
 
@@ -217,7 +216,8 @@ def openSqlite(dbName: str) -> sqlite3.Connection:
 
 
 def createIndexes(conn: sqlite3.Connection, table: str, idxFields: list[str]) -> None:
-    "create the SQLite indexes. Always must make them at the end, otherwise the db file will be fragmented"
+    """create the SQLite indexes.
+    Always must make them at the end, otherwise the db file will be fragmented"""
     logging.debug("Fields to index %s", repr(idxFields))
     for field in idxFields:
         print(f"Creating index for {field}")
@@ -262,9 +262,6 @@ def filterRows(
         newRow: list[str] = [row[x] for x in fieldIdxList]
         newRows.append(newRow)
 
-    # if doClean:
-    # newNames = cleanFieldNames(newNames)
-
     fields[0] = fields[0].strip("#")
     newNames[0] = newNames[0].strip("#")
 
@@ -301,19 +298,19 @@ def parseConf(fname: str) -> dict[str, str]:
     return conf
 
 
-# ----------- main --------------
 def main() -> None:
-    args, options = parseArgs()
+    args = parseArgs()
 
-    table = options.table
+    table = args.table
 
-    useFields = maybeCommaSep(options.useFields)
-    indexFields = maybeCommaSep(options.index)
-    intFields = maybeCommaSep(options.intFields)
-    floatFields = maybeCommaSep(options.floatFields)
-    noDupl = options.noDupl
+    useFields = maybeCommaSep(args.useFields)
+    indexFields = maybeCommaSep(args.index)
+    intFields = maybeCommaSep(args.intFields)
+    floatFields = maybeCommaSep(args.floatFields)
+    noDupl = args.noDupl
 
-    dbName, inFname = args
+    dbName = args.dbName
+    inFname = args.inFname
     fieldNames, rows = parseTsv(inFname)
     fieldNames = cleanFieldNames(fieldNames)
     conn = openSqlite(dbName)
