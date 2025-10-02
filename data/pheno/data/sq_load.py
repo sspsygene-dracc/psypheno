@@ -6,8 +6,9 @@ import optparse
 import os
 from collections import Counter
 import sqlite3
-
-# ==== functions =====
+from typing import Optional
+from os.path import dirname, join
+from os.path import normpath
 
 
 def parseArgs() -> tuple[list[str], optparse.Values]:
@@ -17,10 +18,14 @@ def parseArgs() -> tuple[list[str], optparse.Values]:
             
     Examples:
     wget https://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/hgnc_complete_set.txt
-    sqLoad genes.db hgnc_complete_set.txt -t hgnc -f hgnc_id,symbol,name,locus_group,alias_symbol,alias_name,prev_symbol,prev_name,gene_group,entrez_id,ensembl_gene_id,refseq_accession,uniprot_ids,mgd_id,cosmic,omim_id,orphanet,mane_select,gencc
-    sqLoad genes.db  sfari.hgnc.tsv -f hgnc_id,genetic_category,gene_score,syndromic,eagle,number_of_reports --int gene_score,eagle,number_of_reports
+    sqLoad genes.db hgnc_complete_set.txt -t hgnc -f hgnc_id,symbol,name,locus_group,alias_symbol,
+    alias_name,prev_symbol,prev_name,gene_group,entrez_id,ensembl_gene_id,refseq_accession,
+    uniprot_ids,mgd_id,cosmic,omim_id,orphanet,mane_select,gencc
+    sqLoad genes.db  sfari.hgnc.tsv -f hgnc_id,genetic_category,gene_score,syndromic,
+    eagle,number_of_reports --int gene_score,eagle,number_of_reports
 
-    Field names cannot contain . or - and other special chars, so these are "cleaned" (usually: replaced with '_')
+    Field names cannot contain . or - and other special chars, 
+    so these are "cleaned" (usually: replaced with '_')
     Use the clean field names in the options below."""
     )
 
@@ -32,7 +37,11 @@ def parseArgs() -> tuple[list[str], optparse.Values]:
         "--useFields",
         dest="useFields",
         action="store",
-        help="subset of fields to load, comma-separated list, can be in format oldName=newName if fields should be renamed. By default all fields will be loaded.",
+        help=(
+            "subset of fields to load, comma-separated list, "
+            "can be in format oldName=newName if fields should be renamed. "
+            "By default all fields will be loaded."
+        ),
     )
     parser.add_option(
         "-i",
@@ -95,12 +104,12 @@ def parseTsv(fname: str) -> tuple[list[str], list[list[str]]]:
     data = ifh.read()
     lines = data.split("\n")
 
-    fieldNames = lines[0].split("\t")
+    fieldNames: list[str] = lines[0].split("\t")
     fieldNames = [x.strip('"') for x in fieldNames]
     lines = lines[1:]
 
     # convert tab-sep lines to namedtuples (=objects)
-    rows = []
+    rows: list[list[str]] = []
     for line in lines:
         if len(line) == 0:
             continue
@@ -115,7 +124,7 @@ def parseTsv(fname: str) -> tuple[list[str], list[list[str]]]:
     return fieldNames, rows
 
 
-def runSql(conn, sql):
+def runSql(conn: sqlite3.Connection, sql: str) -> None:
     "execute sql and commit, handle errors"
     try:
         logging.debug(sql)
@@ -128,28 +137,37 @@ def runSql(conn, sql):
         sys.exit(1)
 
 
-def checkDupl(rows):
+def checkDupl(rows: list[list[str]]) -> None:
     "stop if any row contains a duplicated value in the first field"
-    counter = Counter()
+    counter: Counter[str] = Counter()
     for row in rows:
-        field0 = row[0]
+        field0: str = row[0]
         counter[field0] += 1
-    duplRows = []
+    duplRows: list[str] = []
     for val, count in counter.items():
         if count > 1:
             duplRows.append(val)
     if len(duplRows) > 0:
-        logging.error("Duplicate gene IDs: %s" % ", ".join(duplRows))
+        logging.error("Duplicate gene IDs: %s", ", ".join(duplRows))
         assert False
 
 
-def loadRows(conn, table, fields, rows, loadFields, intFields, floatFields, noDupl):
+def loadRows(
+    conn: sqlite3.Connection,
+    table: str,
+    fields: list[str],
+    rows: list[list[str]],
+    loadFields: list[str],
+    intFields: Optional[list[str]],
+    floatFields: Optional[list[str]],
+    noDupl: bool,
+) -> None:
     "load rows into sqlite database using prepared statement and bulk load"
-    sql = "DROP TABLE IF EXISTS %s;" % table
+    sql = f"DROP TABLE IF EXISTS {table};"
     runSql(conn, sql)
-    print("Dropped table %s" % table)
+    print(f"Dropped table {table}")
 
-    fieldDefs = []
+    fieldDefs: list[str] = []
     for field in loadFields:
         fieldType = "text"
         if intFields and field in intFields:
@@ -186,26 +204,7 @@ def cleanFieldNames(fields: list[str]) -> list[str]:
     return newFields
 
 
-def openMysql():
-    "open connection to mysql db"
-    import pymysql
-
-    user = cfgOption("db.user")
-    password = cfgOption("db.password")
-    host = cfgOption("db.host")
-    conn = pymysql.connect(host=host, user=user, password=password, database="pheno")
-    return conn
-
-
-def openDb(dbName):
-    "open connect to db"
-    if dbName.endswith(".db"):
-        return openSqlite(dbName)
-    else:
-        return openMysql(dbName)
-
-
-def openSqlite(dbName):
+def openSqlite(dbName: str) -> sqlite3.Connection:
     "set super fast sqlite options"
     # conn.set_trace_callback(print) # for debugging: print all sql statements
     conn = sqlite3.connect(dbName)
@@ -217,25 +216,27 @@ def openSqlite(dbName):
     return conn
 
 
-def createIndexes(conn, table, idxFields):
+def createIndexes(conn: sqlite3.Connection, table: str, idxFields: list[str]) -> None:
     "create the SQLite indexes. Always must make them at the end, otherwise the db file will be fragmented"
-    logging.debug("Fields to index " + repr(idxFields))
+    logging.debug("Fields to index %s", repr(idxFields))
     for field in idxFields:
-        print("Creating index for " + field)
-        sql = "CREATE INDEX %s_%s_idx ON %s (%s)" % (table, field, table, field)
+        print(f"Creating index for {field}")
+        sql = f"CREATE INDEX {table}_{field}_idx ON {table} ({field})"
         runSql(conn, sql)
 
 
-def filterRows(fields, rows, useFields):
+def filterRows(
+    fields: list[str],
+    rows: list[list[str]],
+    useFields: Optional[list[str]],
+) -> tuple[list[str], list[list[str]]]:
     "only keep useFields of the rows. 'fields' is a comma-sep string."
-    doClean = False
     # if we use the raw input fields, make sure to remove the non-sql characters below
     if useFields is None:
         useFields = fields
-        doClean = True
 
-    fieldIdxList = []
-    newNames = []
+    fieldIdxList: list[int] = []
+    newNames: list[str] = []
     for fieldName in useFields:
         if "=" in fieldName:
             parts = fieldName.split("=")
@@ -249,18 +250,16 @@ def filterRows(fields, rows, useFields):
 
         try:
             idx = fields.index(fieldName)
-        except:
-            print(
-                "Error: field %s not in input file. Possible fields are: %s"
-                % (repr(fieldName), repr(fields))
-            )
-            sys.exit(1)
+        except ValueError as e:
+            raise ValueError(
+                f"Error: field {fieldName} not in input file. Possible fields are: {fields}",
+            ) from e
 
         fieldIdxList.append(idx)
 
-    newRows = []
+    newRows: list[list[str]] = []
     for row in rows:
-        newRow = [row[x] for x in fieldIdxList]
+        newRow: list[str] = [row[x] for x in fieldIdxList]
         newRows.append(newRow)
 
     # if doClean:
@@ -282,10 +281,10 @@ def maybeCommaSep(s: str | None) -> list[str] | None:
     return s_list
 
 
-def parseConf(fname):
+def parseConf(fname: str) -> dict[str, str]:
     "parse a hg.conf style file, return as dict key -> value (all strings)"
-    logging.debug("Parsing " + fname)
-    conf = {}
+    logging.debug("Parsing %s", fname)
+    conf: dict[str, str] = {}
     for line in open(fname):
         line = line.strip()
         if line.startswith("#"):
@@ -302,39 +301,8 @@ def parseConf(fname):
     return conf
 
 
-# cache of hg.conf contents
-hgConf = None
-
-
-def parseHgConf():
-    """return hg.conf as dict key:value."""
-    global hgConf
-    if hgConf is not None:
-        return hgConf
-
-    hgConf = dict()  # python dict = hash table
-
-    fname = os.path.expanduser("~/.hubtools.conf")
-    if isfile(fname):
-        hgConf = parseConf(fname)
-    else:
-        fname = os.path.expanduser("~/.hg.conf")
-        if isfile(fname):
-            hgConf = parseConf(fname)
-
-
-def cfgOption(name, default=None):
-    "return hg.conf option or default"
-    global hgConf
-
-    if not hgConf:
-        parseHgConf()
-
-    return hgConf.get(name, default)
-
-
 # ----------- main --------------
-def main():
+def main() -> None:
     args, options = parseArgs()
 
     table = options.table
@@ -348,7 +316,7 @@ def main():
     dbName, inFname = args
     fieldNames, rows = parseTsv(inFname)
     fieldNames = cleanFieldNames(fieldNames)
-    conn = openDb(dbName)
+    conn = openSqlite(dbName)
 
     if table is None:
         table = os.path.basename(inFname).split(".")[0]

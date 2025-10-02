@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
-import logging, sys, optparse, gzip
+import logging
+import sys
+import optparse
+import gzip
 from collections import defaultdict
 
 
-def parseArgs():
+def parseArgs() -> tuple[list[str], optparse.Values]:
     "setup logging, parse command line arguments and options. -h shows auto-generated help page"
     parser = optparse.OptionParser(
         """usage: %prog [options] -g hgncFile inputTsv outputTsv - convert human symbols to more stable HGNC identifiers.
@@ -98,7 +101,9 @@ def parseArgs():
     return args, options
 
 
-def getSyms(row: list[str], indexMap: dict[str, int], fieldNames: list[str]) -> set[str]:
+def getSyms(
+    row: list[str], indexMap: dict[str, int], fieldNames: list[str]
+) -> set[str]:
     "return list of syms from row"
     syms: set[str] = set()
 
@@ -114,7 +119,7 @@ def getSyms(row: list[str], indexMap: dict[str, int], fieldNames: list[str]) -> 
     return syms
 
 
-def addSyms(row: list[str], syms: set[str], fieldIdx: int) -> None:
+def addSyms(row: list[str], syms: list[str], fieldIdx: int) -> None:
     aliasStr = row[fieldIdx]
     if aliasStr != "":
         aliasList = aliasStr.split("|")
@@ -150,23 +155,23 @@ def parseZfin(fname: str) -> dict[str, str]:
     return symToId
 
 
-def parseMgi(fname):
+def parseMgi(fname: str) -> dict[str, str]:
     "parse MGI HGNC_AllianceHomology.rpt file, return symbol -> HGNC-ID"
     logging.info("Parsing %s" % fname)
     lines = openSplit(fname)
-    headers = lines[0].split("\t")
+    headers: list[str] = lines[0].split("\t")
     assert headers[-1] == "HGNC ID"
     assert headers[1] == "Marker Symbol"
-    fieldIdx = dict([(h, i) for i, h in enumerate(headers)])
-    symToId = {}
-    hgncIdx = headers.index("HGNC ID")
+    _fieldIdx: dict[str, int] = dict([(h, i) for i, h in enumerate(headers)])
+    symToId: dict[str, str] = {}
+    hgncIdx: int = headers.index("HGNC ID")
 
     for l in lines[1:]:
         row = l.split("\t")
         row = [x.strip('"') for x in row]
 
-        mainSym = row[1]
-        geneId = row[hgncIdx]
+        mainSym: str = row[1]
+        geneId: str = row[hgncIdx]
 
         if geneId == "null":
             continue
@@ -177,7 +182,7 @@ def parseMgi(fname):
     return symToId
 
 
-def openSplit(fname):
+def openSplit(fname: str) -> list[str]:
     if fname.endswith(".gz"):
         fh = gzip.open(fname, "rt")
     else:
@@ -186,42 +191,42 @@ def openSplit(fname):
     return lines
 
 
-def parseHgnc(fname):
+def parseHgnc(fname: str) -> tuple[dict[str, str], dict[str, dict[str, str]]]:
     """parse HGNC return two dictionaries with symbol -> HGNC ID and another dict with accession -> HGNC ID.
     Make sure that these are unique, so remove all symbols and accessions that point to two HGNC IDs
     """
-    logging.info("Parsing %s" % fname)
-    lines = openSplit(fname)
-    headers = lines[0].split("\t")
+    logging.info("Parsing %s", fname)
+    lines: list[str] = openSplit(fname)
+    headers: list[str] = lines[0].split("\t")
     assert headers[1] == "symbol"
-    fieldIdx = dict([(h, i) for i, h in enumerate(headers)])
+    fieldIdx: dict[str, int] = dict([(h, i) for i, h in enumerate(headers)])
 
-    symToId = {}
-    altSymToId = {}
-    removeSyms = set()
+    symToId: dict[str, str] = {}
+    altSymToId: dict[str, str] = {}
+    removeSyms: set[str] = set()
 
-    accToSym = {}
+    accToSym: dict[str, dict[str, str]] = {}
     for accType in accTypes:
         accToSym[accType] = {}
-    remAccs = defaultdict(set)
+    remAccs: defaultdict[str, set[str]] = defaultdict(set)
 
     for l in lines:
-        row = l.split("\t")
+        row: list[str] = l.split("\t")
         row = [x.strip('"') for x in row]
 
-        geneId = row[0]
-        mainSym = row[1]
+        geneId: str = row[0]
+        mainSym: str = row[1]
 
         # grab all the accessions
         for accType in accTypes:
-            idx = fieldIdx[accType]
-            acc = row[idx]
+            idx: int = fieldIdx[accType]
+            acc: str = row[idx]
             # print(accType, acc, geneId)
             if acc == "":
                 continue
-            accDict = accToSym[accType]
+            accDict: dict[str, str] = accToSym[accType]
 
-            accs = acc.split("|")
+            accs: list[str] = acc.split("|")
             for acc in accs:
                 if acc in accDict:
                     remAccs[accType].add(acc)
@@ -230,7 +235,9 @@ def parseHgnc(fname):
         # ... the main symbol
         symToId[mainSym] = geneId
 
-        aliasList = getSyms(row, fieldIdx, ["alias_symbol", "prev_symbol", "prev_name"])
+        aliasList: set[str] = getSyms(
+            row, fieldIdx, ["alias_symbol", "prev_symbol", "prev_name"]
+        )
 
         # and the alternate symbols
         for alSym in aliasList:
@@ -239,23 +246,22 @@ def parseHgnc(fname):
             else:
                 altSymToId[alSym] = geneId
 
-    logging.info("%d alt symbols are non-unique and cannot be used" % len(removeSyms))
+    logging.info("%d alt symbols are non-unique and cannot be used", len(removeSyms))
     logging.debug(
-        "The following alt symbols are non-unique and cannot be used: %s"
-        % repr(removeSyms)
+        "The following alt symbols are non-unique and cannot be used: %s", removeSyms
     )
     assert "ATP6C" in altSymToId
     for rs in removeSyms:
         del altSymToId[rs]
 
-    altsAreMains = set(altSymToId).intersection(symToId)
+    altsAreMains: set[str] = set(altSymToId).intersection(symToId)
     logging.info(
-        "%d alt symbols are identical to main symbols and are used as mains only"
-        % len(altsAreMains)
+        "%d alt symbols are identical to main symbols and are used as mains only",
+        len(altsAreMains),
     )
     logging.debug(
-        "The following alt symbols are identical to main symbols and cannot be used as alts anymore: %s"
-        % repr(altsAreMains)
+        "The following alt symbols are identical to main symbols and cannot be used as alts anymore: %s",
+        altsAreMains,
     )
     for rs in altsAreMains:
         del altSymToId[rs]
@@ -263,30 +269,31 @@ def parseHgnc(fname):
     # now merge the alternates into the main symbols
     symToId.update(altSymToId)
 
-    newAccToSym = {}
+    newAccToSym: dict[str, dict[str, str]] = {}
     for accType in accTypes:
-        delAccs = remAccs[accType]
-        logging.info("Removing %d non-unique %s-accessions" % (len(delAccs), accType))
-        logging.debug("Removing %s-accessions: %s" % (accType, repr(delAccs)))
-        newAccs = accToSym[accType].copy()
+        delAccs: set[str] = remAccs[accType]
+        logging.info("Removing %d non-unique %s-accessions", len(delAccs), accType)
+        logging.debug("Removing %s-accessions: %s", accType, repr(delAccs))
+        newAccs: dict[str, str] = accToSym[accType].copy()
         for acc in delAccs:
             del newAccs[acc]
         newAccToSym[accType.split("_")[0]] = newAccs
 
     logging.info(
-        "HGNC symbols: %d genes / main symbols, %d alternate unique symbols"
-        % (len(symToId), len(altSymToId))
+        "HGNC symbols: %d genes / main symbols, %d alternate unique symbols",
+        len(symToId),
+        len(altSymToId),
     )
     for accType, accDict in newAccToSym.items():
-        logging.info("HGNC %s: %d accessions" % (accType, len(accDict)))
+        logging.info("HGNC %s: %d accessions", accType, len(accDict))
 
     assert "ENSG00000204446" in newAccToSym["ensembl"]
     return symToId, newAccToSym
 
 
-def findSolidSyms(syms):
+def findSolidSyms(syms: list[str]) -> list[str]:
     "remove the weird symbols and return new list"
-    solidSyms = []
+    solidSyms: list[str] = []
     for sym in syms:
         if not "orf" in sym and not "." in sym:
             solidSyms.append(sym)
@@ -294,25 +301,33 @@ def findSolidSyms(syms):
     return solidSyms
 
 
-def parseMapFields(mapFields, nameToIdx, accToId, inFieldIdx):
+def parseMapFields(
+    mapFields: str | None,
+    nameToIdx: dict[str, int],
+    accToId: dict[str, dict[str, str]],
+    inFieldIdx: int,
+) -> list[tuple[int, str]]:
     "given a string with fieldName=accType,fieldName2=accType, etc, return a list of (fieldIdx,id)"
-    mapStrategy = []
+    mapStrategy: list[tuple[int, str]] = []
     if mapFields is None:
         for name, index in nameToIdx.items():
             if index == inFieldIdx:
                 mapFields = name + "=sym"
                 break
 
+    assert mapFields is not None
+
     fields = mapFields.split(",")
     for fieldAccType in fields:
         field, accType = fieldAccType.split("=")
         if field not in nameToIdx:
-            logging.error("%s is not a valid field name in the input file" % field)
+            logging.error("%s is not a valid field name in the input file", field)
             sys.exit(1)
         if accType not in accToId and accType != "sym":
             logging.error(
-                "%s is not 'sym' or a valid accession type. Valid types are: %s"
-                % (accType, repr(accTypeNames))
+                "%s is not 'sym' or a valid accession type. Valid types are: %s",
+                accType,
+                repr(accTypeNames),
             )
             sys.exit(1)
 
@@ -320,15 +335,20 @@ def parseMapFields(mapFields, nameToIdx, accToId, inFieldIdx):
     return mapStrategy
 
 
-def getHgncId(row, mapStrategy, symToId, accToId):
+def getHgncId(
+    row: list[str],
+    mapStrategy: list[tuple[int, str]],
+    symToId: dict[str, str],
+    accToId: dict[str, dict[str, str]],
+) -> tuple[str | None, list[tuple[str, str, str]], list[str]]:
     "return hgnc ID given a row and a mapStrategy"
-    triedIds = []
-    triedSyms = []
+    triedIds: list[tuple[str, str, str]] = []
+    triedSyms: list[str] = []
     for fieldIdx, accType in mapStrategy:
         acc = row[fieldIdx]
         if "," in acc or "|" in acc or ";" in acc:
             print(acc)
-            print("found comma/pipe/semicolon in %s accession" % accType)
+            print(f"found comma/pipe/semicolon in {accType} accession")
             assert False
         triedIds.append(("field" + str(fieldIdx), accType, acc))
         if accType == "sym":
@@ -342,10 +362,10 @@ def getHgncId(row, mapStrategy, symToId, accToId):
     return None, triedIds, triedSyms
 
 
-def main():
+def main() -> None:
     args, options = parseArgs()
 
-    hgncFname = options.hgncFname
+    hgncFname: str = options.hgncFname
 
     inFname = args[0]
     outFname = args[1]
@@ -373,8 +393,8 @@ def main():
             # header line in input file
             headers = row
             logging.info(
-                "Treating %s as the header line. Fix file is this does not look like a header line!"
-                % row
+                "Treating %s as the header line. Fix file is this does not look like a header line!",
+                row,
             )
             nameToIdx = dict([(h, i) for i, h in enumerate(headers)])
             mapStrategy = parseMapFields(mapFields, nameToIdx, accToId, outFieldIdx)
@@ -385,8 +405,8 @@ def main():
         else:
             hgncId, triedIds, triedSyms = getHgncId(row, mapStrategy, symToId, accToId)
             if hgncId is None:
-                logging.debug("Not resolved: %s" % line.rstrip())
-                logging.debug("Tried accessions/symbols: %s" % repr(triedIds))
+                logging.debug("Not resolved: %s", line.rstrip())
+                logging.debug("Tried accessions/symbols: %s", repr(triedIds))
                 notFound.append(triedIds)
                 notFoundSyms.extend(triedSyms)
                 continue
@@ -412,7 +432,7 @@ def main():
 
     if len(notFound) != 0:
         logging.info(
-            "%d symbols not found: skipped %d lines as their symbol could not be resolved"
+            "%d symbols not found: skipped %d lines as their symbol could not be resolved",
             len(set(notFoundSyms)),
             len(notFound),
         )

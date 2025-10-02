@@ -1,32 +1,33 @@
 # extract significant target-gene pairs from LFC and qval matrices
 import gzip
+from typing import Dict, List, Optional
 
 
-def main():
-    lfcHeaders = None
-    lfcs = {}
+def main() -> None:
+    lfcHeaders: Optional[List[str]] = None
+    lfcs: Dict[str, List[str]] = {}
     for line in gzip.open("effects_astrocytes_LFCs.csv.gz", "rt"):
-        row = line.rstrip("\r\n").split(",")
+        lfcRow: List[str] = line.rstrip("\r\n").split(",")
         if lfcHeaders is None:
-            lfcHeaders = row
+            lfcHeaders = lfcRow
         else:
-            gene = row[0]
-            geneLfcs = row[1:]
+            gene: str = lfcRow[0]
+            geneLfcs: List[str] = lfcRow[1:]
             lfcs[gene] = geneLfcs
 
     print("#perturbGene\tgene\tLFC\tqVal")
-    headers = None
+    headers: Optional[List[str]] = None
     for line in gzip.open("effects_astrocytes_qvals.csv.gz", "rt"):
-        row = line.rstrip("\r\n").split(",")
+        qRow: List[str] = line.rstrip("\r\n").split(",")
         if headers is None:
-            headers = row
+            headers = qRow
             assert headers == lfcHeaders
         else:
-            gene = row[0]
-            qVals = [float(x) for x in row[1:]]
+            gene = qRow[0]
+            qVals: List[float] = [float(x) for x in qRow[1:]]
             for targetGene, qVal, lfc in zip(headers[1:], qVals, lfcs[gene]):
                 if qVal < 0.01:
-                    outRow = [targetGene, gene, str(lfc), str(qVal)]
+                    outRow: List[str] = [targetGene, gene, str(lfc), str(qVal)]
                     print("\t".join(outRow))
 
 
