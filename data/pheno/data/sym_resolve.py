@@ -2,13 +2,12 @@
 
 import logging, sys, optparse, gzip
 from collections import defaultdict
-from os.path import join, basename, dirname, isfile
 
-# ==== functions =====
-    
+
 def parseArgs():
-    " setup logging, parse command line arguments and options. -h shows auto-generated help page "
-    parser = optparse.OptionParser("""usage: %prog [options] -g hgncFile inputTsv outputTsv - convert human symbols to more stable HGNC identifiers.
+    "setup logging, parse command line arguments and options. -h shows auto-generated help page"
+    parser = optparse.OptionParser(
+        """usage: %prog [options] -g hgncFile inputTsv outputTsv - convert human symbols to more stable HGNC identifiers.
     Recognizes outdated or deprecrated symbols and gene names. Input file must have a header line.
     By default, assumes that the first field is the symbol and converts that field to a HGNC:ID.
 
@@ -16,29 +15,76 @@ def parseArgs():
        symResolve -g ../../hgnc_complete_set.txt brennan.tsv brennan.hgnc.tsv -m ensembl_id=ensembl -r brennan.dropped.txt 
        symResolve -m gene_id=ensembl schema.tsv schema.hgnc.tsv -r schema.dropped.tsv
        symResolve ../hgnc/hgnc_complete_set.txt sfari.tsv sfari.hgnc.tsv -f 1
-    """)
+    """
+    )
 
-    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
-    parser.add_option("-f", "--outField", dest="outField", action="store", help="Write HGNC to this field, default is first field. A number, 0-based.", default="0")
-    parser.add_option("-i", "--insert", dest="insert", action="store_true", help="Instead of replacing the value in field -f, insert a new column in front of it with the HGNC-ID")
-    parser.add_option("-r", "--removed", dest="removedFname", action="store", help="Write genes that were removed to this file")
-    parser.add_option("-m", "--mapFields", dest="mapFields", action="store", help="process this field from the input file, default is first field. If file has a header line, can be a comma-sep list of field names. Can have format <fieldName>=<idName>, with <idName> being one of the HGNC ID names, e.g. 'ensembl'."
-        "For each column, you can specify the content of the field, e.g. ens=ensembl,uip=uniprot,symbol=sym", default=None)
-    parser.add_option("-g", "--hgncInfo", dest="hgncFname", action="store", help="read hgnc_complete_set.txt from this file, default is %default. "
-            "Grab one with wget https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/hgnc_complete_set.txt",
-            default="/hive/data/outside/hgnc/current/hgnc_complete_set.txt")
-    parser.add_option("", "--mgi", dest="mgi", action="store", help="To map mouse symbols. Read HGNC_AllianceHomology.rpt from this file. "
-            "Get this file with wget https://www.informatics.jax.org/downloads/reports/HGNC_AllianceHomology.rpt. Use key 'mgiSym' in -m.")
-            #default="/hive/data/outside/mgi/HGNC_AllianceHomology.rpt")
- 
-    parser.add_option("", "--zfin", dest="zfin", action="store", help="To map zebrafish symbols. Read human-orthos.tsv. "
-            "Get this file with wget https://zfin.org/downloads/human_orthos.txt. Use key 'zfinSym' if using -m.")
-            #default="/hive/data/outside/zfin/human_orthos.txt")
-    #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
-    #parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
+    parser.add_option(
+        "-d", "--debug", dest="debug", action="store_true", help="show debug messages"
+    )
+    parser.add_option(
+        "-f",
+        "--outField",
+        dest="outField",
+        action="store",
+        help="Write HGNC to this field, default is first field. A number, 0-based.",
+        default="0",
+    )
+    parser.add_option(
+        "-i",
+        "--insert",
+        dest="insert",
+        action="store_true",
+        help="Instead of replacing the value in field -f, insert a new column in front of it with the HGNC-ID",
+    )
+    parser.add_option(
+        "-r",
+        "--removed",
+        dest="removedFname",
+        action="store",
+        help="Write genes that were removed to this file",
+    )
+    parser.add_option(
+        "-m",
+        "--mapFields",
+        dest="mapFields",
+        action="store",
+        help="process this field from the input file, default is first field. If file has a header line, can be a comma-sep list of field names. Can have format <fieldName>=<idName>, with <idName> being one of the HGNC ID names, e.g. 'ensembl'."
+        "For each column, you can specify the content of the field, e.g. ens=ensembl,uip=uniprot,symbol=sym",
+        default=None,
+    )
+    parser.add_option(
+        "-g",
+        "--hgncInfo",
+        dest="hgncFname",
+        action="store",
+        help="read hgnc_complete_set.txt from this file, default is %default. "
+        "Grab one with wget https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/hgnc_complete_set.txt",
+        default="/hive/data/outside/hgnc/current/hgnc_complete_set.txt",
+    )
+    parser.add_option(
+        "",
+        "--mgi",
+        dest="mgi",
+        action="store",
+        help="To map mouse symbols. Read HGNC_AllianceHomology.rpt from this file. "
+        "Get this file with wget https://www.informatics.jax.org/downloads/reports/HGNC_AllianceHomology.rpt. Use key 'mgiSym' in -m.",
+    )
+    # default="/hive/data/outside/mgi/HGNC_AllianceHomology.rpt")
+
+    parser.add_option(
+        "",
+        "--zfin",
+        dest="zfin",
+        action="store",
+        help="To map zebrafish symbols. Read human-orthos.tsv. "
+        "Get this file with wget https://zfin.org/downloads/human_orthos.txt. Use key 'zfinSym' if using -m.",
+    )
+    # default="/hive/data/outside/zfin/human_orthos.txt")
+    # parser.add_option("-f", "--file", dest="file", action="store", help="run on file")
+    # parser.add_option("", "--test", dest="test", action="store_true", help="do something")
     (options, args) = parser.parse_args()
 
-    if args==[]:
+    if args == []:
         parser.print_help()
         exit(1)
 
@@ -51,14 +97,15 @@ def parseArgs():
 
     return args, options
 
-def getSyms(row, indexMap, fieldNames):
-    " return list of syms from row "
-    syms = set()
+
+def getSyms(row: list[str], indexMap: dict[str, int], fieldNames: list[str]) -> set[str]:
+    "return list of syms from row"
+    syms: set[str] = set()
 
     for fieldName in fieldNames:
         fieldIdx = indexMap[fieldName]
         aliasStr = row[fieldIdx]
-        if aliasStr!="":
+        if aliasStr != "":
             aliasList = aliasStr.split("|")
             aliasList = [x.upper() for x in aliasList]
             for alSym in aliasList:
@@ -66,9 +113,10 @@ def getSyms(row, indexMap, fieldNames):
 
     return syms
 
-def addSyms(row, syms, fieldIdx):
+
+def addSyms(row: list[str], syms: set[str], fieldIdx: int) -> None:
     aliasStr = row[fieldIdx]
-    if aliasStr!="":
+    if aliasStr != "":
         aliasList = aliasStr.split("|")
         aliasList = [x.upper() for x in aliasList]
         for alSym in aliasList:
@@ -78,35 +126,37 @@ def addSyms(row, syms, fieldIdx):
             else:
                 syms.append(alSym)
 
-# ----------- main --------------
+
 accTypes = ["ensembl_gene_id", "entrez_id", "uniprot_ids"]
 accTypeNames = ["ensembl", "entrez", "uniprot"]
 
-def parseZfin(fname):
-    " parse zfin human_orthos.txt, return symbol -> HGNC-ID "
+
+def parseZfin(fname: str) -> dict[str, str]:
+    "parse zfin human_orthos.txt, return symbol -> HGNC-ID"
     # ZFIN has no headers!! The headers are on the website as:
-    # ZFIN ID	ZFIN Symbol	ZFIN Name	Human Symbol	Human Name	OMIM ID	Gene ID	HGNC ID	Evidence	Pub ID 
-    skipped = []
+    # ZFIN ID	ZFIN Symbol	ZFIN Name	Human Symbol	Human Name	OMIM ID	Gene ID	HGNC ID	Evidence	Pub ID
+    skipped: list[str] = []
     logging.info("Parsing %s" % fname)
     lines = openSplit(fname)
-    symToId = {}
+    symToId: dict[str, str] = {}
     for l in lines:
         row = l.split("\t")
         sym = row[1]
         hgncId = row[7]
-        if hgncId=="":
+        if hgncId == "":
             skipped.append(sym)
         symToId[hgncId] = sym
-    logging.info("No HGNC for these genes in zfin file: %s" % repr(skipped))
+    logging.info("No HGNC for these genes in zfin file: %s", repr(skipped))
     return symToId
 
+
 def parseMgi(fname):
-    " parse MGI HGNC_AllianceHomology.rpt file, return symbol -> HGNC-ID "
+    "parse MGI HGNC_AllianceHomology.rpt file, return symbol -> HGNC-ID"
     logging.info("Parsing %s" % fname)
     lines = openSplit(fname)
     headers = lines[0].split("\t")
-    assert(headers[-1]=="HGNC ID")
-    assert(headers[1]=="Marker Symbol")
+    assert headers[-1] == "HGNC ID"
+    assert headers[1] == "Marker Symbol"
     fieldIdx = dict([(h, i) for i, h in enumerate(headers)])
     symToId = {}
     hgncIdx = headers.index("HGNC ID")
@@ -118,13 +168,14 @@ def parseMgi(fname):
         mainSym = row[1]
         geneId = row[hgncIdx]
 
-        if geneId=="null":
+        if geneId == "null":
             continue
 
-        assert(mainSym not in symToId)
+        assert mainSym not in symToId
         symToId[mainSym] = geneId
 
     return symToId
+
 
 def openSplit(fname):
     if fname.endswith(".gz"):
@@ -134,14 +185,15 @@ def openSplit(fname):
     lines = fh.read().splitlines()
     return lines
 
+
 def parseHgnc(fname):
-    """ parse HGNC return two dictionaries with symbol -> HGNC ID and another dict with accession -> HGNC ID.
+    """parse HGNC return two dictionaries with symbol -> HGNC ID and another dict with accession -> HGNC ID.
     Make sure that these are unique, so remove all symbols and accessions that point to two HGNC IDs
     """
     logging.info("Parsing %s" % fname)
     lines = openSplit(fname)
     headers = lines[0].split("\t")
-    assert(headers[1]=="symbol")
+    assert headers[1] == "symbol"
     fieldIdx = dict([(h, i) for i, h in enumerate(headers)])
 
     symToId = {}
@@ -164,8 +216,8 @@ def parseHgnc(fname):
         for accType in accTypes:
             idx = fieldIdx[accType]
             acc = row[idx]
-            #print(accType, acc, geneId)
-            if acc=="":
+            # print(accType, acc, geneId)
+            if acc == "":
                 continue
             accDict = accToSym[accType]
 
@@ -188,14 +240,23 @@ def parseHgnc(fname):
                 altSymToId[alSym] = geneId
 
     logging.info("%d alt symbols are non-unique and cannot be used" % len(removeSyms))
-    logging.debug("The following alt symbols are non-unique and cannot be used: %s" % repr(removeSyms))
-    assert("ATP6C" in altSymToId)
+    logging.debug(
+        "The following alt symbols are non-unique and cannot be used: %s"
+        % repr(removeSyms)
+    )
+    assert "ATP6C" in altSymToId
     for rs in removeSyms:
         del altSymToId[rs]
 
     altsAreMains = set(altSymToId).intersection(symToId)
-    logging.info("%d alt symbols are identical to main symbols and are used as mains only" % len(altsAreMains))
-    logging.debug("The following alt symbols are identical to main symbols and cannot be used as alts anymore: %s" % repr(altsAreMains))
+    logging.info(
+        "%d alt symbols are identical to main symbols and are used as mains only"
+        % len(altsAreMains)
+    )
+    logging.debug(
+        "The following alt symbols are identical to main symbols and cannot be used as alts anymore: %s"
+        % repr(altsAreMains)
+    )
     for rs in altsAreMains:
         del altSymToId[rs]
 
@@ -212,15 +273,19 @@ def parseHgnc(fname):
             del newAccs[acc]
         newAccToSym[accType.split("_")[0]] = newAccs
 
-    logging.info("HGNC symbols: %d genes / main symbols, %d alternate unique symbols" % (len(symToId), len(altSymToId)))
+    logging.info(
+        "HGNC symbols: %d genes / main symbols, %d alternate unique symbols"
+        % (len(symToId), len(altSymToId))
+    )
     for accType, accDict in newAccToSym.items():
         logging.info("HGNC %s: %d accessions" % (accType, len(accDict)))
 
-    assert("ENSG00000204446" in newAccToSym["ensembl"])
+    assert "ENSG00000204446" in newAccToSym["ensembl"]
     return symToId, newAccToSym
 
+
 def findSolidSyms(syms):
-    " remove the weird symbols and return new list "
+    "remove the weird symbols and return new list"
     solidSyms = []
     for sym in syms:
         if not "orf" in sym and not "." in sym:
@@ -228,13 +293,14 @@ def findSolidSyms(syms):
 
     return solidSyms
 
+
 def parseMapFields(mapFields, nameToIdx, accToId, inFieldIdx):
-    " given a string with fieldName=accType,fieldName2=accType, etc, return a list of (fieldIdx,id) "
+    "given a string with fieldName=accType,fieldName2=accType, etc, return a list of (fieldIdx,id)"
     mapStrategy = []
     if mapFields is None:
         for name, index in nameToIdx.items():
-            if index==inFieldIdx:
-                mapFields = name+"=sym"
+            if index == inFieldIdx:
+                mapFields = name + "=sym"
                 break
 
     fields = mapFields.split(",")
@@ -243,15 +309,19 @@ def parseMapFields(mapFields, nameToIdx, accToId, inFieldIdx):
         if field not in nameToIdx:
             logging.error("%s is not a valid field name in the input file" % field)
             sys.exit(1)
-        if accType not in accToId and accType!="sym":
-            logging.error("%s is not 'sym' or a valid accession type. Valid types are: %s" % (accType, repr(accTypeNames)))
+        if accType not in accToId and accType != "sym":
+            logging.error(
+                "%s is not 'sym' or a valid accession type. Valid types are: %s"
+                % (accType, repr(accTypeNames))
+            )
             sys.exit(1)
 
         mapStrategy.append((nameToIdx[field], accType))
     return mapStrategy
 
+
 def getHgncId(row, mapStrategy, symToId, accToId):
-    " return hgnc ID given a row and a mapStrategy "
+    "return hgnc ID given a row and a mapStrategy"
     triedIds = []
     triedSyms = []
     for fieldIdx, accType in mapStrategy:
@@ -259,9 +329,9 @@ def getHgncId(row, mapStrategy, symToId, accToId):
         if "," in acc or "|" in acc or ";" in acc:
             print(acc)
             print("found comma/pipe/semicolon in %s accession" % accType)
-            assert(False)
-        triedIds.append(("field"+str(fieldIdx),accType,acc))
-        if accType=="sym":
+            assert False
+        triedIds.append(("field" + str(fieldIdx), accType, acc))
+        if accType == "sym":
             triedSyms.append(acc)
             if acc in symToId:
                 return symToId[acc], triedIds, triedSyms
@@ -270,6 +340,7 @@ def getHgncId(row, mapStrategy, symToId, accToId):
             if acc in accDict:
                 return accDict[acc], triedIds, triedSyms
     return None, triedIds, triedSyms
+
 
 def main():
     args, options = parseArgs()
@@ -293,15 +364,18 @@ def main():
 
     lineCount = 0
     duplCount = 0
-    notFound = []
-    notFoundSyms = []
+    notFound: list[list[str]] = []
+    notFoundSyms: list[str] = []
     nameToIdx = None
     for line in open(inFname, encoding="utf8"):
         row = line.rstrip("\n\r").split("\t")
         if nameToIdx is None:
             # header line in input file
             headers = row
-            logging.info("Treating %s as the header line. Fix file is this does not look like a header line!" % row)
+            logging.info(
+                "Treating %s as the header line. Fix file is this does not look like a header line!"
+                % row
+            )
             nameToIdx = dict([(h, i) for i, h in enumerate(headers)])
             mapStrategy = parseMapFields(mapFields, nameToIdx, accToId, outFieldIdx)
             if options.insert is not None:
@@ -329,27 +403,39 @@ def main():
                 row[outFieldIdx] = hid
                 ofh.write("\t".join(row))
                 ofh.write("\n")
-                lineCount+=1
-                duplCount +=1
+                lineCount += 1
+                duplCount += 1
         else:
             ofh.write("\t".join(row))
             ofh.write("\n")
-            lineCount+=1
+            lineCount += 1
 
-    if len(notFound)!=0:
-        logging.info("%d symbols not found: skipped %d lines as their symbol could not be resolved" % (len(set(notFoundSyms)), len(notFound)))
+    if len(notFound) != 0:
+        logging.info(
+            "%d symbols not found: skipped %d lines as their symbol could not be resolved"
+            len(set(notFoundSyms)),
+            len(notFound),
+        )
         logging.debug(repr(notFound))
         if options.removedFname:
             rmfh = open(options.removedFname, "w")
             for s in notFound:
                 rmfh.write("%s\n" % s[0][-1])
-            logging.info("Wrote missing genes to %s" % options.removedFname)
+            logging.info("Wrote missing genes to %s", options.removedFname)
 
-        if len(notFoundSyms)!=0:
+        if len(notFoundSyms) != 0:
             solidSyms = set(findSolidSyms(notFoundSyms))
-            logging.info("Of those, the following %d symbols are not BAC/Accession/Orf: %s" % (len(solidSyms), set(solidSyms)))
+            logging.info(
+                "Of those, the following %d symbols are not BAC/Accession/Orf: %s",
+                len(solidSyms),
+                set(solidSyms),
+            )
 
-    if duplCount !=0:
-        logging.info("%d lines in the input file had to be duplicated, as the gene mapping was 1:many" % duplCount)
+    if duplCount != 0:
+        logging.info(
+            "%d lines in the input file had to be duplicated, as the gene mapping was 1:many",
+            duplCount,
+        )
+
 
 main()
