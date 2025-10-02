@@ -1,56 +1,40 @@
-import { SearchBar } from "@/components/general/SearchBar";
-import {
-  SearchContextProvider,
-  useSearchContext,
-} from "@/context/SearchContext";
-import { GeneInformationComponent } from "@/components/gv/GeneInformation";
-import { VariantsList } from "@/components/gv/VariantsList";
-import { GetServerSideProps } from "next";
-import { queryToState, SearchPageProps } from "@/lib/queryToState";
 import Head from "next/head";
-import { Footer } from "@/components/general/Footer";
+import Link from "next/link";
 
-export const getServerSideProps: GetServerSideProps<SearchPageProps> = async (
-  context
-) => {
-  return { props: queryToState(context) };
-};
-
-const IndexContent = () => {
-  const searchContext = useSearchContext();
-  const selectedGene = searchContext.searchState.selectedGene;
-
+export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <SearchBar />
-      <div className="flex flex-1 min-h-0">
-        <div className="hidden md:flex md:w-1/3 lg:w-1/4">
-          <GeneInformationComponent selectedGene={selectedGene} />
-        </div>
-        <div className="flex-1 md:w-2/3 lg:w-3/4">
-          <VariantsList />
-        </div>
-      </div>
-      <Footer />
-    </div>
-  );
-};
-
-export default function Index({
-  initialGene,
-  initialVariant,
-  initialAssembly,
-}: SearchPageProps) {
-  return (
-    <SearchContextProvider
-      initialGene={initialGene}
-      initialVariant={initialVariant}
-      initialAssembly={initialAssembly}
-    >
+    <div style={{ padding: 12 }}>
       <Head>
-        <title>Varaico - Literature-Extracted Variants</title>
+        <title>SSPsyGene</title>
       </Head>
-      <IndexContent />
-    </SearchContextProvider>
+      <h1>SSPsyGene</h1>
+      <p>Welcome. Explore phenotype data:</p>
+      <ul>
+        <li>
+          <Link href="/pheno">Phenotypes Home</Link>
+        </li>
+        <li>
+          <Link href="/pheno/deg">
+            Mouse Perturb-Seq: Gene/Gene expression changes
+          </Link>
+        </li>
+        <li>
+          <Link href="/pheno/comp">
+            Mouse Perturb-Seq: Cell type composition changes
+          </Link>
+        </li>
+        <li>
+          <Link href="/pheno/sizes">Zebrafish brain region sizes</Link>
+        </li>
+        <li>
+          <Link href="/pheno/perturbFishAstr">
+            Perturb-Fish astrocyte expression changes
+          </Link>
+        </li>
+        <li>
+          <Link href="/pheno/all">Integrated assays</Link>
+        </li>
+      </ul>
+    </div>
   );
 }
