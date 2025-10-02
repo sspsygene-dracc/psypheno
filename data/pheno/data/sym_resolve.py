@@ -7,7 +7,7 @@ import gzip
 from collections import defaultdict
 
 
-def parseArgs() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:
     "setup logging, parse command line arguments and options. -h shows auto-generated help page"
     parser = argparse.ArgumentParser(
         """usage: %prog [options] -g hgncFile inputTsv outputTsv - 
@@ -29,7 +29,7 @@ def parseArgs() -> argparse.Namespace:
     parser.add_argument(
         "-f",
         "--outField",
-        dest="outField",
+        dest="out_field",
         action="store",
         help="Write HGNC to this field, default is first field. A number, 0-based.",
         default="0",
@@ -45,14 +45,14 @@ def parseArgs() -> argparse.Namespace:
     parser.add_argument(
         "-r",
         "--removed",
-        dest="removedFname",
+        dest="removed_fname",
         action="store",
         help="Write genes that were removed to this file",
     )
     parser.add_argument(
         "-m",
         "--mapFields",
-        dest="mapFields",
+        dest="map_fields",
         action="store",
         help=(
             "process this field from the input file, default is first field. "
@@ -67,7 +67,7 @@ def parseArgs() -> argparse.Namespace:
     parser.add_argument(
         "-g",
         "--hgncInfo",
-        dest="hgncFname",
+        dest="hgnc_fname",
         action="store",
         help="read hgnc_complete_set.txt from this file, default is %default. "
         "Grab one with wget "
@@ -84,7 +84,6 @@ def parseArgs() -> argparse.Namespace:
         "https://www.informatics.jax.org/downloads/reports/HGNC_AllianceHomology.rpt. "
         "Use key 'mgiSym' in -m.",
     )
-    # default="/hive/data/outside/mgi/HGNC_AllianceHomology.rpt")
 
     parser.add_argument(
         "",
@@ -95,14 +94,10 @@ def parseArgs() -> argparse.Namespace:
         "Get this file with wget "
         "https://zfin.org/downloads/human_orthos.txt. Use key 'zfinSym' if using -m.",
     )
-    # default="/hive/data/outside/zfin/human_orthos.txt")
-    # parser.add_option("-f", "--file", dest="file", action="store", help="run on file")
-    # parser.add_option("", "--test", dest="test", action="store_true", help="do something")
-    args = parser.parse_args()
+    parser.add_argument("in_fname", help="input TSV file name")
+    parser.add_argument("out_fname", help="output TSV file name")
 
-    if args == []:
-        parser.print_help()
-        exit(1)
+    args = parser.parse_args()
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -114,88 +109,86 @@ def parseArgs() -> argparse.Namespace:
     return args
 
 
-def getSyms(
-    row: list[str], indexMap: dict[str, int], fieldNames: list[str]
+def get_syms(
+    row: list[str], index_map: dict[str, int], field_names: list[str]
 ) -> set[str]:
     "return list of syms from row"
     syms: set[str] = set()
 
-    for fieldName in fieldNames:
-        fieldIdx = indexMap[fieldName]
-        aliasStr = row[fieldIdx]
-        if aliasStr != "":
-            aliasList = aliasStr.split("|")
-            aliasList = [x.upper() for x in aliasList]
-            for alSym in aliasList:
-                syms.add(alSym)
+    for field_name in field_names:
+        field_idx = index_map[field_name]
+        alias_str = row[field_idx]
+        if alias_str != "":
+            alias_list = alias_str.split("|")
+            alias_list = [x.upper() for x in alias_list]
+            for al_sym in alias_list:
+                syms.add(al_sym)
 
     return syms
 
 
-def addSyms(row: list[str], syms: list[str], fieldIdx: int) -> None:
-    aliasStr = row[fieldIdx]
-    if aliasStr != "":
-        aliasList = aliasStr.split("|")
-        aliasList = [x.upper() for x in aliasList]
-        for alSym in aliasList:
-            if alSym in syms:
-                logging.error("sym %s is already in the list", alSym)
+def add_syms(row: list[str], syms: list[str], field_idx: int) -> None:
+    alias_str = row[field_idx]
+    if alias_str != "":
+        alias_list = alias_str.split("|")
+        alias_list = [x.upper() for x in alias_list]
+        for al_sym in alias_list:
+            if al_sym in syms:
+                logging.error("sym %s is already in the list", al_sym)
                 sys.exit(1)
             else:
-                syms.append(alSym)
+                syms.append(al_sym)
 
 
-accTypes = ["ensembl_gene_id", "entrez_id", "uniprot_ids"]
-accTypeNames = ["ensembl", "entrez", "uniprot"]
+acc_types = ["ensembl_gene_id", "entrez_id", "uniprot_ids"]
+acc_type_names = ["ensembl", "entrez", "uniprot"]
 
 
-def parseZfin(fname: str) -> dict[str, str]:
+def parse_zfin(fname: str) -> dict[str, str]:
     "parse zfin human_orthos.txt, return symbol -> HGNC-ID"
-    # ZFIN has no headers!! The headers are on the website as:
-    # ZFIN ID	ZFIN Symbol	ZFIN Name	Human Symbol	Human Name	OMIM ID	Gene ID	HGNC ID	Evidence	Pub ID
     skipped: list[str] = []
     logging.info("Parsing %s", fname)
-    lines = openSplit(fname)
-    symToId: dict[str, str] = {}
+    lines = open_split(fname)
+    sym_to_id: dict[str, str] = {}
     for l in lines:
         row = l.split("\t")
         sym = row[1]
-        hgncId = row[7]
-        if hgncId == "":
+        hgnc_id = row[7]
+        if hgnc_id == "":
             skipped.append(sym)
-        symToId[hgncId] = sym
+        sym_to_id[hgnc_id] = sym
     logging.info("No HGNC for these genes in zfin file: %s", repr(skipped))
-    return symToId
+    return sym_to_id
 
 
-def parseMgi(fname: str) -> dict[str, str]:
+def parse_mgi(fname: str) -> dict[str, str]:
     "parse MGI HGNC_AllianceHomology.rpt file, return symbol -> HGNC-ID"
     logging.info("Parsing %s", fname)
-    lines = openSplit(fname)
+    lines = open_split(fname)
     headers: list[str] = lines[0].split("\t")
     assert headers[-1] == "HGNC ID"
     assert headers[1] == "Marker Symbol"
-    _fieldIdx: dict[str, int] = dict([(h, i) for i, h in enumerate(headers)])
-    symToId: dict[str, str] = {}
-    hgncIdx: int = headers.index("HGNC ID")
+    _field_idx: dict[str, int] = dict([(h, i) for i, h in enumerate(headers)])
+    sym_to_id: dict[str, str] = {}
+    hgnc_idx: int = headers.index("HGNC ID")
 
     for l in lines[1:]:
         row = l.split("\t")
         row = [x.strip('"') for x in row]
 
-        mainSym: str = row[1]
-        geneId: str = row[hgncIdx]
+        main_sym: str = row[1]
+        gene_id: str = row[hgnc_idx]
 
-        if geneId == "null":
+        if gene_id == "null":
             continue
 
-        assert mainSym not in symToId
-        symToId[mainSym] = geneId
+        assert main_sym not in sym_to_id
+        sym_to_id[main_sym] = gene_id
 
-    return symToId
+    return sym_to_id
 
 
-def openSplit(fname: str) -> list[str]:
+def open_split(fname: str) -> list[str]:
     if fname.endswith(".gz"):
         fh = gzip.open(fname, "rt")
     else:
@@ -204,212 +197,206 @@ def openSplit(fname: str) -> list[str]:
     return lines
 
 
-def parseHgnc(fname: str) -> tuple[dict[str, str], dict[str, dict[str, str]]]:
+def parse_hgnc(fname: str) -> tuple[dict[str, str], dict[str, dict[str, str]]]:
     """parse HGNC return two dictionaries with symbol -> HGNC ID
     and another dict with accession -> HGNC ID.
     Make sure that these are unique, so remove all symbols
     and accessions that point to two HGNC IDs
     """
     logging.info("Parsing %s", fname)
-    lines: list[str] = openSplit(fname)
+    lines: list[str] = open_split(fname)
     headers: list[str] = lines[0].split("\t")
     assert headers[1] == "symbol"
-    fieldIdx: dict[str, int] = dict([(h, i) for i, h in enumerate(headers)])
+    field_idx: dict[str, int] = dict([(h, i) for i, h in enumerate(headers)])
 
-    symToId: dict[str, str] = {}
-    altSymToId: dict[str, str] = {}
-    removeSyms: set[str] = set()
+    sym_to_id: dict[str, str] = {}
+    alt_sym_to_id: dict[str, str] = {}
+    remove_syms: set[str] = set()
 
-    accToSym: dict[str, dict[str, str]] = {}
-    for accType in accTypes:
-        accToSym[accType] = {}
-    remAccs: defaultdict[str, set[str]] = defaultdict(set)
+    acc_to_sym: dict[str, dict[str, str]] = {}
+    for acc_type in acc_types:
+        acc_to_sym[acc_type] = {}
+    rem_accs: defaultdict[str, set[str]] = defaultdict(set)
 
     for l in lines:
         row: list[str] = l.split("\t")
         row = [x.strip('"') for x in row]
 
-        geneId: str = row[0]
-        mainSym: str = row[1]
+        gene_id: str = row[0]
+        main_sym: str = row[1]
 
-        # grab all the accessions
-        for accType in accTypes:
-            idx: int = fieldIdx[accType]
+        for acc_type in acc_types:
+            idx: int = field_idx[acc_type]
             acc: str = row[idx]
-            # print(accType, acc, geneId)
             if acc == "":
                 continue
-            accDict: dict[str, str] = accToSym[accType]
+            acc_dict: dict[str, str] = acc_to_sym[acc_type]
 
             accs: list[str] = acc.split("|")
             for acc in accs:
-                if acc in accDict:
-                    remAccs[accType].add(acc)
-                accDict[acc] = geneId
+                if acc in acc_dict:
+                    rem_accs[acc_type].add(acc)
+                acc_dict[acc] = gene_id
 
-        # ... the main symbol
-        symToId[mainSym] = geneId
+        sym_to_id[main_sym] = gene_id
 
-        aliasList: set[str] = getSyms(
-            row, fieldIdx, ["alias_symbol", "prev_symbol", "prev_name"]
+        alias_list: set[str] = get_syms(
+            row, field_idx, ["alias_symbol", "prev_symbol", "prev_name"]
         )
 
-        # and the alternate symbols
-        for alSym in aliasList:
-            if alSym in altSymToId:
-                removeSyms.add(alSym)
+        for al_sym in alias_list:
+            if al_sym in alt_sym_to_id:
+                remove_syms.add(al_sym)
             else:
-                altSymToId[alSym] = geneId
+                alt_sym_to_id[al_sym] = gene_id
 
-    logging.info("%d alt symbols are non-unique and cannot be used", len(removeSyms))
+    logging.info("%d alt symbols are non-unique and cannot be used", len(remove_syms))
     logging.debug(
-        "The following alt symbols are non-unique and cannot be used: %s", removeSyms
+        "The following alt symbols are non-unique and cannot be used: %s", remove_syms
     )
-    assert "ATP6C" in altSymToId
-    for rs in removeSyms:
-        del altSymToId[rs]
+    assert "ATP6C" in alt_sym_to_id
+    for rs in remove_syms:
+        del alt_sym_to_id[rs]
 
-    altsAreMains: set[str] = set(altSymToId).intersection(symToId)
+    alts_are_mains: set[str] = set(alt_sym_to_id).intersection(sym_to_id)
     logging.info(
         "%d alt symbols are identical to main symbols and are used as mains only",
-        len(altsAreMains),
+        len(alts_are_mains),
     )
     logging.debug(
         (
             "The following alt symbols are identical to main symbols "
             "and cannot be used as alts anymore: %s"
         ),
-        altsAreMains,
+        alts_are_mains,
     )
-    for rs in altsAreMains:
-        del altSymToId[rs]
+    for rs in alts_are_mains:
+        del alt_sym_to_id[rs]
 
-    # now merge the alternates into the main symbols
-    symToId.update(altSymToId)
+    sym_to_id.update(alt_sym_to_id)
 
-    newAccToSym: dict[str, dict[str, str]] = {}
-    for accType in accTypes:
-        delAccs: set[str] = remAccs[accType]
-        logging.info("Removing %d non-unique %s-accessions", len(delAccs), accType)
-        logging.debug("Removing %s-accessions: %s", accType, repr(delAccs))
-        newAccs: dict[str, str] = accToSym[accType].copy()
-        for acc in delAccs:
-            del newAccs[acc]
-        newAccToSym[accType.split("_", maxsplit=1)[0]] = newAccs
+    new_acc_to_sym: dict[str, dict[str, str]] = {}
+    for acc_type in acc_types:
+        del_accs: set[str] = rem_accs[acc_type]
+        logging.info("Removing %d non-unique %s-accessions", len(del_accs), acc_type)
+        logging.debug("Removing %s-accessions: %s", acc_type, repr(del_accs))
+        new_accs: dict[str, str] = acc_to_sym[acc_type].copy()
+        for acc in del_accs:
+            del new_accs[acc]
+        new_acc_to_sym[acc_type.split("_", maxsplit=1)[0]] = new_accs
 
     logging.info(
         "HGNC symbols: %d genes / main symbols, %d alternate unique symbols",
-        len(symToId),
-        len(altSymToId),
+        len(sym_to_id),
+        len(alt_sym_to_id),
     )
-    for accType, accDict in newAccToSym.items():
-        logging.info("HGNC %s: %d accessions", accType, len(accDict))
+    for acc_type, acc_dict in new_acc_to_sym.items():
+        logging.info("HGNC %s: %d accessions", acc_type, len(acc_dict))
 
-    assert "ENSG00000204446" in newAccToSym["ensembl"]
-    return symToId, newAccToSym
+    assert "ENSG00000204446" in new_acc_to_sym["ensembl"]
+    return sym_to_id, new_acc_to_sym
 
 
-def findSolidSyms(syms: list[str]) -> list[str]:
+def find_solid_syms(syms: list[str]) -> list[str]:
     "remove the weird symbols and return new list"
-    solidSyms: list[str] = []
+    solid_syms: list[str] = []
     for sym in syms:
         if not "orf" in sym and not "." in sym:
-            solidSyms.append(sym)
+            solid_syms.append(sym)
 
-    return solidSyms
+    return solid_syms
 
 
-def parseMapFields(
-    mapFields: str | None,
-    nameToIdx: dict[str, int],
-    accToId: dict[str, dict[str, str]],
-    inFieldIdx: int,
+def parse_map_fields(
+    map_fields: str | None,
+    name_to_idx: dict[str, int],
+    acc_to_id: dict[str, dict[str, str]],
+    in_field_idx: int,
 ) -> list[tuple[int, str]]:
     "given a string with fieldName=accType,fieldName2=accType, etc, return a list of (fieldIdx,id)"
-    mapStrategy: list[tuple[int, str]] = []
-    if mapFields is None:
-        for name, index in nameToIdx.items():
-            if index == inFieldIdx:
-                mapFields = name + "=sym"
+    map_strategy: list[tuple[int, str]] = []
+    if map_fields is None:
+        for name, index in name_to_idx.items():
+            if index == in_field_idx:
+                map_fields = name + "=sym"
                 break
 
-    assert mapFields is not None
+    assert map_fields is not None
 
-    fields = mapFields.split(",")
-    for fieldAccType in fields:
-        field, accType = fieldAccType.split("=")
-        if field not in nameToIdx:
+    fields = map_fields.split(",")
+    for field_acc_type in fields:
+        field, acc_type = field_acc_type.split("=")
+        if field not in name_to_idx:
             logging.error("%s is not a valid field name in the input file", field)
             sys.exit(1)
-        if accType not in accToId and accType != "sym":
+        if acc_type not in acc_to_id and acc_type != "sym":
             logging.error(
                 "%s is not 'sym' or a valid accession type. Valid types are: %s",
-                accType,
-                repr(accTypeNames),
+                acc_type,
+                repr(acc_type_names),
             )
             sys.exit(1)
 
-        mapStrategy.append((nameToIdx[field], accType))
-    return mapStrategy
+        map_strategy.append((name_to_idx[field], acc_type))
+    return map_strategy
 
 
-def getHgncId(
+def get_hgnc_id(
     row: list[str],
-    mapStrategy: list[tuple[int, str]],
-    symToId: dict[str, str],
-    accToId: dict[str, dict[str, str]],
+    map_strategy: list[tuple[int, str]],
+    sym_to_id: dict[str, str],
+    acc_to_id: dict[str, dict[str, str]],
 ) -> tuple[str | None, list[tuple[str, str, str]], list[str]]:
     "return hgnc ID given a row and a mapStrategy"
-    triedIds: list[tuple[str, str, str]] = []
-    triedSyms: list[str] = []
-    for fieldIdx, accType in mapStrategy:
-        acc = row[fieldIdx]
+    tried_ids: list[tuple[str, str, str]] = []
+    tried_syms: list[str] = []
+    for field_idx, acc_type in map_strategy:
+        acc = row[field_idx]
         if "," in acc or "|" in acc or ";" in acc:
             print(acc)
-            print(f"found comma/pipe/semicolon in {accType} accession")
+            print(f"found comma/pipe/semicolon in {acc_type} accession")
             assert False
-        triedIds.append(("field" + str(fieldIdx), accType, acc))
-        if accType == "sym":
-            triedSyms.append(acc)
-            if acc in symToId:
-                return symToId[acc], triedIds, triedSyms
+        tried_ids.append(("field" + str(field_idx), acc_type, acc))
+        if acc_type == "sym":
+            tried_syms.append(acc)
+            if acc in sym_to_id:
+                return sym_to_id[acc], tried_ids, tried_syms
         else:
-            accDict = accToId[accType]
-            if acc in accDict:
-                return accDict[acc], triedIds, triedSyms
-    return None, triedIds, triedSyms
+            acc_dict = acc_to_id[acc_type]
+            if acc in acc_dict:
+                return acc_dict[acc], tried_ids, tried_syms
+    return None, tried_ids, tried_syms
 
 
 def main() -> None:
-    args = parseArgs()
+    args = parse_args()
 
-    hgncFname: str = args.hgncFname
+    hgnc_fname: str = args.hgnc_fname
 
-    inFname = args.inFname
-    outFname = args.outFname
+    in_fname = args.in_fname
+    out_fname = args.out_fname
     if args.mgi:
-        symToId = parseMgi(args.mgi)
-        accToId = {}
+        sym_to_id = parse_mgi(args.mgi)
+        acc_to_id = {}
     elif args.zfin:
-        symToId = parseZfin(args.zfin)
-        accToId = {}
+        sym_to_id = parse_zfin(args.zfin)
+        acc_to_id = {}
     else:
-        symToId, accToId = parseHgnc(hgncFname)
-    outFieldIdx = int(args.outField)
-    mapFields = args.mapFields
+        sym_to_id, acc_to_id = parse_hgnc(hgnc_fname)
+    out_field_idx = int(args.out_field)
+    map_fields = args.map_fields
 
-    ofh = open(outFname, "w")
+    ofh = open(out_fname, "w")
 
-    lineCount = 0
-    duplCount = 0
-    notFound: list[list[tuple[str, str, str]]] = []
-    notFoundSyms: list[str] = []
-    nameToIdx = None
-    mapStrategy: list[tuple[int, str]] | None = None
-    for line in open(inFname, encoding="utf8"):
+    line_count = 0
+    dupl_count = 0
+    not_found: list[list[tuple[str, str, str]]] = []
+    not_found_syms: list[str] = []
+    name_to_idx = None
+    map_strategy: list[tuple[int, str]] | None = None
+    for line in open(in_fname, encoding="utf8"):
         row = line.rstrip("\n\r").split("\t")
-        if nameToIdx is None:
-            # header line in input file
+        if name_to_idx is None:
             headers = row
             logging.info(
                 (
@@ -418,66 +405,69 @@ def main() -> None:
                 ),
                 row,
             )
-            nameToIdx = dict([(h, i) for i, h in enumerate(headers)])
-            mapStrategy = parseMapFields(mapFields, nameToIdx, accToId, outFieldIdx)
+            name_to_idx = dict([(h, i) for i, h in enumerate(headers)])
+            map_strategy = parse_map_fields(
+                map_fields, name_to_idx, acc_to_id, out_field_idx
+            )
             if args.insert is not None:
-                row.insert(outFieldIdx, "hgnc_id")
+                row.insert(out_field_idx, "hgnc_id")
             else:
-                row[outFieldIdx] = "hgnc_id"
+                row[out_field_idx] = "hgnc_id"
         else:
-            assert mapStrategy is not None
-            hgncId, triedIds, triedSyms = getHgncId(row, mapStrategy, symToId, accToId)
-            if hgncId is None:
+            assert map_strategy is not None
+            hgnc_id, tried_ids, tried_syms = get_hgnc_id(
+                row, map_strategy, sym_to_id, acc_to_id
+            )
+            if hgnc_id is None:
                 logging.debug("Not resolved: %s", line.rstrip())
-                logging.debug("Tried accessions/symbols: %s", repr(triedIds))
-                notFound.append(triedIds)
-                notFoundSyms.extend(triedSyms)
+                logging.debug("Tried accessions/symbols: %s", repr(tried_ids))
+                not_found.append(tried_ids)
+                not_found_syms.extend(tried_syms)
                 continue
             else:
                 if not args.insert:
-                    row[outFieldIdx] = hgncId
+                    row[out_field_idx] = hgnc_id
                 else:
-                    row.insert(outFieldIdx, hgncId)
+                    row.insert(out_field_idx, hgnc_id)
 
-        # duplicate the few rows with multiple HGNC IDs
-        if "|" in row[outFieldIdx]:
-            hgncIds = row[outFieldIdx].split("|")
-            for hid in hgncIds:
-                row[outFieldIdx] = hid
+        if "|" in row[out_field_idx]:
+            hgnc_ids = row[out_field_idx].split("|")
+            for hid in hgnc_ids:
+                row[out_field_idx] = hid
                 ofh.write("\t".join(row))
                 ofh.write("\n")
-                lineCount += 1
-                duplCount += 1
+                line_count += 1
+                dupl_count += 1
         else:
             ofh.write("\t".join(row))
             ofh.write("\n")
-            lineCount += 1
+            line_count += 1
 
-    if len(notFound) != 0:
+    if len(not_found) != 0:
         logging.info(
             "%d symbols not found: skipped %d lines as their symbol could not be resolved",
-            len(set(notFoundSyms)),
-            len(notFound),
+            len(set(not_found_syms)),
+            len(not_found),
         )
-        logging.debug(repr(notFound))
-        if args.removedFname:
-            rmfh = open(args.removedFname, "w")
-            for s in notFound:
+        logging.debug(repr(not_found))
+        if args.removed_fname:
+            rmfh = open(args.removed_fname, "w")
+            for s in not_found:
                 rmfh.write(f"{s[0][-1]}\n")
-            logging.info("Wrote missing genes to %s", args.removedFname)
+            logging.info("Wrote missing genes to %s", args.removed_fname)
 
-        if len(notFoundSyms) != 0:
-            solidSyms = set(findSolidSyms(notFoundSyms))
+        if len(not_found_syms) != 0:
+            solid_syms = set(find_solid_syms(not_found_syms))
             logging.info(
                 "Of those, the following %d symbols are not BAC/Accession/Orf: %s",
-                len(solidSyms),
-                set(solidSyms),
+                len(solid_syms),
+                set(solid_syms),
             )
 
-    if duplCount != 0:
+    if dupl_count != 0:
         logging.info(
             "%d lines in the input file had to be duplicated, as the gene mapping was 1:many",
-            duplCount,
+            dupl_count,
         )
 
 

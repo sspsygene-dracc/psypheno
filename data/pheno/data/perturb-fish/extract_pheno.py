@@ -1,34 +1,33 @@
 # extract significant target-gene pairs from LFC and qval matrices
 import gzip
-from typing import Dict, List, Optional
 
 
 def main() -> None:
-    lfcHeaders: Optional[List[str]] = None
-    lfcs: Dict[str, List[str]] = {}
+    lfc_headers: list[str] | None = None
+    lfcs: dict[str, list[str]] = {}
     for line in gzip.open("effects_astrocytes_LFCs.csv.gz", "rt"):
-        lfcRow: List[str] = line.rstrip("\r\n").split(",")
-        if lfcHeaders is None:
-            lfcHeaders = lfcRow
+        lfc_row: list[str] = line.rstrip("\r\n").split(",")
+        if lfc_headers is None:
+            lfc_headers = lfc_row
         else:
-            gene: str = lfcRow[0]
-            geneLfcs: List[str] = lfcRow[1:]
-            lfcs[gene] = geneLfcs
+            gene: str = lfc_row[0]
+            gene_lfcs: list[str] = lfc_row[1:]
+            lfcs[gene] = gene_lfcs
 
     print("#perturbGene\tgene\tLFC\tqVal")
-    headers: Optional[List[str]] = None
+    headers: list[str] | None = None
     for line in gzip.open("effects_astrocytes_qvals.csv.gz", "rt"):
-        qRow: List[str] = line.rstrip("\r\n").split(",")
+        q_row: list[str] = line.rstrip("\r\n").split(",")
         if headers is None:
-            headers = qRow
-            assert headers == lfcHeaders
+            headers = q_row
+            assert headers == lfc_headers
         else:
-            gene = qRow[0]
-            qVals: List[float] = [float(x) for x in qRow[1:]]
-            for targetGene, qVal, lfc in zip(headers[1:], qVals, lfcs[gene]):
-                if qVal < 0.01:
-                    outRow: List[str] = [targetGene, gene, str(lfc), str(qVal)]
-                    print("\t".join(outRow))
+            gene = q_row[0]
+            q_vals: list[float] = [float(x) for x in q_row[1:]]
+            for target_gene, q_val, lfc in zip(headers[1:], q_vals, lfcs[gene]):
+                if q_val < 0.01:
+                    out_row: list[str] = [target_gene, gene, str(lfc), str(q_val)]
+                    print("\t".join(out_row))
 
 
 if __name__ == "__main__":
