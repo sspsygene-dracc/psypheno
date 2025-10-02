@@ -16,9 +16,10 @@ def parseArgs() -> argparse.Namespace:
     By default, assumes that the first field is the symbol and converts that field to a HGNC:ID.
 
     Examples:
-symResolve -g ../../hgnc_complete_set.txt brennan.tsv brennan.hgnc.tsv -m ensembl_id=ensembl -r brennan.dropped.txt 
-symResolve -m gene_id=ensembl schema.tsv schema.hgnc.tsv -r schema.dropped.tsv
-symResolve ../hgnc/hgnc_complete_set.txt sfari.tsv sfari.hgnc.tsv -f 1
+        symResolve -g ../../hgnc_complete_set.txt brennan.tsv \
+            brennan.hgnc.tsv -m ensembl_id=ensembl -r brennan.dropped.txt 
+        symResolve -m gene_id=ensembl schema.tsv schema.hgnc.tsv -r schema.dropped.tsv
+        symResolve ../hgnc/hgnc_complete_set.txt sfari.tsv sfari.hgnc.tsv -f 1
     """
     )
 
@@ -411,7 +412,10 @@ def main() -> None:
             # header line in input file
             headers = row
             logging.info(
-                "Treating %s as the header line. Fix file is this does not look like a header line!",
+                (
+                    "Treating %s as the header line. "
+                    "Fix file is this does not look like a header line!"
+                ),
                 row,
             )
             nameToIdx = dict([(h, i) for i, h in enumerate(headers)])

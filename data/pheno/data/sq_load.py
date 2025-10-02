@@ -48,7 +48,8 @@ def parseArgs() -> argparse.Namespace:
         "--index",
         dest="index",
         action="store",
-        help="list of fields for which an index should be created, comma-separated list. By default only the first field is indexed.",
+        help="list of fields for which an index should be created, "
+        "comma-separated list. By default only the first field is indexed.",
     )
     parser.add_argument(
         "-t",
@@ -154,7 +155,6 @@ def checkDupl(rows: list[list[str]]) -> None:
 def loadRows(
     conn: sqlite3.Connection,
     table: str,
-    fields: list[str],
     rows: list[list[str]],
     loadFields: list[str],
     intFields: Optional[list[str]],
@@ -323,7 +323,7 @@ def main() -> None:
 
     useFields, rows = filterRows(fieldNames, rows, useFields)
 
-    loadRows(conn, table, fieldNames, rows, useFields, intFields, floatFields, noDupl)
+    loadRows(conn, table, rows, useFields, intFields, floatFields, noDupl)
 
     if indexFields is None:
         indexFields = [useFields[0]]  # index only first field by default
