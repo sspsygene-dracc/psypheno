@@ -1,112 +1,15 @@
 #!/usr/bin/env python3
 
+from dataclasses import dataclass
 import logging
+from pathlib import Path
 import sys
-import argparse
 import gzip
 from collections import defaultdict
+from typing import Literal
 
-
-def parse_args() -> argparse.Namespace:
-    "setup logging, parse command line arguments and options. -h shows auto-generated help page"
-    parser = argparse.ArgumentParser(
-        """usage: %prog [options] -g hgncFile inputTsv outputTsv - 
-    convert human symbols to more stable HGNC identifiers.
-    Recognizes outdated or deprecrated symbols and gene names. Input file must have a header line.
-    By default, assumes that the first field is the symbol and converts that field to a HGNC:ID.
-
-    Examples:
-        symResolve -g ../../hgnc_complete_set.txt brennan.tsv \
-            brennan.hgnc.tsv -m ensembl_id=ensembl -r brennan.dropped.txt 
-        symResolve -m gene_id=ensembl schema.tsv schema.hgnc.tsv -r schema.dropped.tsv
-        symResolve ../hgnc/hgnc_complete_set.txt sfari.tsv sfari.hgnc.tsv -f 1
-    """
-    )
-
-    parser.add_argument(
-        "-d", "--debug", dest="debug", action="store_true", help="show debug messages"
-    )
-    parser.add_argument(
-        "-f",
-        "--outField",
-        dest="out_field",
-        action="store",
-        help="Write HGNC to this field, default is first field. A number, 0-based.",
-        default="0",
-    )
-    parser.add_argument(
-        "-i",
-        "--insert",
-        dest="insert",
-        action="store_true",
-        help="Instead of replacing the value in field -f, "
-        "insert a new column in front of it with the HGNC-ID",
-    )
-    parser.add_argument(
-        "-r",
-        "--removed",
-        dest="removed_fname",
-        action="store",
-        help="Write genes that were removed to this file",
-    )
-    parser.add_argument(
-        "-m",
-        "--mapFields",
-        dest="map_fields",
-        action="store",
-        help=(
-            "process this field from the input file, default is first field. "
-            "If file has a header line, can be a comma-sep list of field names. "
-            "Can have format <fieldName>=<idName>, with <idName> "
-            "being one of the HGNC ID names, e.g. 'ensembl'."
-            "For each column, you can specify the content of the "
-            "field, e.g. ens=ensembl,uip=uniprot,symbol=sym"
-        ),
-        default=None,
-    )
-    parser.add_argument(
-        "-g",
-        "--hgncInfo",
-        dest="hgnc_fname",
-        action="store",
-        help="read hgnc_complete_set.txt from this file, default is %default. "
-        "Grab one with wget "
-        "https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/hgnc_complete_set.txt",
-        default="/hive/data/outside/hgnc/current/hgnc_complete_set.txt",
-    )
-    parser.add_argument(
-        "",
-        "--mgi",
-        dest="mgi",
-        action="store",
-        help="To map mouse symbols. Read HGNC_AllianceHomology.rpt from this file. "
-        "Get this file with wget "
-        "https://www.informatics.jax.org/downloads/reports/HGNC_AllianceHomology.rpt. "
-        "Use key 'mgiSym' in -m.",
-    )
-
-    parser.add_argument(
-        "",
-        "--zfin",
-        dest="zfin",
-        action="store",
-        help="To map zebrafish symbols. Read human-orthos.tsv. "
-        "Get this file with wget "
-        "https://zfin.org/downloads/human_orthos.txt. Use key 'zfinSym' if using -m.",
-    )
-    parser.add_argument("in_fname", help="input TSV file name")
-    parser.add_argument("out_fname", help="output TSV file name")
-
-    args = parser.parse_args()
-
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
-        logging.getLogger().setLevel(logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
-        logging.getLogger().setLevel(logging.INFO)
-
-    return args
+import pandas as pd
+from processing.config import get_config
 
 
 def get_syms(
@@ -144,7 +47,7 @@ acc_types = ["ensembl_gene_id", "entrez_id", "uniprot_ids"]
 acc_type_names = ["ensembl", "entrez", "uniprot"]
 
 
-def parse_zfin(fname: str) -> dict[str, str]:
+def parse_zfin(fname: Path) -> dict[str, str]:
     "parse zfin human_orthos.txt, return symbol -> HGNC-ID"
     skipped: list[str] = []
     logging.info("Parsing %s", fname)
@@ -161,7 +64,7 @@ def parse_zfin(fname: str) -> dict[str, str]:
     return sym_to_id
 
 
-def parse_mgi(fname: str) -> dict[str, str]:
+def parse_mgi(fname: Path) -> dict[str, str]:
     "parse MGI HGNC_AllianceHomology.rpt file, return symbol -> HGNC-ID"
     logging.info("Parsing %s", fname)
     lines = open_split(fname)
@@ -188,16 +91,23 @@ def parse_mgi(fname: str) -> dict[str, str]:
     return sym_to_id
 
 
-def open_split(fname: str) -> list[str]:
-    if fname.endswith(".gz"):
-        fh = gzip.open(fname, "rt")
+def open_split(fname: Path) -> list[str]:
+    if fname.name.endswith(".gz"):
+        with gzip.open(fname, "rt") as fh:
+            lines = fh.read().splitlines()
     else:
-        fh = open(fname)
-    lines = fh.read().splitlines()
+        with open(fname) as fh:
+            lines = fh.read().splitlines()
     return lines
 
 
-def parse_hgnc(fname: str) -> tuple[dict[str, str], dict[str, dict[str, str]]]:
+@dataclass
+class HgncData:
+    sym_to_id: dict[str, str]
+    new_acc_to_sym: dict[str, dict[str, str]]
+
+
+def parse_hgnc(fname: Path) -> HgncData:
     """parse HGNC return two dictionaries with symbol -> HGNC ID
     and another dict with accession -> HGNC ID.
     Make sure that these are unique, so remove all symbols
@@ -207,7 +117,7 @@ def parse_hgnc(fname: str) -> tuple[dict[str, str], dict[str, dict[str, str]]]:
     lines: list[str] = open_split(fname)
     headers: list[str] = lines[0].split("\t")
     assert headers[1] == "symbol"
-    field_idx: dict[str, int] = dict([(h, i) for i, h in enumerate(headers)])
+    field_idx: dict[str, int] = {h: i for i, h in enumerate(headers)}
 
     sym_to_id: dict[str, str] = {}
     alt_sym_to_id: dict[str, str] = {}
@@ -294,7 +204,7 @@ def parse_hgnc(fname: str) -> tuple[dict[str, str], dict[str, dict[str, str]]]:
         logging.info("HGNC %s: %d accessions", acc_type, len(acc_dict))
 
     assert "ENSG00000204446" in new_acc_to_sym["ensembl"]
-    return sym_to_id, new_acc_to_sym
+    return HgncData(sym_to_id=sym_to_id, new_acc_to_sym=new_acc_to_sym)
 
 
 def find_solid_syms(syms: list[str]) -> list[str]:
@@ -368,25 +278,22 @@ def get_hgnc_id(
     return None, tried_ids, tried_syms
 
 
-def main() -> None:
-    args = parse_args()
-
-    hgnc_fname: str = args.hgnc_fname
-
-    in_fname = args.in_fname
-    out_fname = args.out_fname
-    if args.mgi:
-        sym_to_id = parse_mgi(args.mgi)
+def add_hgnc_id(df: pd.DataFrame, species: Literal["mgi", "zfin", "hgnc"]) -> None:
+    hgnc_fname = get_config().gene_map_config.hgnc_file
+    if species == "mgi":
+        sym_to_id = parse_mgi(get_config().gene_map_config.mgi_file)
         acc_to_id = {}
-    elif args.zfin:
-        sym_to_id = parse_zfin(args.zfin)
+    elif species == "zfin":
+        sym_to_id = parse_zfin(get_config().gene_map_config.zfin_file)
         acc_to_id = {}
+    elif species == "hgnc":
+        hgnc_data = parse_hgnc(hgnc_fname)
+        sym_to_id = hgnc_data.sym_to_id
+        acc_to_id = hgnc_data.new_acc_to_sym
     else:
-        sym_to_id, acc_to_id = parse_hgnc(hgnc_fname)
+        raise ValueError(f"Invalid species: {species}")
     out_field_idx = int(args.out_field)
     map_fields = args.map_fields
-
-    ofh = open(out_fname, "w")
 
     line_count = 0
     dupl_count = 0
@@ -449,12 +356,7 @@ def main() -> None:
             len(set(not_found_syms)),
             len(not_found),
         )
-        logging.debug(repr(not_found))
-        if args.removed_fname:
-            rmfh = open(args.removed_fname, "w")
-            for s in not_found:
-                rmfh.write(f"{s[0][-1]}\n")
-            logging.info("Wrote missing genes to %s", args.removed_fname)
+        logging.debug(not_found)
 
         if len(not_found_syms) != 0:
             solid_syms = set(find_solid_syms(not_found_syms))
@@ -469,6 +371,3 @@ def main() -> None:
             "%d lines in the input file had to be duplicated, as the gene mapping was 1:many",
             dupl_count,
         )
-
-
-main()

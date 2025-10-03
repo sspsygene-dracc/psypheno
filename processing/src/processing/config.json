@@ -1,0 +1,8 @@
+{
+  "basedir": "/Users/jbirgmei/prog/sspsygene",
+  "gene_map_files": {
+    "mgi": "data/homology/MGI_HGNC_AllianceHomology.rpt",
+    "zfin": "data/homology/zfin_human_orthos.txt",
+    "hgnc": "data/homology/hgnc_complete_set.txt"
+  }
+}
