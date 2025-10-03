@@ -5,7 +5,8 @@ first database to add before mid-Nov 2025 is Psychencode differentially expresse
 - first step: the differentially expression genes: https://psychscreen.wenglab.org/psychscreen/single-cell/celltype/Oligodendrocyte%20Precursor%20Cells
 2) Then, add mouse phenotype data https://phenome.jax.org/projects/Kumar2
 3) Probably also add mouse phenotype text descriptions from https://www.informatics.jax.org/marker/MGI:1920635
-4) Add data from Bakken 2021 https://pubmed.ncbi.nlm.nih.gov/34616062/ (I forgot how exactly)
+4
+Add data from Bakken 2021 https://pubmed.ncbi.nlm.nih.gov/34616062/ (I forgot how exactly)
 
 All data should use the BICAN taxonomy for cell types, whenever cell types are referenced:
 1) BICAN taxonomy for motor-cortex: published, will find the link
