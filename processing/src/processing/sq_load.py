@@ -1,6 +1,8 @@
 import logging
 import sqlite3
 
+from processing.new_sqlite3 import NewSqlite3
+
 
 def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) -> None:
     for field in idx_fields:
