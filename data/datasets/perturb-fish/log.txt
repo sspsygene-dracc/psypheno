@@ -1,0 +1,6 @@
+python3 extractPheno.py > perturb-fish.tsv
+python3 extractPheno.py > perturbfish-astro.tsv
+../sqLoad ../../pheno.db perturbfish-astro.tsv --float LFC,qVal  -t perturbFishAstro
+../symResolve -g ../hgnc_complete_set.txt.gz perturbfish-astro.tsv perturbfish-astro.hgnc.tsv -i 
+../sqLoad ../../pheno.db perturbfish-astro.tsv --float LFC,qVal  -t perturbFishAstro
+../sqLoad ../../pheno.db perturbfish-astro.hgnc.tsv --float LFC,qVal  -t perturbFishAstro

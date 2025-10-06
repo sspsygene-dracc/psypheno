@@ -1,0 +1,6 @@
+less 1-s2.0-S2211124723002541-mmc5.txt | awk -F'\t' '{OFS="\t"; split($1, a, "_"); $1=a[1]"\t"$1; print}' > s2.tsv
+less 1-s2.0-S2211124723002541-mmc5.txt | awk -F'\t' '{OFS="\t"; split($1, a, "_"); $1=toupper(a[1])"\t"$1; print}' > s2.tsv
+mac2unix s2.tsv
+less 1-s2.0-S2211124723002541-mmc5.txt | awk -F'\t' '{OFS="\t"; split($1, a, "_"); $1=toupper(a[1])"\t"$1; print}' | sed -e 's/SCN1LAB/SCN1A/' > s2.tsv
+../symResolve s2.tsv -g ../hgnc_complete_set.txt -f 0 -i zebraAutism.tsv
+../symResolve s2.tsv -g ../hgnc_complete_set.txt -f 0 zebraAsdSizes.tsv
