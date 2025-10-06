@@ -1,7 +1,12 @@
 import logging
+from pathlib import Path
 import sqlite3
+from typing import Any, cast
+import pandas as pd
 
 from processing.new_sqlite3 import NewSqlite3
+from processing.split_column_entry import SplitColumnEntry
+from processing.table_to_process_config import TableToProcessConfig
 
 
 def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) -> None:
@@ -11,16 +16,56 @@ def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) 
         conn.execute(sql)
 
 
-def load_db(
-    table: str,
-    use_fields: list[str],
-    index_fields: list[str],
-    int_fields: list[str],
-    float_fields: list[str],
-    db_name: str,
-    in_fname: str,
-) -> None:
+def sql_friendly_columns(df: pd.DataFrame) -> pd.DataFrame:
+    df.columns = (
+        df.columns.str.lower()
+        .str.replace(r"[^a-z0-9_]", "_", regex=True)
+        .str.replace(r"_+", "_", regex=True)
+        .str.strip("_")
+    )
+    return df
+
+
+def split_column(
+    df: pd.DataFrame, source_col: str, new_col1: str, new_col2: str, sep: str
+) -> pd.DataFrame:
+    """
+    Split `source_col` into two new columns (`new_col1`, `new_col2`) by `sep`,
+    keeping the original column intact.
+    """
+    parts: Any = cast(
+        Any, df[source_col].astype("string").str.split(sep, n=1, expand=True)
+    )
+    df[new_col1] = parts[0]
+    df[new_col2] = parts[1]
+    return df
+
+
+def load_data(in_path: Path, split_column_map: list[SplitColumnEntry]) -> pd.DataFrame:
+    conversion_dict: dict[str, Any] = {
+        "convert_string": True,
+        "convert_integer": False,
+        "convert_boolean": False,
+        "convert_floating": False,
+    }
+    data = pd.read_csv(in_path, sep="\t").convert_dtypes(**conversion_dict)  # type: ignore
+    for entry in split_column_map:
+        data = split_column(
+            data,
+            source_col=entry.source_col,
+            new_col1=entry.new_col1,
+            new_col2=entry.new_col2,
+            sep=entry.sep,
+        )
+    data = sql_friendly_columns(data)
+    return data
+
+
+def load_db(db_name: Path, table_configs: list[TableToProcessConfig]) -> None:
     logger = logging.getLogger(__name__)
     with NewSqlite3(db_name, logger) as new_sqlite3:
-        load_rows(conn, table, rows, use_fields, int_fields, float_fields)
-        create_indexes(conn, table, index_fields)
+        conn = new_sqlite3.conn
+        for table_config in table_configs:
+            data = load_data(table_config.in_path, table_config.split_column_map)
+            data.to_sql(table_config.table, conn, if_exists="replace", index=False)
+            create_indexes(conn, table_config.table, table_config.index_fields)
