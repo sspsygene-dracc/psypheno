@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 # extract significant target-gene pairs from LFC and qval matrices
 import gzip
 
