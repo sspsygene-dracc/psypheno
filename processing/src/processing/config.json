@@ -45,6 +45,24 @@
       ],
       "index_fields": [],
       "entrez_conversions": []
+    },
+    {
+      "table": "perturb_fish_astro",
+      "in_path": "data/datasets/perturb-fish/perturbfish-astro.csv",
+      "split_column_map": [],
+      "index_fields": [],
+      "entrez_conversions": [
+        {
+          "column_name": "perturbGene",
+          "out_column_name": "perturbGene_entrez_id",
+          "species": "human"
+        },
+        {
+          "column_name": "gene",
+          "out_column_name": "gene_entrez_id",
+          "species": "human"
+        }
+      ]
     }
   ]
 }

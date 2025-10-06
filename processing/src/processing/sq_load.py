@@ -68,13 +68,17 @@ def load_data(
         assert (
             conversion.column_name in data.columns
         ), f"Column {conversion.column_name} not found in data columns {data.columns.tolist()}"
-        in_data: list[str] = data[conversion.column_name].tolist()
-        out_data: list[str] = [
-            ",".join(
-                str(x.entrez_id) for x in entrez_gene_maps[conversion.species][in_data]
+        in_column_list: list[str] = data[conversion.column_name].tolist()
+        out_data: list[str] = []
+        for elem in in_column_list:
+            assert (
+                elem in entrez_gene_maps[conversion.species]
+            ), f"Path {in_path}: gene {elem} not gene maps for species {conversion.species}"
+            out_data.append(
+                ",".join(
+                    str(x.entrez_id) for x in entrez_gene_maps[conversion.species][elem]
+                )
             )
-            for in_data in in_data
-        ]
         data[conversion.out_column_name] = out_data
     data = sql_friendly_columns(data)
     return data

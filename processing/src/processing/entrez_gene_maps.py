@@ -8,7 +8,7 @@ from processing.types.entrez_gene import EntrezGene
 @lru_cache(maxsize=1)
 def get_entrez_gene_maps() -> dict[str, dict[str, set[EntrezGene]]]:
     return {
-        "human": parse_hgnc(get_sspsygene_config().gene_map_config.hgnc_file),
-        "mouse": parse_mgi(get_sspsygene_config().gene_map_config.mgi_file),
-        "zebrafish": parse_zfin(get_sspsygene_config().gene_map_config.zfin_file),
+        "human": dict(parse_hgnc(get_sspsygene_config().gene_map_config.hgnc_file)),
+        "mouse": dict(parse_mgi(get_sspsygene_config().gene_map_config.mgi_file)),
+        "zebrafish": dict(parse_zfin(get_sspsygene_config().gene_map_config.zfin_file)),
     }

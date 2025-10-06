@@ -29,7 +29,7 @@ def parse_hgnc(fname: Path) -> dict[str, set[EntrezGene]]:
         no_entrez_id,
         no_entrez_id / total * 100,
     )
-    return rv
+    return dict(rv)
 
 
 def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
@@ -55,7 +55,7 @@ def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
         no_entrez_id,
         no_entrez_id / total * 100,
     )
-    return rv
+    return dict(rv)
 
 
 zfin_header = [
@@ -96,4 +96,4 @@ def parse_zfin(fname: Path) -> dict[str, set[EntrezGene]]:
         no_entrez_id,
         no_entrez_id / total * 100,
     )
-    return rv
+    return dict(rv)
