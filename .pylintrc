@@ -1,0 +1,21 @@
+[MESSAGES CONTROL]
+disable=missing-docstring,
+    missing-function-docstring,
+    missing-module-docstring,
+    missing-class-docstring,
+    consider-using-f-string,
+    unspecified-encoding,
+    broad-exception-caught,
+    global-statement,
+    broad-exception-raised,
+    assignment-from-no-return,
+    unsubscriptable-object,
+    no-name-in-module,
+    import-outside-toplevel,
+    line-too-long,
+    no-member,
+    redefined-outer-name,
+    import-error,
+    unused-argument,
+    unnecessary-pass
+notes=FIXME,XXX

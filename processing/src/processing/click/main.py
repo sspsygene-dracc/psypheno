@@ -5,6 +5,7 @@ import shutil
 import click
 
 from processing.click.full_help_group import FullHelpGroup
+from processing.config import get_config
 
 
 @click.group(
@@ -26,3 +27,13 @@ def cli(
         logging.basicConfig(filename=log_file, level=log_level)
     else:
         logging.basicConfig(level=log_level, stream=sys.stdout)
+
+
+@cli.command()
+def load_db() -> None:
+    """Load the database"""
+    from processing.sq_load import load_db
+
+    config = get_config()
+    config.out_db.parent.mkdir(parents=True, exist_ok=True)
+    load_db(config.out_db, config.tables_config.tables)

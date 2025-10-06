@@ -28,8 +28,10 @@ class Config:
     def __init__(self, config_json_file: Path):
         with open(config_json_file, "r") as f:
             config = json.load(f)
-        self.base_dir = Path(config["basedir"])
+        self.base_dir: Path = Path(config["basedir"])
+        self.out_db: Path = self.base_dir / config["out_db"]
         self.gene_map_config = GeneMapConfig(self.base_dir, config["gene_map_files"])
+        self.tables_config = TablesConfig(config["tables"])
 
 
 @lru_cache(maxsize=1)
