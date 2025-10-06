@@ -5,7 +5,7 @@ import shutil
 import click
 
 from processing.click.full_help_group import FullHelpGroup
-from processing.config import get_config
+from processing.config import get_sspsygene_config
 
 
 @click.group(
@@ -34,6 +34,6 @@ def load_db() -> None:
     """Load the database"""
     from processing.sq_load import load_db
 
-    config = get_config()
+    config = get_sspsygene_config()
     config.out_db.parent.mkdir(parents=True, exist_ok=True)
     load_db(config.out_db, config.tables_config.tables)

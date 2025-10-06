@@ -65,9 +65,14 @@ def load_data(
         )
     entrez_gene_maps = get_entrez_gene_maps()
     for conversion in entrez_conversions:
+        assert (
+            conversion.column_name in data.columns
+        ), f"Column {conversion.column_name} not found in data columns {data.columns.tolist()}"
         in_data: list[str] = data[conversion.column_name].tolist()
-        out_data: list[int] = [
-            entrez_gene_maps[conversion.species][in_data].entrez_id
+        out_data: list[str] = [
+            ",".join(
+                str(x.entrez_id) for x in entrez_gene_maps[conversion.species][in_data]
+            )
             for in_data in in_data
         ]
         data[conversion.out_column_name] = out_data

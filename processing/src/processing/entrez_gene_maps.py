@@ -1,23 +1,14 @@
 from functools import lru_cache
 
-from processing.config import get_config
+from processing.config import get_sspsygene_config
 from processing.sym_resolve import parse_hgnc, parse_mgi, parse_zfin
 from processing.types.entrez_gene import EntrezGene
 
 
 @lru_cache(maxsize=1)
-def get_entrez_gene_maps() -> dict[str, dict[str, EntrezGene]]:
+def get_entrez_gene_maps() -> dict[str, dict[str, set[EntrezGene]]]:
     return {
-        "human": parse_hgnc(
-            get_config().base_dir / "data" / "homology" / "hgnc_complete_set.txt"
-        ),
-        "mouse": parse_mgi(
-            get_config().base_dir
-            / "data"
-            / "homology"
-            / "MGI_HGNC_AllianceHomology.rpt"
-        ),
-        "zebrafish": parse_zfin(
-            get_config().base_dir / "data" / "homology" / "zfin_human_orthos.txt"
-        ),
+        "human": parse_hgnc(get_sspsygene_config().gene_map_config.hgnc_file),
+        "mouse": parse_mgi(get_sspsygene_config().gene_map_config.mgi_file),
+        "zebrafish": parse_zfin(get_sspsygene_config().gene_map_config.zfin_file),
     }

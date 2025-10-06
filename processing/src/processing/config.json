@@ -2,8 +2,8 @@
   "basedir": "/Users/jbirgmei/prog/sspsygene",
   "out_db": "data/db/sspsygene.db",
   "gene_map_files": {
-    "mgi": "data/homology/MGI_HGNC_AllianceHomology.rpt",
-    "zfin": "data/homology/zfin_human_orthos.txt",
+    "mgi": "data/homology/HGNC_AllianceHomology.rpt",
+    "zfin": "data/homology/human_orthos.txt",
     "hgnc": "data/homology/hgnc_complete_set.txt"
   },
   "tables": [
@@ -21,7 +21,7 @@
       "index_fields": [],
       "entrez_conversions": [
         {
-          "column_name": "gene",
+          "column_name": "Gene",
           "out_column_name": "gene_entrez_id",
           "species": "mouse"
         },

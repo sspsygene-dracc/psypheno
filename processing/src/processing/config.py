@@ -35,5 +35,5 @@ class Config:
 
 
 @lru_cache(maxsize=1)
-def get_config() -> Config:
+def get_sspsygene_config() -> Config:
     return Config(Path(os.environ["SSPSYGENE_CONFIG_JSON"]))
