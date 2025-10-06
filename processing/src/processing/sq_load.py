@@ -1,10 +1,9 @@
 import logging
 from pathlib import Path
 import sqlite3
-from typing import Any, cast
+from typing import Any
 import pandas as pd
 
-from processing.entrez_gene_maps import get_entrez_gene_maps
 from processing.new_sqlite3 import NewSqlite3
 from processing.types.entrez_conversion import EntrezConversion
 from processing.types.split_column_entry import SplitColumnEntry
@@ -28,21 +27,6 @@ def sql_friendly_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def split_column(
-    df: pd.DataFrame, source_col: str, new_col1: str, new_col2: str, sep: str
-) -> pd.DataFrame:
-    """
-    Split `source_col` into two new columns (`new_col1`, `new_col2`) by `sep`,
-    keeping the original column intact.
-    """
-    parts: Any = cast(
-        Any, df[source_col].astype("string").str.split(sep, n=1, expand=True)
-    )
-    df[new_col1] = parts[0]
-    df[new_col2] = parts[1]
-    return df
-
-
 def load_data(
     in_path: Path,
     split_column_map: list[SplitColumnEntry],
@@ -56,30 +40,9 @@ def load_data(
     }
     data = pd.read_csv(in_path, sep="\t").convert_dtypes(**conversion_dict)  # type: ignore
     for entry in split_column_map:
-        data = split_column(
-            data,
-            source_col=entry.source_col,
-            new_col1=entry.new_col1,
-            new_col2=entry.new_col2,
-            sep=entry.sep,
-        )
-    entrez_gene_maps = get_entrez_gene_maps()
+        entry.split_column(data)
     for conversion in entrez_conversions:
-        assert (
-            conversion.column_name in data.columns
-        ), f"Column {conversion.column_name} not found in data columns {data.columns.tolist()}"
-        in_column_list: list[str] = data[conversion.column_name].tolist()
-        out_data: list[str] = []
-        for elem in in_column_list:
-            assert (
-                elem in entrez_gene_maps[conversion.species]
-            ), f"Path {in_path}: gene {elem} not gene maps for species {conversion.species}"
-            out_data.append(
-                ",".join(
-                    str(x.entrez_id) for x in entrez_gene_maps[conversion.species][elem]
-                )
-            )
-        data[conversion.out_column_name] = out_data
+        conversion.resolve_entrez_genes(data, in_path)
     data = sql_friendly_columns(data)
     return data
 
