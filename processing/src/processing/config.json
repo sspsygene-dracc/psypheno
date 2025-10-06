@@ -4,5 +4,46 @@
     "mgi": "data/homology/MGI_HGNC_AllianceHomology.rpt",
     "zfin": "data/homology/zfin_human_orthos.txt",
     "hgnc": "data/homology/hgnc_complete_set.txt"
-  }
+  },
+  "tables": [
+    {
+      "table": "mouse_perturb_deg",
+      "in_path": "data/pheno/data/mouse-perturb-4tf/deg.txt",
+      "split_column_map": [
+        {
+          "source_col": "perturbation",
+          "new_col1": "_perturbation_gene",
+          "new_col2": "_perturbation_gene_idx",
+          "sep": "_"
+        }
+      ],
+      "index_fields": [],
+      "entrez_conversions": [
+        {
+          "column_name": "gene",
+          "out_column_name": "gene_entrez_id",
+          "species": "mouse"
+        },
+        {
+          "column_name": "_perturbation_gene",
+          "out_column_name": "_perturbation_gene_entrez_id",
+          "species": "mouse"
+        }
+      ]
+    },
+    {
+      "table": "mouse_perturb_clusterprop",
+      "in_path": "data/pheno/data/mouse-perturb-4tf/clusterprop.txt",
+      "split_column_map": [
+        {
+          "source_col": "guide",
+          "new_col1": "_guide_gene",
+          "new_col2": "_guide_gene_idx",
+          "sep": "_"
+        }
+      ],
+      "index_fields": [],
+      "entrez_conversions": []
+    }
+  ]
 }

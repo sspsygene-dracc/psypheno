@@ -4,6 +4,7 @@ import sqlite3
 from typing import Any, cast
 import pandas as pd
 
+from processing.entrez_gene_maps import get_entrez_gene_maps
 from processing.new_sqlite3 import NewSqlite3
 from processing.types.entrez_conversion import EntrezConversion
 from processing.types.split_column_entry import SplitColumnEntry
@@ -62,6 +63,14 @@ def load_data(
             new_col2=entry.new_col2,
             sep=entry.sep,
         )
+    entrez_gene_maps = get_entrez_gene_maps()
+    for conversion in entrez_conversions:
+        in_data: list[str] = data[conversion.column_name].tolist()
+        out_data: list[int] = [
+            entrez_gene_maps[conversion.species][in_data].entrez_id
+            for in_data in in_data
+        ]
+        data[conversion.out_column_name] = out_data
     data = sql_friendly_columns(data)
     return data
 

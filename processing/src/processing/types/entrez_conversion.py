@@ -6,6 +6,7 @@ from typing import Literal
 class EntrezConversion:
     column_name: str
     species: Literal["human", "mouse", "zebrafish"]
+    out_column_name: str
 
     def __post_init__(self):
         if self.species not in ["human", "mouse", "zebrafish"]:

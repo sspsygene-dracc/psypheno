@@ -2,6 +2,7 @@ from functools import lru_cache
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 
 class GeneMapConfig:
@@ -10,6 +11,11 @@ class GeneMapConfig:
         self.hgnc_file = self.super_base_dir / gene_map_config["hgnc"]
         self.mgi_file = self.super_base_dir / gene_map_config["mgi"]
         self.zfin_file = self.super_base_dir / gene_map_config["zfin"]
+
+
+class TablesConfig:
+    def __init__(self, tables_config: list[dict[str, Any]]):
+        self.tables_config = tables_config
 
 
 class Config:
