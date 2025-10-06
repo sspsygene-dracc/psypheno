@@ -16,7 +16,7 @@ def main() -> None:
             gene_lfcs: list[str] = lfc_row[1:]
             lfcs[gene] = gene_lfcs
 
-    print("#perturbGene\tgene\tLFC\tqVal")
+    print("perturbGene,gene,LFC,qVal")
     headers: list[str] | None = None
     for line in gzip.open("effects_astrocytes_qvals.csv.gz", "rt"):
         q_row: list[str] = line.rstrip("\r\n").split(",")
@@ -29,7 +29,7 @@ def main() -> None:
             for target_gene, q_val, lfc in zip(headers[1:], q_vals, lfcs[gene]):
                 if q_val < 0.01:
                     out_row: list[str] = [target_gene, gene, str(lfc), str(q_val)]
-                    print("\t".join(out_row))
+                    print(",".join(out_row))
 
 
 if __name__ == "__main__":
