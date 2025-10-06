@@ -41,7 +41,11 @@ def split_column(
     return df
 
 
-def load_data(in_path: Path, split_column_map: list[SplitColumnEntry]) -> pd.DataFrame:
+def load_data(
+    in_path: Path,
+    split_column_map: list[SplitColumnEntry],
+    entrez_conversions: list[EntrezConversion],
+) -> pd.DataFrame:
     conversion_dict: dict[str, Any] = {
         "convert_string": True,
         "convert_integer": False,
