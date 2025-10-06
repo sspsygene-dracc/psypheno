@@ -5,8 +5,9 @@ from typing import Any, cast
 import pandas as pd
 
 from processing.new_sqlite3 import NewSqlite3
-from processing.split_column_entry import SplitColumnEntry
-from processing.table_to_process_config import TableToProcessConfig
+from processing.types.entrez_conversion import EntrezConversion
+from processing.types.split_column_entry import SplitColumnEntry
+from processing.types.table_to_process_config import TableToProcessConfig
 
 
 def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) -> None:
@@ -70,6 +71,10 @@ def load_db(db_name: Path, table_configs: list[TableToProcessConfig]) -> None:
     with NewSqlite3(db_name, logger) as new_sqlite3:
         conn = new_sqlite3.conn
         for table_config in table_configs:
-            data = load_data(table_config.in_path, table_config.split_column_map)
+            data = load_data(
+                table_config.in_path,
+                table_config.split_column_map,
+                table_config.entrez_conversions,
+            )
             data.to_sql(table_config.table, conn, if_exists="replace", index=False)
             create_indexes(conn, table_config.table, table_config.index_fields)

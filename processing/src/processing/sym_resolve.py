@@ -1,6 +1,7 @@
 import csv
 from pathlib import Path
-from processing.entrez_gene import EntrezGene
+
+from processing.types.entrez_gene import EntrezGene
 
 
 def parse_hgnc(fname: Path) -> dict[str, EntrezGene]:
