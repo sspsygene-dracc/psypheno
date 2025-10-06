@@ -8,7 +8,7 @@
   "tables": [
     {
       "table": "mouse_perturb_deg",
-      "in_path": "data/pheno/data/mouse-perturb-4tf/deg.txt",
+      "in_path": "data/datasets/mouse-perturb-4tf/deg.txt",
       "split_column_map": [
         {
           "source_col": "perturbation",
@@ -33,7 +33,7 @@
     },
     {
       "table": "mouse_perturb_clusterprop",
-      "in_path": "data/pheno/data/mouse-perturb-4tf/clusterprop.txt",
+      "in_path": "data/datasets/mouse-perturb-4tf/clusterprop.txt",
       "split_column_map": [
         {
           "source_col": "guide",
