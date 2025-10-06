@@ -15,7 +15,13 @@ class GeneMapConfig:
 
 class TablesConfig:
     def __init__(self, tables_config: list[dict[str, Any]]):
-        self.tables_config = tables_config
+        # pylint: disable=import-outside-toplevel
+        from processing.types.table_to_process_config import TableToProcessConfig
+
+        self.tables = [
+            TableToProcessConfig.from_json(table_config)
+            for table_config in tables_config
+        ]
 
 
 class Config:
