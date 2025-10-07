@@ -4,6 +4,7 @@ import sqlite3
 from typing import Any
 import pandas as pd
 
+from processing.entrez_gene_maps import get_entrez_gene_maps
 from processing.new_sqlite3 import NewSqlite3
 from processing.types.entrez_conversion import EntrezConversion
 from processing.types.split_column_entry import SplitColumnEntry
@@ -59,3 +60,27 @@ def load_db(db_name: Path, table_configs: list[TableToProcessConfig]) -> None:
             )
             data.to_sql(table_config.table, conn, if_exists="replace", index=False)
             create_indexes(conn, table_config.table, table_config.index_fields)
+
+        entrez_conversions = get_entrez_gene_maps()
+        cur = conn.cursor()
+        for species, entrez_gene_map in entrez_conversions.items():
+            # create table:
+            cur.execute(
+                f"""CREATE TABLE {species}_entrez_gene (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                symbol TEXT,
+                entrez_id INTEGER)"""
+            )
+            for symbol, entrez_genes in entrez_gene_map.items():
+                for entrez_gene in entrez_genes:
+                    cur.execute(
+                        f"""INSERT INTO {species}_entrez_gene (symbol, entrez_id) VALUES (?, ?)""",
+                        (symbol, entrez_gene.entrez_id),
+                    )
+            cur.execute(
+                f"CREATE INDEX {species}_entrez_gene_symbol_idx ON {species}_entrez_gene (symbol)"
+            )
+            cur.execute(
+                f"CREATE INDEX {species}_entrez_gene_entrez_id_idx ON {species}_entrez_gene (entrez_id)"
+            )
+        conn.commit()
