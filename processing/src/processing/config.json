@@ -45,7 +45,14 @@
         }
       ],
       "index_fields": [],
-      "entrez_conversions": []
+      "entrez_conversions": [
+        {
+          "column_name": "_guide_gene",
+          "out_column_name": "_guide_gene_entrez_id",
+          "species": "mouse",
+          "ignore_missing": ["NonTarget1", "SafeTarget", "GFP"]
+        }
+      ]
     },
     {
       "table": "perturb_fish_astro",

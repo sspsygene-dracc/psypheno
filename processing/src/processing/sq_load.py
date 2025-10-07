@@ -19,8 +19,8 @@ def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) 
         conn.execute(sql)
 
 
-def make_columns_sql_friendly(df: pd.DataFrame) -> None:
-    df.columns = (
+def get_sql_friendly_columns(df: pd.DataFrame) -> list[str]:
+    return list(
         df.columns.str.lower()
         .str.replace(r"[^a-z0-9_]", "_", regex=True)
         .str.replace(r"_+", "_", regex=True)
@@ -48,8 +48,7 @@ def load_data(
         "convert_floating": False,
     }
     data = pd.read_csv(in_path, sep="\t").convert_dtypes(**conversion_dict)
-    make_columns_sql_friendly(data)
-    display_columns = data.columns.tolist()
+    display_columns = get_sql_friendly_columns(data)
     split_column_names: list[str] = [x.source_col for x in split_columns]
     for split_column in split_columns:
         split_column.split_column(data)
@@ -63,9 +62,11 @@ def load_data(
         x for x in display_columns if x not in set(split_column_names + gene_columns)
     ]
     species_set: set[Literal["human", "mouse", "zebrafish"]] = set(species_list)
-    assert len(species_set) == 1, "Multiple species in the same table"
+    assert len(species_set) == 1, "No or multiple species in the same table: " + str(
+        species_list
+    )
     species = species_set.pop()
-    make_columns_sql_friendly(data)
+    data.columns = get_sql_friendly_columns(data)
     return DataLoadResult(
         data=data,
         gene_columns=gene_columns,
@@ -108,7 +109,7 @@ def load_data_tables(
     cur.execute(
         """CREATE TABLE data_tables (
         id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        table TEXT,
+        table_name TEXT,
         gene_columns TEXT,
         gene_species TEXT,
         display_columns TEXT,
@@ -126,7 +127,7 @@ def load_data_tables(
         create_indexes(conn, table_config.table, table_config.index_fields)
         cur.execute(
             """INSERT INTO data_tables (
-            table, gene_columns, gene_species, display_columns, scalar_columns)
+            table_name, gene_columns, gene_species, display_columns, scalar_columns)
             VALUES (?, ?, ?, ?, ?)""",
             (
                 table_config.table,
@@ -136,7 +137,7 @@ def load_data_tables(
                 ",".join(data_and_meta.scalar_columns),
             ),
         )
-    cur.execute("CREATE INDEX data_tables_table_idx ON data_tables (table)")
+    cur.execute("CREATE INDEX data_tables_table_idx ON data_tables (table_name)")
     cur.execute(
         "CREATE INDEX data_tables_gene_species_idx ON data_tables (gene_species)"
     )
@@ -145,6 +146,12 @@ def load_data_tables(
 
 def load_db(db_name: Path, table_configs: list[TableToProcessConfig]) -> None:
     logger = logging.getLogger(__name__)
+    db_name.parent.mkdir(parents=True, exist_ok=True)
+    db_wal = db_name.parent / (db_name.name + "-wal")
+    db_wal.unlink(missing_ok=True)
+    db_shm = db_name.parent / (db_name.name + "-shm")
+    db_shm.unlink(missing_ok=True)
+    db_name.unlink(missing_ok=True)
     with NewSqlite3(db_name, logger) as new_sqlite3:
         conn = new_sqlite3.conn
         load_data_tables(conn, table_configs)
