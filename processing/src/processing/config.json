@@ -22,7 +22,7 @@
       "entrez_conversions": [
         {
           "column_name": "Gene",
-          "out_column_name": "gene_entrez_id",
+          "out_column_name": "_gene_entrez_id",
           "species": "mouse"
         },
         {
@@ -62,14 +62,14 @@
       "entrez_conversions": [
         {
           "column_name": "perturbGene",
-          "out_column_name": "perturbGene_entrez_id",
+          "out_column_name": "_perturbGene_entrez_id",
           "comment": "this zebrafish dataset seems to list human gene names",
           "species": "human",
           "ignore_missing": ["Control_ST"]
         },
         {
           "column_name": "gene",
-          "out_column_name": "gene_entrez_id",
+          "out_column_name": "_gene_entrez_id",
           "comment": "this zebrafish dataset seems to list human gene names",
           "species": "human"
         }

@@ -49,24 +49,26 @@ def load_data(
     }
     data = pd.read_csv(in_path, sep="\t").convert_dtypes(**conversion_dict)
     display_columns = get_sql_friendly_columns(data)
-    split_column_names: list[str] = [x.source_col for x in split_columns]
     for split_column in split_columns:
         split_column.split_column(data)
     species_list: list[Literal["human", "mouse", "zebrafish"]] = []
     gene_columns: list[str] = []
     for conversion in entrez_conversions:
-        gene_columns.append(conversion.column_name)
+        gene_columns.append(conversion.column_name.lower())
+        gene_columns.append(conversion.out_column_name.lower())
         species_list.append(conversion.species)
         conversion.resolve_entrez_genes(data, in_path)
-    scalar_columns: list[str] = [
-        x for x in display_columns if x not in set(split_column_names + gene_columns)
-    ]
     species_set: set[Literal["human", "mouse", "zebrafish"]] = set(species_list)
     assert len(species_set) == 1, "No or multiple species in the same table: " + str(
         species_list
     )
     species = species_set.pop()
     data.columns = get_sql_friendly_columns(data)
+    scalar_columns: list[str] = [
+        x
+        for x in display_columns
+        if data[x].dtype == "float64" and x not in set(gene_columns)
+    ]
     return DataLoadResult(
         data=data,
         gene_columns=gene_columns,
