@@ -15,10 +15,10 @@ class TableToProcessConfig:
     entrez_conversions: list[EntrezConversion]
 
     @classmethod
-    def from_json(cls, json_data: dict[str, Any]) -> "TableToProcessConfig":
+    def from_json(cls, json_data: dict[str, Any], base_dir: Path) -> "TableToProcessConfig":
         return cls(
             table=json_data["table"],
-            in_path=json_data["in_path"],
+            in_path=base_dir / json_data["in_path"],
             split_column_map=[
                 SplitColumnEntry.from_json(split_column_map)
                 for split_column_map in json_data["split_column_map"]

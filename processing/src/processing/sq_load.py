@@ -29,7 +29,7 @@ def sql_friendly_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def load_data(
     in_path: Path,
-    split_column_map: list[SplitColumnEntry],
+    split_columns: list[SplitColumnEntry],
     entrez_conversions: list[EntrezConversion],
 ) -> pd.DataFrame:
     conversion_dict: dict[str, Any] = {
@@ -38,9 +38,9 @@ def load_data(
         "convert_boolean": False,
         "convert_floating": False,
     }
-    data = pd.read_csv(in_path, sep="\t").convert_dtypes(**conversion_dict)  # type: ignore
-    for entry in split_column_map:
-        entry.split_column(data)
+    data = pd.read_csv(in_path, sep="\t").convert_dtypes(**conversion_dict)
+    for split_column in split_columns:
+        split_column.split_column(data)
     for conversion in entrez_conversions:
         conversion.resolve_entrez_genes(data, in_path)
     data = sql_friendly_columns(data)

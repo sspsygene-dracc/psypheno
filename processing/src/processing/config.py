@@ -14,12 +14,12 @@ class GeneMapConfig:
 
 
 class TablesConfig:
-    def __init__(self, tables_config: list[dict[str, Any]]):
+    def __init__(self, tables_config: list[dict[str, Any]], base_dir: Path):
         # pylint: disable=import-outside-toplevel
         from processing.types.table_to_process_config import TableToProcessConfig
 
         self.tables = [
-            TableToProcessConfig.from_json(table_config)
+            TableToProcessConfig.from_json(table_config, base_dir)
             for table_config in tables_config
         ]
 
@@ -31,7 +31,7 @@ class Config:
         self.base_dir: Path = Path(config["basedir"])
         self.out_db: Path = self.base_dir / config["out_db"]
         self.gene_map_config = GeneMapConfig(self.base_dir, config["gene_map_files"])
-        self.tables_config = TablesConfig(config["tables"])
+        self.tables_config = TablesConfig(config["tables"], self.base_dir)
 
 
 @lru_cache(maxsize=1)
