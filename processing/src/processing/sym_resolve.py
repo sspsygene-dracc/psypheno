@@ -82,11 +82,11 @@ mgi_entrez_header = [
 
 
 def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
-    rv: dict[str, set[EntrezGene]] = defaultdict(set)
     total = 0
     no_entrez_id = 0
 
     rows: list[dict[str, str]] = []
+    withdrawn_map: dict[str, set[str]] = defaultdict(set)
 
     with open(fname, encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter="\t", fieldnames=mgi_entrez_header)
@@ -94,7 +94,16 @@ def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
             status = row["Status"]
             assert status in {"O", "W"}
             if status == "W":
-                # these are not listed with entrez ids
+                marker_name = row["Marker Name"]
+                if " = " in marker_name:
+                    symbol = marker_name.split("=")[1].strip()
+                    # we currently don't do anything with this:
+                    withdrawn_map[symbol].add(row["Marker Symbol"])
+                    get_sspsygene_logger().debug(
+                        "Adding other id %s for %s",
+                        row["Marker Symbol"],
+                        symbol,
+                    )
                 continue
             elem_type = row["Type"]
             assert elem_type in {
@@ -108,7 +117,7 @@ def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
                 "Gene",
                 "Other Genome Feature",
             }
-            if elem_type != "Gene":
+            if elem_type not in ("Gene", "Pseudogene"):
                 # these are not listed with entrez ids
                 continue
             rows.append(row)
@@ -124,14 +133,15 @@ def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
         return entrez_id
 
     symbols: set[str] = set()
+    rv_symbols: dict[str, set[EntrezGene]] = defaultdict(set)
     for row in rows:
         symbol = row["Marker Symbol"]
-        assert symbol not in rv, f"Symbol {symbol} already in rv"
+        assert symbol not in rv_symbols, f"Symbol {symbol} already in rv"
         symbols.add(symbol)
         entrez_id = get_entrez_id(row)
         if entrez_id == -1:
             no_entrez_id += 1
-        rv[symbol].add(EntrezGene(entrez_id))
+        rv_symbols[symbol].add(EntrezGene(entrez_id))
 
     rv_synonyms: dict[str, set[EntrezGene]] = defaultdict(set)
     for row in rows:
@@ -142,12 +152,28 @@ def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
                 get_sspsygene_logger().debug(
                     "Symbol %s is also a symbol with entrez id %s",
                     synonym,
-                    rv[synonym],
+                    rv_symbols[synonym],
                 )
                 continue
             rv_synonyms[synonym].add(EntrezGene(entrez_id))
 
+    for symbol, other_ids in withdrawn_map.items():
+        for other_id in other_ids:
+            if (
+                other_id not in rv_symbols
+                and other_id not in rv_synonyms
+                and symbol in rv_symbols
+            ):
+                get_sspsygene_logger().debug(
+                    "Adding other id %s (%s) to map for %s",
+                    other_id,
+                    rv_symbols[symbol],
+                    symbol,
+                )
+                rv_synonyms[other_id].update(rv_symbols[symbol])
+
     rv_synonyms = {x: y for x, y in rv_synonyms.items() if len(y) == 1}
+    rv = dict(rv_symbols)
     rv.update(rv_synonyms)
 
     get_sspsygene_logger().info(
