@@ -10,20 +10,49 @@ def parse_hgnc(fname: Path) -> dict[str, set[EntrezGene]]:
     rv: dict[str, set[EntrezGene]] = defaultdict(set)
     total = 0
     no_entrez_id = 0
+    rows: list[dict[str, str]] = []
     with open(fname, encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
-            total += 1
-            symbol = row["symbol"]
-            entrez_id_str = row["entrez_id"]
-            if entrez_id_str == "":
-                get_sspsygene_logger().debug("HGNC: No entrez id for %s", symbol)
-                no_entrez_id += 1
-                entrez_id = -1
-            else:
-                entrez_id = int(entrez_id_str)
-            assert symbol not in rv
-            rv[symbol].add(EntrezGene(entrez_id))
+            rows.append(row)
+
+    def get_entrez_id(row: dict[str, str]) -> int:
+        entrez_id_str = row["entrez_id"]
+        if entrez_id_str == "":
+            get_sspsygene_logger().debug("HGNC: No entrez id for %s", symbol)
+            entrez_id = -1
+        else:
+            entrez_id = int(entrez_id_str)
+        return entrez_id
+
+    symbols: set[str] = set()
+    for row in rows:
+        total += 1
+        symbol = row["symbol"]
+        entrez_id = get_entrez_id(row)
+        if entrez_id == -1:
+            no_entrez_id += 1
+        assert symbol not in rv
+        rv[symbol].add(EntrezGene(entrez_id))
+
+    rv_prev_symbols: dict[str, set[EntrezGene]] = defaultdict(set)
+    for row in rows:
+        prev_symbols = row["prev_symbol"].split("|")
+        if not prev_symbols:
+            continue
+        entrez_id = get_entrez_id(row)
+        for prev_symbol in prev_symbols:
+            if prev_symbol in symbols:
+                get_sspsygene_logger().debug(
+                    "Symbol %s is also a symbol with entrez id %s",
+                    prev_symbol,
+                    rv[prev_symbol],
+                )
+                continue
+            rv_prev_symbols[prev_symbol].add(EntrezGene(entrez_id))
+    rv_prev_symbols = {x: y for x, y in rv_prev_symbols.items() if len(y) == 1}
+    rv.update(rv_prev_symbols)
+
     get_sspsygene_logger().info(
         "HGNC: Total: %d, No entrez id: %d (%.2f%%)",
         total,
