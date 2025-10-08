@@ -8,6 +8,7 @@ import pandas as pd
 from processing.entrez_gene_maps import get_entrez_gene_maps
 from processing.new_sqlite3 import NewSqlite3
 from processing.types.entrez_conversion import EntrezConversion
+from processing.types.entrez_gene import EntrezGene
 from processing.types.split_column_entry import SplitColumnEntry
 from processing.types.table_to_process_config import TableToProcessConfig
 
@@ -34,6 +35,7 @@ class DataLoadResult:
     gene_species: Literal["human", "mouse", "zebrafish"]
     display_columns: list[str]
     scalar_columns: list[str]
+    used_entrez_ids: set[EntrezGene]
 
 
 def load_data(
@@ -53,11 +55,12 @@ def load_data(
         split_column.split_column(data)
     species_list: list[Literal["human", "mouse", "zebrafish"]] = []
     gene_columns: list[str] = []
+    used_entrez_ids: set[EntrezGene] = set()
     for conversion in entrez_conversions:
         gene_columns.append(conversion.column_name.lower())
         gene_columns.append(conversion.out_column_name.lower())
         species_list.append(conversion.species)
-        conversion.resolve_entrez_genes(data, in_path)
+        used_entrez_ids.update(conversion.resolve_entrez_genes(data, in_path))
     species_set: set[Literal["human", "mouse", "zebrafish"]] = set(species_list)
     assert len(species_set) == 1, "No or multiple species in the same table: " + str(
         species_list
@@ -75,10 +78,13 @@ def load_data(
         gene_species=species,
         display_columns=display_columns,
         scalar_columns=scalar_columns,
+        used_entrez_ids=used_entrez_ids,
     )
 
 
-def load_entrez_conversions(conn: sqlite3.Connection) -> None:
+def load_entrez_conversions(
+    conn: sqlite3.Connection, used_entrez_ids: set[EntrezGene]
+) -> None:
     entrez_conversions = get_entrez_gene_maps()
     cur = conn.cursor()
     for species, entrez_gene_map in entrez_conversions.items():
@@ -86,17 +92,24 @@ def load_entrez_conversions(conn: sqlite3.Connection) -> None:
         cur.execute(
             f"""CREATE TABLE {species}_entrez_gene (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            symbol TEXT,
+            name TEXT,
+            is_symbol INTEGER,
             entrez_id INTEGER)"""
         )
-        for symbol, entrez_genes in entrez_gene_map.items():
-            for entrez_gene in entrez_genes:
-                cur.execute(
-                    f"""INSERT INTO {species}_entrez_gene (symbol, entrez_id) VALUES (?, ?)""",
-                    (symbol, entrez_gene.entrez_id),
-                )
+        for entrez_gene_entry in entrez_gene_map.entrez_gene_entries:
+            if entrez_gene_entry.entrez_id.entrez_id < 0:
+                continue
+            if entrez_gene_entry.entrez_id not in used_entrez_ids:
+                continue
+            cur.execute(
+                f"""INSERT INTO {species}_entrez_gene (name, is_symbol, entrez_id) VALUES (?, ?, ?)""",
+                (entrez_gene_entry.name, entrez_gene_entry.is_symbol, entrez_gene_entry.entrez_id.entrez_id),
+            )
         cur.execute(
-            f"CREATE INDEX {species}_entrez_gene_symbol_idx ON {species}_entrez_gene (symbol)"
+            f"CREATE INDEX {species}_entrez_gene_name_idx ON {species}_entrez_gene (name)"
+        )
+        cur.execute(
+            f"CREATE INDEX {species}_entrez_gene_is_symbol_idx ON {species}_entrez_gene (is_symbol)"
         )
         cur.execute(
             f"CREATE INDEX {species}_entrez_gene_entrez_id_idx ON {species}_entrez_gene (entrez_id)"
@@ -106,7 +119,8 @@ def load_entrez_conversions(conn: sqlite3.Connection) -> None:
 
 def load_data_tables(
     conn: sqlite3.Connection, table_configs: list[TableToProcessConfig]
-) -> None:
+) -> set[EntrezGene]:
+    rv: set[EntrezGene] = set()
     cur = conn.cursor()
     cur.execute(
         """CREATE TABLE data_tables (
@@ -126,6 +140,7 @@ def load_data_tables(
         data_and_meta.data.to_sql(
             table_config.table, conn, if_exists="replace", index=False
         )
+        rv.update(data_and_meta.used_entrez_ids)
         create_indexes(conn, table_config.table, table_config.index_fields)
         cur.execute(
             """INSERT INTO data_tables (
@@ -144,6 +159,7 @@ def load_data_tables(
         "CREATE INDEX data_tables_gene_species_idx ON data_tables (gene_species)"
     )
     conn.commit()
+    return rv
 
 
 def load_db(db_name: Path, table_configs: list[TableToProcessConfig]) -> None:
@@ -156,5 +172,5 @@ def load_db(db_name: Path, table_configs: list[TableToProcessConfig]) -> None:
     db_name.unlink(missing_ok=True)
     with NewSqlite3(db_name, logger) as new_sqlite3:
         conn = new_sqlite3.conn
-        load_data_tables(conn, table_configs)
-        load_entrez_conversions(conn)
+        used_entrez_ids = load_data_tables(conn, table_configs)
+        load_entrez_conversions(conn, used_entrez_ids=used_entrez_ids)

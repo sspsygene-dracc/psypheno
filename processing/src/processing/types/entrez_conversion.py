@@ -5,6 +5,7 @@ from typing import Any, Literal
 import pandas as pd
 from processing.entrez_gene_maps import get_entrez_gene_maps
 from processing.my_logger import get_sspsygene_logger
+from processing.types.entrez_gene import EntrezGene
 
 
 @dataclass
@@ -42,8 +43,12 @@ class EntrezConversion:
             replace=replace,
         )
 
-    def resolve_entrez_genes(self, data: pd.DataFrame, in_path: Path) -> None:
-        entrez_gene_maps = get_entrez_gene_maps()
+    def resolve_entrez_genes(
+        self, data: pd.DataFrame, in_path: Path
+    ) -> set[EntrezGene]:
+        rv: set[EntrezGene] = set()
+        orig_maps = get_entrez_gene_maps()
+        species_map = orig_maps[self.species].get_map()
         assert (
             self.column_name in data.columns
         ), f"Column {self.column_name} not found in data columns {data.columns.tolist()}"
@@ -54,7 +59,7 @@ class EntrezConversion:
                 elem = elem.upper()
             if elem in self.replace:
                 elem = self.replace[elem]
-            if elem not in entrez_gene_maps[self.species]:
+            if elem not in species_map:
                 if elem not in self.ignore_missing:
                     get_sspsygene_logger().warning(
                         "Path %s, column %s, gene %s not in gene maps for species %s",
@@ -65,9 +70,7 @@ class EntrezConversion:
                     )
                 out_data.append("-2")
             else:
-                out_data.append(
-                    ",".join(
-                        str(x.entrez_id) for x in entrez_gene_maps[self.species][elem]
-                    )
-                )
+                rv.update(species_map[elem])
+                out_data.append(",".join(str(x.entrez_id) for x in species_map[elem]))
         data[self.out_column_name] = out_data
+        return rv

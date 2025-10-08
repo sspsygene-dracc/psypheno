@@ -2,12 +2,14 @@ from collections import defaultdict
 import csv
 from pathlib import Path
 
+from processing.types.entrez_gene_map import EntrezGeneMap
 from processing.my_logger import get_sspsygene_logger
 from processing.types.entrez_gene import EntrezGene
+from processing.types.entrez_gene_entry import EntrezGeneEntry
 
 
-def parse_hgnc(fname: Path) -> dict[str, set[EntrezGene]]:
-    rv: dict[str, set[EntrezGene]] = defaultdict(set)
+def parse_hgnc(fname: Path) -> EntrezGeneMap:
+    rv: list[EntrezGeneEntry] = []
     total = 0
     no_entrez_id = 0
     rows: list[dict[str, str]] = []
@@ -32,8 +34,8 @@ def parse_hgnc(fname: Path) -> dict[str, set[EntrezGene]]:
         entrez_id = get_entrez_id(row)
         if entrez_id == -1:
             no_entrez_id += 1
-        assert symbol not in rv
-        rv[symbol].add(EntrezGene(entrez_id))
+        assert symbol not in symbols
+        rv.append(EntrezGeneEntry(symbol, True, EntrezGene(entrez_id)))
 
     rv_prev_symbols: dict[str, set[EntrezGene]] = defaultdict(set)
     for row in rows:
@@ -44,14 +46,16 @@ def parse_hgnc(fname: Path) -> dict[str, set[EntrezGene]]:
         for prev_symbol in prev_symbols:
             if prev_symbol in symbols:
                 get_sspsygene_logger().debug(
-                    "Symbol %s is also a symbol with entrez id %s",
+                    "Symbol %s is also a symbol",
                     prev_symbol,
-                    rv[prev_symbol],
                 )
                 continue
             rv_prev_symbols[prev_symbol].add(EntrezGene(entrez_id))
     rv_prev_symbols = {x: y for x, y in rv_prev_symbols.items() if len(y) == 1}
-    rv.update(rv_prev_symbols)
+    for prev_symbol, entrez_genes in rv_prev_symbols.items():
+        assert len(entrez_genes) == 1
+        entrez_gene = list(entrez_genes)[0]
+        rv.append(EntrezGeneEntry(prev_symbol, False, entrez_gene))
 
     get_sspsygene_logger().info(
         "HGNC: Total: %d, No entrez id: %d (%.2f%%)",
@@ -59,7 +63,7 @@ def parse_hgnc(fname: Path) -> dict[str, set[EntrezGene]]:
         no_entrez_id,
         no_entrez_id / total * 100,
     )
-    return dict(rv)
+    return EntrezGeneMap(rv)
 
 
 mgi_entrez_header = [
@@ -81,7 +85,7 @@ mgi_entrez_header = [
 ]
 
 
-def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
+def parse_mgi(fname: Path) -> EntrezGeneMap:
     total = 0
     no_entrez_id = 0
 
@@ -133,15 +137,15 @@ def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
         return entrez_id
 
     symbols: set[str] = set()
-    rv_symbols: dict[str, set[EntrezGene]] = defaultdict(set)
+    rv: list[EntrezGeneEntry] = []
     for row in rows:
         symbol = row["Marker Symbol"]
-        assert symbol not in rv_symbols, f"Symbol {symbol} already in rv"
+        assert symbol not in symbols, f"Symbol {symbol} is already known"
         symbols.add(symbol)
         entrez_id = get_entrez_id(row)
         if entrez_id == -1:
             no_entrez_id += 1
-        rv_symbols[symbol].add(EntrezGene(entrez_id))
+        rv.append(EntrezGeneEntry(symbol, True, EntrezGene(entrez_id)))
 
     rv_synonyms: dict[str, set[EntrezGene]] = defaultdict(set)
     for row in rows:
@@ -150,31 +154,38 @@ def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
         for synonym in synonyms:
             if synonym in symbols:
                 get_sspsygene_logger().debug(
-                    "Symbol %s is also a symbol with entrez id %s",
+                    "Symbol %s is also a symbol",
                     synonym,
-                    rv_symbols[synonym],
                 )
                 continue
             rv_synonyms[synonym].add(EntrezGene(entrez_id))
 
+    symbol_map: dict[str, set[EntrezGene]] = defaultdict(set)
+    for symbol in rv:
+        symbol_map[symbol.name].add(symbol.entrez_id)
+    for entrez_ids in symbol_map.values():
+        assert len(entrez_ids) == 1
+
     for symbol, other_ids in withdrawn_map.items():
         for other_id in other_ids:
             if (
-                other_id not in rv_symbols
+                other_id not in symbols
                 and other_id not in rv_synonyms
-                and symbol in rv_symbols
+                and symbol in symbols
             ):
                 get_sspsygene_logger().debug(
                     "Adding other id %s (%s) to map for %s",
                     other_id,
-                    rv_symbols[symbol],
+                    symbol_map[symbol],
                     symbol,
                 )
-                rv_synonyms[other_id].update(rv_symbols[symbol])
+                rv_synonyms[other_id].update(symbol_map[symbol])
 
-    rv_synonyms = {x: y for x, y in rv_synonyms.items() if len(y) == 1}
-    rv = dict(rv_symbols)
-    rv.update(rv_synonyms)
+    for synonym, entrez_genes in rv_synonyms.items():
+        if len(entrez_genes) != 1:
+            continue
+        entrez_gene = list(entrez_genes)[0]
+        rv.append(EntrezGeneEntry(synonym, False, entrez_gene))
 
     get_sspsygene_logger().info(
         "MGI: Total: %d, No entrez id: %d (%.2f%%)",
@@ -182,7 +193,7 @@ def parse_mgi(fname: Path) -> dict[str, set[EntrezGene]]:
         no_entrez_id,
         no_entrez_id / total * 100,
     )
-    return dict(rv)
+    return EntrezGeneMap(rv)
 
 
 zfin_header = [
@@ -202,8 +213,8 @@ zfin_header = [
 ]
 
 
-def parse_zfin(fname: Path) -> dict[str, set[EntrezGene]]:
-    rv: dict[str, set[EntrezGene]] = defaultdict(set)
+def parse_zfin(fname: Path) -> EntrezGeneMap:
+    rv: list[EntrezGeneEntry] = []
     total = 0
     no_entrez_id = 0
     with open(fname, encoding="utf-8") as f:
@@ -216,11 +227,11 @@ def parse_zfin(fname: Path) -> dict[str, set[EntrezGene]]:
                 get_sspsygene_logger().debug("ZFIN: No entrez id for %s", symbol)
                 no_entrez_id += 1
                 entrez_id = -1
-            rv[symbol].add(EntrezGene(entrez_id))
+            rv.append(EntrezGeneEntry(symbol, True, EntrezGene(entrez_id)))
     get_sspsygene_logger().info(
         "ZFIN: Total: %d, No entrez id: %d (%.2f%%)",
         total,
         no_entrez_id,
         no_entrez_id / total * 100,
     )
-    return dict(rv)
+    return EntrezGeneMap(rv)
