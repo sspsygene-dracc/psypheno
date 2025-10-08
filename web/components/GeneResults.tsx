@@ -15,7 +15,13 @@ export default function GeneResults({
     return null;
   }
   return (
-    <div style={{ width: "min(1100px, 96%)", margin: "28px auto", color: "#e5e7eb" }}>
+    <div
+      style={{
+        width: "min(1100px, 96%)",
+        margin: "28px auto",
+        color: "#e5e7eb",
+      }}
+    >
       <h2 style={{ marginBottom: 12 }}>Results for Entrez {entrezId}</h2>
       {data.length === 0 && (
         <div style={{ opacity: 0.8 }}>No results found in any dataset.</div>
@@ -31,7 +37,13 @@ export default function GeneResults({
             overflow: "hidden",
           }}
         >
-          <div style={{ padding: "12px 14px", borderBottom: "1px solid #334155", fontWeight: 600 }}>
+          <div
+            style={{
+              padding: "12px 14px",
+              borderBottom: "1px solid #334155",
+              fontWeight: 600,
+            }}
+          >
             {section.tableName}
           </div>
           <div style={{ overflowX: "auto" }}>
@@ -58,7 +70,13 @@ export default function GeneResults({
                 {section.rows.map((r, i) => (
                   <tr key={i}>
                     {section.displayColumns.map((c) => (
-                      <td key={c} style={{ padding: "10px 12px", borderBottom: "1px solid #1f2937" }}>
+                      <td
+                        key={c}
+                        style={{
+                          padding: "10px 12px",
+                          borderBottom: "1px solid #1f2937",
+                        }}
+                      >
                         {String(r[c] ?? "")}
                       </td>
                     ))}
@@ -72,5 +90,3 @@ export default function GeneResults({
     </div>
   );
 }
-
-

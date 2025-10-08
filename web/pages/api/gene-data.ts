@@ -12,7 +12,10 @@ function sanitizeIdentifier(id: string): string {
   return id;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -31,7 +34,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .prepare(
         `SELECT table_name, gene_columns, display_columns FROM data_tables ORDER BY id ASC`
       )
-      .all() as Array<{ table_name: string; gene_columns: string; display_columns: string }>;
+      .all() as Array<{
+      table_name: string;
+      gene_columns: string;
+      display_columns: string;
+    }>;
 
     const results: Array<{
       tableName: string;
@@ -54,16 +61,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (geneCols.length === 0 || displayCols.length === 0) continue;
 
-      const where = geneCols.map((c) => `${c} = ?`).join(" OR ");
+      const where = geneCols.map((c) => `CAST(${c} AS TEXT) = ?`).join(" OR ");
       const selectCols = displayCols.join(", ");
       const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${where} LIMIT 100`;
 
       try {
         const stmt = db.prepare(sql);
-        const params = Array(geneCols.length).fill(Number(entrezId));
+        const params = Array(geneCols.length).fill(String(entrezId));
         const rows = stmt.all(...params) as Record<string, unknown>[];
         if (rows.length > 0) {
-          results.push({ tableName: t.table_name, displayColumns: displayCols, rows });
+          results.push({
+            tableName: t.table_name,
+            displayColumns: displayCols,
+            rows,
+          });
         }
       } catch (innerErr) {
         // Skip tables that fail (e.g., column missing) to keep response robust
@@ -79,5 +90,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Internal server error" });
   }
 }
-
-

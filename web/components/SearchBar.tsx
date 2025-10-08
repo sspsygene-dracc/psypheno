@@ -68,7 +68,9 @@ export default function SearchBar({
       setHighlightIndex((i) => (i + 1) % suggestions.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlightIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
+      setHighlightIndex(
+        (i) => (i - 1 + suggestions.length) % suggestions.length
+      );
     } else if (e.key === "Enter") {
       e.preventDefault();
       const chosen = suggestions[highlightIndex >= 0 ? highlightIndex : 0];
@@ -144,7 +146,9 @@ export default function SearchBar({
                 <span style={{ fontWeight: 600 }}>{s.name}</span>
                 <span style={{ opacity: 0.7, fontSize: 12 }}>{s.species}</span>
               </div>
-              <span style={{ opacity: 0.7, fontSize: 12 }}>Entrez {s.entrezId}</span>
+              <span style={{ opacity: 0.7, fontSize: 12 }}>
+                Entrez {s.entrezId}
+              </span>
             </div>
           ))}
         </div>
@@ -152,5 +156,3 @@ export default function SearchBar({
     </div>
   );
 }
-
-
