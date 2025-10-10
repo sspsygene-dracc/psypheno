@@ -1,3 +1,4 @@
+import { useState } from "react";
 type TableResult = {
   tableName: string;
   displayColumns: string[];
@@ -11,6 +12,19 @@ export default function GeneResults({
   entrezId: string | null;
   data: TableResult[];
 }) {
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  const toggleSection = (name: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
+  };
   if (!entrezId) {
     return null;
   }
@@ -67,7 +81,10 @@ export default function GeneResults({
                 </tr>
               </thead>
               <tbody>
-                {section.rows.map((r, i) => (
+                {(expandedSections.has(section.tableName)
+                  ? section.rows
+                  : section.rows.slice(0, 5)
+                ).map((r, i) => (
                   <tr key={i}>
                     {section.displayColumns.map((c) => (
                       <td
@@ -85,6 +102,39 @@ export default function GeneResults({
               </tbody>
             </table>
           </div>
+          {section.rows.length > 5 && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 14px",
+                borderTop: "1px solid #334155",
+                background: "#0b1220",
+              }}
+            >
+              <div style={{ opacity: 0.8, fontSize: 13 }}>
+                {expandedSections.has(section.tableName)
+                  ? `Showing all ${section.rows.length}`
+                  : `Showing 5 of ${section.rows.length}`}
+              </div>
+              <button
+                onClick={() => toggleSection(section.tableName)}
+                style={{
+                  padding: "8px 12px",
+                  background: "#111827",
+                  border: "1px solid #334155",
+                  color: "#e5e7eb",
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                {expandedSections.has(section.tableName) ? "Collapse" : "Expand"}
+              </button>
+            </div>
+          )}
         </div>
       ))}
     </div>

@@ -44,8 +44,8 @@ def load_data_table(
     data = pd.read_csv(in_path, sep="\t").convert_dtypes(**conversion_dict)
     assert "id" not in data.columns, "id column already exists in data"
     # add id column:
-    data["id"] = list(range(len(data)))
     display_columns = get_sql_friendly_columns(data)
+    data["id"] = list(range(len(data)))
     for split_column in split_columns:
         split_column.split_column(data)
     species_list: list[Literal["human", "mouse", "zebrafish"]] = []
@@ -71,7 +71,7 @@ def load_data_table(
     scalar_columns: list[str] = [
         x
         for x in display_columns
-        if data[x].dtype == "float64" and x not in set(gene_columns)
+        if data[x].dtype == "float64" and x not in set(gene_columns) and x != "id"
     ]
     return DataLoadResult(
         data=data,
