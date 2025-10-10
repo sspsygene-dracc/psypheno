@@ -5,6 +5,7 @@ from typing import Any, Literal
 import pandas as pd
 from processing.entrez_gene_maps import get_entrez_gene_maps
 from processing.my_logger import get_sspsygene_logger
+from processing.sq_load import LinkTable
 from processing.types.entrez_gene import EntrezGene
 
 
@@ -12,7 +13,7 @@ from processing.types.entrez_gene import EntrezGene
 class EntrezConversion:
     column_name: str
     species: Literal["human", "mouse", "zebrafish"]
-    out_column_name: str
+    link_table_name: str
     ignore_missing: list[str]
     to_upper: bool
     replace: dict[str, str]
@@ -35,7 +36,7 @@ class EntrezConversion:
         return cls(
             column_name=json_data["column_name"],
             species=json_data["species"],
-            out_column_name=json_data["out_column_name"],
+            link_table_name=json_data["link_table_name"],
             ignore_missing=(
                 json_data["ignore_missing"] if "ignore_missing" in json_data else []
             ),
@@ -44,17 +45,22 @@ class EntrezConversion:
         )
 
     def resolve_entrez_genes(
-        self, data: pd.DataFrame, in_path: Path
-    ) -> set[EntrezGene]:
-        rv: set[EntrezGene] = set()
+        self,
+        primary_table_name: str,
+        data: pd.DataFrame,
+        in_path: Path,
+        used_entrez_ids: set[EntrezGene],
+    ) -> LinkTable:
+        assert "id" in data.columns, "id column not found in data"
         orig_maps = get_entrez_gene_maps()
         species_map = orig_maps[self.species].get_map()
         assert (
             self.column_name in data.columns
         ), f"Column {self.column_name} not found in data columns {data.columns.tolist()}"
-        in_column_list: list[str] = data[self.column_name].tolist()
-        out_data: list[str] = []
-        for elem in in_column_list:
+        id_column: list[int] = data["id"].tolist()
+        in_column: list[str] = data[self.column_name].tolist()
+        entrez_id_map: list[tuple[int, EntrezGene]] = []
+        for row_id, elem in zip(id_column, in_column):
             if self.to_upper:
                 elem = elem.upper()
             if elem in self.replace:
@@ -68,9 +74,14 @@ class EntrezConversion:
                         elem,
                         self.species,
                     )
-                out_data.append("-2")
+                entrez_id_map.append((row_id, EntrezGene(-2)))
             else:
-                rv.update(species_map[elem])
-                out_data.append(",".join(str(x.entrez_id) for x in species_map[elem]))
-        data[self.out_column_name] = out_data
-        return rv
+                used_entrez_ids.update(species_map[elem])
+                for entrez_gene in species_map[elem]:
+                    entrez_id_map.append((row_id, entrez_gene))
+        link_table_full_name = primary_table_name + "__" + self.link_table_name
+        return LinkTable(
+            links=entrez_id_map,
+            gene_column_name=self.column_name,
+            link_table_name=link_table_full_name,
+        )

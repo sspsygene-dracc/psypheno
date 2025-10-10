@@ -22,12 +22,12 @@
       "entrez_conversions": [
         {
           "column_name": "Gene",
-          "out_column_name": "_gene_entrez_id",
+          "link_table_name": "_gene_entrez_id",
           "species": "mouse"
         },
         {
           "column_name": "_perturbation_gene",
-          "out_column_name": "_perturbation_gene_entrez_id",
+          "link_table_name": "_perturbation_gene_entrez_id",
           "species": "mouse",
           "ignore_missing": ["NonTarget1", "SafeTarget"]
         }
@@ -48,7 +48,7 @@
       "entrez_conversions": [
         {
           "column_name": "_guide_gene",
-          "out_column_name": "_guide_gene_entrez_id",
+          "link_table_name": "_guide_gene_entrez_id",
           "species": "mouse",
           "ignore_missing": ["NonTarget1", "SafeTarget", "GFP"]
         }
@@ -62,14 +62,14 @@
       "entrez_conversions": [
         {
           "column_name": "perturbGene",
-          "out_column_name": "_perturbGene_entrez_id",
+          "link_table_name": "_perturbGene_entrez_id",
           "comment": "this zebrafish dataset seems to list human gene names",
           "species": "human",
           "ignore_missing": ["Control_ST"]
         },
         {
           "column_name": "gene",
-          "out_column_name": "_gene_entrez_id",
+          "link_table_name": "_gene_entrez_id",
           "comment": "this zebrafish dataset seems to list human gene names",
           "species": "human"
         }
@@ -90,7 +90,7 @@
       "entrez_conversions": [
         {
           "column_name": "_Mutant_Experiment_Sample_gene",
-          "out_column_name": "_Mutant_Experiment_Sample_gene_entrez_id",
+          "link_table_name": "_Mutant_Experiment_Sample_gene_entrez_id",
           "species": "human",
           "to_upper": true,
           "replace": {

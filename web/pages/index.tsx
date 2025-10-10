@@ -55,7 +55,7 @@ export default function Home() {
         >
           <h1 style={{ fontSize: 36, margin: 0 }}>SSPsyGene Demo Website</h1>
           <p style={{ opacity: 0.85, marginTop: 8 }}>
-            Explore cross-species gene phenotypes and perturbation datasets
+            Explore cross-species datasets from the SSPsyGene project
           </p>
         </header>
         <main style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>

@@ -29,8 +29,23 @@ def get_sql_friendly_columns(df: pd.DataFrame) -> list[str]:
 
 
 @dataclass
+class LinkTable:
+    links: list[tuple[int, EntrezGene]]
+    gene_column_name: str
+    link_table_name: str
+
+    def get_df(self) -> pd.DataFrame:
+        links_int: list[tuple[int, int]] = [(x[0], x[1].entrez_id) for x in self.links]
+        return pd.DataFrame(links_int, columns=["id", "entrez_gene"])
+
+    def get_meta_entry(self) -> str:
+        return f"{self.gene_column_name}:{self.link_table_name}"
+
+
+@dataclass
 class DataLoadResult:
     data: pd.DataFrame
+    link_tables: list[LinkTable]
     gene_columns: list[str]
     gene_species: Literal["human", "mouse", "zebrafish"]
     display_columns: list[str]
@@ -38,7 +53,8 @@ class DataLoadResult:
     used_entrez_ids: set[EntrezGene]
 
 
-def load_data(
+def load_data_table(
+    primary_table_name: str,
     in_path: Path,
     split_columns: list[SplitColumnEntry],
     entrez_conversions: list[EntrezConversion],
@@ -50,17 +66,27 @@ def load_data(
         "convert_floating": False,
     }
     data = pd.read_csv(in_path, sep="\t").convert_dtypes(**conversion_dict)
+    assert "id" not in data.columns, "id column already exists in data"
+    # add id column:
+    data["id"] = list(range(len(data)))
     display_columns = get_sql_friendly_columns(data)
     for split_column in split_columns:
         split_column.split_column(data)
     species_list: list[Literal["human", "mouse", "zebrafish"]] = []
     gene_columns: list[str] = []
     used_entrez_ids: set[EntrezGene] = set()
+    link_tables: list[LinkTable] = []
     for conversion in entrez_conversions:
         gene_columns.append(conversion.column_name.lower())
-        gene_columns.append(conversion.out_column_name.lower())
+        gene_columns.append(conversion.link_table_name.lower())
         species_list.append(conversion.species)
-        used_entrez_ids.update(conversion.resolve_entrez_genes(data, in_path))
+        link_table = conversion.resolve_entrez_genes(
+            primary_table_name=primary_table_name,
+            data=data,
+            in_path=in_path,
+            used_entrez_ids=used_entrez_ids,
+        )
+        link_tables.append(link_table)
     species_set: set[Literal["human", "mouse", "zebrafish"]] = set(species_list)
     assert len(species_set) == 1, "No or multiple species in the same table: " + str(
         species_list
@@ -79,6 +105,7 @@ def load_data(
         display_columns=display_columns,
         scalar_columns=scalar_columns,
         used_entrez_ids=used_entrez_ids,
+        link_tables=link_tables,
     )
 
 
@@ -103,7 +130,11 @@ def load_entrez_conversions(
                 continue
             cur.execute(
                 f"""INSERT INTO {species}_entrez_gene (name, is_symbol, entrez_id) VALUES (?, ?, ?)""",
-                (entrez_gene_entry.name, entrez_gene_entry.is_symbol, entrez_gene_entry.entrez_id.entrez_id),
+                (
+                    entrez_gene_entry.name,
+                    entrez_gene_entry.is_symbol,
+                    entrez_gene_entry.entrez_id.entrez_id,
+                ),
             )
         cur.execute(
             f"CREATE INDEX {species}_entrez_gene_name_idx ON {species}_entrez_gene (name)"
@@ -129,17 +160,24 @@ def load_data_tables(
         gene_columns TEXT,
         gene_species TEXT,
         display_columns TEXT,
-        scalar_columns TEXT)"""
+        scalar_columns TEXT,
+        link_tables TEXT)"""
     )
     for table_config in table_configs:
-        data_and_meta = load_data(
-            table_config.in_path,
-            table_config.split_column_map,
-            table_config.entrez_conversions,
+        data_and_meta = load_data_table(
+            primary_table_name=table_config.table,
+            in_path=table_config.in_path,
+            split_columns=table_config.split_column_map,
+            entrez_conversions=table_config.entrez_conversions,
         )
         data_and_meta.data.to_sql(
             table_config.table, conn, if_exists="replace", index=False
         )
+        for link_table in data_and_meta.link_tables:
+            link_table.get_df().to_sql(
+                link_table.link_table_name, conn, if_exists="replace", index=False
+            )
+        assert "id" in data_and_meta.data.columns, "id column not found in data"
         rv.update(data_and_meta.used_entrez_ids)
         create_indexes(conn, table_config.table, table_config.index_fields)
         cur.execute(
@@ -152,6 +190,10 @@ def load_data_tables(
                 data_and_meta.gene_species,
                 ",".join(data_and_meta.display_columns),
                 ",".join(data_and_meta.scalar_columns),
+                ",".join(
+                    link_table.get_meta_entry()
+                    for link_table in data_and_meta.link_tables
+                ),
             ),
         )
     cur.execute("CREATE INDEX data_tables_table_idx ON data_tables (table_name)")
