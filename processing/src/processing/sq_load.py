@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import logging
 from pathlib import Path
 import sqlite3
@@ -7,8 +6,10 @@ import pandas as pd
 
 from processing.entrez_gene_maps import get_entrez_gene_maps
 from processing.new_sqlite3 import NewSqlite3
+from processing.types.data_load_result import DataLoadResult
 from processing.types.entrez_conversion import EntrezConversion
 from processing.types.entrez_gene import EntrezGene
+from processing.types.link_table import LinkTable
 from processing.types.split_column_entry import SplitColumnEntry
 from processing.types.table_to_process_config import TableToProcessConfig
 
@@ -26,31 +27,6 @@ def get_sql_friendly_columns(df: pd.DataFrame) -> list[str]:
         .str.replace(r"[^a-z0-9_]", "_", regex=True)
         .str.replace(r"_+", "_", regex=True)
     )
-
-
-@dataclass
-class LinkTable:
-    links: list[tuple[int, EntrezGene]]
-    gene_column_name: str
-    link_table_name: str
-
-    def get_df(self) -> pd.DataFrame:
-        links_int: list[tuple[int, int]] = [(x[0], x[1].entrez_id) for x in self.links]
-        return pd.DataFrame(links_int, columns=["id", "entrez_gene"])
-
-    def get_meta_entry(self) -> str:
-        return f"{self.gene_column_name}:{self.link_table_name}"
-
-
-@dataclass
-class DataLoadResult:
-    data: pd.DataFrame
-    link_tables: list[LinkTable]
-    gene_columns: list[str]
-    gene_species: Literal["human", "mouse", "zebrafish"]
-    display_columns: list[str]
-    scalar_columns: list[str]
-    used_entrez_ids: set[EntrezGene]
 
 
 def load_data_table(
@@ -182,8 +158,8 @@ def load_data_tables(
         create_indexes(conn, table_config.table, table_config.index_fields)
         cur.execute(
             """INSERT INTO data_tables (
-            table_name, gene_columns, gene_species, display_columns, scalar_columns)
-            VALUES (?, ?, ?, ?, ?)""",
+            table_name, gene_columns, gene_species, display_columns, scalar_columns, link_tables)
+            VALUES (?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 ",".join(data_and_meta.gene_columns),

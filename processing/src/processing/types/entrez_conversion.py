@@ -5,8 +5,8 @@ from typing import Any, Literal
 import pandas as pd
 from processing.entrez_gene_maps import get_entrez_gene_maps
 from processing.my_logger import get_sspsygene_logger
-from processing.sq_load import LinkTable
 from processing.types.entrez_gene import EntrezGene
+from processing.types.link_table import LinkTable
 
 
 @dataclass
