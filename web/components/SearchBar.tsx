@@ -17,6 +17,7 @@ export default function SearchBar({
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [open, setOpen] = useState<boolean>(false);
   const [highlightIndex, setHighlightIndex] = useState<number>(-1);
+  const [suppress, setSuppress] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export default function SearchBar({
   }, []);
 
   useEffect(() => {
+    if (suppress) return;
     const controller = new AbortController();
     const run = async () => {
       const text = query.trim();
@@ -59,24 +61,41 @@ export default function SearchBar({
       controller.abort();
       clearTimeout(t);
     };
-  }, [query]);
+  }, [query, suppress]);
 
   const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (!open || suggestions.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
+      if (!open) {
+        if (suggestions.length > 0) {
+          setOpen(true);
+          setHighlightIndex(0);
+        }
+        return;
+      }
+      if (suggestions.length === 0) return;
       setHighlightIndex((i) => (i + 1) % suggestions.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      if (!open) {
+        if (suggestions.length > 0) {
+          setOpen(true);
+          setHighlightIndex(suggestions.length - 1);
+        }
+        return;
+      }
+      if (suggestions.length === 0) return;
       setHighlightIndex(
         (i) => (i - 1 + suggestions.length) % suggestions.length
       );
     } else if (e.key === "Enter") {
+      if (!open || suggestions.length === 0) return;
       e.preventDefault();
       const chosen = suggestions[highlightIndex >= 0 ? highlightIndex : 0];
       if (chosen) {
         onSelect(chosen);
         setQuery(chosen.name);
+        setSuppress(true);
         setOpen(false);
       }
     } else if (e.key === "Escape") {
@@ -87,6 +106,7 @@ export default function SearchBar({
   const choose = (s: SearchSuggestion) => {
     onSelect(s);
     setQuery(s.name);
+    setSuppress(true);
     setOpen(false);
   };
 
@@ -94,8 +114,11 @@ export default function SearchBar({
     <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
       <input
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => query && setOpen(true)}
+        onChange={(e) => {
+          if (suppress) setSuppress(false);
+          setQuery(e.target.value);
+        }}
+        onFocus={() => query && !suppress && setOpen(true)}
         onKeyDown={onKeyDown}
         placeholder={placeholder || "Search for a gene"}
         style={{
