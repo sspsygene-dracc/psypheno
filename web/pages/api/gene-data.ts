@@ -32,12 +32,13 @@ export default async function handler(
 
     const tables = db
       .prepare(
-        `SELECT table_name, gene_columns, display_columns FROM data_tables ORDER BY id ASC`
+        `SELECT table_name, gene_columns, display_columns, link_tables FROM data_tables ORDER BY id ASC`
       )
       .all() as Array<{
       table_name: string;
       gene_columns: string;
       display_columns: string;
+      link_tables: string | null;
     }>;
 
     const results: Array<{
@@ -47,27 +48,49 @@ export default async function handler(
     }> = [];
 
     for (const t of tables) {
-      const tableName = sanitizeIdentifier(t.table_name);
-      const geneCols = (t.gene_columns || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map(sanitizeIdentifier);
+      const baseTable = sanitizeIdentifier(t.table_name);
       const displayCols = (t.display_columns || "")
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean)
         .map(sanitizeIdentifier);
 
-      if (geneCols.length === 0 || displayCols.length === 0) continue;
+      if (displayCols.length === 0) continue;
 
-      const where = geneCols.map((c) => `CAST(${c} AS TEXT) = ?`).join(" OR ");
-      const selectCols = displayCols.join(", ");
-      const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${where} LIMIT 100`;
+      // Parse link tables list which may contain entries like "alias:table_name"
+      // We only need the actual link table names to join on base.id = link.id and filter link.entrez_gene
+      const linkTables = (t.link_tables || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((entry) => {
+          const parts = entry.split(":");
+          const tableName = parts.length === 2 ? parts[1] : parts[0];
+          return sanitizeIdentifier(tableName);
+        });
+
+      // Build SQL
+      const selectCols = displayCols.map((c) => `b.${c}`).join(", ");
+
+      let sql = `SELECT ${selectCols} FROM ${baseTable} b`;
+      const params: Array<string> = [];
+
+      if (linkTables.length > 0) {
+        const whereParts: string[] = [];
+        linkTables.forEach((lt, idx) => {
+          const alias = `lt${idx}`;
+          sql += ` LEFT JOIN ${lt} ${alias} ON b.id = ${alias}.id`;
+          whereParts.push(`${alias}.entrez_gene = ?`);
+          params.push(String(entrezId));
+        });
+        sql += ` WHERE ${whereParts.join(" OR ")} LIMIT 100`;
+      } else {
+        // No way to filter for this table
+        continue;
+      }
 
       try {
         const stmt = db.prepare(sql);
-        const params = Array(geneCols.length).fill(String(entrezId));
         const rows = stmt.all(...params) as Record<string, unknown>[];
         if (rows.length > 0) {
           results.push({
@@ -79,7 +102,7 @@ export default async function handler(
       } catch (innerErr) {
         // Skip tables that fail (e.g., column missing) to keep response robust
         // eslint-disable-next-line no-console
-        console.error(`Query failed for table ${tableName}`, innerErr);
+        console.error(`Query failed for table ${baseTable}`, innerErr);
       }
     }
 

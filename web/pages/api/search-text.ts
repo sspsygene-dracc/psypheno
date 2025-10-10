@@ -35,7 +35,7 @@ export default async function handler(
   try {
     const db = getDb();
 
-    const likeParam = `%${searchText}%`;
+    const likeParam = `${searchText}%`;
     const isNumeric = /^\d+$/.test(searchText);
 
     // Helper to run a search against one species table

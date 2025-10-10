@@ -54,7 +54,6 @@ def load_data_table(
     link_tables: list[LinkTable] = []
     for conversion in entrez_conversions:
         gene_columns.append(conversion.column_name.lower())
-        gene_columns.append(conversion.link_table_name.lower())
         species_list.append(conversion.species)
         link_table = conversion.resolve_entrez_genes(
             primary_table_name=primary_table_name,
