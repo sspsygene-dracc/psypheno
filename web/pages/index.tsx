@@ -53,7 +53,18 @@ export default function Home() {
             fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
           }}
         >
-          <h1 style={{ fontSize: 36, margin: 0 }}>SSPsyGene Demo Website</h1>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+            <img
+              src="/1763-ssPsyGeneLogo_v2_A.png"
+              alt="SSPsyGene Logo"
+              style={{
+                width: "min(240px, 60%)",
+                height: "auto",
+                filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.35))",
+                borderRadius: 12,
+              }}
+            />
+          </div>
           <p style={{ opacity: 0.85, marginTop: 8 }}>
             Explore cross-species datasets from the SSPsyGene project
           </p>
