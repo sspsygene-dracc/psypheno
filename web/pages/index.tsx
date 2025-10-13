@@ -13,6 +13,7 @@ export default function Home() {
   const [selected, setSelected] = useState<SearchSuggestion | null>(null);
   const [perturbed, setPerturbed] = useState<SearchSuggestion | null>(null);
   const [target, setTarget] = useState<SearchSuggestion | null>(null);
+  const [searchMode, setSearchMode] = useState<"general" | "pair">("general");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TableResult[]>([]);
@@ -40,6 +41,16 @@ export default function Home() {
     };
     fetchData();
   }, [selected]);
+
+  useEffect(() => {
+    // Reset state when switching modes to avoid mixing results/inputs
+    setSelected(null);
+    setPerturbed(null);
+    setTarget(null);
+    setData([]);
+    setError(null);
+    setLoading(false);
+  }, [searchMode]);
 
   return (
     <>
@@ -72,28 +83,67 @@ export default function Home() {
           </p>
         </header>
         <main style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ width: "min(720px, 92%)" }}>
-            <SearchBar
-              placeholder="Search for a gene (e.g., CTNNB1, SATB1)"
-              onSelect={(s) => setSelected(s)}
-            />
+          {/* Mode toggle */}
+          <div style={{ width: "min(720px, 92%)", display: "flex", gap: 8, background: "#0f172a", border: "1px solid #334155", borderRadius: 12, padding: 4 }}>
+            <button
+              onClick={() => setSearchMode("general")}
+              style={{
+                flex: 1,
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "none",
+                cursor: "pointer",
+                background: searchMode === "general" ? "#1e293b" : "transparent",
+                color: "#e5e7eb",
+                fontWeight: 600,
+              }}
+            >
+              General gene search
+            </button>
+            <button
+              onClick={() => setSearchMode("pair")}
+              style={{
+                flex: 1,
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "none",
+                cursor: "pointer",
+                background: searchMode === "pair" ? "#1e293b" : "transparent",
+                color: "#e5e7eb",
+                fontWeight: 600,
+              }}
+            >
+              Perturbed/Target search
+            </button>
           </div>
-          <div style={{ width: "min(720px, 92%)", marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <SearchBar
-              placeholder="Perturbed gene"
-              apiPath="/api/search-pertarget"
-              extraBody={{ role: "perturbed" }}
-              onSelect={(s) => setPerturbed(s)}
-            />
-            <SearchBar
-              placeholder="Target gene"
-              apiPath="/api/search-pertarget"
-              extraBody={{ role: "target" }}
-              onSelect={(s) => setTarget(s)}
-            />
-          </div>
+
+          {searchMode === "general" && (
+            <div style={{ width: "min(720px, 92%)", marginTop: 16 }}>
+              <SearchBar
+                placeholder="Search for a gene (e.g., CTNNB1, SATB1)"
+                onSelect={(s) => setSelected(s)}
+              />
+            </div>
+          )}
+
+          {searchMode === "pair" && (
+            <div style={{ width: "min(720px, 92%)", marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <SearchBar
+                placeholder="Perturbed gene"
+                apiPath="/api/search-pertarget"
+                extraBody={{ role: "perturbed" }}
+                onSelect={(s) => setPerturbed(s)}
+              />
+              <SearchBar
+                placeholder="Target gene"
+                apiPath="/api/search-pertarget"
+                extraBody={{ role: "target" }}
+                onSelect={(s) => setTarget(s)}
+              />
+            </div>
+          )}
           <div style={{ width: "100%" }}>
-            {selected && (
+            {searchMode === "general" && selected && (
               <div style={{ width: "100%" }}>
                 {loading && (
                   <div style={{ color: "#e5e7eb", textAlign: "center", marginTop: 16 }}>
