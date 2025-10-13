@@ -11,6 +11,8 @@ type TableResult = {
 
 export default function Home() {
   const [selected, setSelected] = useState<SearchSuggestion | null>(null);
+  const [perturbed, setPerturbed] = useState<SearchSuggestion | null>(null);
+  const [target, setTarget] = useState<SearchSuggestion | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TableResult[]>([]);
@@ -74,6 +76,20 @@ export default function Home() {
             <SearchBar
               placeholder="Search for a gene (e.g., CTNNB1, SATB1)"
               onSelect={(s) => setSelected(s)}
+            />
+          </div>
+          <div style={{ width: "min(720px, 92%)", marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <SearchBar
+              placeholder="Perturbed gene"
+              apiPath="/api/search-pertarget"
+              extraBody={{ role: "perturbed" }}
+              onSelect={(s) => setPerturbed(s)}
+            />
+            <SearchBar
+              placeholder="Target gene"
+              apiPath="/api/search-pertarget"
+              extraBody={{ role: "target" }}
+              onSelect={(s) => setTarget(s)}
             />
           </div>
           <div style={{ width: "100%" }}>

@@ -4,6 +4,8 @@ import { getDb } from "@/lib/db";
 
 const bodySchema = z.object({
   entrezId: z.string().min(1),
+  perturbedEntrezId: z.string().optional(),
+  targetEntrezId: z.string().optional(),
 });
 
 function sanitizeIdentifier(id: string): string {
@@ -26,6 +28,8 @@ export default async function handler(
   }
 
   const entrezId = parse.data.entrezId;
+  const perturbedEntrezId = parse.data.perturbedEntrezId || null;
+  const targetEntrezId = parse.data.targetEntrezId || null;
 
   try {
     const db = getDb();
@@ -57,16 +61,20 @@ export default async function handler(
 
       if (displayCols.length === 0) continue;
 
-      // Parse link tables list which may contain entries like "alias:table_name"
-      // We only need the actual link table names to join on base.id = link.id and filter link.entrez_gene
-      const linkTables = (t.link_tables || "")
+      // Parse link tables list with entries like "gene_col:table_name:is_perturbed:is_target"
+      // Keep flags so we can filter by roles when provided
+      const parsedLinkTables = (t.link_tables || "")
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean)
         .map((entry) => {
           const parts = entry.split(":");
           const tableName = parts.length >= 2 ? parts[1] : parts[0];
-          return sanitizeIdentifier(tableName);
+          return {
+            tableName: sanitizeIdentifier(tableName),
+            isPerturbed: parts[2] === "1",
+            isTarget: parts[3] === "1",
+          };
         });
 
       // Build SQL
@@ -75,19 +83,38 @@ export default async function handler(
       let sql = `SELECT ${selectCols} FROM ${baseTable} b`;
       const params: Array<string> = [];
 
-      if (linkTables.length > 0) {
-        const whereParts: string[] = [];
-        linkTables.forEach((lt, idx) => {
-          const alias = `lt${idx}`;
-          sql += ` LEFT JOIN ${lt} ${alias} ON b.id = ${alias}.id`;
-          whereParts.push(`${alias}.entrez_gene = ?`);
-          params.push(String(entrezId));
-        });
-        sql += ` WHERE ${whereParts.join(" OR ")} LIMIT 100`;
-      } else {
+      if (parsedLinkTables.length === 0) {
         // No way to filter for this table
         continue;
       }
+
+      const whereOrGeneral: string[] = [];
+      const whereOrPerturbed: string[] = [];
+      const whereOrTarget: string[] = [];
+      parsedLinkTables.forEach((lt, idx) => {
+        const alias = `lt${idx}`;
+        sql += ` LEFT JOIN ${lt.tableName} ${alias} ON b.id = ${alias}.id`;
+        whereOrGeneral.push(`${alias}.entrez_gene = ?`);
+        if (lt.isPerturbed) whereOrPerturbed.push(`${alias}.entrez_gene = ?`);
+        if (lt.isTarget) whereOrTarget.push(`${alias}.entrez_gene = ?`);
+      });
+
+      const whereAndParts: string[] = [];
+      if (whereOrGeneral.length > 0) {
+        whereAndParts.push(`(${whereOrGeneral.join(" OR ")})`);
+        params.push(String(entrezId));
+      }
+      if (perturbedEntrezId && whereOrPerturbed.length > 0) {
+        whereAndParts.push(`(${whereOrPerturbed.join(" OR ")})`);
+        params.push(String(perturbedEntrezId));
+      }
+      if (targetEntrezId && whereOrTarget.length > 0) {
+        whereAndParts.push(`(${whereOrTarget.join(" OR ")})`);
+        params.push(String(targetEntrezId));
+      }
+
+      if (whereAndParts.length === 0) continue;
+      sql += ` WHERE ${whereAndParts.join(" AND ")} LIMIT 100`;
 
       try {
         const stmt = db.prepare(sql);

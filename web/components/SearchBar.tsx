@@ -9,9 +9,13 @@ export type SearchSuggestion = {
 export default function SearchBar({
   placeholder,
   onSelect,
+  apiPath = "/api/search-text",
+  extraBody,
 }: {
   placeholder?: string;
   onSelect: (s: SearchSuggestion) => void;
+  apiPath?: string;
+  extraBody?: Record<string, unknown> | (() => Record<string, unknown>);
 }) {
   const [query, setQuery] = useState<string>("");
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -42,10 +46,11 @@ export default function SearchBar({
         return;
       }
       try {
-        const res = await fetch("/api/search-text", {
+        const bodyExtra = typeof extraBody === "function" ? extraBody() : (extraBody || {});
+        const res = await fetch(apiPath, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, ...bodyExtra }),
           signal: controller.signal,
         });
         if (!res.ok) return;
