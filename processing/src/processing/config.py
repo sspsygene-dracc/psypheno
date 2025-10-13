@@ -11,6 +11,7 @@ class GeneMapConfig:
         self.hgnc_file = self.super_base_dir / gene_map_config["hgnc"]
         self.mgi_file = self.super_base_dir / gene_map_config["mgi"]
         self.zfin_file = self.super_base_dir / gene_map_config["zfin"]
+        self.alliance_homology_file = self.super_base_dir / gene_map_config["alliance_homology_file"]
 
 
 class TablesConfig:

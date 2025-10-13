@@ -1,5 +1,6 @@
 from collections import defaultdict
 import csv
+from dataclasses import dataclass
 from pathlib import Path
 
 from processing.types.entrez_gene_map import EntrezGeneMap
@@ -8,7 +9,13 @@ from processing.types.entrez_gene import EntrezGene
 from processing.types.entrez_gene_entry import EntrezGeneEntry
 
 
-def parse_hgnc(fname: Path) -> EntrezGeneMap:
+@dataclass
+class ParseHGNCResult:
+    entrez_gene_map: EntrezGeneMap
+    hgnc_id_to_human_entrez_id: dict[str, EntrezGene]
+
+
+def parse_hgnc(fname: Path) -> ParseHGNCResult:
     rv: list[EntrezGeneEntry] = []
     total = 0
     no_entrez_id = 0
@@ -37,12 +44,17 @@ def parse_hgnc(fname: Path) -> EntrezGeneMap:
         assert symbol not in symbols
         rv.append(EntrezGeneEntry(symbol, True, EntrezGene(entrez_id)))
 
+    rv_hgnc_id_to_human_entrez_id: dict[str, EntrezGene] = {}
     rv_prev_symbols: dict[str, set[EntrezGene]] = defaultdict(set)
     for row in rows:
         prev_symbols = row["prev_symbol"].split("|")
         if not prev_symbols:
             continue
         entrez_id = get_entrez_id(row)
+        hgnc_id = row["hgnc_id"]
+        if entrez_id >= 0:
+            assert hgnc_id not in rv_hgnc_id_to_human_entrez_id
+            rv_hgnc_id_to_human_entrez_id[hgnc_id] = EntrezGene(entrez_id)
         for prev_symbol in prev_symbols:
             if prev_symbol in symbols:
                 get_sspsygene_logger().debug(
@@ -63,7 +75,7 @@ def parse_hgnc(fname: Path) -> EntrezGeneMap:
         no_entrez_id,
         no_entrez_id / total * 100,
     )
-    return EntrezGeneMap(rv)
+    return ParseHGNCResult(EntrezGeneMap(rv), rv_hgnc_id_to_human_entrez_id)
 
 
 mgi_entrez_header = [
@@ -85,14 +97,34 @@ mgi_entrez_header = [
 ]
 
 
-def parse_mgi(fname: Path) -> EntrezGeneMap:
+def parse_mgi_entrez_to_hgnc(
+    alliance_homology_fname: Path,
+) -> dict[EntrezGene, set[str]]:
+    rv: dict[EntrezGene, set[str]] = defaultdict(set)
+    with open(alliance_homology_fname, encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            entrez_id_str = row["EntrezGene ID"]
+            if entrez_id_str == "" or entrez_id_str == "null":
+                continue
+            entrez_id = int(entrez_id_str)
+            hgnc_id = row["HGNC ID"]
+            rv[EntrezGene(entrez_id)].add(hgnc_id)
+    return rv
+
+
+def parse_mgi(
+    mgi_fname: Path,
+    hgnc_to_human_entrez: dict[str, EntrezGene],
+    mgi_entrez_to_hgnc: dict[EntrezGene, set[str]],
+) -> EntrezGeneMap:
     total = 0
     no_entrez_id = 0
 
     rows: list[dict[str, str]] = []
     withdrawn_map: dict[str, set[str]] = defaultdict(set)
 
-    with open(fname, encoding="utf-8") as f:
+    with open(mgi_fname, encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter="\t", fieldnames=mgi_entrez_header)
         for row in reader:
             status = row["Status"]
@@ -122,19 +154,27 @@ def parse_mgi(fname: Path) -> EntrezGeneMap:
                 "Other Genome Feature",
             }
             if elem_type not in ("Gene", "Pseudogene"):
-                # these are not listed with entrez ids
                 continue
             rows.append(row)
             total += 1
 
-    def get_entrez_id(row: dict[str, str]) -> int:
-        entrez_id_str = row["Entrez Gene ID"]
-        if entrez_id_str == "" or entrez_id_str == "null":
+    def get_human_entrez_ids(row: dict[str, str]) -> set[EntrezGene]:
+        mouse_entrez_id_str: str = str(row["Entrez Gene ID"])
+        if mouse_entrez_id_str == "" or mouse_entrez_id_str == "null":
             get_sspsygene_logger().debug("MGI: No entrez id for %s", symbol)
-            entrez_id = -1
-        else:
-            entrez_id = int(entrez_id_str)
-        return entrez_id
+            return set()
+        mouse_entrez_id = int(mouse_entrez_id_str)
+        hgnc_ids = mgi_entrez_to_hgnc.get(EntrezGene(mouse_entrez_id), None)
+        if hgnc_ids is None:
+            get_sspsygene_logger().debug("MGI: No hgnc id for %s", mouse_entrez_id)
+            return set()
+        rv: set[EntrezGene] = set()
+        for hgnc_id in hgnc_ids:
+            if hgnc_id not in hgnc_to_human_entrez:
+                get_sspsygene_logger().debug("MGI: No human entrez id for %s", hgnc_id)
+                continue
+            rv.add(hgnc_to_human_entrez[hgnc_id])
+        return rv
 
     symbols: set[str] = set()
     rv: list[EntrezGeneEntry] = []
@@ -142,15 +182,20 @@ def parse_mgi(fname: Path) -> EntrezGeneMap:
         symbol = row["Marker Symbol"]
         assert symbol not in symbols, f"Symbol {symbol} is already known"
         symbols.add(symbol)
-        entrez_id = get_entrez_id(row)
-        if entrez_id == -1:
+        human_entrez_ids = get_human_entrez_ids(row)
+        if not human_entrez_ids:
             no_entrez_id += 1
-        rv.append(EntrezGeneEntry(symbol, True, EntrezGene(entrez_id)))
+            continue
+        for human_entrez_id in human_entrez_ids:
+            rv.append(EntrezGeneEntry(symbol, True, human_entrez_id))
 
     rv_synonyms: dict[str, set[EntrezGene]] = defaultdict(set)
     for row in rows:
         synonyms = [x for x in row["Synonyms"].split("|") if x != ""]
-        entrez_id = get_entrez_id(row)
+        human_entrez_ids = get_human_entrez_ids(row)
+        if not human_entrez_ids:
+            no_entrez_id += 1
+            continue
         for synonym in synonyms:
             if synonym in symbols:
                 get_sspsygene_logger().debug(
@@ -158,7 +203,8 @@ def parse_mgi(fname: Path) -> EntrezGeneMap:
                     synonym,
                 )
                 continue
-            rv_synonyms[synonym].add(EntrezGene(entrez_id))
+            for human_entrez_id in human_entrez_ids:
+                rv_synonyms[synonym].add(human_entrez_id)
 
     symbol_map: dict[str, set[EntrezGene]] = defaultdict(set)
     for symbol in rv:

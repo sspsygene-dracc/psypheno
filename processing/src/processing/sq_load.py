@@ -157,7 +157,8 @@ def load_data_tables(
         create_indexes(conn, table_config.table, table_config.index_fields)
         cur.execute(
             """INSERT INTO data_tables (
-            table_name, gene_columns, gene_species, display_columns, scalar_columns, link_tables)
+            table_name, gene_columns, gene_species, display_columns, scalar_columns, 
+            link_tables)
             VALUES (?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,

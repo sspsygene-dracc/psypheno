@@ -65,7 +65,7 @@ export default async function handler(
         .filter(Boolean)
         .map((entry) => {
           const parts = entry.split(":");
-          const tableName = parts.length === 2 ? parts[1] : parts[0];
+          const tableName = parts.length >= 2 ? parts[1] : parts[0];
           return sanitizeIdentifier(tableName);
         });
 

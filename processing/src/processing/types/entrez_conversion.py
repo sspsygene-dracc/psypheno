@@ -17,6 +17,8 @@ class EntrezConversion:
     ignore_missing: list[str]
     to_upper: bool
     replace: dict[str, str]
+    is_perturbed: bool
+    is_target: bool
 
     def __post_init__(self):
         if self.species not in ["human", "mouse", "zebrafish"]:
@@ -42,6 +44,8 @@ class EntrezConversion:
             ),
             to_upper=to_upper,
             replace=replace,
+            is_perturbed=(json_data["is_perturbed"]),
+            is_target=json_data["is_target"],
         )
 
     def resolve_entrez_genes(
@@ -84,4 +88,6 @@ class EntrezConversion:
             links=entrez_id_map,
             gene_column_name=self.column_name,
             link_table_name=link_table_full_name,
+            is_perturbed=self.is_perturbed,
+            is_target=self.is_target,
         )
