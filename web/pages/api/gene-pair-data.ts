@@ -3,11 +3,11 @@ import { z } from "zod";
 import { getDb } from "@/lib/db";
 
 const bodySchema = z.object({
-  entrezId: z.string().min(1),
+  perturbedEntrezId: z.string().nullable(),
+  targetEntrezId: z.string().nullable(),
 });
 
 function sanitizeIdentifier(id: string): string {
-  // Allow only alphanumeric and underscore to avoid SQL injection via identifiers
   if (!/^\w+$/.test(id)) throw new Error(`Invalid identifier: ${id}`);
   return id;
 }
@@ -25,18 +25,16 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const entrezId = parse.data.entrezId;
+  const { perturbedEntrezId, targetEntrezId } = parse.data;
 
   try {
     const db = getDb();
-
     const tables = db
       .prepare(
-        `SELECT table_name, gene_columns, display_columns, link_tables FROM data_tables ORDER BY id ASC`
+        `SELECT table_name, display_columns, link_tables FROM data_tables ORDER BY id ASC`
       )
       .all() as Array<{
       table_name: string;
-      gene_columns: string;
       display_columns: string;
       link_tables: string | null;
     }>;
@@ -54,40 +52,53 @@ export default async function handler(
         .map((s) => s.trim())
         .filter(Boolean)
         .map(sanitizeIdentifier);
-
       if (displayCols.length === 0) continue;
 
-      // Parse link tables list which may contain entries like "alias:table_name"
-      // We only need the actual link table names to join on base.id = link.id and filter link.entrez_gene
-      const linkTables = (t.link_tables || "")
+      // Parse link tables with new 4-field format
+      const parsed = (t.link_tables || "")
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean)
         .map((entry) => {
           const parts = entry.split(":");
-          const tableName = parts.length === 2 ? parts[1] : parts[0];
-          return sanitizeIdentifier(tableName);
+          return {
+            geneColumn: parts[0] ?? null,
+            linkTable: sanitizeIdentifier(parts[1] ?? parts[0] ?? ""),
+            isPerturbed: parts[2] === "1",
+            isTarget: parts[3] === "1",
+          };
         });
 
-      // Build SQL
-      const selectCols = displayCols.map((c) => `b.${c}`).join(", ");
+      const perturbedLTs = parsed
+        .filter((p) => p.isPerturbed)
+        .map((p) => p.linkTable);
+      const targetLTs = parsed
+        .filter((p) => p.isTarget)
+        .map((p) => p.linkTable);
+      if (perturbedLTs.length != 1 || targetLTs.length != 1) continue;
+      const perturbedLT = perturbedLTs[0];
+      const targetLT = targetLTs[0];
 
+      const selectCols = displayCols.map((c) => `b.${c}`).join(", ");
       let sql = `SELECT ${selectCols} FROM ${baseTable} b`;
       const params: Array<string> = [];
 
-      if (linkTables.length > 0) {
-        const whereParts: string[] = [];
-        linkTables.forEach((lt, idx) => {
-          const alias = `lt${idx}`;
-          sql += ` LEFT JOIN ${lt} ${alias} ON b.id = ${alias}.id`;
-          whereParts.push(`${alias}.entrez_gene = ?`);
-          params.push(String(entrezId));
-        });
-        sql += ` WHERE ${whereParts.join(" OR ")}`;
-      } else {
-        // No way to filter for this table
-        continue;
+      // Join at least one perturbed and one target link table and require both ids
+      const whereParts: string[] = [];
+      if (perturbedEntrezId) {
+        const lt = perturbedLT;
+        sql += ` LEFT JOIN ${lt} p ON b.id = p.id`;
+        whereParts.push(`p.entrez_gene = ?`);
+        params.push(String(perturbedEntrezId));
       }
+      if (targetEntrezId) {
+        const lt = targetLT;
+        sql += ` LEFT JOIN ${lt} t ON b.id = t.id`;
+        whereParts.push(`t.entrez_gene = ?`);
+        params.push(String(targetEntrezId));
+      }
+
+      sql += ` WHERE ${whereParts.join(" AND ")}`;
 
       try {
         const stmt = db.prepare(sql);
@@ -100,16 +111,15 @@ export default async function handler(
           });
         }
       } catch (innerErr) {
-        // Skip tables that fail (e.g., column missing) to keep response robust
         // eslint-disable-next-line no-console
-        console.error(`Query failed for table ${baseTable}`, innerErr);
+        console.error(`Pair query failed for table ${baseTable}`, innerErr);
       }
     }
 
-    return res.status(200).json({ entrezId, results });
+    return res.status(200).json({ perturbedEntrezId, targetEntrezId, results });
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("gene-data handler error", err);
+    console.error("gene-pair-data handler error", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
