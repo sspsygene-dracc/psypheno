@@ -57,7 +57,7 @@ export default async function handler(
 
       if (displayCols.length === 0) continue;
 
-      // Parse link tables list which may contain entries like "alias:table_name"
+      // Parse link tables list which may contain entries like "alias:table_name" or "alias:table_name:isPerturbed:isTarget"
       // We only need the actual link table names to join on base.id = link.id and filter link.entrez_gene
       const linkTables = (t.link_tables || "")
         .split(",")
@@ -65,7 +65,7 @@ export default async function handler(
         .filter(Boolean)
         .map((entry) => {
           const parts = entry.split(":");
-          const tableName = parts.length === 2 ? parts[1] : parts[0];
+          const tableName = parts.length >= 2 ? parts[1] : parts[0];
           return sanitizeIdentifier(tableName);
         });
 

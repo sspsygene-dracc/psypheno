@@ -12,6 +12,7 @@ export default function GeneResults({
   entrezId: string | null;
   data: TableResult[];
 }) {
+  console.log("GeneResults rendering with entrezId:", entrezId, "data:", data);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (name: string) => {
@@ -36,7 +37,7 @@ export default function GeneResults({
         color: "#e5e7eb",
       }}
     >
-      <h2 style={{ marginBottom: 12 }}>Results for Entrez {entrezId}</h2>
+      <h2 style={{ marginBottom: 12 }}>Results for {entrezId}</h2>
       {data.length === 0 && (
         <div style={{ opacity: 0.8 }}>No results found in any dataset.</div>
       )}

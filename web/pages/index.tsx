@@ -16,14 +16,15 @@ export default function Home() {
   const [searchMode, setSearchMode] = useState<"general" | "pair">("general");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<TableResult[]>([]);
+  const [generalData, setGeneralData] = useState<TableResult[]>([]);
+  const [pairData, setPairData] = useState<TableResult[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!selected) return;
       setLoading(true);
       setError(null);
-      setData([]);
+      setGeneralData([]);
       try {
         const res = await fetch("/api/gene-data", {
           method: "POST",
@@ -32,7 +33,10 @@ export default function Home() {
         });
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const payload = await res.json();
-        setData(Array.isArray(payload.results) ? payload.results : []);
+        console.log("gene-data payload", payload);
+        const results = Array.isArray(payload.results) ? payload.results : [];
+        console.log("Setting data to:", results);
+        setGeneralData(results);
       } catch (e: any) {
         setError(e?.message || "Failed to load data");
       } finally {
@@ -42,15 +46,86 @@ export default function Home() {
     fetchData();
   }, [selected]);
 
+  // Fetch pair data when both perturbed and target are selected in pair mode
   useEffect(() => {
-    // Reset state when switching modes to avoid mixing results/inputs
-    setSelected(null);
-    setPerturbed(null);
-    setTarget(null);
-    setData([]);
-    setError(null);
-    setLoading(false);
-  }, [searchMode]);
+    const fetchPair = async () => {
+      if (searchMode !== "pair") return;
+      if (!perturbed && !target) return;
+      setLoading(true);
+      setError(null);
+      setPairData([]);
+      try {
+        const res = await fetch("/api/gene-pair-data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            perturbedEntrezId: perturbed?.entrezId || null,
+            targetEntrezId: target?.entrezId || null,
+          }),
+        });
+        if (!res.ok) throw new Error(`Failed: ${res.status}`);
+        const payload = await res.json();
+        console.log("gene-pair-data payload", payload);
+        const results = Array.isArray(payload.results) ? payload.results : [];
+        console.log("Setting pair data to:", results);
+        setPairData(results);
+      } catch (e: any) {
+        setError(e?.message || "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPair();
+  }, [perturbed, target]);
+
+  const displayResults = () => {
+    if (searchMode === "general" && selected) {
+      return true;
+    }
+    if (searchMode === "pair" && (perturbed || target)) {
+      return true;
+    }
+    return false;
+  };
+
+  const displayEntrezId = () => {
+    if (searchMode === "general" && selected) {
+      return selected.entrezId;
+    }
+    if (searchMode === "pair" && (perturbed || target)) {
+      return `Perturbed: ${perturbed?.name || "Any"} → Target: ${
+        target?.name || "Any"
+      }`;
+    }
+    return null;
+  };
+
+  const maybeLoading = (
+    <>
+      {loading && (
+        <div
+          style={{
+            color: "#e5e7eb",
+            textAlign: "center",
+            marginTop: 16,
+          }}
+        >
+          Loading data...
+        </div>
+      )}
+      {error && (
+        <div
+          style={{
+            color: "#ef4444",
+            textAlign: "center",
+            marginTop: 16,
+          }}
+        >
+          {error}
+        </div>
+      )}
+    </>
+  );
 
   return (
     <>
@@ -178,45 +253,23 @@ export default function Home() {
             >
               <SearchBar
                 placeholder="Perturbed gene"
-                apiPath="/api/search-pertarget"
-                extraBody={{ role: "perturbed" }}
                 onSelect={(s) => setPerturbed(s)}
               />
               <SearchBar
                 placeholder="Target gene"
-                apiPath="/api/search-pertarget"
-                extraBody={{ role: "target" }}
                 onSelect={(s) => setTarget(s)}
               />
             </div>
           )}
           <div style={{ width: "100%" }}>
-            {searchMode === "general" && selected && (
+            {displayResults() && (
               <div style={{ width: "100%" }}>
-                {loading && (
-                  <div
-                    style={{
-                      color: "#e5e7eb",
-                      textAlign: "center",
-                      marginTop: 16,
-                    }}
-                  >
-                    Loading data...
-                  </div>
-                )}
-                {error && (
-                  <div
-                    style={{
-                      color: "#ef4444",
-                      textAlign: "center",
-                      marginTop: 16,
-                    }}
-                  >
-                    {error}
-                  </div>
-                )}
+                {maybeLoading}
                 {!loading && !error && (
-                  <GeneResults entrezId={selected.entrezId} data={data} />
+                  <GeneResults
+                    entrezId={displayEntrezId()}
+                    data={searchMode === "general" ? generalData : pairData}
+                  />
                 )}
               </div>
             )}
