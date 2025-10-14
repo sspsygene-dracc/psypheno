@@ -104,13 +104,17 @@ export default function AllDatasets() {
           </p>
 
           {loading && (
-            <div style={{ color: "#e5e7eb", textAlign: "center", marginTop: 32 }}>
+            <div
+              style={{ color: "#e5e7eb", textAlign: "center", marginTop: 32 }}
+            >
               Loading datasets...
             </div>
           )}
 
           {error && (
-            <div style={{ color: "#ef4444", textAlign: "center", marginTop: 32 }}>
+            <div
+              style={{ color: "#ef4444", textAlign: "center", marginTop: 32 }}
+            >
               {error}
             </div>
           )}
@@ -150,7 +154,6 @@ export default function AllDatasets() {
                             ? "#1e293b"
                             : "transparent",
                         border: "none",
-                        borderTop: "1px solid #334155",
                         color: "#e5e7eb",
                         textAlign: "left",
                         cursor: "pointer",
@@ -286,5 +289,3 @@ export default function AllDatasets() {
     </>
   );
 }
-
-

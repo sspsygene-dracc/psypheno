@@ -1,16 +1,10 @@
 import logging
 from pathlib import Path
 import sqlite3
-from typing import Any, Literal
-import pandas as pd
 
 from processing.entrez_gene_maps import get_entrez_gene_maps
 from processing.new_sqlite3 import NewSqlite3
-from processing.types.data_load_result import DataLoadResult
-from processing.types.entrez_conversion import EntrezConversion
 from processing.types.entrez_gene import EntrezGene
-from processing.types.link_table import LinkTable
-from processing.types.split_column_entry import SplitColumnEntry
 from processing.types.table_to_process_config import TableToProcessConfig
 
 
@@ -19,69 +13,6 @@ def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) 
         print(f"Creating index for {field}")
         sql = f"CREATE INDEX {table}_{field}_idx ON {table} ({field})"
         conn.execute(sql)
-
-
-def get_sql_friendly_columns(df: pd.DataFrame) -> list[str]:
-    return list(
-        df.columns.str.lower()
-        .str.replace(r"[^a-z0-9_]", "_", regex=True)
-        .str.replace(r"_+", "_", regex=True)
-    )
-
-
-def load_data_table(
-    primary_table_name: str,
-    in_path: Path,
-    split_columns: list[SplitColumnEntry],
-    entrez_conversions: list[EntrezConversion],
-) -> DataLoadResult:
-    conversion_dict: dict[str, Any] = {
-        "convert_string": True,
-        "convert_integer": False,
-        "convert_boolean": False,
-        "convert_floating": False,
-    }
-    data = pd.read_csv(in_path, sep="\t").convert_dtypes(**conversion_dict)
-    assert "id" not in data.columns, "id column already exists in data"
-    # add id column:
-    display_columns = get_sql_friendly_columns(data)
-    data["id"] = list(range(len(data)))
-    for split_column in split_columns:
-        split_column.split_column(data)
-    species_list: list[Literal["human", "mouse", "zebrafish"]] = []
-    gene_columns: list[str] = []
-    used_entrez_ids: set[EntrezGene] = set()
-    link_tables: list[LinkTable] = []
-    for conversion in entrez_conversions:
-        gene_columns.append(conversion.column_name.lower())
-        species_list.append(conversion.species)
-        link_table = conversion.resolve_entrez_genes(
-            primary_table_name=primary_table_name,
-            data=data,
-            in_path=in_path,
-            used_entrez_ids=used_entrez_ids,
-        )
-        link_tables.append(link_table)
-    species_set: set[Literal["human", "mouse", "zebrafish"]] = set(species_list)
-    assert len(species_set) == 1, "No or multiple species in the same table: " + str(
-        species_list
-    )
-    species = species_set.pop()
-    data.columns = get_sql_friendly_columns(data)
-    scalar_columns: list[str] = [
-        x
-        for x in display_columns
-        if data[x].dtype == "float64" and x not in set(gene_columns) and x != "id"
-    ]
-    return DataLoadResult(
-        data=data,
-        gene_columns=gene_columns,
-        gene_species=species,
-        display_columns=display_columns,
-        scalar_columns=scalar_columns,
-        used_entrez_ids=used_entrez_ids,
-        link_tables=link_tables,
-    )
 
 
 def load_entrez_conversions(
@@ -139,12 +70,7 @@ def load_data_tables(
         link_tables TEXT)"""
     )
     for table_config in table_configs:
-        data_and_meta = load_data_table(
-            primary_table_name=table_config.table,
-            in_path=table_config.in_path,
-            split_columns=table_config.split_column_map,
-            entrez_conversions=table_config.entrez_conversions,
-        )
+        data_and_meta = table_config.load_data_table()
         data_and_meta.data.to_sql(
             table_config.table, conn, if_exists="replace", index=False
         )
