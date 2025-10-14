@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import SearchBar, { SearchSuggestion } from "@/components/SearchBar";
 import GeneResults from "@/components/GeneResults";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 type TableResult = {
   tableName: string;
@@ -10,6 +13,7 @@ type TableResult = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [selected, setSelected] = useState<SearchSuggestion | null>(null);
   const [perturbed, setPerturbed] = useState<SearchSuggestion | null>(null);
   const [target, setTarget] = useState<SearchSuggestion | null>(null);
@@ -128,45 +132,53 @@ export default function Home() {
       <Head>
         <title>SSPsyGene Demo</title>
       </Head>
-      <div style={{ minHeight: "100vh", background: "#0b1220" }}>
-        <header
-          style={{
-            padding: "32px 16px",
-            textAlign: "center",
-            color: "#f1f5f9",
-            fontFamily:
-              "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              marginBottom: 16,
-            }}
-          >
-            <img
-              src="/1763-ssPsyGeneLogo_v2_A.png"
-              alt="SSPsyGene Logo"
-              style={{
-                width: "min(240px, 60%)",
-                height: "auto",
-                filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.35))",
-                borderRadius: 12,
-              }}
-            />
-          </div>
-          <p style={{ opacity: 0.85, marginTop: 8 }}>
-            Explore cross-species datasets from the SSPsyGene project
-          </p>
-        </header>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#0b1220",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Header />
         <main
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            padding: "32px 16px",
+            flex: 1,
           }}
         >
+          <div
+            style={{
+              textAlign: "center",
+              color: "#f1f5f9",
+              marginBottom: 32,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: 16,
+              }}
+            >
+              <img
+                src="/1763-ssPsyGeneLogo_v2_A.png"
+                alt="SSPsyGene Logo"
+                style={{
+                  width: "min(240px, 60%)",
+                  height: "auto",
+                  filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.35))",
+                  borderRadius: 12,
+                }}
+              />
+            </div>
+            <p style={{ opacity: 0.85, marginTop: 8 }}>
+              Explore cross-species datasets from the SSPsyGene project
+            </p>
+          </div>
           {/* Mode toggle */}
           <div
             style={{
@@ -274,6 +286,7 @@ export default function Home() {
             )}
           </div>
         </main>
+        <Footer />
       </div>
     </>
   );
