@@ -80,7 +80,7 @@ def load_data_tables(
             )
         assert "id" in data_and_meta.data.columns, "id column not found in data"
         rv.update(data_and_meta.used_entrez_ids)
-        create_indexes(conn, table_config.table, table_config.index_fields)
+        # create_indexes(conn, table_config.table)
         cur.execute(
             """INSERT INTO data_tables (
             table_name, gene_columns, gene_species, display_columns, scalar_columns, 

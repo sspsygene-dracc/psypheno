@@ -60,7 +60,7 @@ class EntrezConversion:
         species_map = orig_maps[self.species].get_map()
         assert (
             self.column_name in data.columns
-        ), f"Column {self.column_name} not found in data columns {data.columns.tolist()}"
+        ), f"table {primary_table_name}, column {self.column_name} not found in data columns {data.columns.tolist()}"
         id_column: list[int] = data["id"].tolist()
         in_column: list[str] = data[self.column_name].tolist()
         entrez_id_map: list[tuple[int, EntrezGene]] = []

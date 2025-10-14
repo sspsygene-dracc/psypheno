@@ -19,7 +19,6 @@
           "sep": "_"
         }
       ],
-      "index_fields": [],
       "entrez_conversions": [
         {
           "column_name": "Gene",
@@ -49,7 +48,6 @@
           "sep": "_"
         }
       ],
-      "index_fields": [],
       "entrez_conversions": [
         {
           "column_name": "_guide_gene",
@@ -65,7 +63,6 @@
       "table": "perturb_fish_astro",
       "in_path": "data/datasets/perturb-fish/perturbfish-astro.csv",
       "split_column_map": [],
-      "index_fields": [],
       "entrez_conversions": [
         {
           "column_name": "perturbGene",
@@ -97,7 +94,6 @@
           "sep": "_"
         }
       ],
-      "index_fields": [],
       "entrez_conversions": [
         {
           "column_name": "_Mutant_Experiment_Sample_gene",
@@ -116,7 +112,6 @@
       "table": "sfari_animal_genes",
       "in_path": "data/datasets/sfari/SFARI-Gene_animal-genes_07-08-2025release_10-03-2025export.csv",
       "split_column_map": [],
-      "index_fields": [],
       "separator": ",",
       "entrez_conversions": [
         {
@@ -133,7 +128,22 @@
       "table": "sfari_animal_rescues",
       "in_path": "data/datasets/sfari/SFARI-Gene_animal-rescues_07-08-2025release_10-03-2025export.csv",
       "split_column_map": [],
-      "index_fields": [],
+      "separator": ",",
+      "entrez_conversions": [
+        {
+          "column_name": "model-symbol",
+          "link_table_name": "gene",
+          "species": "human",
+          "ignore_missing": [],
+          "is_perturbed": false,
+          "is_target": false
+        }
+      ]
+    },
+    {
+      "table": "sfari_human_genes",
+      "in_path": "data/datasets/sfari/SFARI-Gene_genes_07-08-2025release_10-03-2025export.csv",
+      "split_column_map": [],
       "separator": ",",
       "entrez_conversions": [
         {
@@ -147,14 +157,61 @@
       ]
     },
     {
-      "table": "sfari_human_genes",
-      "in_path": "data/datasets/sfari/SFARI-Gene_genes_07-08-2025release_10-03-2025export.csv",
+      "table": "psychscreen_age_deg",
+      "in_path": "data/datasets/psychscreen/Age_DEGcombined.csv",
       "split_column_map": [],
-      "index_fields": [],
       "separator": ",",
       "entrez_conversions": [
         {
-          "column_name": "gene-symbol",
+          "column_name": "gene",
+          "link_table_name": "gene",
+          "species": "human",
+          "ignore_missing": [],
+          "is_perturbed": false,
+          "is_target": false
+        }
+      ]
+    },
+    {
+      "table": "psychscreen_asd_deg",
+      "in_path": "data/datasets/psychscreen/ASD_DEGcombined.csv",
+      "split_column_map": [],
+      "separator": ",",
+      "entrez_conversions": [
+        {
+          "column_name": "gene",
+          "link_table_name": "gene",
+          "species": "human",
+          "ignore_missing": [],
+          "is_perturbed": false,
+          "is_target": false
+        }
+      ]
+    },
+    {
+      "table": "psychscreen_bipolar_deg",
+      "in_path": "data/datasets/psychscreen/Bipolar_DEGcombined.csv",
+      "split_column_map": [],
+      "separator": ",",
+      "entrez_conversions": [
+        {
+          "column_name": "gene",
+          "link_table_name": "gene",
+          "species": "human",
+          "ignore_missing": [],
+          "is_perturbed": false,
+          "is_target": false
+        }
+      ]
+    },
+    {
+      "table": "psychscreen_schizophrenia_deg",
+      "in_path": "data/datasets/psychscreen/Schizophrenia_DEGcombined.csv",
+      "split_column_map": [],
+      "separator": ",",
+      "entrez_conversions": [
+        {
+          "column_name": "gene",
           "link_table_name": "gene",
           "species": "human",
           "ignore_missing": [],

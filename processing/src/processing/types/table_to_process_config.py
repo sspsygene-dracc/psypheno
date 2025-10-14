@@ -24,7 +24,6 @@ class TableToProcessConfig:
     table: str
     in_path: Path
     split_column_map: list[SplitColumnEntry]
-    index_fields: list[str]
     entrez_conversions: list[EntrezConversion]
     separator: str
 
@@ -63,7 +62,6 @@ class TableToProcessConfig:
                 SplitColumnEntry.from_json(split_column_map)
                 for split_column_map in json_data["split_column_map"]
             ],
-            index_fields=json_data["index_fields"],
             entrez_conversions=[
                 EntrezConversion.from_json(entrez_conversion)
                 for entrez_conversion in json_data["entrez_conversions"]
