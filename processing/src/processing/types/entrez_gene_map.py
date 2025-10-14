@@ -7,7 +7,7 @@ from processing.types.entrez_gene_entry import EntrezGeneEntry
 
 @dataclass(frozen=True)
 class EntrezGeneMap:
-    entrez_gene_entries: list[EntrezGeneEntry]
+    entrez_gene_entries: set[EntrezGeneEntry]
 
     def get_map(self) -> dict[str, set[EntrezGene]]:
         rv: dict[str, set[EntrezGene]] = defaultdict(set)

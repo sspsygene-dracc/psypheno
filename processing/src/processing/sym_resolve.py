@@ -16,7 +16,7 @@ class ParseHGNCResult:
 
 
 def parse_hgnc(fname: Path) -> ParseHGNCResult:
-    rv: list[EntrezGeneEntry] = []
+    rv: set[EntrezGeneEntry] = set()
     total = 0
     no_entrez_id = 0
     rows: list[dict[str, str]] = []
@@ -42,7 +42,7 @@ def parse_hgnc(fname: Path) -> ParseHGNCResult:
         if entrez_id == -1:
             no_entrez_id += 1
         assert symbol not in symbols
-        rv.append(EntrezGeneEntry(symbol, True, EntrezGene(entrez_id)))
+        rv.add(EntrezGeneEntry(symbol, True, EntrezGene(entrez_id)))
 
     rv_hgnc_id_to_human_entrez_id: dict[str, EntrezGene] = {}
     rv_prev_symbols: dict[str, set[EntrezGene]] = defaultdict(set)
@@ -67,7 +67,7 @@ def parse_hgnc(fname: Path) -> ParseHGNCResult:
     for prev_symbol, entrez_genes in rv_prev_symbols.items():
         assert len(entrez_genes) == 1
         entrez_gene = list(entrez_genes)[0]
-        rv.append(EntrezGeneEntry(prev_symbol, False, entrez_gene))
+        rv.add(EntrezGeneEntry(prev_symbol, False, entrez_gene))
 
     get_sspsygene_logger().info(
         "HGNC: Total: %d, No entrez id: %d (%.2f%%)",
@@ -177,7 +177,7 @@ def parse_mgi(
         return rv
 
     symbols: set[str] = set()
-    rv: list[EntrezGeneEntry] = []
+    rv: set[EntrezGeneEntry] = set()
     for row in rows:
         symbol = row["Marker Symbol"]
         assert symbol not in symbols, f"Symbol {symbol} is already known"
@@ -187,7 +187,7 @@ def parse_mgi(
             no_entrez_id += 1
             continue
         for human_entrez_id in human_entrez_ids:
-            rv.append(EntrezGeneEntry(symbol, True, human_entrez_id))
+            rv.add(EntrezGeneEntry(symbol, True, human_entrez_id))
 
     rv_synonyms: dict[str, set[EntrezGene]] = defaultdict(set)
     for row in rows:
@@ -231,7 +231,7 @@ def parse_mgi(
         if len(entrez_genes) != 1:
             continue
         entrez_gene = list(entrez_genes)[0]
-        rv.append(EntrezGeneEntry(synonym, False, entrez_gene))
+        rv.add(EntrezGeneEntry(synonym, False, entrez_gene))
 
     get_sspsygene_logger().info(
         "MGI: Total: %d, No entrez id: %d (%.2f%%)",
@@ -260,7 +260,7 @@ zfin_header = [
 
 
 def parse_zfin(fname: Path) -> EntrezGeneMap:
-    rv: list[EntrezGeneEntry] = []
+    rv: set[EntrezGeneEntry] = set()
     total = 0
     no_entrez_id = 0
     with open(fname, encoding="utf-8") as f:
@@ -273,7 +273,7 @@ def parse_zfin(fname: Path) -> EntrezGeneMap:
                 get_sspsygene_logger().debug("ZFIN: No entrez id for %s", symbol)
                 no_entrez_id += 1
                 entrez_id = -1
-            rv.append(EntrezGeneEntry(symbol, True, EntrezGene(entrez_id)))
+            rv.add(EntrezGeneEntry(symbol, True, EntrezGene(entrez_id)))
     get_sspsygene_logger().info(
         "ZFIN: Total: %d, No entrez id: %d (%.2f%%)",
         total,
