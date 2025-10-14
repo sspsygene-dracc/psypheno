@@ -63,10 +63,17 @@ export default function Home() {
             padding: "32px 16px",
             textAlign: "center",
             color: "#f1f5f9",
-            fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+            fontFamily:
+              "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 16,
+            }}
+          >
             <img
               src="/1763-ssPsyGeneLogo_v2_A.png"
               alt="SSPsyGene Logo"
@@ -82,9 +89,26 @@ export default function Home() {
             Explore cross-species datasets from the SSPsyGene project
           </p>
         </header>
-        <main style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <main
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
           {/* Mode toggle */}
-          <div style={{ width: "min(720px, 92%)", display: "flex", gap: 8, background: "#0f172a", border: "1px solid #334155", borderRadius: 12, padding: 4 }}>
+          <div
+            style={{
+              width: "min(720px, 92%)",
+              boxSizing: "border-box",
+              display: "flex",
+              gap: 8,
+              background: "#0f172a",
+              border: "1px solid #334155",
+              borderRadius: 12,
+              padding: 4,
+            }}
+          >
             <button
               onClick={() => setSearchMode("general")}
               style={{
@@ -93,7 +117,8 @@ export default function Home() {
                 borderRadius: 10,
                 border: "none",
                 cursor: "pointer",
-                background: searchMode === "general" ? "#1e293b" : "transparent",
+                background:
+                  searchMode === "general" ? "#1e293b" : "transparent",
                 color: "#e5e7eb",
                 fontWeight: 600,
               }}
@@ -118,7 +143,17 @@ export default function Home() {
           </div>
 
           {searchMode === "general" && (
-            <div style={{ width: "min(720px, 92%)", marginTop: 16 }}>
+            <div
+              style={{
+                width: "min(720px, 92%)",
+                boxSizing: "border-box",
+                marginTop: 16,
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: 12,
+                padding: 4,
+              }}
+            >
               <SearchBar
                 placeholder="Search for a gene (e.g., CTNNB1, SATB1)"
                 onSelect={(s) => setSelected(s)}
@@ -127,7 +162,20 @@ export default function Home() {
           )}
 
           {searchMode === "pair" && (
-            <div style={{ width: "min(720px, 92%)", marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div
+              style={{
+                width: "min(720px, 92%)",
+                boxSizing: "border-box",
+                marginTop: 16,
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: 12,
+                padding: 4,
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+              }}
+            >
               <SearchBar
                 placeholder="Perturbed gene"
                 apiPath="/api/search-pertarget"
@@ -146,18 +194,30 @@ export default function Home() {
             {searchMode === "general" && selected && (
               <div style={{ width: "100%" }}>
                 {loading && (
-                  <div style={{ color: "#e5e7eb", textAlign: "center", marginTop: 16 }}>
+                  <div
+                    style={{
+                      color: "#e5e7eb",
+                      textAlign: "center",
+                      marginTop: 16,
+                    }}
+                  >
                     Loading data...
                   </div>
                 )}
                 {error && (
-                  <div style={{ color: "#ef4444", textAlign: "center", marginTop: 16 }}>
+                  <div
+                    style={{
+                      color: "#ef4444",
+                      textAlign: "center",
+                      marginTop: 16,
+                    }}
+                  >
                     {error}
                   </div>
                 )}
                 {!loading && !error && (
-                  <GeneResults entrezId={selected.entrezId} data={data} />)
-                }
+                  <GeneResults entrezId={selected.entrezId} data={data} />
+                )}
               </div>
             )}
           </div>

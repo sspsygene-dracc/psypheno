@@ -136,6 +136,7 @@ export default function SearchBar({
           background: "#111827",
           color: "#e5e7eb",
           boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+          boxSizing: "border-box"
         }}
       />
       {open && suggestions.length > 0 && (
