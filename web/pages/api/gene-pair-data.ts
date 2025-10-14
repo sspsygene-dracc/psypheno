@@ -46,7 +46,6 @@ export default async function handler(
     }> = [];
 
     for (const t of tables) {
-      console.log("querying table", t);
       const baseTable = sanitizeIdentifier(t.table_name);
       const displayCols = (t.display_columns || "")
         .split(",")
@@ -101,14 +100,10 @@ export default async function handler(
 
       sql += ` WHERE ${whereParts.join(" AND ")}`;
 
-      console.log("sql", sql);
-      console.log("params", params);
-
       try {
         const stmt = db.prepare(sql);
         const rows = stmt.all(...params) as Record<string, unknown>[];
         if (rows.length > 0) {
-          console.log("rows", rows);
           results.push({
             tableName: t.table_name,
             displayColumns: displayCols,

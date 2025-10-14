@@ -12,7 +12,6 @@ export default function GeneResults({
   entrezId: string | null;
   data: TableResult[];
 }) {
-  console.log("GeneResults rendering with entrezId:", entrezId, "data:", data);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (name: string) => {

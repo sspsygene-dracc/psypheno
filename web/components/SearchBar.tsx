@@ -29,8 +29,11 @@ export default function SearchBar({
   // Sync internal query with external value prop
   useEffect(() => {
     if (value) {
+      console.log("Setting query 1");
+      setSuppress(true);
       setQuery(value.name);
     } else {
+      console.log("Setting query 2");
       setQuery("");
     }
   }, [value]);
@@ -57,7 +60,8 @@ export default function SearchBar({
         return;
       }
       try {
-        const bodyExtra = typeof extraBody === "function" ? extraBody() : (extraBody || {});
+        const bodyExtra =
+          typeof extraBody === "function" ? extraBody() : extraBody || {};
         const res = await fetch(apiPath, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -67,6 +71,7 @@ export default function SearchBar({
         if (!res.ok) return;
         const data = await res.json();
         setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+        console.log("setOpen true 1");
         setOpen(true);
       } catch (_) {
         // swallow
@@ -84,6 +89,7 @@ export default function SearchBar({
       e.preventDefault();
       if (!open) {
         if (suggestions.length > 0) {
+          console.log("setOpen true 2");
           setOpen(true);
           setHighlightIndex(0);
         }
@@ -95,6 +101,7 @@ export default function SearchBar({
       e.preventDefault();
       if (!open) {
         if (suggestions.length > 0) {
+          console.log("setOpen true 3");
           setOpen(true);
           setHighlightIndex(suggestions.length - 1);
         }
@@ -109,7 +116,9 @@ export default function SearchBar({
       e.preventDefault();
       const chosen = suggestions[highlightIndex >= 0 ? highlightIndex : 0];
       if (chosen) {
+        console.log("Setting select 1");
         onSelect(chosen);
+        console.log("Setting query 3");
         setQuery(chosen.name);
         setSuppress(true);
         setOpen(false);
@@ -120,7 +129,9 @@ export default function SearchBar({
   };
 
   const choose = (s: SearchSuggestion) => {
+    console.log("Setting select 2");
     onSelect(s);
+    console.log("Setting query 4");
     setQuery(s.name);
     setSuppress(true);
     setOpen(false);
@@ -132,13 +143,20 @@ export default function SearchBar({
         value={query}
         onChange={(e) => {
           if (suppress) setSuppress(false);
+          console.log("Setting query 5");
           setQuery(e.target.value);
           // Clear parent state if input is cleared
           if (e.target.value === "" && value) {
+            console.log("Setting select 3");
             onSelect(null);
           }
         }}
-        onFocus={() => query && !suppress && setOpen(true)}
+        onFocus={() => {
+          if (query && !suppress) {
+            console.log("setOpen true 4");
+            setOpen(true);
+          }
+        }}
         onKeyDown={onKeyDown}
         placeholder={placeholder || "Search for a gene"}
         style={{
@@ -151,7 +169,7 @@ export default function SearchBar({
           background: "#111827",
           color: "#e5e7eb",
           boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-          boxSizing: "border-box"
+          boxSizing: "border-box",
         }}
       />
       {open && suggestions.length > 0 && (

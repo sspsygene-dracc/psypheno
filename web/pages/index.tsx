@@ -33,9 +33,7 @@ export default function Home() {
         });
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const payload = await res.json();
-        console.log("gene-data payload", payload);
         const results = Array.isArray(payload.results) ? payload.results : [];
-        console.log("Setting data to:", results);
         setGeneralData(results);
       } catch (e: any) {
         setError(e?.message || "Failed to load data");
@@ -65,9 +63,7 @@ export default function Home() {
         });
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const payload = await res.json();
-        console.log("gene-pair-data payload", payload);
         const results = Array.isArray(payload.results) ? payload.results : [];
-        console.log("Setting pair data to:", results);
         setPairData(results);
       } catch (e: any) {
         setError(e?.message || "Failed to load data");
@@ -90,10 +86,10 @@ export default function Home() {
 
   const displayEntrezId = () => {
     if (searchMode === "general" && selected) {
-      return selected.entrezId;
+      return `${selected.name}`;
     }
     if (searchMode === "pair" && (perturbed || target)) {
-      return `Perturbed: ${perturbed?.name || "Any"} → Target: ${
+      return `perturbed ${perturbed?.name || "Any"} → target ${
         target?.name || "Any"
       }`;
     }
