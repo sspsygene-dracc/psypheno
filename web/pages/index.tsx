@@ -232,6 +232,7 @@ export default function Home() {
               <SearchBar
                 placeholder="Search for a gene (e.g., CTNNB1, SATB1)"
                 onSelect={(s) => setSelected(s)}
+                value={selected}
               />
             </div>
           )}
@@ -254,10 +255,12 @@ export default function Home() {
               <SearchBar
                 placeholder="Perturbed gene"
                 onSelect={(s) => setPerturbed(s)}
+                value={perturbed}
               />
               <SearchBar
                 placeholder="Target gene"
                 onSelect={(s) => setTarget(s)}
+                value={target}
               />
             </div>
           )}

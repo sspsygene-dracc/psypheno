@@ -9,11 +9,13 @@ export type SearchSuggestion = {
 export default function SearchBar({
   placeholder,
   onSelect,
+  value,
   apiPath = "/api/search-text",
   extraBody,
 }: {
   placeholder?: string;
-  onSelect: (s: SearchSuggestion) => void;
+  onSelect: (s: SearchSuggestion | null) => void;
+  value?: SearchSuggestion | null;
   apiPath?: string;
   extraBody?: Record<string, unknown> | (() => Record<string, unknown>);
 }) {
@@ -23,6 +25,15 @@ export default function SearchBar({
   const [highlightIndex, setHighlightIndex] = useState<number>(-1);
   const [suppress, setSuppress] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Sync internal query with external value prop
+  useEffect(() => {
+    if (value) {
+      setQuery(value.name);
+    } else {
+      setQuery("");
+    }
+  }, [value]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -122,6 +133,10 @@ export default function SearchBar({
         onChange={(e) => {
           if (suppress) setSuppress(false);
           setQuery(e.target.value);
+          // Clear parent state if input is cleared
+          if (e.target.value === "" && value) {
+            onSelect(null);
+          }
         }}
         onFocus={() => query && !suppress && setOpen(true)}
         onKeyDown={onKeyDown}
