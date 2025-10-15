@@ -182,7 +182,7 @@ export default function AllGenes() {
                     genes.map((gene, idx) => (
                       <Link
                         key={`${gene.entrezId}-${idx}`}
-                        href={`/?gene=${gene.entrezId}`}
+                        href={`/?searchMode=general&selected=${gene.name}`}
                         style={{
                           display: "grid",
                           gridTemplateColumns: "1fr 150px 100px",

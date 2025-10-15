@@ -10,7 +10,7 @@
   "tables": [
     {
       "table": "mouse_perturb_deg",
-      "description": "Differentially expressed genes dataset from Zheng et al., 2024, Cell: 'Massively parallel in vivo Perturb-seq reveals cell-type-specific transcriptional networks in cortical development'",
+      "description": "Differentially expressed genes from Zheng et al., 2024, Cell: 'Massively parallel in vivo Perturb-seq reveals cell-type-specific transcriptional networks in cortical development'",
       "in_path": "data/datasets/mouse-perturb-4tf/deg.txt",
       "split_column_map": [
         {
@@ -40,7 +40,7 @@
     },
     {
       "table": "mouse_perturb_clusterprop",
-      "description": "Cluster proportion dataset from Zheng et al., 2024, Cell: 'Massively parallel in vivo Perturb-seq reveals cell-type-specific transcriptional networks in cortical development'",
+      "description": "Cluster proportions from Zheng et al., 2024, Cell: 'Massively parallel in vivo Perturb-seq reveals cell-type-specific transcriptional networks in cortical development'",
       "in_path": "data/datasets/mouse-perturb-4tf/clusterprop.txt",
       "split_column_map": [
         {
@@ -63,7 +63,7 @@
     },
     {
       "table": "perturb_fish_astro",
-      "description": "Dataset from Binan et al., 2023: 'Simultaneous CRISPR screening and spatial transcriptomics reveals intracellular, intercellular, and functional transcriptional circuits'",
+      "description": "Binan et al., 2023: 'Simultaneous CRISPR screening and spatial transcriptomics reveals intracellular, intercellular, and functional transcriptional circuits'",
       "in_path": "data/datasets/perturb-fish/perturbfish-astro.csv",
       "split_column_map": [],
       "entrez_conversions": [
@@ -88,7 +88,7 @@
     },
     {
       "table": "zebra_asd",
-      "description": "Dataset from Weinschutz Mendes et al., 2023, Cell Reports: 'High-throughput functional analysis of autism genes in zebrafish identifies convergence in dopaminergic and neuroimmune pathways'",
+      "description": "Weinschutz Mendes et al., 2023, Cell Reports: 'High-throughput functional analysis of autism genes in zebrafish identifies convergence in dopaminergic and neuroimmune pathways'",
       "in_path": "data/datasets/zebraAsd/1-s2.0-S2211124723002541-mmc5.txt",
       "split_column_map": [
         {
@@ -165,7 +165,7 @@
     },
     {
       "table": "psychscreen_age_deg",
-      "description": "Dataset from PsychScreen, https://downloads.wenglab.org/Age_DEGcombined.csv",
+      "description": "PsychScreen, https://downloads.wenglab.org/Age_DEGcombined.csv",
       "in_path": "data/datasets/psychscreen/Age_DEGcombined.csv",
       "split_column_map": [],
       "separator": ",",
@@ -182,7 +182,7 @@
     },
     {
       "table": "psychscreen_asd_deg",
-      "description": "Dataset from PsychScreen, https://downloads.wenglab.org/ASD_DEGcombined.csv",
+      "description": "PsychScreen, https://downloads.wenglab.org/ASD_DEGcombined.csv",
       "in_path": "data/datasets/psychscreen/ASD_DEGcombined.csv",
       "split_column_map": [],
       "separator": ",",
@@ -199,7 +199,7 @@
     },
     {
       "table": "psychscreen_bipolar_deg",
-      "description": "Dataset from PsychScreen, https://downloads.wenglab.org/Bipolar_DEGcombined.csv",
+      "description": "PsychScreen, https://downloads.wenglab.org/Bipolar_DEGcombined.csv",
       "in_path": "data/datasets/psychscreen/Bipolar_DEGcombined.csv",
       "split_column_map": [],
       "separator": ",",
@@ -216,7 +216,7 @@
     },
     {
       "table": "psychscreen_schizophrenia_deg",
-      "description": "Dataset from PsychScreen, https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv",
+      "description": "PsychScreen, https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv",
       "in_path": "data/datasets/psychscreen/Schizophrenia_DEGcombined.csv",
       "split_column_map": [],
       "separator": ",",
