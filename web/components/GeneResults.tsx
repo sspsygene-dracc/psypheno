@@ -1,5 +1,6 @@
 import { TableResult } from "@/lib/table_result";
 import { useState } from "react";
+import DataTable from "@/components/DataTable";
 
 export default function GeneResults({
   entrezId,
@@ -58,48 +59,14 @@ export default function GeneResults({
           >
             {section.tableName}
           </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  {section.displayColumns.map((c) => (
-                    <th
-                      key={c}
-                      style={{
-                        textAlign: "left",
-                        padding: "10px 12px",
-                        fontWeight: 500,
-                        borderBottom: "1px solid #334155",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {c}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(expandedSections.has(section.tableName)
-                  ? section.rows
-                  : section.rows.slice(0, 5)
-                ).map((r, i) => (
-                  <tr key={i}>
-                    {section.displayColumns.map((c) => (
-                      <td
-                        key={c}
-                        style={{
-                          padding: "10px 12px",
-                          borderBottom: "1px solid #1f2937",
-                        }}
-                      >
-                        {String(r[c] ?? "")}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={section.displayColumns}
+            rows={
+              expandedSections.has(section.tableName)
+                ? section.rows
+                : section.rows.slice(0, 5)
+            }
+          />
           {section.rows.length > 5 && (
             <div
               style={{

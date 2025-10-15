@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Head from "next/head";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import DataTable from "@/components/DataTable";
 
 type Dataset = {
   table_name: string;
@@ -215,69 +216,11 @@ export default function AllDatasets() {
                   )}
 
                   {!loadingData && datasetData && (
-                    <div style={{ overflowX: "auto" }}>
-                      <table
-                        style={{
-                          width: "100%",
-                          borderCollapse: "collapse",
-                          fontSize: 14,
-                        }}
-                      >
-                        <thead>
-                          <tr style={{ background: "#1e293b" }}>
-                            {datasetData.displayColumns.map((col) => (
-                              <th
-                                key={col}
-                                style={{
-                                  padding: "12px 16px",
-                                  textAlign: "left",
-                                  color: "#94a3b8",
-                                  fontWeight: 600,
-                                  borderTop: "1px solid #334155",
-                                }}
-                              >
-                                {col}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {datasetData.rows.map((row, idx) => (
-                            <tr
-                              key={idx}
-                              style={{
-                                borderTop: "1px solid #334155",
-                              }}
-                            >
-                              {datasetData.displayColumns.map((col) => (
-                                <td
-                                  key={col}
-                                  style={{
-                                    padding: "12px 16px",
-                                    color: "#e5e7eb",
-                                  }}
-                                >
-                                  {String(row[col] ?? "")}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {datasetData.rows.length === 1000 && (
-                        <div
-                          style={{
-                            padding: 16,
-                            textAlign: "center",
-                            color: "#94a3b8",
-                            fontSize: 14,
-                            borderTop: "1px solid #334155",
-                          }}
-                        >
-                          Showing first 100 rows
-                        </div>
-                      )}
-                    </div>
+                    <DataTable
+                      columns={datasetData.displayColumns}
+                      rows={datasetData.rows}
+                      maxRows={100}
+                    />
                   )}
                 </div>
               )}

@@ -53,7 +53,7 @@ export default async function handler(
 
     // Get all data from the table
     const selectCols = displayCols.join(", ");
-    const sql = `SELECT ${selectCols} FROM ${tableName} LIMIT 100`;
+    const sql = `SELECT ${selectCols} FROM ${tableName} LIMIT 101`;
 
     const rows = db.prepare(sql).all() as Record<string, unknown>[];
 
