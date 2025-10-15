@@ -274,7 +274,7 @@ export default function AllDatasets() {
                             borderTop: "1px solid #334155",
                           }}
                         >
-                          Showing first 1000 rows
+                          Showing first 100 rows
                         </div>
                       )}
                     </div>

@@ -1,19 +1,12 @@
 import { useEffect, useState } from "react";
 import Head from "next/head";
-import { useRouter } from "next/router";
 import SearchBar, { SearchSuggestion } from "@/components/SearchBar";
 import GeneResults from "@/components/GeneResults";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-type TableResult = {
-  tableName: string;
-  displayColumns: string[];
-  rows: Record<string, unknown>[];
-};
+import { TableResult } from "@/lib/table_result";
 
 export default function Home() {
-  const router = useRouter();
   const [selected, setSelected] = useState<SearchSuggestion | null>(null);
   const [perturbed, setPerturbed] = useState<SearchSuggestion | null>(null);
   const [target, setTarget] = useState<SearchSuggestion | null>(null);

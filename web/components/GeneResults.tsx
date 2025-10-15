@@ -1,9 +1,5 @@
+import { TableResult } from "@/lib/table_result";
 import { useState } from "react";
-type TableResult = {
-  tableName: string;
-  displayColumns: string[];
-  rows: Record<string, unknown>[];
-};
 
 export default function GeneResults({
   entrezId,
@@ -12,7 +8,9 @@ export default function GeneResults({
   entrezId: string | null;
   data: TableResult[];
 }) {
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set()
+  );
 
   const toggleSection = (name: string) => {
     setExpandedSections((prev) => {
@@ -131,7 +129,9 @@ export default function GeneResults({
                   cursor: "pointer",
                 }}
               >
-                {expandedSections.has(section.tableName) ? "Collapse" : "Expand"}
+                {expandedSections.has(section.tableName)
+                  ? "Collapse"
+                  : "Expand"}
               </button>
             </div>
           )}
