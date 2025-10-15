@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 import sqlite3
 
-from processing.entrez_gene_maps import get_entrez_gene_maps
 from processing.new_sqlite3 import NewSqlite3
 from processing.types.entrez_gene import EntrezGene
 from processing.types.table_to_process_config import TableToProcessConfig
@@ -15,49 +14,46 @@ def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) 
         conn.execute(sql)
 
 
-def load_entrez_conversions(
+def load_gene_tables(
     conn: sqlite3.Connection, used_entrez_ids: set[EntrezGene]
 ) -> None:
-    entrez_conversions = get_entrez_gene_maps()
     cur = conn.cursor()
-    for species, entrez_gene_map in entrez_conversions.items():
-        # create table:
+    cur.execute(
+        """CREATE TABLE central_gene (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        name TEXT,
+        is_symbol INTEGER,
+        entrez_id INTEGER)"""
+    )
+    for entrez_gene_entry in entrez_gene_map.entrez_gene_entries:
+        if entrez_gene_entry.entrez_id.entrez_id < 0:
+            continue
+        if entrez_gene_entry.entrez_id not in used_entrez_ids:
+            continue
         cur.execute(
-            f"""CREATE TABLE {species}_entrez_gene (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            name TEXT,
-            is_symbol INTEGER,
-            entrez_id INTEGER)"""
+            f"""INSERT INTO {species}_entrez_gene (name, is_symbol, entrez_id) VALUES (?, ?, ?)""",
+            (
+                entrez_gene_entry.name,
+                entrez_gene_entry.is_symbol,
+                entrez_gene_entry.entrez_id.entrez_id,
+            ),
         )
-        for entrez_gene_entry in entrez_gene_map.entrez_gene_entries:
-            if entrez_gene_entry.entrez_id.entrez_id < 0:
-                continue
-            if entrez_gene_entry.entrez_id not in used_entrez_ids:
-                continue
-            cur.execute(
-                f"""INSERT INTO {species}_entrez_gene (name, is_symbol, entrez_id) VALUES (?, ?, ?)""",
-                (
-                    entrez_gene_entry.name,
-                    entrez_gene_entry.is_symbol,
-                    entrez_gene_entry.entrez_id.entrez_id,
-                ),
-            )
-        cur.execute(
-            f"CREATE INDEX {species}_entrez_gene_name_idx ON {species}_entrez_gene (name)"
-        )
-        cur.execute(
-            f"CREATE INDEX {species}_entrez_gene_is_symbol_idx ON {species}_entrez_gene (is_symbol)"
-        )
-        cur.execute(
-            f"CREATE INDEX {species}_entrez_gene_entrez_id_idx ON {species}_entrez_gene (entrez_id)"
-        )
+    cur.execute(
+        f"CREATE INDEX {species}_entrez_gene_name_idx ON {species}_entrez_gene (name)"
+    )
+    cur.execute(
+        f"CREATE INDEX {species}_entrez_gene_is_symbol_idx ON {species}_entrez_gene (is_symbol)"
+    )
+    cur.execute(
+        f"CREATE INDEX {species}_entrez_gene_entrez_id_idx ON {species}_entrez_gene (entrez_id)"
+    )
     conn.commit()
 
 
 def load_data_tables(
     conn: sqlite3.Connection, table_configs: list[TableToProcessConfig]
-) -> set[EntrezGene]:
-    rv: set[EntrezGene] = set()
+) -> set[int]:
+    used_central_table_ids: set[int] = set()
     cur = conn.cursor()
     cur.execute(
         """CREATE TABLE data_tables (

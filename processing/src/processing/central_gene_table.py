@@ -45,25 +45,29 @@ _mgi_elem_types = {
 class CentralGeneTableEntry:
 
     row_id: int
-    hgnc_symbol: str
+    hgnc_symbol: str | None
     human_entrez_gene: EntrezGene | None
     hgnc_id: str | None
     mouse_symbols: set[str]
     mouse_entrez_genes: set[EntrezGene]
     human_synonyms: set[str]
     mouse_synonyms: set[str]
-    num_datasets: int = 0
+    dataset_names: set[str] = set()
+    used_human_synonyms: set[str] = set()
+    used_mouse_synonyms: set[str] = set()
 
 
 @dataclass
 class CentralGeneTable:
 
-    entries: list[CentralGeneTableEntry]
+    entries: list[CentralGeneTableEntry] = []
 
     def get_hgnc_symbol_to_human_entrez_id(self) -> dict[str, EntrezGene]:
         rv: dict[str, EntrezGene] = {}
         for entry in self.entries:
             if entry.human_entrez_gene is None:
+                continue
+            if entry.hgnc_symbol is None:
                 continue
             rv[entry.hgnc_symbol] = entry.human_entrez_gene
         return rv
@@ -144,6 +148,8 @@ class CentralGeneTable:
         rows: list[dict[str, str]] = []
         withdrawn_map: dict[str, set[str]] = defaultdict(set)
 
+        next_row_id = max(entry.row_id for entry in self.entries) + 1
+
         with open(mgi_fname, encoding="utf-8") as f:
             reader = csv.DictReader(f, delimiter="\t", fieldnames=_mgi_entrez_header)
             for row in reader:
@@ -161,20 +167,22 @@ class CentralGeneTable:
                     continue
                 rows.append(row)
 
-        def get_human_entrez_ids(row: dict[str, str]) -> set[EntrezGene]:
+        def get_mouse_human_entrez_ids(
+            row: dict[str, str],
+        ) -> tuple[EntrezGene, set[EntrezGene] | None] | None:
             mouse_entrez_id_str: str = str(row["Entrez Gene ID"])
             if mouse_entrez_id_str == "" or mouse_entrez_id_str == "null":
-                return set()
+                return None
             mouse_entrez_id = int(mouse_entrez_id_str)
             hgnc_ids = mgi_entrez_to_hgnc.get(EntrezGene(mouse_entrez_id), None)
             if hgnc_ids is None:
-                return set()
+                return EntrezGene(mouse_entrez_id), None
             rv: set[EntrezGene] = {
                 hgnc_to_human_entrez[hgnc_id]
                 for hgnc_id in hgnc_ids
                 if hgnc_id in hgnc_to_human_entrez
             }
-            return rv
+            return EntrezGene(mouse_entrez_id), rv
 
         symbols: set[str] = {row["Marker Symbol"] for row in rows}
         all_synonyms: set[str] = set()
@@ -189,11 +197,30 @@ class CentralGeneTable:
             symbol = row["Marker Symbol"]
             synonyms = {x for x in row["Synonyms"].split("|") if x != ""} - symbols
             all_synonyms.update(synonyms)
-            human_entrez_ids = get_human_entrez_ids(row)
-            for human_entrez_id in human_entrez_ids:
-                central_entry = human_entrez_to_central_entry[human_entrez_id]
-                central_entry.mouse_symbols.add(symbol)
-                central_entry.mouse_synonyms.update(synonyms)
+            entrez_info = get_mouse_human_entrez_ids(row)
+            if not entrez_info:
+                continue
+            mouse_entrez_id, human_entrez_ids = entrez_info
+            if human_entrez_ids:
+                for human_entrez_id in human_entrez_ids:
+                    central_entry = human_entrez_to_central_entry[human_entrez_id]
+                    central_entry.mouse_symbols.add(symbol)
+                    central_entry.mouse_synonyms.update(synonyms)
+                    central_entry.mouse_entrez_genes.add(mouse_entrez_id)
+            else:
+                self.entries.append(
+                    CentralGeneTableEntry(
+                        row_id=next_row_id,
+                        hgnc_symbol=None,
+                        human_entrez_gene=None,
+                        hgnc_id=None,
+                        mouse_symbols={symbol},
+                        mouse_entrez_genes={mouse_entrez_id},
+                        human_synonyms=set(),
+                        mouse_synonyms=synonyms,
+                    )
+                )
+                next_row_id += 1
 
         mouse_symbol_to_central_entry: dict[str, list[CentralGeneTableEntry]] = (
             defaultdict(list)
@@ -212,3 +239,7 @@ class CentralGeneTable:
                     continue
                 for central_entry in mouse_symbol_to_central_entry[symbol]:
                     central_entry.mouse_synonyms.add(other_id)
+
+
+CENTRAL_GENE_TABLE = CentralGeneTable()
+CENTRAL_GENE_TABLE.construct()

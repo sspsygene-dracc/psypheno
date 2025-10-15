@@ -48,7 +48,7 @@ class EntrezConversion:
             is_target=json_data["is_target"],
         )
 
-    def resolve_entrez_genes(
+    def resolve_to_central_gene_table(
         self,
         primary_table_name: str,
         data: pd.DataFrame,
@@ -56,8 +56,6 @@ class EntrezConversion:
         used_entrez_ids: set[EntrezGene],
     ) -> LinkTable:
         assert "id" in data.columns, "id column not found in data"
-        orig_maps = get_entrez_gene_maps()
-        species_map = orig_maps[self.species].get_map()
         assert (
             self.column_name in data.columns
         ), f"table {primary_table_name}, column {self.column_name} not found in data columns {data.columns.tolist()}"

@@ -94,7 +94,7 @@ class TableToProcessConfig:
         for conversion in self.entrez_conversions:
             gene_columns.append(conversion.column_name.lower())
             species_list.append(conversion.species)
-            link_table = conversion.resolve_entrez_genes(
+            link_table = conversion.resolve_to_central_gene_table(
                 primary_table_name=self.table,
                 data=data,
                 in_path=self.in_path,
