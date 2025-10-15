@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import SearchBar, { SearchSuggestion } from "@/components/SearchBar";
 import GeneResults from "@/components/GeneResults";
 import Header from "@/components/Header";
@@ -7,6 +8,7 @@ import Footer from "@/components/Footer";
 import { TableResult } from "@/lib/table_result";
 
 export default function Home() {
+  const router = useRouter();
   const [selected, setSelected] = useState<SearchSuggestion | null>(null);
   const [perturbed, setPerturbed] = useState<SearchSuggestion | null>(null);
   const [target, setTarget] = useState<SearchSuggestion | null>(null);
@@ -15,6 +17,95 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [generalData, setGeneralData] = useState<TableResult[]>([]);
   const [pairData, setPairData] = useState<TableResult[]>([]);
+  const hydratedFromQuery = useRef<boolean>(false);
+
+  // Resolve a gene symbol to a SearchSuggestion via the search API
+  const resolveSymbol = async (
+    symbol: string
+  ): Promise<SearchSuggestion | null> => {
+    try {
+      const res = await fetch("/api/search-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: symbol }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const suggestions: SearchSuggestion[] = Array.isArray(data.suggestions)
+        ? data.suggestions
+        : [];
+      const exact = suggestions.find(
+        (s) => s.name.toLowerCase() === symbol.toLowerCase()
+      );
+      return exact || suggestions[0] || null;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  // Initialize state from URL query on first ready
+  useEffect(() => {
+    if (!router.isReady || hydratedFromQuery.current) return;
+    const q = router.query || {};
+    const qMode = (q.searchmode as string) === "pair" ? "pair" : "general";
+    setSearchMode(qMode);
+
+    const hydrate = async () => {
+      if (qMode === "general") {
+        const sel = typeof q.selected === "string" ? q.selected : undefined;
+        if (sel) {
+          const s = await resolveSymbol(sel);
+          if (s) setSelected(s);
+        }
+      } else {
+        const p = typeof q.perturbed === "string" ? q.perturbed : undefined;
+        const t = typeof q.target === "string" ? q.target : undefined;
+        if (p) {
+          const sp = await resolveSymbol(p);
+          if (sp) setPerturbed(sp);
+        }
+        if (t) {
+          const st = await resolveSymbol(t);
+          if (st) setTarget(st);
+        }
+      }
+      hydratedFromQuery.current = true;
+    };
+    hydrate();
+  }, [router.isReady]);
+
+  // Keep URL in sync with UI state
+  useEffect(() => {
+    if (!router.isReady) return;
+    // Avoid pushing while we're still hydrating initial state
+    if (!hydratedFromQuery.current) return;
+
+    const nextQuery: Record<string, string> = { searchmode: searchMode };
+    if (searchMode === "general") {
+      if (selected?.name) nextQuery.selected = selected.name;
+    } else {
+      if (perturbed?.name) nextQuery.perturbed = perturbed.name;
+      if (target?.name) nextQuery.target = target.name;
+    }
+
+    // Compare with current to avoid unnecessary replaces
+    const curr = router.query as Record<string, any>;
+    const keys = new Set([...Object.keys(curr), ...Object.keys(nextQuery)]);
+    let changed = false;
+    for (const k of keys) {
+      const a = curr[k];
+      const b = nextQuery[k];
+      if ((a ?? undefined) !== (b ?? undefined)) {
+        changed = true;
+        break;
+      }
+    }
+    if (!changed) return;
+
+    router.replace({ pathname: router.pathname, query: nextQuery }, undefined, {
+      shallow: true,
+    });
+  }, [searchMode, selected, perturbed, target, router.isReady]);
 
   useEffect(() => {
     const fetchData = async () => {
