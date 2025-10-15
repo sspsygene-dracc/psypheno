@@ -173,7 +173,9 @@ export default function AllDatasets() {
                       }}
                     >
                       <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                        {dataset.table_name}
+                        {dataset.table_name
+                          .replace(/_/g, " ")
+                          .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1))}
                       </div>
                       <div style={{ fontSize: 14, color: "#94a3b8" }}>
                         Species: {dataset.gene_species} • Columns:{" "}
@@ -212,7 +214,9 @@ export default function AllDatasets() {
                       fontWeight: 600,
                     }}
                   >
-                    {selectedDataset}
+                    {selectedDataset
+                      .replace(/_/g, " ")
+                      .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1))}
                   </div>
 
                   {loadingData && (
