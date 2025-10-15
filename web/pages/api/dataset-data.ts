@@ -33,9 +33,9 @@ export default async function handler(
     // Get table metadata
     const metadata = db
       .prepare(
-        `SELECT display_columns FROM data_tables WHERE table_name = ?`
+        `SELECT display_columns, description FROM data_tables WHERE table_name = ?`
       )
-      .get(tableName) as { display_columns: string } | undefined;
+      .get(tableName) as { display_columns: string; description: string | null } | undefined;
 
     if (!metadata) {
       return res.status(404).json({ error: "Dataset not found" });
@@ -59,6 +59,7 @@ export default async function handler(
 
     return res.status(200).json({
       tableName,
+      description: metadata.description ?? null,
       displayColumns: displayCols,
       rows,
     });

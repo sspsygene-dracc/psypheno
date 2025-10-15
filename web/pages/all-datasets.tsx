@@ -6,6 +6,7 @@ import DataTable from "@/components/DataTable";
 
 type Dataset = {
   table_name: string;
+  description: string | null;
   gene_columns: string;
   gene_species: string;
   display_columns: string;
@@ -178,6 +179,17 @@ export default function AllDatasets() {
                         Species: {dataset.gene_species} • Columns:{" "}
                         {dataset.display_columns.split(",").length}
                       </div>
+                      {dataset.description && (
+                        <div
+                          style={{
+                            fontSize: 13,
+                            color: "#94a3b8",
+                            marginTop: 6,
+                          }}
+                        >
+                          {dataset.description}
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>

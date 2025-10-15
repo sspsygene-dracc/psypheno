@@ -14,12 +14,13 @@ export default async function handler(
 
     const datasets = db
       .prepare(
-        `SELECT table_name, gene_columns, gene_species, display_columns, scalar_columns, link_tables 
+        `SELECT table_name, description, gene_columns, gene_species, display_columns, scalar_columns, link_tables 
          FROM data_tables 
          ORDER BY table_name ASC`
       )
       .all() as Array<{
       table_name: string;
+      description: string | null;
       gene_columns: string;
       gene_species: string;
       display_columns: string;

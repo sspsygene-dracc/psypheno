@@ -59,6 +59,13 @@ export default function GeneResults({
           >
             {section.tableName}
           </div>
+          {section.description && (
+            <div
+              style={{ padding: "10px 14px", color: "#94a3b8", fontSize: 14 }}
+            >
+              {section.description}
+            </div>
+          )}
           <DataTable
             columns={section.displayColumns}
             rows={

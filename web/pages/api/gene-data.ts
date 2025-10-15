@@ -32,10 +32,11 @@ export default async function handler(
 
     const tables = db
       .prepare(
-        `SELECT table_name, gene_columns, display_columns, link_tables FROM data_tables ORDER BY id ASC`
+        `SELECT table_name, description, gene_columns, display_columns, link_tables FROM data_tables ORDER BY id ASC`
       )
       .all() as Array<{
       table_name: string;
+      description: string | null;
       gene_columns: string;
       display_columns: string;
       link_tables: string | null;
@@ -43,6 +44,7 @@ export default async function handler(
 
     const results: Array<{
       tableName: string;
+      description: string | null;
       displayColumns: string[];
       rows: Record<string, unknown>[];
     }> = [];
@@ -95,6 +97,7 @@ export default async function handler(
         if (rows.length > 0) {
           results.push({
             tableName: t.table_name,
+            description: t.description ?? null,
             displayColumns: displayCols,
             rows,
           });

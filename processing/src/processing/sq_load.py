@@ -63,6 +63,7 @@ def load_data_tables(
         """CREATE TABLE data_tables (
         id INTEGER PRIMARY KEY AUTOINCREMENT, 
         table_name TEXT,
+        description TEXT,
         gene_columns TEXT,
         gene_species TEXT,
         display_columns TEXT,
@@ -83,11 +84,12 @@ def load_data_tables(
         # create_indexes(conn, table_config.table)
         cur.execute(
             """INSERT INTO data_tables (
-            table_name, gene_columns, gene_species, display_columns, scalar_columns, 
+            table_name, description, gene_columns, gene_species, display_columns, scalar_columns, 
             link_tables)
-            VALUES (?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
+                table_config.description,
                 ",".join(data_and_meta.gene_columns),
                 data_and_meta.gene_species,
                 ",".join(data_and_meta.display_columns),

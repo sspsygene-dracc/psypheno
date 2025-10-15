@@ -22,6 +22,7 @@ def get_sql_friendly_columns(df: pd.DataFrame) -> list[str]:
 @dataclass
 class TableToProcessConfig:
     table: str
+    description: str
     in_path: Path
     split_column_map: list[SplitColumnEntry]
     entrez_conversions: list[EntrezConversion]
@@ -57,6 +58,7 @@ class TableToProcessConfig:
     ) -> "TableToProcessConfig":
         return cls(
             table=json_data["table"],
+            description=json_data["description"],
             in_path=base_dir / json_data["in_path"],
             split_column_map=[
                 SplitColumnEntry.from_json(split_column_map)
