@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 import sqlite3
 
+from processing.central_gene_table import CENTRAL_GENE_TABLE
 from processing.new_sqlite3 import NewSqlite3
 from processing.types.entrez_gene import EntrezGene
 from processing.types.table_to_process_config import TableToProcessConfig
@@ -15,45 +16,69 @@ def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) 
 
 
 def load_gene_tables(
-    conn: sqlite3.Connection, used_entrez_ids: set[EntrezGene]
+    conn: sqlite3.Connection,
 ) -> None:
     cur = conn.cursor()
     cur.execute(
         """CREATE TABLE central_gene (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        name TEXT,
-        is_symbol INTEGER,
-        entrez_id INTEGER)"""
+        id INTEGER PRIMARY KEY,
+        hgnc_symbol TEXT,
+        human_entrez_gene INTEGER,
+        hgnc_id TEXT,
+        mouse_symbols TEXT,
+        mouse_entrez_genes TEXT,
+        human_synonyms TEXT,
+        mouse_synonyms TEXT,
+        dataset_names TEXT,
+        num_datasets INTEGER
+        )"""
     )
-    for entrez_gene_entry in entrez_gene_map.entrez_gene_entries:
-        if entrez_gene_entry.entrez_id.entrez_id < 0:
+    for entry in CENTRAL_GENE_TABLE.entries:
+        if not entry.used:
             continue
-        if entrez_gene_entry.entrez_id not in used_entrez_ids:
-            continue
-        cur.execute(
-            f"""INSERT INTO {species}_entrez_gene (name, is_symbol, entrez_id) VALUES (?, ?, ?)""",
+        to_insert = (
+            entry.row_id,
+            entry.hgnc_symbol if entry.hgnc_symbol else None,
+            entry.human_entrez_gene.entrez_id if entry.human_entrez_gene else None,
+            entry.hgnc_id if entry.hgnc_id else None,
+            ",".join(entry.mouse_symbols) if entry.mouse_symbols else None,
             (
-                entrez_gene_entry.name,
-                entrez_gene_entry.is_symbol,
-                entrez_gene_entry.entrez_id.entrez_id,
+                ",".join(str(x.entrez_id) for x in entry.mouse_entrez_genes)
+                if entry.mouse_entrez_genes
+                else None
             ),
+            ",".join(entry.human_synonyms) if entry.human_synonyms else None,
+            ",".join(entry.mouse_synonyms) if entry.mouse_synonyms else None,
+            ",".join(entry.dataset_names) if entry.dataset_names else None,
+            len(entry.dataset_names) if entry.dataset_names else 0,
         )
-    cur.execute(
-        f"CREATE INDEX {species}_entrez_gene_name_idx ON {species}_entrez_gene (name)"
-    )
-    cur.execute(
-        f"CREATE INDEX {species}_entrez_gene_is_symbol_idx ON {species}_entrez_gene (is_symbol)"
-    )
-    cur.execute(
-        f"CREATE INDEX {species}_entrez_gene_entrez_id_idx ON {species}_entrez_gene (entrez_id)"
+        cur.execute(
+            """INSERT INTO central_gene (
+            id, hgnc_symbol, human_entrez_gene, hgnc_id, mouse_symbols, 
+            mouse_entrez_genes, human_synonyms, mouse_synonyms, dataset_names) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            to_insert,
+        )
+    create_indexes(
+        conn,
+        "central_gene",
+        [
+            "hgnc_symbol",
+            "human_entrez_gene",
+            "hgnc_id",
+            "mouse_symbols",
+            "mouse_entrez_genes",
+            "human_synonyms",
+            "mouse_synonyms",
+            "dataset_names",
+        ],
     )
     conn.commit()
 
 
 def load_data_tables(
     conn: sqlite3.Connection, table_configs: list[TableToProcessConfig]
-) -> set[int]:
-    used_central_table_ids: set[int] = set()
+) -> None:
     cur = conn.cursor()
     cur.execute(
         """CREATE TABLE data_tables (
@@ -76,12 +101,11 @@ def load_data_tables(
                 link_table.link_table_name, conn, if_exists="replace", index=False
             )
         assert "id" in data_and_meta.data.columns, "id column not found in data"
-        rv.update(data_and_meta.used_entrez_ids)
-        # create_indexes(conn, table_config.table)
         cur.execute(
             """INSERT INTO data_tables (
-            table_name, description, gene_columns, gene_species, display_columns, scalar_columns, 
-            link_tables)
+            table_name, description, gene_columns, 
+            gene_species, display_columns, 
+            scalar_columns, link_tables)
             VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
@@ -96,12 +120,12 @@ def load_data_tables(
                 ),
             ),
         )
-    cur.execute("CREATE INDEX data_tables_table_idx ON data_tables (table_name)")
-    cur.execute(
-        "CREATE INDEX data_tables_gene_species_idx ON data_tables (gene_species)"
+    create_indexes(
+        conn,
+        "data_tables",
+        ["table_name", "gene_species", "link_tables"],
     )
     conn.commit()
-    return rv
 
 
 def load_db(db_name: Path, table_configs: list[TableToProcessConfig]) -> None:

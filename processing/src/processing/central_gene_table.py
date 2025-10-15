@@ -55,6 +55,7 @@ class CentralGeneTableEntry:
     dataset_names: set[str] = set()
     used_human_synonyms: set[str] = set()
     used_mouse_synonyms: set[str] = set()
+    used: bool = False
 
 
 @dataclass
