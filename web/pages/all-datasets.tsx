@@ -161,6 +161,10 @@ export default function AllDatasets() {
                         textAlign: "left",
                         cursor: "pointer",
                         transition: "background 0.2s ease",
+                        userSelect: "text",
+                        WebkitUserSelect: "text",
+                        MozUserSelect: "text",
+                        msUserSelect: "text",
                       }}
                       onMouseEnter={(e) => {
                         if (selectedDataset !== dataset.table_name) {
