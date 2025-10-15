@@ -4,10 +4,14 @@ export default function DataTable({
   columns,
   rows,
   maxRows,
+  totalRows,
+  showSummary = true,
 }: {
   columns: string[];
   rows: Record<string, unknown>[];
   maxRows?: number;
+  totalRows?: number;
+  showSummary?: boolean;
 }) {
   const rowsToDisplay = maxRows ? rows.slice(0, maxRows) : rows;
   return (
@@ -56,7 +60,7 @@ export default function DataTable({
           ))}
         </tbody>
       </table>
-      {maxRows && rows.length > maxRows && (
+      {showSummary && (
         <div
           style={{
             padding: 16,
@@ -66,7 +70,13 @@ export default function DataTable({
             borderTop: "1px solid #334155",
           }}
         >
-          Showing first {maxRows} rows
+          {(() => {
+            const shown = maxRows
+              ? Math.min(rows.length, maxRows)
+              : rows.length;
+            const total = totalRows ?? rows.length;
+            return `Showing first ${shown} of ${total} rows`;
+          })()}
         </div>
       )}
     </div>

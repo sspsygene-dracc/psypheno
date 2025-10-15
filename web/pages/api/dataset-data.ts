@@ -51,17 +51,24 @@ export default async function handler(
       return res.status(400).json({ error: "No display columns found" });
     }
 
-    // Get all data from the table
+    // Get all data from the table (preview up to 101 to detect if >100)
     const selectCols = displayCols.join(", ");
     const sql = `SELECT ${selectCols} FROM ${tableName} LIMIT 101`;
 
     const rows = db.prepare(sql).all() as Record<string, unknown>[];
+
+    // Get total row count
+    const totalRowResult = db
+      .prepare(`SELECT COUNT(*) as count FROM ${tableName}`)
+      .get() as { count: number };
+    const totalRows = totalRowResult?.count ?? rows.length;
 
     return res.status(200).json({
       tableName,
       description: metadata.description ?? null,
       displayColumns: displayCols,
       rows,
+      totalRows,
     });
   } catch (err) {
     console.error("dataset-data handler error", err);

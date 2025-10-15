@@ -75,6 +75,7 @@ export default function GeneResults({
                 ? section.rows
                 : section.rows.slice(0, 5)
             }
+            showSummary={false}
           />
           {section.rows.length > 5 && (
             <div

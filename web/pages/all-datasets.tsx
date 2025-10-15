@@ -18,6 +18,7 @@ type DatasetData = {
   tableName: string;
   displayColumns: string[];
   rows: Record<string, unknown>[];
+  totalRows?: number;
 };
 
 export default function AllDatasets() {
@@ -236,6 +237,7 @@ export default function AllDatasets() {
                       columns={datasetData.displayColumns}
                       rows={datasetData.rows}
                       maxRows={100}
+                      totalRows={datasetData.totalRows}
                     />
                   )}
                 </div>

@@ -3,4 +3,5 @@ export interface TableResult {
   description: string | null;
   displayColumns: string[];
   rows: Record<string, unknown>[];
+  totalRows?: number;
 }
