@@ -11,31 +11,67 @@ type Gene = {
   datasetCount: number;
 };
 
+type ApiResponse = {
+  genes: Gene[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  query: string;
+};
+
 export default function AllGenes() {
   const [genes, setGenes] = useState<Gene[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
+  // Debounce the search term
   useEffect(() => {
+    const id = setTimeout(() => setDebounced(searchTerm), 350);
+    return () => clearTimeout(id);
+  }, [searchTerm]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [debounced]);
+
+  // Fetch when page or search changes
+  useEffect(() => {
+    const controller = new AbortController();
     const fetchGenes = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const res = await fetch("/api/all-genes");
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("pageSize", String(pageSize));
+        if (debounced.trim().length > 0) params.set("q", debounced.trim());
+        const res = await fetch(`/api/all-genes?${params.toString()}`, {
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
-        const data = await res.json();
+        const data: ApiResponse = await res.json();
         setGenes(data.genes);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
       } catch (e: any) {
-        setError(e?.message || "Failed to load genes");
+        if (e.name !== "AbortError") {
+          setError(e?.message || "Failed to load genes");
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchGenes();
-  }, []);
-
-  const filteredGenes = genes.filter((gene) =>
-    gene.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    return () => controller.abort();
+  }, [page, pageSize, debounced]);
 
   return (
     <>
@@ -132,7 +168,7 @@ export default function AllGenes() {
                 </div>
 
                 <div style={{ maxHeight: "calc(100vh - 400px)", overflowY: "auto" }}>
-                  {filteredGenes.length === 0 ? (
+                  {genes.length === 0 ? (
                     <div
                       style={{
                         padding: 32,
@@ -143,7 +179,7 @@ export default function AllGenes() {
                       No genes found
                     </div>
                   ) : (
-                    filteredGenes.map((gene, idx) => (
+                    genes.map((gene, idx) => (
                       <Link
                         key={`${gene.entrezId}-${idx}`}
                         href={`/?gene=${gene.entrezId}`}
@@ -177,7 +213,71 @@ export default function AllGenes() {
               </div>
 
               <div style={{ marginTop: 16, color: "#94a3b8", fontSize: 14 }}>
-                Showing {filteredGenes.length} of {genes.length} genes
+                Showing page {page} of {totalPages} · {total} total genes
+              </div>
+
+              <div
+                style={{
+                  marginTop: 12,
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1 || loading}
+                    style={{
+                      padding: "8px 12px",
+                      background: page <= 1 || loading ? "#0f172a" : "#1e293b",
+                      border: "1px solid #334155",
+                      color: "#e5e7eb",
+                      borderRadius: 8,
+                      cursor: page <= 1 || loading ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    Prev
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages || loading}
+                    style={{
+                      padding: "8px 12px",
+                      background:
+                        page >= totalPages || loading ? "#0f172a" : "#1e293b",
+                      border: "1px solid #334155",
+                      color: "#e5e7eb",
+                      borderRadius: 8,
+                      cursor:
+                        page >= totalPages || loading ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: "#94a3b8" }}>Rows per page</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(parseInt(e.target.value, 10))}
+                    disabled={loading}
+                    style={{
+                      padding: "8px 12px",
+                      background: "#0f172a",
+                      border: "1px solid #334155",
+                      color: "#e5e7eb",
+                      borderRadius: 8,
+                    }}
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={200}>200</option>
+                  </select>
+                </div>
               </div>
             </>
           )}
