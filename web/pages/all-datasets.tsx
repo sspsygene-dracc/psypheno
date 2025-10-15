@@ -69,6 +69,15 @@ export default function AllDatasets() {
     fetchDatasetData();
   }, [selectedDataset]);
 
+  useEffect(() => {
+    if (!loadingData && datasetData && selectedDataset) {
+      const anchor = document.getElementById("dataset-table-top");
+      if (anchor) {
+        anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  }, [loadingData, datasetData, selectedDataset]);
+
   return (
     <>
       <Head>
@@ -187,20 +196,18 @@ export default function AllDatasets() {
                             )}
                         </div>
                         <div style={{ fontSize: 14, color: "#94a3b8" }}>
-                          Species:{" "}
-                          {dataset.gene_species.charAt(0).toUpperCase() +
-                            dataset.gene_species.slice(1)}{" "}
-                          • Columns: {dataset.display_columns.split(",").length}
+                          <b>{dataset.display_columns.split(",").length} Columns:</b>{" "}
+                          {dataset.display_columns.split(",").join(", ")}
                         </div>
                         {dataset.description && (
                           <div
                             style={{
-                              fontSize: 13,
+                              fontSize: 14,
                               color: "#94a3b8",
                               marginTop: 6,
                             }}
                           >
-                            {dataset.description}
+                            <b>Description:</b> {dataset.description}
                           </div>
                         )}
                       </div>
@@ -227,51 +234,54 @@ export default function AllDatasets() {
               </div>
 
               {selectedDataset && (
-                <div
-                  style={{
-                    background: "#0f172a",
-                    border: "1px solid #334155",
-                    borderRadius: 12,
-                    overflow: "hidden",
-                  }}
-                >
+                <>
+                  <div id="dataset-table-top" />
                   <div
                     style={{
-                      padding: "16px",
-                      background: "#1e293b",
-                      color: "#f1f5f9",
-                      fontWeight: 600,
+                      background: "#0f172a",
+                      border: "1px solid #334155",
+                      borderRadius: 12,
+                      overflow: "hidden",
                     }}
                   >
-                    {selectedDataset
-                      .replace(/_/g, " ")
-                      .replace(
-                        /\w\S*/g,
-                        (txt) => txt.charAt(0).toUpperCase() + txt.slice(1)
-                      )}
-                  </div>
-
-                  {loadingData && (
                     <div
                       style={{
-                        padding: 32,
-                        textAlign: "center",
-                        color: "#e5e7eb",
+                        padding: "16px",
+                        background: "#1e293b",
+                        color: "#f1f5f9",
+                        fontWeight: 600,
                       }}
                     >
-                      Loading data...
+                      {selectedDataset
+                        .replace(/_/g, " ")
+                        .replace(
+                          /\w\S*/g,
+                          (txt) => txt.charAt(0).toUpperCase() + txt.slice(1)
+                        )}
                     </div>
-                  )}
 
-                  {!loadingData && datasetData && (
-                    <DataTable
-                      columns={datasetData.displayColumns}
-                      rows={datasetData.rows}
-                      maxRows={100}
-                      totalRows={datasetData.totalRows}
-                    />
-                  )}
-                </div>
+                    {loadingData && (
+                      <div
+                        style={{
+                          padding: 32,
+                          textAlign: "center",
+                          color: "#e5e7eb",
+                        }}
+                      >
+                        Loading data...
+                      </div>
+                    )}
+
+                    {!loadingData && datasetData && (
+                      <DataTable
+                        columns={datasetData.displayColumns}
+                        rows={datasetData.rows}
+                        maxRows={100}
+                        totalRows={datasetData.totalRows}
+                      />
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}
