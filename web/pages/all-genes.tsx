@@ -102,6 +102,7 @@ export default function AllGenes() {
                     borderRadius: 8,
                     color: "#e5e7eb",
                     fontSize: 16,
+                    outline: "none",
                   }}
                 />
               </div>
@@ -166,7 +167,7 @@ export default function AllGenes() {
                         <div style={{ color: "#94a3b8", textTransform: "capitalize" }}>
                           {gene.species}
                         </div>
-                        <div style={{ textAlign: "right", color: "#60a5fa" }}>
+                        <div style={{ textAlign: "right", color: "#94a3b8" }}>
                           {gene.datasetCount}
                         </div>
                       </Link>
