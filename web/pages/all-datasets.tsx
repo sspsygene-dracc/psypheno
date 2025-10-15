@@ -129,7 +129,8 @@ export default function AllDatasets() {
                   background: "#0f172a",
                   border: "1px solid #334155",
                   borderRadius: 12,
-                  overflow: "hidden",
+                  overflowX: "auto",
+                  overflowY: "hidden",
                 }}
               >
                 <div
@@ -145,59 +146,82 @@ export default function AllDatasets() {
                 </div>
                 <div>
                   {datasets.map((dataset) => (
-                    <button
+                    <div
                       key={dataset.table_name}
-                      onClick={() => setSelectedDataset(dataset.table_name)}
                       style={{
                         width: "100%",
                         padding: "16px",
                         borderTop: "1px solid #334155",
-                        background:
-                          selectedDataset === dataset.table_name
-                            ? "#1e293b"
-                            : "transparent",
-                        border: "none",
+                        background: "transparent",
                         color: "#e5e7eb",
-                        textAlign: "left",
-                        cursor: "pointer",
                         transition: "background 0.2s ease",
                         userSelect: "text",
                         WebkitUserSelect: "text",
                         MozUserSelect: "text",
                         msUserSelect: "text",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 12,
+                        alignItems: "flex-start",
+                        justifyContent: "space-between",
+                        boxSizing: "border-box",
+                        maxWidth: "100%",
                       }}
                       onMouseEnter={(e) => {
-                        if (selectedDataset !== dataset.table_name) {
-                          e.currentTarget.style.background = "#1e293b66";
-                        }
+                        (e.currentTarget as HTMLDivElement).style.background =
+                          "#1e293b66";
                       }}
                       onMouseLeave={(e) => {
-                        if (selectedDataset !== dataset.table_name) {
-                          e.currentTarget.style.background = "transparent";
-                        }
+                        (e.currentTarget as HTMLDivElement).style.background =
+                          "transparent";
                       }}
                     >
-                      <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                        {dataset.table_name
-                          .replace(/_/g, " ")
-                          .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1))}
-                      </div>
-                      <div style={{ fontSize: 14, color: "#94a3b8" }}>
-                        Species: {dataset.gene_species} • Columns:{" "}
-                        {dataset.display_columns.split(",").length}
-                      </div>
-                      {dataset.description && (
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: "#94a3b8",
-                            marginTop: 6,
-                          }}
-                        >
-                          {dataset.description}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                          {dataset.table_name
+                            .replace(/_/g, " ")
+                            .replace(
+                              /\w\S*/g,
+                              (txt) =>
+                                txt.charAt(0).toUpperCase() + txt.slice(1)
+                            )}
                         </div>
-                      )}
-                    </button>
+                        <div style={{ fontSize: 14, color: "#94a3b8" }}>
+                          Species:{" "}
+                          {dataset.gene_species.charAt(0).toUpperCase() +
+                            dataset.gene_species.slice(1)}{" "}
+                          • Columns: {dataset.display_columns.split(",").length}
+                        </div>
+                        {dataset.description && (
+                          <div
+                            style={{
+                              fontSize: 13,
+                              color: "#94a3b8",
+                              marginTop: 6,
+                            }}
+                          >
+                            {dataset.description}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ flexShrink: 0 }}>
+                        <button
+                          onClick={() => setSelectedDataset(dataset.table_name)}
+                          style={{
+                            background: "#1e293b",
+                            color: "#e5e7eb",
+                            border: "1px solid #334155",
+                            borderRadius: 8,
+                            padding: "8px 12px",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                          aria-label={`Show first 100 rows of ${dataset.table_name}`}
+                        >
+                          Show first 100 rows
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -221,7 +245,10 @@ export default function AllDatasets() {
                   >
                     {selectedDataset
                       .replace(/_/g, " ")
-                      .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1))}
+                      .replace(
+                        /\w\S*/g,
+                        (txt) => txt.charAt(0).toUpperCase() + txt.slice(1)
+                      )}
                   </div>
 
                   {loadingData && (
