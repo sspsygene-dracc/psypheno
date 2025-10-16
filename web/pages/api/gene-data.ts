@@ -60,7 +60,7 @@ export default async function handler(
       if (displayCols.length === 0) continue;
 
       // Parse link tables list which may contain entries like "alias:table_name" or "alias:table_name:isPerturbed:isTarget"
-      // We only need the actual link table names to join on base.id = link.id and filter link.entrez_gene
+      // We only need the actual link table names to join on base.id = link.id and filter link.central_gene_id
       const linkTables = (t.link_tables || "")
         .split(",")
         .map((s) => s.trim())
@@ -82,7 +82,7 @@ export default async function handler(
         linkTables.forEach((lt, idx) => {
           const alias = `lt${idx}`;
           sql += ` LEFT JOIN ${lt} ${alias} ON b.id = ${alias}.id`;
-          whereParts.push(`${alias}.entrez_gene = ?`);
+          whereParts.push(`${alias}.central_gene_id = ?`);
           params.push(String(entrezId));
         });
         sql += ` WHERE ${whereParts.join(" OR ")}`;

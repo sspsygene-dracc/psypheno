@@ -88,13 +88,13 @@ export default async function handler(
       if (perturbedEntrezId) {
         const lt = perturbedLT;
         sql += ` LEFT JOIN ${lt} p ON b.id = p.id`;
-        whereParts.push(`p.entrez_gene = ?`);
+        whereParts.push(`p.central_gene_id = ?`);
         params.push(String(perturbedEntrezId));
       }
       if (targetEntrezId) {
         const lt = targetLT;
         sql += ` LEFT JOIN ${lt} t ON b.id = t.id`;
-        whereParts.push(`t.entrez_gene = ?`);
+        whereParts.push(`t.central_gene_id = ?`);
         params.push(String(targetEntrezId));
       }
 
