@@ -3,16 +3,10 @@ import Head from "next/head";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-type Gene = {
-  entrezId: number;
-  name: string;
-  species: string;
-  datasetCount: number;
-};
+import { SearchSuggestion } from "@/state/SearchSuggestion";
 
 type ApiResponse = {
-  genes: Gene[];
+  genes: SearchSuggestion[];
   page: number;
   pageSize: number;
   total: number;
@@ -21,7 +15,7 @@ type ApiResponse = {
 };
 
 export default function AllGenes() {
-  const [genes, setGenes] = useState<Gene[]>([]);
+  const [genes, setGenes] = useState<SearchSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -107,17 +101,22 @@ export default function AllGenes() {
             All Genes
           </h1>
           <p style={{ color: "#94a3b8", marginBottom: 24 }}>
-            Browse all genes across datasets with their occurrence counts
+            Browse gene suggestions and related symbols/synonyms with dataset
+            counts
           </p>
 
           {loading && (
-            <div style={{ color: "#e5e7eb", textAlign: "center", marginTop: 32 }}>
+            <div
+              style={{ color: "#e5e7eb", textAlign: "center", marginTop: 32 }}
+            >
               Loading genes...
             </div>
           )}
 
           {error && (
-            <div style={{ color: "#ef4444", textAlign: "center", marginTop: 32 }}>
+            <div
+              style={{ color: "#ef4444", textAlign: "center", marginTop: 32 }}
+            >
               {error}
             </div>
           )}
@@ -127,7 +126,7 @@ export default function AllGenes() {
               <div style={{ marginBottom: 24 }}>
                 <input
                   type="text"
-                  placeholder="Search genes..."
+                  placeholder="Search genes, symbols, or synonyms..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{
@@ -154,7 +153,7 @@ export default function AllGenes() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr 150px 100px",
+                    gridTemplateColumns: "1.2fr 1fr 1fr 1fr 100px",
                     padding: "16px",
                     background: "#1e293b",
                     color: "#94a3b8",
@@ -162,12 +161,19 @@ export default function AllGenes() {
                     fontSize: 14,
                   }}
                 >
-                  <div>Gene Name</div>
-                  <div>Species</div>
+                  <div>Human symbol</div>
+                  <div>Mouse symbols</div>
+                  <div>Human synonyms</div>
+                  <div>Mouse synonyms</div>
                   <div style={{ textAlign: "right" }}>Datasets</div>
                 </div>
 
-                <div style={{ maxHeight: "calc(100vh - 400px)", overflowY: "auto" }}>
+                <div
+                  style={{
+                    maxHeight: "calc(100vh - 400px)",
+                    overflowY: "auto",
+                  }}
+                >
                   {genes.length === 0 ? (
                     <div
                       style={{
@@ -179,35 +185,71 @@ export default function AllGenes() {
                       No genes found
                     </div>
                   ) : (
-                    genes.map((gene, idx) => (
-                      <Link
-                        key={`${gene.entrezId}-${idx}`}
-                        href={`/?searchMode=general&selected=${gene.name}`}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 150px 100px",
-                          padding: "16px",
-                          borderTop: "1px solid #334155",
-                          color: "#e5e7eb",
-                          textDecoration: "none",
-                          transition: "background 0.2s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#1e293b";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "transparent";
-                        }}
-                      >
-                        <div style={{ fontWeight: 500 }}>{gene.name}</div>
-                        <div style={{ color: "#94a3b8", textTransform: "capitalize" }}>
-                          {gene.species}
+                    genes.map((sug, idx) => {
+                      const selectedParam =
+                        sug.humanSymbol ||
+                        (sug.mouseSymbols && sug.mouseSymbols[0]) ||
+                        "";
+                      const row = (
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1.2fr 1fr 1fr 1fr 100px",
+                            padding: "16px",
+                            borderTop: "1px solid #334155",
+                            color: "#e5e7eb",
+                            textDecoration: "none",
+                            transition: "background 0.2s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            (
+                              e.currentTarget as HTMLDivElement
+                            ).style.background = "#1e293b";
+                          }}
+                          onMouseLeave={(e) => {
+                            (
+                              e.currentTarget as HTMLDivElement
+                            ).style.background = "transparent";
+                          }}
+                        >
+                          <div style={{ fontWeight: 500 }}>
+                            {sug.humanSymbol ?? "—"}
+                          </div>
+                          <div style={{ color: "#94a3b8" }}>
+                            {sug.mouseSymbols && sug.mouseSymbols.length
+                              ? sug.mouseSymbols.join(", ")
+                              : "—"}
+                          </div>
+                          <div style={{ color: "#94a3b8" }}>
+                            {sug.humanSynonyms && sug.humanSynonyms.length
+                              ? sug.humanSynonyms.join(", ")
+                              : "—"}
+                          </div>
+                          <div style={{ color: "#94a3b8" }}>
+                            {sug.mouseSynonyms && sug.mouseSynonyms.length
+                              ? sug.mouseSynonyms.join(", ")
+                              : "—"}
+                          </div>
+                          <div style={{ textAlign: "right", color: "#94a3b8" }}>
+                            {sug.datasetCount}
+                          </div>
                         </div>
-                        <div style={{ textAlign: "right", color: "#94a3b8" }}>
-                          {gene.datasetCount}
-                        </div>
-                      </Link>
-                    ))
+                      );
+
+                      return selectedParam ? (
+                        <Link
+                          key={`${sug.centralGeneId}-${idx}`}
+                          href={`/?searchMode=general&selected=${encodeURIComponent(
+                            selectedParam
+                          )}`}
+                          style={{ textDecoration: "none" }}
+                        >
+                          {row}
+                        </Link>
+                      ) : (
+                        <div key={`${sug.centralGeneId}-${idx}`}>{row}</div>
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -251,7 +293,9 @@ export default function AllGenes() {
                       color: "#e5e7eb",
                       borderRadius: 8,
                       cursor:
-                        page >= totalPages || loading ? "not-allowed" : "pointer",
+                        page >= totalPages || loading
+                          ? "not-allowed"
+                          : "pointer",
                     }}
                   >
                     Next
@@ -287,4 +331,3 @@ export default function AllGenes() {
     </>
   );
 }
-

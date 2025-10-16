@@ -171,10 +171,6 @@ export default function SearchBar({
         onChange={(e) => {
           if (suppress) setSuppress(false);
           setQuery(e.target.value);
-          // Clear parent state if input is cleared
-          if (e.target.value === "" && value) {
-            onSelect(null);
-          }
         }}
         onFocus={() => {
           if (query && !suppress) {

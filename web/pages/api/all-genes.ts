@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "@/lib/db";
+import { SearchSuggestion } from "@/state/SearchSuggestion";
 
 export default async function handler(
   req: NextApiRequest,
@@ -31,12 +32,16 @@ export default async function handler(
           LOWER(cg.human_symbol) LIKE ?
           OR LOWER(cg.mouse_symbols) LIKE ?
           OR EXISTS (
-            SELECT 1 FROM synonyms s
+            SELECT 1 FROM extra_gene_synonyms s
             WHERE s.central_gene_id = cg.id AND LOWER(s.synonym) LIKE ?
+          )
+          OR EXISTS (
+            SELECT 1 FROM extra_mouse_symbols s
+            WHERE s.central_gene_id = cg.id AND LOWER(s.symbol) LIKE ?
           )
         )`
       );
-      params.push(likePrefix, likePrefix, likePrefix);
+      params.push(likePrefix, likePrefix, likePrefix, likePrefix);
     }
     const whereSql = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
 
@@ -51,22 +56,43 @@ export default async function handler(
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const offset = (page - 1) * pageSize;
 
-    const dataSql = `SELECT human_symbol, mouse_symbols, human_synonyms, mouse_synonyms,
-                      cg.num_datasets AS datasetCount
+    const dataSql = `SELECT cg.id,
+                     cg.human_symbol, 
+                     cg.mouse_symbols,
+                     cg.human_synonyms,
+                     cg.mouse_synonyms,
+                     cg.num_datasets AS dataset_count
                      FROM central_gene cg
                      ${whereSql}
-                     ORDER BY cg.num_datasets DESC, name ASC
+                     ORDER BY cg.num_datasets DESC, cg.human_symbol ASC, cg.mouse_symbols ASC
                      LIMIT ? OFFSET ?`;
 
     const rows = db.prepare(dataSql).all(...params, pageSize, offset) as Array<{
-      humanSymbol: string | null;
-      mouseSymbols: string | null;
-      humanSynonyms: string | null;
-      mouseSynonyms: string | null;
-      datasetCount: number;
+      id: number;
+      human_symbol: string | null;
+      mouse_symbols: string | null;
+      human_synonyms: string | null;
+      mouse_synonyms: string | null;
+      dataset_count: number;
     }>;
 
-    const genes = rows;
+    console.log(rows);
+
+    const genes: SearchSuggestion[] = rows.map((r) => ({
+      centralGeneId: r.id,
+      searchQuery: "",
+      humanSymbol: r.human_symbol,
+      mouseSymbols: r.mouse_symbols
+        ? r.mouse_symbols.split(",").filter(Boolean)
+        : null,
+      humanSynonyms: r.human_synonyms
+        ? r.human_synonyms.split(",").filter(Boolean)
+        : null,
+      mouseSynonyms: r.mouse_synonyms
+        ? r.mouse_synonyms.split(",").filter(Boolean)
+        : null,
+      datasetCount: r.dataset_count,
+    }));
 
     return res
       .status(200)
