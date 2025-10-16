@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 from pathlib import Path
 import sqlite3
@@ -29,7 +30,8 @@ def load_gene_tables(
         human_synonyms TEXT,
         mouse_synonyms TEXT,
         dataset_names TEXT,
-        num_datasets INTEGER
+        num_datasets INTEGER,
+        manually_added BOOLEAN
         )"""
     )
     cur.execute(
@@ -60,12 +62,13 @@ def load_gene_tables(
             ",".join(mouse_synonyms) if entry.mouse_synonyms else None,
             ",".join(entry.dataset_names) if entry.dataset_names else None,
             len(entry.dataset_names) if entry.dataset_names else 0,
+            entry.manually_added,
         )
         cur.execute(
             """INSERT INTO central_gene (
             id, human_symbol, human_entrez_gene, hgnc_id, mouse_symbols, 
-            mouse_entrez_genes, human_synonyms, mouse_synonyms, dataset_names, num_datasets) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            mouse_entrez_genes, human_synonyms, mouse_synonyms, dataset_names, num_datasets, manually_added) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             to_insert,
         )
         for synonym in human_synonyms:
@@ -94,6 +97,7 @@ def load_gene_tables(
             "human_synonyms",
             "mouse_synonyms",
             "dataset_names",
+            "manually_added",
         ],
     )
     create_indexes(

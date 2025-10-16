@@ -53,10 +53,26 @@ class CentralGeneTableEntry:
     mouse_entrez_genes: set[EntrezGene]
     human_synonyms: set[str]
     mouse_synonyms: set[str]
+    manually_added: bool = False
     dataset_names: set[str] = field(default_factory=set)
     used_human_names: set[str] = field(default_factory=set)
     used_mouse_names: set[str] = field(default_factory=set)
     used: bool = False
+
+    def add_used_name(
+        self,
+        species: Literal["human", "mouse"],
+        name: str,
+        dataset_name: str
+    ) -> None:
+        self.used = True
+        self.dataset_names.add(dataset_name)
+        if species == "human":
+            self.used_human_names.add(name)
+        elif species == "mouse":
+            self.used_mouse_names.add(name)
+        else:
+            raise ValueError(f"Invalid species: {species}")
 
 
 @dataclass
@@ -108,6 +124,7 @@ class CentralGeneTable:
             dataset_names={dataset},
             used_mouse_names={symbol},
             used=True,
+            manually_added=True,
         )
         self.entries.append(entry)
         return entry
@@ -126,6 +143,7 @@ class CentralGeneTable:
             mouse_synonyms=set(),
             dataset_names={dataset},
             used_human_names={symbol},
+            manually_added=True,
             used=True,
         )
         self.entries.append(entry)
@@ -141,16 +159,16 @@ class CentralGeneTable:
         else:
             raise ValueError(f"Invalid species: {species}")
 
-    def get_hgnc_symbol_to_human_entrez_id(self) -> dict[str, EntrezGene]:
+    def get_hgnc_id_to_human_entrez_id(self) -> dict[str, EntrezGene]:
         rv: dict[str, EntrezGene] = {}
         for entry in self.entries:
             if entry.human_entrez_gene is None:
                 continue
-            if entry.hgnc_id is None:  # this is just to ensure we only get HGNC names --- manually added entries have no HGNC ID
+            if (
+                entry.hgnc_id is None
+            ):  # this is just to ensure we only get HGNC names --- manually added entries have no HGNC ID
                 continue
-            if entry.human_symbol is None:
-                continue
-            rv[entry.human_symbol] = entry.human_entrez_gene
+            rv[entry.hgnc_id] = entry.human_entrez_gene
         return rv
 
     def construct(self):
@@ -158,10 +176,11 @@ class CentralGeneTable:
         mgi_entrez_to_hgnc = self.parse_mgi_entrez_to_hgnc(
             get_sspsygene_config().gene_map_config.alliance_homology_file
         )
+        hgnc_to_human_entrez = self.get_hgnc_id_to_human_entrez_id()
         self.parse_mgi(
             get_sspsygene_config().gene_map_config.mgi_file,
-            self.get_hgnc_symbol_to_human_entrez_id(),
-            mgi_entrez_to_hgnc,
+            hgnc_to_human_entrez=hgnc_to_human_entrez,
+            mgi_entrez_to_hgnc=mgi_entrez_to_hgnc,
         )
 
     def parse_hgnc(self, fname: Path) -> None:
@@ -271,8 +290,6 @@ class CentralGeneTable:
 
         for row in rows:
             symbol = row["Marker Symbol"]
-            if symbol == "Gm10762":
-                print(row)
             synonyms = {x for x in row["Synonyms"].split("|") if x != ""} - symbols
             all_synonyms.update(synonyms)
             mouse_entrez_id, human_entrez_ids = get_mouse_human_entrez_ids(row)
@@ -283,7 +300,6 @@ class CentralGeneTable:
                     central_entry.mouse_synonyms.update(synonyms)
                     if mouse_entrez_id:
                         central_entry.mouse_entrez_genes.add(mouse_entrez_id)
-                    self.entries.append(central_entry)
             else:
                 entry = CentralGeneTableEntry(
                     row_id=len(self.entries),

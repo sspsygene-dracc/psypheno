@@ -90,8 +90,7 @@ class EntrezConversion:
             else:
                 for entry in species_map[elem]:
                     data_id_to_central_gene_id.append((row_id, entry.row_id))
-                    entry.dataset_names.add(primary_table_name)
-                    entry.used = True
+                    entry.add_used_name(species=self.species, name=elem, dataset_name=primary_table_name)
         link_table_full_name = primary_table_name + "__" + self.link_table_name
         return LinkTable(
             central_gene_table_links=data_id_to_central_gene_id,
