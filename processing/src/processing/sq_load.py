@@ -4,7 +4,6 @@ import sqlite3
 
 from processing.central_gene_table import CENTRAL_GENE_TABLE
 from processing.new_sqlite3 import NewSqlite3
-from processing.types.entrez_gene import EntrezGene
 from processing.types.table_to_process_config import TableToProcessConfig
 
 
@@ -33,12 +32,22 @@ def load_gene_tables(
         num_datasets INTEGER
         )"""
     )
+    cur.execute(
+        """CREATE TABLE synonyms (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        central_gene_id INTEGER,
+        species TEXT,
+        synonym TEXT
+        )"""
+    )
     for entry in CENTRAL_GENE_TABLE.entries:
         if not entry.used:
             continue
+        human_synonyms = entry.human_synonyms & entry.used_human_names
+        mouse_synonyms = entry.mouse_synonyms & entry.used_mouse_names
         to_insert = (
             entry.row_id,
-            entry.hgnc_symbol if entry.hgnc_symbol else None,
+            entry.human_symbol if entry.human_symbol else None,
             entry.human_entrez_gene.entrez_id if entry.human_entrez_gene else None,
             entry.hgnc_id if entry.hgnc_id else None,
             ",".join(entry.mouse_symbols) if entry.mouse_symbols else None,
@@ -47,8 +56,8 @@ def load_gene_tables(
                 if entry.mouse_entrez_genes
                 else None
             ),
-            ",".join(entry.human_synonyms) if entry.human_synonyms else None,
-            ",".join(entry.mouse_synonyms) if entry.mouse_synonyms else None,
+            ",".join(human_synonyms) if entry.human_synonyms else None,
+            ",".join(mouse_synonyms) if entry.mouse_synonyms else None,
             ",".join(entry.dataset_names) if entry.dataset_names else None,
             len(entry.dataset_names) if entry.dataset_names else 0,
         )
@@ -59,6 +68,20 @@ def load_gene_tables(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             to_insert,
         )
+        for synonym in human_synonyms:
+            cur.execute(
+                """INSERT INTO synonyms (
+                central_gene_id, species, synonym)
+                VALUES (?, ?, ?)""",
+                (entry.row_id, "h", synonym),
+            )
+        for synonym in mouse_synonyms:
+            cur.execute(
+                """INSERT INTO synonyms (
+                central_gene_id, species, synonym)
+                VALUES (?, ?, ?)""",
+                (entry.row_id, "m", synonym),
+            )
     create_indexes(
         conn,
         "central_gene",
@@ -72,6 +95,11 @@ def load_gene_tables(
             "mouse_synonyms",
             "dataset_names",
         ],
+    )
+    create_indexes(
+        conn,
+        "synonyms",
+        ["central_gene_id", "species", "synonym"],
     )
     conn.commit()
 
@@ -138,5 +166,5 @@ def load_db(db_name: Path, table_configs: list[TableToProcessConfig]) -> None:
     db_name.unlink(missing_ok=True)
     with NewSqlite3(db_name, logger) as new_sqlite3:
         conn = new_sqlite3.conn
-        used_entrez_ids = load_data_tables(conn, table_configs)
-        load_entrez_conversions(conn, used_entrez_ids=used_entrez_ids)
+        load_data_tables(conn, table_configs)
+        load_gene_tables(conn)

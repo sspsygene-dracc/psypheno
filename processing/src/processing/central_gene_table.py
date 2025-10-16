@@ -4,6 +4,7 @@ from collections import defaultdict
 import csv
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from processing.config import get_sspsygene_config
 from processing.types.entrez_gene import EntrezGene
@@ -45,7 +46,7 @@ _mgi_elem_types = {
 class CentralGeneTableEntry:
 
     row_id: int
-    hgnc_symbol: str | None
+    human_symbol: str | None
     human_entrez_gene: EntrezGene | None
     hgnc_id: str | None
     mouse_symbols: set[str]
@@ -53,8 +54,8 @@ class CentralGeneTableEntry:
     human_synonyms: set[str]
     mouse_synonyms: set[str]
     dataset_names: set[str] = set()
-    used_human_synonyms: set[str] = set()
-    used_mouse_synonyms: set[str] = set()
+    used_human_names: set[str] = set()
+    used_mouse_names: set[str] = set()
     used: bool = False
 
 
@@ -63,14 +64,87 @@ class CentralGeneTable:
 
     entries: list[CentralGeneTableEntry] = []
 
+    def get_mouse_map(self) -> dict[str, list[CentralGeneTableEntry]]:
+        rv: dict[str, list[CentralGeneTableEntry]] = defaultdict(list)
+        for entry in self.entries:
+            for symbol in entry.mouse_symbols:
+                rv[symbol].append(entry)
+            for synonym in entry.mouse_synonyms:
+                rv[synonym].append(entry)
+        return dict(rv)
+
+    def get_human_map(self) -> dict[str, list[CentralGeneTableEntry]]:
+        rv: dict[str, list[CentralGeneTableEntry]] = defaultdict(list)
+        for entry in self.entries:
+            if entry.human_entrez_gene is None:
+                continue
+            if entry.human_symbol is None:
+                continue
+            rv[entry.human_symbol].append(entry)
+        return dict(rv)
+
+    def get_species_map(
+        self, species: Literal["human", "mouse"]
+    ) -> dict[str, list[CentralGeneTableEntry]]:
+        if species == "human":
+            return self.get_human_map()
+        elif species == "mouse":
+            return self.get_mouse_map()
+        else:
+            raise ValueError(f"Invalid species: {species}")
+
+    def add_manual_mouse_entry(self, symbol: str, dataset: str) -> None:
+        self.entries.append(
+            CentralGeneTableEntry(
+                row_id=len(self.entries),
+                human_symbol=None,
+                human_entrez_gene=None,
+                hgnc_id=None,
+                mouse_symbols={symbol},
+                mouse_entrez_genes=set(),
+                human_synonyms=set(),
+                mouse_synonyms=set(),
+                dataset_names={dataset},
+                used_mouse_names={symbol},
+                used=True,
+            )
+        )
+
+    def add_manual_human_entry(self, symbol: str, dataset: str) -> None:
+        self.entries.append(
+            CentralGeneTableEntry(
+                row_id=len(self.entries),
+                human_symbol=symbol,
+                human_entrez_gene=None,
+                hgnc_id=None,
+                mouse_symbols=set(),
+                mouse_entrez_genes=set(),
+                human_synonyms=set(),
+                mouse_synonyms=set(),
+                dataset_names={dataset},
+                used_human_names={symbol},
+                used=True,
+            )
+        )
+
+    def add_species_entry(
+        self, species: Literal["human", "mouse"], symbol: str, dataset: str
+    ) -> None:
+        if species == "human":
+            self.add_manual_human_entry(symbol, dataset)
+        elif species == "mouse":
+            self.add_manual_mouse_entry(symbol, dataset)
+        else:
+            raise ValueError(f"Invalid species: {species}")
+
     def get_hgnc_symbol_to_human_entrez_id(self) -> dict[str, EntrezGene]:
         rv: dict[str, EntrezGene] = {}
         for entry in self.entries:
             if entry.human_entrez_gene is None:
                 continue
-            if entry.hgnc_symbol is None:
+            if entry.human_symbol is None:
                 continue
-            rv[entry.hgnc_symbol] = entry.human_entrez_gene
+            rv[entry.human_symbol] = entry.human_entrez_gene
         return rv
 
     def construct(self):
@@ -85,8 +159,6 @@ class CentralGeneTable:
         )
 
     def parse_hgnc(self, fname: Path) -> None:
-        next_row_id = 0
-
         def get_entrez_id(row: dict[str, str]) -> int | None:
             entrez_id_str = row["entrez_id"]
             if entrez_id_str == "" or entrez_id_str == "null":
@@ -106,8 +178,8 @@ class CentralGeneTable:
             symbol = row["symbol"]
             self.entries.append(
                 CentralGeneTableEntry(
-                    row_id=next_row_id,
-                    hgnc_symbol=symbol,
+                    row_id=len(self.entries),
+                    human_symbol=symbol,
                     human_entrez_gene=(
                         EntrezGene(entrez_id) if entrez_id is not None else None
                     ),
@@ -122,7 +194,6 @@ class CentralGeneTable:
                     mouse_synonyms=set(),
                 )
             )
-            next_row_id += 1
 
     def parse_mgi_entrez_to_hgnc(
         self,
@@ -148,8 +219,6 @@ class CentralGeneTable:
     ) -> None:
         rows: list[dict[str, str]] = []
         withdrawn_map: dict[str, set[str]] = defaultdict(set)
-
-        next_row_id = max(entry.row_id for entry in self.entries) + 1
 
         with open(mgi_fname, encoding="utf-8") as f:
             reader = csv.DictReader(f, delimiter="\t", fieldnames=_mgi_entrez_header)
@@ -211,8 +280,8 @@ class CentralGeneTable:
             else:
                 self.entries.append(
                     CentralGeneTableEntry(
-                        row_id=next_row_id,
-                        hgnc_symbol=None,
+                        row_id=len(self.entries),
+                        human_symbol=None,
                         human_entrez_gene=None,
                         hgnc_id=None,
                         mouse_symbols={symbol},
@@ -221,7 +290,6 @@ class CentralGeneTable:
                         mouse_synonyms=synonyms,
                     )
                 )
-                next_row_id += 1
 
         mouse_symbol_to_central_entry: dict[str, list[CentralGeneTableEntry]] = (
             defaultdict(list)

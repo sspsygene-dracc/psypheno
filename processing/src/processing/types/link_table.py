@@ -1,20 +1,20 @@
 from dataclasses import dataclass
 
 import pandas as pd
-from processing.types.entrez_gene import EntrezGene
 
 
 @dataclass
 class LinkTable:
-    links: list[tuple[int, EntrezGene]]
+    central_gene_table_links: list[tuple[int, int | None]]
     gene_column_name: str
     link_table_name: str
     is_perturbed: bool
     is_target: bool
 
     def get_df(self) -> pd.DataFrame:
-        links_int: list[tuple[int, int]] = [(x[0], x[1].entrez_id) for x in self.links]
-        return pd.DataFrame(links_int, columns=["id", "entrez_gene"])
+        return pd.DataFrame(
+            self.central_gene_table_links, columns=["id", "central_gene_id"]
+        )
 
     def get_meta_entry(self) -> str:
         int_is_perturbed = "1" if self.is_perturbed else "0"

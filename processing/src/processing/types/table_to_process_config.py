@@ -98,7 +98,6 @@ class TableToProcessConfig:
                 primary_table_name=self.table,
                 data=data,
                 in_path=self.in_path,
-                used_entrez_ids=used_entrez_ids,
             )
             link_tables.append(link_table)
         species_set: set[Literal["human", "mouse", "zebrafish"]] = set(species_list)

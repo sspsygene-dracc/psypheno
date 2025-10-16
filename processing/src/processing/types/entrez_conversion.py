@@ -3,16 +3,15 @@ from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
-from processing.entrez_gene_maps import get_entrez_gene_maps
+from processing.central_gene_table import CENTRAL_GENE_TABLE
 from processing.my_logger import get_sspsygene_logger
-from processing.types.entrez_gene import EntrezGene
 from processing.types.link_table import LinkTable
 
 
 @dataclass
 class EntrezConversion:
     column_name: str
-    species: Literal["human", "mouse", "zebrafish"]
+    species: Literal["human", "mouse"]
     link_table_name: str
     ignore_missing: list[str]
     to_upper: bool
@@ -21,7 +20,7 @@ class EntrezConversion:
     is_target: bool
 
     def __post_init__(self):
-        if self.species not in ["human", "mouse", "zebrafish"]:
+        if self.species not in ["human", "mouse"]:
             raise ValueError(f"Invalid species: {self.species}")
         if self.to_upper not in [True, False]:
             raise ValueError(f"Invalid to_upper: {self.to_upper}")
@@ -53,7 +52,6 @@ class EntrezConversion:
         primary_table_name: str,
         data: pd.DataFrame,
         in_path: Path,
-        used_entrez_ids: set[EntrezGene],
     ) -> LinkTable:
         assert "id" in data.columns, "id column not found in data"
         assert (
@@ -61,29 +59,37 @@ class EntrezConversion:
         ), f"table {primary_table_name}, column {self.column_name} not found in data columns {data.columns.tolist()}"
         id_column: list[int] = data["id"].tolist()
         in_column: list[str] = data[self.column_name].tolist()
-        entrez_id_map: list[tuple[int, EntrezGene]] = []
+        data_id_to_central_gene_id: list[tuple[int, int | None]] = []
+        species_map = CENTRAL_GENE_TABLE.get_species_map(self.species)
         for row_id, elem in zip(id_column, in_column):
             if self.to_upper:
                 elem = elem.upper()
             if elem in self.replace:
                 elem = self.replace[elem]
             if elem not in species_map:
-                if elem not in self.ignore_missing:
+                if elem in self.ignore_missing:
+                    data_id_to_central_gene_id.append((row_id, None))
+                else:
                     get_sspsygene_logger().warning(
-                        "Path %s, column %s, gene %s not in gene maps for species %s",
+                        "Path %s, column %s, gene %s not in gene maps for species %s; adding manually",
                         in_path,
                         self.column_name,
                         elem,
                         self.species,
                     )
-                entrez_id_map.append((row_id, EntrezGene(-2)))
+                    CENTRAL_GENE_TABLE.add_species_entry(
+                        species=self.species,
+                        symbol=elem,
+                        dataset=primary_table_name,
+                    )
             else:
-                used_entrez_ids.update(species_map[elem])
-                for entrez_gene in species_map[elem]:
-                    entrez_id_map.append((row_id, entrez_gene))
+                for entry in species_map[elem]:
+                    data_id_to_central_gene_id.append((row_id, entry.row_id))
+                    entry.dataset_names.add(primary_table_name)
+                    entry.used = True
         link_table_full_name = primary_table_name + "__" + self.link_table_name
         return LinkTable(
-            links=entrez_id_map,
+            central_gene_table_links=data_id_to_central_gene_id,
             gene_column_name=self.column_name,
             link_table_name=link_table_full_name,
             is_perturbed=self.is_perturbed,
