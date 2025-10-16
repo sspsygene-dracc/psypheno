@@ -1,4 +1,3 @@
-from collections import defaultdict
 import logging
 from pathlib import Path
 import sqlite3
@@ -78,12 +77,20 @@ def load_gene_tables(
                 VALUES (?, ?, ?)""",
                 (entry.row_id, "h", synonym),
             )
-        for synonym in mouse_synonyms:
+        if len(entry.mouse_symbols) > 1:
+            for mouse_symbol in entry.mouse_symbols:
+                cur.execute(
+                    """INSERT INTO synonyms (
+                    central_gene_id, species, synonym)
+                    VALUES (?, ?, ?)""",
+                    (entry.row_id, "m", mouse_symbol),
+                )
+        for mouse_synonym in entry.mouse_synonyms:
             cur.execute(
                 """INSERT INTO synonyms (
                 central_gene_id, species, synonym)
                 VALUES (?, ?, ?)""",
-                (entry.row_id, "m", synonym),
+                (entry.row_id, "m", mouse_synonym),
             )
     create_indexes(
         conn,
