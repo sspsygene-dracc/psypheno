@@ -27,7 +27,7 @@ export default function AllGenes() {
 
   // Debounce the search term
   useEffect(() => {
-    const id = setTimeout(() => setDebounced(searchTerm), 350);
+    const id = setTimeout(() => setDebounced(searchTerm), 500);
     return () => clearTimeout(id);
   }, [searchTerm]);
 
@@ -46,7 +46,7 @@ export default function AllGenes() {
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("pageSize", String(pageSize));
-        if (debounced.trim().length > 0) params.set("q", debounced.trim());
+        if (debounced.trim().length >= 2) params.set("q", debounced.trim());
         const res = await fetch(`/api/all-genes?${params.toString()}`, {
           signal: controller.signal,
         });
@@ -105,43 +105,35 @@ export default function AllGenes() {
             counts
           </p>
 
-          {loading && (
-            <div
-              style={{ color: "#e5e7eb", textAlign: "center", marginTop: 32 }}
-            >
-              Loading genes...
-            </div>
-          )}
-
-          {error && (
-            <div
-              style={{ color: "#ef4444", textAlign: "center", marginTop: 32 }}
-            >
-              {error}
-            </div>
-          )}
+          <div style={{ marginBottom: 24 }}>
+            <input
+              type="text"
+              placeholder="Search genes, symbols, or synonyms..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: 8,
+                color: "#e5e7eb",
+                fontSize: 16,
+                outline: "none",
+              }}
+            />
+            {loading && (
+              <div style={{ color: "#94a3b8", marginTop: 8, fontSize: 14 }}>
+                Loading…
+              </div>
+            )}
+            {error && (
+              <div style={{ color: "#ef4444", marginTop: 8 }}>{error}</div>
+            )}
+          </div>
 
           {!loading && !error && (
             <>
-              <div style={{ marginBottom: 24 }}>
-                <input
-                  type="text"
-                  placeholder="Search genes, symbols, or synonyms..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    background: "#0f172a",
-                    border: "1px solid #334155",
-                    borderRadius: 8,
-                    color: "#e5e7eb",
-                    fontSize: 16,
-                    outline: "none",
-                  }}
-                />
-              </div>
-
               <div
                 style={{
                   background: "#0f172a",
@@ -307,9 +299,14 @@ export default function AllGenes() {
                   {(() => {
                     const items: ReactNode[] = [];
                     if (totalPages > 1) {
-                      const addBtn = (label: string | number, targetPage: number, key: string) => {
+                      const addBtn = (
+                        label: string | number,
+                        targetPage: number,
+                        key: string
+                      ) => {
                         const isActive = targetPage === page;
-                        const isDisabled = loading || targetPage < 1 || targetPage > totalPages;
+                        const isDisabled =
+                          loading || targetPage < 1 || targetPage > totalPages;
                         items.push(
                           <button
                             key={key}
@@ -319,7 +316,11 @@ export default function AllGenes() {
                             style={{
                               padding: "6px 10px",
                               minWidth: 36,
-                              background: isActive ? "#334155" : isDisabled ? "#0f172a" : "#1e293b",
+                              background: isActive
+                                ? "#334155"
+                                : isDisabled
+                                ? "#0f172a"
+                                : "#1e293b",
                               border: "1px solid #334155",
                               color: "#e5e7eb",
                               borderRadius: 6,
@@ -339,7 +340,13 @@ export default function AllGenes() {
                       // Determine surrounding range around current page
                       const surround: number[] = [];
                       for (let p = page - 2; p <= page + 2; p++) {
-                        if (p >= 1 && p <= totalPages && p !== 1 && p !== 2 && p !== totalPages) {
+                        if (
+                          p >= 1 &&
+                          p <= totalPages &&
+                          p !== 1 &&
+                          p !== 2 &&
+                          p !== totalPages
+                        ) {
                           surround.push(p);
                         }
                       }
@@ -347,23 +354,49 @@ export default function AllGenes() {
                       // Insert ellipsis if gap after 2
                       if (surround.length > 0 && Math.min(...surround) > 3) {
                         items.push(
-                          <span key="pg-ell-1" style={{ color: "#94a3b8", padding: "0 4px" }}>…</span>
+                          <span
+                            key="pg-ell-1"
+                            style={{ color: "#94a3b8", padding: "0 4px" }}
+                          >
+                            …
+                          </span>
                         );
                       }
 
-                      surround.forEach((pnum) => addBtn(pnum, pnum, `pg-${pnum}`));
+                      surround.forEach((pnum) =>
+                        addBtn(pnum, pnum, `pg-${pnum}`)
+                      );
 
                       // Insert ellipsis if gap before last
-                      if (surround.length > 0 && Math.max(...surround) < totalPages - 1) {
+                      if (
+                        surround.length > 0 &&
+                        Math.max(...surround) < totalPages - 1
+                      ) {
                         items.push(
-                          <span key="pg-ell-2" style={{ color: "#94a3b8", padding: "0 4px" }}>…</span>
+                          <span
+                            key="pg-ell-2"
+                            style={{ color: "#94a3b8", padding: "0 4px" }}
+                          >
+                            …
+                          </span>
                         );
                       }
 
                       // Always show last page
-                      if (totalPages > 2) addBtn(totalPages, totalPages, "pg-last");
+                      if (totalPages > 2)
+                        addBtn(totalPages, totalPages, "pg-last");
                     }
-                    return <div style={{ display: "flex", gap: 6, alignItems: "center" }}>{items}</div>;
+                    return (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 6,
+                          alignItems: "center",
+                        }}
+                      >
+                        {items}
+                      </div>
+                    );
                   })()}
                 </div>
 

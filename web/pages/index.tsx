@@ -174,14 +174,19 @@ export default function Home() {
     return false;
   };
 
+  const simpleGeneString = (gene: SearchSuggestion | null) => {
+    if (!gene) return "Any";
+    return `${gene.humanSymbol} (human) / ${gene.mouseSymbols?.join(
+      ", "
+    )} (mouse)`;
+  };
+
   const displayGeneString = () => {
     if (searchMode === "general" && selected) {
-      return `${selected.humanSymbol}`;
+      return simpleGeneString(selected);
     }
     if (searchMode === "pair" && (perturbed || target)) {
-      return `perturbed ${perturbed?.humanSymbol || "Any"} → target ${
-        target?.humanSymbol || "Any"
-      }`;
+      return `${simpleGeneString(perturbed)} → ${simpleGeneString(target)}`;
     }
     return null;
   };
@@ -364,7 +369,7 @@ export default function Home() {
                 {maybeLoading}
                 {!loading && !error && (
                   <GeneResults
-                    entrezId={displayGeneString()}
+                    geneDisplayName={displayGeneString()}
                     data={searchMode === "general" ? generalData : pairData}
                   />
                 )}

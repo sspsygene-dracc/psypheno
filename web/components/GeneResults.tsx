@@ -3,10 +3,10 @@ import { useState } from "react";
 import DataTable from "@/components/DataTable";
 
 export default function GeneResults({
-  entrezId,
+  geneDisplayName,
   data,
 }: {
-  entrezId: string | null;
+  geneDisplayName: string | null;
   data: TableResult[];
 }) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
@@ -24,7 +24,7 @@ export default function GeneResults({
       return next;
     });
   };
-  if (!entrezId) {
+  if (!geneDisplayName) {
     return null;
   }
   return (
@@ -35,7 +35,7 @@ export default function GeneResults({
         color: "#e5e7eb",
       }}
     >
-      <h2 style={{ marginBottom: 12 }}>Results for {entrezId}</h2>
+      <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
       {data.length === 0 && (
         <div style={{ opacity: 0.8 }}>No results found in any dataset.</div>
       )}
