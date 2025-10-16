@@ -34,11 +34,18 @@ def load_gene_tables(
         )"""
     )
     cur.execute(
-        """CREATE TABLE synonyms (
+        """CREATE TABLE extra_gene_synonyms (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         central_gene_id INTEGER,
         species TEXT,
         synonym TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE extra_mouse_symbols (
+        id INTEGER PRIMARY KEY,
+        symbol TEXT,
+        central_gene_id INTEGER
         )"""
     )
     for entry in CENTRAL_GENE_TABLE.entries:
@@ -72,25 +79,24 @@ def load_gene_tables(
         )
         for synonym in human_synonyms:
             cur.execute(
-                """INSERT INTO synonyms (
+                """INSERT INTO extra_gene_synonyms (
                 central_gene_id, species, synonym)
                 VALUES (?, ?, ?)""",
                 (entry.row_id, "h", synonym),
             )
-        if len(entry.mouse_symbols) > 1:
-            for mouse_symbol in entry.mouse_symbols:
-                cur.execute(
-                    """INSERT INTO synonyms (
-                    central_gene_id, species, synonym)
-                    VALUES (?, ?, ?)""",
-                    (entry.row_id, "m", mouse_symbol),
-                )
         for mouse_synonym in entry.mouse_synonyms:
             cur.execute(
-                """INSERT INTO synonyms (
+                """INSERT INTO extra_gene_synonyms (
                 central_gene_id, species, synonym)
                 VALUES (?, ?, ?)""",
                 (entry.row_id, "m", mouse_synonym),
+            )
+        for mouse_symbol in entry.mouse_symbols:
+            cur.execute(
+                """INSERT INTO extra_mouse_symbols (
+                central_gene_id, species, synonym)
+                VALUES (?, ?, ?)""",
+                (entry.row_id, "m", mouse_symbol),
             )
     create_indexes(
         conn,
@@ -109,8 +115,13 @@ def load_gene_tables(
     )
     create_indexes(
         conn,
-        "synonyms",
+        "extra_gene_synonyms",
         ["central_gene_id", "species", "synonym"],
+    )
+    create_indexes(
+        conn,
+        "extra_mouse_symbols",
+        ["symbol", "central_gene_id"],
     )
     conn.commit()
 

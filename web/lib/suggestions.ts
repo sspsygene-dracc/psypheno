@@ -1,14 +1,14 @@
 import { getDb } from "@/lib/db";
+import { SearchSuggestion } from "@/state/SearchSuggestion";
 
-export type SearchSuggestion = {
-  centralGeneId: number;
-  searchQuery: string;
-  humanSymbol: string | null;
-  mouseSymbols: string[] | null;
-  humanSynonyms: string[] | null;
-  mouseSynonyms: string[] | null;
-  datasetCount: number;
-};
+interface GeneSuggestionRow {
+  id: number;
+  human_symbol: string | null;
+  mouse_symbols: string | null;
+  human_synonyms: string | null;
+  mouse_synonyms: string | null;
+  dataset_count: number;
+}
 
 export function fetchGeneSuggestions(
   text: string,
@@ -23,52 +23,63 @@ export function fetchGeneSuggestions(
 
   // Collect suggestions, prioritizing numeric id match if provided
   const suggestions: SearchSuggestion[] = [];
-  const seen = new Set<number>();
 
-  const textStmt = db.prepare(
-    `SELECT cg.id AS id,
-            cg.human_symbol AS human_symbol,
-            cg.mouse_symbols AS mouse_symbols,
-            cg.human_synonyms AS human_synonyms,
-            cg.mouse_synonyms AS mouse_synonyms,
-            cg.num_datasets AS dataset_count
-     FROM central_gene cg
-     LEFT JOIN synonyms s ON s.central_gene_id = cg.id
-     WHERE (
-      LOWER(cg.human_symbol) LIKE ?
-      OR LOWER(cg.mouse_symbols) LIKE ?
-      OR LOWER(s.synonym) LIKE ?
-     )
-     GROUP BY cg.id
-     ORDER BY cg.num_datasets DESC,
-     cg.human_symbol ASC,
-     cg.mouse_symbols ASC
-     LIMIT ?`
-  );
+  const whereClauses: string[] = [
+    "LOWER(cg.human_symbol) LIKE ?",
+    "LOWER(ms.mouse_symbols) LIKE ?",
+    "LOWER(gs.synonym) LIKE ?",
+  ];
 
-  const rows = textStmt.all(
-    likePrefix,
-    likePrefix,
-    likePrefix,
-    pageLimit * 2
-  ) as Array<{
-    id: number;
-    human_symbol: string | null;
-    mouse_symbols: string | null;
-    human_synonyms: string | null;
-    mouse_synonyms: string | null;
-    dataset_count: number;
-  }>;
+  let whereClauseIdx = 0;
 
-  for (const r of rows) {
-    if (seen.has(r.id)) continue;
+  const allRows: GeneSuggestionRow[] = [];
+  while (allRows.length < pageLimit && whereClauseIdx < whereClauses.length) {
+    const whereClause = whereClauses[whereClauseIdx];
+
+    const textStmt = db.prepare(
+      `SELECT cg.id AS id,
+              cg.human_symbol AS human_symbol,
+              cg.mouse_symbols AS mouse_symbols,
+              cg.human_synonyms AS human_synonyms,
+              cg.mouse_synonyms AS mouse_synonyms,
+              cg.num_datasets AS dataset_count
+      FROM central_gene cg
+      LEFT JOIN extra_gene_synonyms gs ON gs.central_gene_id = cg.id
+      LEFT JOIN extra_mouse_symbols ms ON ms.central_gene_id = cg.id
+      WHERE ${whereClause}
+      AND cg.id not in ?
+      GROUP BY cg.id
+      ORDER BY cg.num_datasets DESC,
+      cg.human_symbol ASC,
+      cg.mouse_symbols ASC
+      LIMIT ?`
+    );
+
+    const seen = allRows.map((r) => r.id);
+    const rows = textStmt.all(
+      likePrefix,
+      seen,
+      pageLimit
+    ) as Array<GeneSuggestionRow>;
+
+    allRows.push(...rows.slice(0, pageLimit - allRows.length));
+    whereClauseIdx++;
+  }
+
+  for (const r of allRows) {
     suggestions.push({
       centralGeneId: r.id,
       searchQuery: searchText,
       humanSymbol: r.human_symbol,
-      mouseSymbols: r.mouse_symbols ? r.mouse_symbols.split(",").filter(Boolean) : null,
-      humanSynonyms: r.human_synonyms ? r.human_synonyms.split(",").filter(Boolean) : null,
-      mouseSynonyms: r.mouse_synonyms ? r.mouse_synonyms.split(",").filter(Boolean) : null,
+      mouseSymbols: r.mouse_symbols
+        ? r.mouse_symbols.split(",").filter(Boolean)
+        : null,
+      humanSynonyms: r.human_synonyms
+        ? r.human_synonyms.split(",").filter(Boolean)
+        : null,
+      mouseSynonyms: r.mouse_synonyms
+        ? r.mouse_synonyms.split(",").filter(Boolean)
+        : null,
       datasetCount: r.dataset_count,
     });
     if (suggestions.length >= pageLimit) break;

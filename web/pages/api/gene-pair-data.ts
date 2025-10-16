@@ -3,8 +3,8 @@ import { z } from "zod";
 import { getDb } from "@/lib/db";
 
 const bodySchema = z.object({
-  perturbedEntrezId: z.string().nullable(),
-  targetEntrezId: z.string().nullable(),
+  perturbedCentralGeneId: z.number().nullable(),
+  targetCentralGeneId: z.number().nullable(),
 });
 
 function sanitizeIdentifier(id: string): string {
@@ -25,7 +25,7 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { perturbedEntrezId, targetEntrezId } = parse.data;
+  const { perturbedCentralGeneId, targetCentralGeneId } = parse.data;
 
   try {
     const db = getDb();
@@ -85,17 +85,17 @@ export default async function handler(
 
       // Join at least one perturbed and one target link table and require both ids
       const whereParts: string[] = [];
-      if (perturbedEntrezId) {
+      if (perturbedCentralGeneId) {
         const lt = perturbedLT;
         sql += ` LEFT JOIN ${lt} p ON b.id = p.id`;
         whereParts.push(`p.central_gene_id = ?`);
-        params.push(String(perturbedEntrezId));
+        params.push(String(perturbedCentralGeneId));
       }
-      if (targetEntrezId) {
+      if (targetCentralGeneId) {
         const lt = targetLT;
         sql += ` LEFT JOIN ${lt} t ON b.id = t.id`;
         whereParts.push(`t.central_gene_id = ?`);
-        params.push(String(targetEntrezId));
+        params.push(String(targetCentralGeneId));
       }
 
       sql += ` WHERE ${whereParts.join(" AND ")}`;
@@ -116,7 +116,7 @@ export default async function handler(
       }
     }
 
-    return res.status(200).json({ perturbedEntrezId, targetEntrezId, results });
+    return res.status(200).json({ perturbedCentralGeneId, targetCentralGeneId, results });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("gene-pair-data handler error", err);
