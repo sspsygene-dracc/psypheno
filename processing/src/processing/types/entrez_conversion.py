@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Any, Literal
 
 import pandas as pd
@@ -70,18 +71,22 @@ class EntrezConversion:
                 if elem in self.ignore_missing:
                     data_id_to_central_gene_id.append((row_id, None))
                 else:
-                    get_sspsygene_logger().warning(
-                        "Path %s, column %s, gene %s not in gene maps for species %s; adding manually",
-                        in_path,
-                        self.column_name,
-                        elem,
-                        self.species,
-                    )
-                    CENTRAL_GENE_TABLE.add_species_entry(
+                    # write a regex for this format: AC118555.1 or AC118555.1 or AL512330.1; so A[CL]number.number:
+                    contig_regex = re.compile(r"^(((C[RU]|F[OP]|AUXG|BX|A[CDFJLP])\d{6}\.\d{1,2})|([UZ]\d{5}\.\d))$")
+                    if not contig_regex.match(elem):
+                        get_sspsygene_logger().warning(
+                            "Path %s, column %s, gene %s not in gene maps for species %s; adding manually",
+                            in_path,
+                            self.column_name,
+                            elem,
+                            self.species,
+                        )
+                    new_entry = CENTRAL_GENE_TABLE.add_species_entry(
                         species=self.species,
                         symbol=elem,
                         dataset=primary_table_name,
                     )
+                    species_map[elem] = [new_entry]
             else:
                 for entry in species_map[elem]:
                     data_id_to_central_gene_id.append((row_id, entry.row_id))

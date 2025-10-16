@@ -21,7 +21,7 @@ def load_gene_tables(
     cur.execute(
         """CREATE TABLE central_gene (
         id INTEGER PRIMARY KEY,
-        hgnc_symbol TEXT,
+        human_symbol TEXT,
         human_entrez_gene INTEGER,
         hgnc_id TEXT,
         mouse_symbols TEXT,
@@ -63,8 +63,8 @@ def load_gene_tables(
         )
         cur.execute(
             """INSERT INTO central_gene (
-            id, hgnc_symbol, human_entrez_gene, hgnc_id, mouse_symbols, 
-            mouse_entrez_genes, human_synonyms, mouse_synonyms, dataset_names) 
+            id, human_symbol, human_entrez_gene, hgnc_id, mouse_symbols, 
+            mouse_entrez_genes, human_synonyms, mouse_synonyms, dataset_names, num_datasets) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             to_insert,
         )
@@ -86,7 +86,7 @@ def load_gene_tables(
         conn,
         "central_gene",
         [
-            "hgnc_symbol",
+            "human_symbol",
             "human_entrez_gene",
             "hgnc_id",
             "mouse_symbols",
