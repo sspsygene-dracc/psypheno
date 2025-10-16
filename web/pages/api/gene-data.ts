@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db";
 
 const bodySchema = z.object({
-  entrezId: z.string().min(1),
+  centralGeneId: z.number().min(0),
 });
 
 function sanitizeIdentifier(id: string): string {
@@ -25,7 +25,7 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const entrezId = parse.data.entrezId;
+  const centralGeneId = parse.data.centralGeneId;
 
   try {
     const db = getDb();
@@ -83,7 +83,7 @@ export default async function handler(
           const alias = `lt${idx}`;
           sql += ` LEFT JOIN ${lt} ${alias} ON b.id = ${alias}.id`;
           whereParts.push(`${alias}.central_gene_id = ?`);
-          params.push(String(entrezId));
+          params.push(String(centralGeneId));
         });
         sql += ` WHERE ${whereParts.join(" OR ")}`;
       } else {
@@ -109,7 +109,7 @@ export default async function handler(
       }
     }
 
-    return res.status(200).json({ entrezId, results });
+    return res.status(200).json({ centralGeneId, results });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("gene-data handler error", err);

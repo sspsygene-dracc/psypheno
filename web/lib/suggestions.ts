@@ -1,9 +1,13 @@
 import { getDb } from "@/lib/db";
 
 export type SearchSuggestion = {
-  species: string;
-  name: string;
-  entrezId: string;
+  centralGeneId: number;
+  searchQuery: string;
+  humanSymbol: string | null;
+  mouseSymbols: string | null;
+  humanSynonyms: string | null;
+  mouseSynonyms: string | null;
+  datasetCount: number;
 };
 
 export function fetchGeneSuggestions(
@@ -17,18 +21,6 @@ export function fetchGeneSuggestions(
   const lower = searchText.toLowerCase();
   const likePrefix = `${lower}%`;
 
-  const toSpecies = (
-    humanSymbol: string | null,
-    mouseSymbols: string | null
-  ): string => {
-    const hasHuman = !!(humanSymbol && humanSymbol.length > 0);
-    const hasMouse = !!(mouseSymbols && mouseSymbols.length > 0);
-    if (hasHuman && hasMouse) return "human/mouse";
-    if (hasHuman) return "human";
-    if (hasMouse) return "mouse";
-    return "unknown";
-  };
-
   // Collect suggestions, prioritizing numeric id match if provided
   const suggestions: SearchSuggestion[] = [];
   const seen = new Set<number>();
@@ -37,7 +29,9 @@ export function fetchGeneSuggestions(
     `SELECT cg.id AS id,
             cg.human_symbol AS human_symbol,
             cg.mouse_symbols AS mouse_symbols,
-            COALESCE(cg.human_symbol, cg.mouse_symbols, s.synonym, CAST(cg.id AS TEXT)) AS display_name
+            cg.human_synonyms AS human_synonyms,
+            cg.mouse_synonyms AS mouse_synonyms
+            cg.num_datasets AS dataset_count
      FROM central_gene cg
      LEFT JOIN synonyms s ON s.central_gene_id = cg.id
      WHERE (
@@ -59,15 +53,21 @@ export function fetchGeneSuggestions(
     id: number;
     human_symbol: string | null;
     mouse_symbols: string | null;
-    display_name: string;
+    human_synonyms: string | null;
+    mouse_synonyms: string | null;
+    dataset_count: number;
   }>;
 
   for (const r of rows) {
     if (seen.has(r.id)) continue;
     suggestions.push({
-      species: toSpecies(r.human_symbol, r.mouse_symbols),
-      name: r.display_name,
-      entrezId: String(r.id),
+      centralGeneId: r.id,
+      searchQuery: searchText,
+      humanSymbol: r.human_symbol,
+      mouseSymbols: r.mouse_symbols,
+      humanSynonyms: r.human_synonyms,
+      mouseSynonyms: r.mouse_synonyms,
+      datasetCount: r.dataset_count,
     });
     if (suggestions.length >= pageLimit) break;
   }

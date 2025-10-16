@@ -1,10 +1,5 @@
+import { SearchSuggestion } from "@/lib/suggestions";
 import { useEffect, useRef, useState } from "react";
-
-export type SearchSuggestion = {
-  species: string;
-  name: string;
-  entrezId: string;
-};
 
 export default function SearchBar({
   placeholder,
@@ -29,11 +24,9 @@ export default function SearchBar({
   // Sync internal query with external value prop
   useEffect(() => {
     if (value) {
-      console.log("Setting query 1");
       setSuppress(true);
-      setQuery(value.name);
+      setQuery(value.searchQuery);
     } else {
-      console.log("Setting query 2");
       setQuery("");
     }
   }, [value]);
@@ -71,7 +64,6 @@ export default function SearchBar({
         if (!res.ok) return;
         const data = await res.json();
         setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
-        console.log("setOpen true 1");
         setOpen(true);
       } catch (_) {
         // swallow
@@ -89,7 +81,6 @@ export default function SearchBar({
       e.preventDefault();
       if (!open) {
         if (suggestions.length > 0) {
-          console.log("setOpen true 2");
           setOpen(true);
           setHighlightIndex(0);
         }
@@ -101,7 +92,6 @@ export default function SearchBar({
       e.preventDefault();
       if (!open) {
         if (suggestions.length > 0) {
-          console.log("setOpen true 3");
           setOpen(true);
           setHighlightIndex(suggestions.length - 1);
         }
@@ -116,10 +106,8 @@ export default function SearchBar({
       e.preventDefault();
       const chosen = suggestions[highlightIndex >= 0 ? highlightIndex : 0];
       if (chosen) {
-        console.log("Setting select 1");
         onSelect(chosen);
-        console.log("Setting query 3");
-        setQuery(chosen.name);
+        setQuery(chosen.searchQuery);
         setSuppress(true);
         setOpen(false);
       }
@@ -129,10 +117,8 @@ export default function SearchBar({
   };
 
   const choose = (s: SearchSuggestion) => {
-    console.log("Setting select 2");
     onSelect(s);
-    console.log("Setting query 4");
-    setQuery(s.name);
+    setQuery(s.searchQuery);
     setSuppress(true);
     setOpen(false);
   };
@@ -143,17 +129,14 @@ export default function SearchBar({
         value={query}
         onChange={(e) => {
           if (suppress) setSuppress(false);
-          console.log("Setting query 5");
           setQuery(e.target.value);
           // Clear parent state if input is cleared
           if (e.target.value === "" && value) {
-            console.log("Setting select 3");
             onSelect(null);
           }
         }}
         onFocus={() => {
           if (query && !suppress) {
-            console.log("setOpen true 4");
             setOpen(true);
           }
         }}
@@ -190,7 +173,7 @@ export default function SearchBar({
         >
           {suggestions.map((s, idx) => (
             <div
-              key={`${s.entrezId}-${idx}`}
+              key={`${s.centralGeneId}-${idx}`}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => choose(s)}
               onMouseEnter={() => setHighlightIndex(idx)}
@@ -205,12 +188,54 @@ export default function SearchBar({
               }}
             >
               <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                <span style={{ fontWeight: 600 }}>{s.name}</span>
-                <span style={{ opacity: 0.7, fontSize: 12 }}>{s.species}</span>
+                {/* Show human symbol */}
+                {s.humanSymbol && (
+                  <span style={{ fontWeight: 600 }}>{s.humanSymbol}</span>
+                )}
+                {/* Show first mouse symbol, if any */}
+                {s.mouseSymbols &&
+                  s.mouseSymbols.split(",").filter(Boolean)[0] && (
+                    <span style={{ opacity: 0.7, fontSize: 12, marginLeft: 8 }}>
+                      {s.mouseSymbols.split(",").filter(Boolean)[0]}
+                    </span>
+                  )}
+                {/* Show matching synonym and its species if it triggered the match */}
+                {s.searchQuery &&
+                  (() => {
+                    // Synonyms could be comma separated for both human and mouse
+                    const lowerSearch = s.searchQuery.trim().toLowerCase();
+                    const findMatchingSynonym = (
+                      synonyms: string | null,
+                      species: string
+                    ) => {
+                      if (!synonyms) return null;
+                      const found = synonyms
+                        .split(",")
+                        .map((syn) => syn.trim())
+                        .find((syn) => syn.toLowerCase() === lowerSearch);
+                      if (found) {
+                        return (
+                          <span
+                            style={{
+                              opacity: 0.7,
+                              fontSize: 12,
+                              marginLeft: 10,
+                            }}
+                          >
+                            {species} synonym:{" "}
+                            <span style={{ fontStyle: "italic" }}>{found}</span>
+                          </span>
+                        );
+                      }
+                      return null;
+                    };
+                    // Try human synonyms first, then mouse synonyms
+                    return (
+                      findMatchingSynonym(s.humanSynonyms, "Human") ||
+                      findMatchingSynonym(s.mouseSynonyms, "Mouse")
+                    );
+                  })()}
               </div>
-              <span style={{ opacity: 0.7, fontSize: 12 }}>
-                Entrez {s.entrezId}
-              </span>
             </div>
           ))}
         </div>

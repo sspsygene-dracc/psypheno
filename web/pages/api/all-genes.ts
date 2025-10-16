@@ -51,22 +51,18 @@ export default async function handler(
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const offset = (page - 1) * pageSize;
 
-    const dataSql = `SELECT cg.id AS entrezId,
-                            COALESCE(cg.human_symbol, cg.mouse_symbols, CAST(cg.id AS TEXT)) AS name,
-                            CASE WHEN cg.human_symbol IS NOT NULL AND cg.mouse_symbols IS NOT NULL THEN 'human/mouse'
-                                 WHEN cg.human_symbol IS NOT NULL THEN 'human'
-                                 WHEN cg.mouse_symbols IS NOT NULL THEN 'mouse'
-                                 ELSE 'unknown' END AS species,
-                            cg.num_datasets AS datasetCount
+    const dataSql = `SELECT human_symbol, mouse_symbols, human_synonyms, mouse_synonyms,
+                      cg.num_datasets AS datasetCount
                      FROM central_gene cg
                      ${whereSql}
                      ORDER BY cg.num_datasets DESC, name ASC
                      LIMIT ? OFFSET ?`;
 
     const rows = db.prepare(dataSql).all(...params, pageSize, offset) as Array<{
-      entrezId: number;
-      name: string;
-      species: string;
+      humanSymbol: string | null;
+      mouseSymbols: string | null;
+      humanSynonyms: string | null;
+      mouseSynonyms: string | null;
       datasetCount: number;
     }>;
 

@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import SearchBar, { SearchSuggestion } from "@/components/SearchBar";
+import SearchBar from "@/components/SearchBar";
 import GeneResults from "@/components/GeneResults";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { TableResult } from "@/lib/table_result";
+import { SearchSuggestion } from "@/lib/suggestions";
 
 export default function Home() {
   const router = useRouter();
@@ -30,13 +31,14 @@ export default function Home() {
         body: JSON.stringify({ text: symbol }),
       });
       if (!res.ok) return null;
-      const data = await res.json();
+      const data = (await res.json()) as {
+        suggestions: SearchSuggestion[];
+        searchText: string;
+      };
       const suggestions: SearchSuggestion[] = Array.isArray(data.suggestions)
         ? data.suggestions
         : [];
-      const exact = suggestions.find(
-        (s) => s.name.toLowerCase() === symbol.toLowerCase()
-      );
+      const exact = suggestions.find((s) => s.humanSymbol === symbol);
       return exact || suggestions[0] || null;
     } catch (_) {
       return null;
@@ -82,10 +84,10 @@ export default function Home() {
 
     const nextQuery: Record<string, string> = { searchmode: searchMode };
     if (searchMode === "general") {
-      if (selected?.name) nextQuery.selected = selected.name;
+      if (selected?.humanSymbol) nextQuery.selected = selected.humanSymbol;
     } else {
-      if (perturbed?.name) nextQuery.perturbed = perturbed.name;
-      if (target?.name) nextQuery.target = target.name;
+      if (perturbed?.humanSymbol) nextQuery.perturbed = perturbed.humanSymbol;
+      if (target?.humanSymbol) nextQuery.target = target.humanSymbol;
     }
 
     // Compare with current to avoid unnecessary replaces
@@ -117,7 +119,7 @@ export default function Home() {
         const res = await fetch("/api/gene-data", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entrezId: selected.entrezId }),
+          body: JSON.stringify({ centralGeneId: selected.centralGeneId }),
         });
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const payload = await res.json();
@@ -145,8 +147,8 @@ export default function Home() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            perturbedEntrezId: perturbed?.entrezId || null,
-            targetEntrezId: target?.entrezId || null,
+            perturbedCentralGeneId: perturbed?.centralGeneId || null,
+            targetCentralGeneId: target?.centralGeneId || null,
           }),
         });
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -172,13 +174,13 @@ export default function Home() {
     return false;
   };
 
-  const displayEntrezId = () => {
+  const displayGeneString = () => {
     if (searchMode === "general" && selected) {
-      return `${selected.name}`;
+      return `${selected.humanSymbol}`;
     }
     if (searchMode === "pair" && (perturbed || target)) {
-      return `perturbed ${perturbed?.name || "Any"} → target ${
-        target?.name || "Any"
+      return `perturbed ${perturbed?.humanSymbol || "Any"} → target ${
+        target?.humanSymbol || "Any"
       }`;
     }
     return null;
@@ -362,7 +364,7 @@ export default function Home() {
                 {maybeLoading}
                 {!loading && !error && (
                   <GeneResults
-                    entrezId={displayEntrezId()}
+                    entrezId={displayGeneString()}
                     data={searchMode === "general" ? generalData : pairData}
                   />
                 )}
