@@ -190,29 +190,26 @@ export default function SearchBar({
               <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                 {/* Show human symbol */}
                 {s.humanSymbol && (
-                  <span style={{ fontWeight: 600 }}>{s.humanSymbol}</span>
+                  <span style={{ fontWeight: 600 }}>{s.humanSymbol} (human)</span>
                 )}
                 {/* Show first mouse symbol, if any */}
-                {s.mouseSymbols &&
-                  s.mouseSymbols.split(",").filter(Boolean)[0] && (
-                    <span style={{ opacity: 0.7, fontSize: 12, marginLeft: 8 }}>
-                      {s.mouseSymbols.split(",").filter(Boolean)[0]}
-                    </span>
-                  )}
+                {s.mouseSymbols && (
+                  <span style={{ marginLeft: 8 }}>{s.mouseSymbols[0]} (mouse)</span>
+                )}
                 {/* Show matching synonym and its species if it triggered the match */}
                 {s.searchQuery &&
                   (() => {
                     // Synonyms could be comma separated for both human and mouse
                     const lowerSearch = s.searchQuery.trim().toLowerCase();
                     const findMatchingSynonym = (
-                      synonyms: string | null,
+                      synonyms: string[] | null,
                       species: string
                     ) => {
                       if (!synonyms) return null;
                       const found = synonyms
-                        .split(",")
-                        .map((syn) => syn.trim())
-                        .find((syn) => syn.toLowerCase() === lowerSearch);
+                        .find((syn) =>
+                          syn.toLowerCase().startsWith(lowerSearch)
+                        );
                       if (found) {
                         return (
                           <span
@@ -235,6 +232,9 @@ export default function SearchBar({
                       findMatchingSynonym(s.mouseSynonyms, "Mouse")
                     );
                   })()}
+                  <span style={{ opacity: 0.7, fontSize: 12, marginLeft: 10 }}>
+                    {s.datasetCount} datasets
+                  </span>
               </div>
             </div>
           ))}

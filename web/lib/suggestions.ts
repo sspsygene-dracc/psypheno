@@ -4,9 +4,9 @@ export type SearchSuggestion = {
   centralGeneId: number;
   searchQuery: string;
   humanSymbol: string | null;
-  mouseSymbols: string | null;
-  humanSynonyms: string | null;
-  mouseSynonyms: string | null;
+  mouseSymbols: string[] | null;
+  humanSynonyms: string[] | null;
+  mouseSynonyms: string[] | null;
   datasetCount: number;
 };
 
@@ -30,7 +30,7 @@ export function fetchGeneSuggestions(
             cg.human_symbol AS human_symbol,
             cg.mouse_symbols AS mouse_symbols,
             cg.human_synonyms AS human_synonyms,
-            cg.mouse_synonyms AS mouse_synonyms
+            cg.mouse_synonyms AS mouse_synonyms,
             cg.num_datasets AS dataset_count
      FROM central_gene cg
      LEFT JOIN synonyms s ON s.central_gene_id = cg.id
@@ -40,7 +40,9 @@ export function fetchGeneSuggestions(
       OR LOWER(s.synonym) LIKE ?
      )
      GROUP BY cg.id
-     ORDER BY cg.num_datasets DESC, display_name ASC
+     ORDER BY cg.num_datasets DESC,
+     cg.human_symbol ASC,
+     cg.mouse_symbols ASC
      LIMIT ?`
   );
 
@@ -64,9 +66,9 @@ export function fetchGeneSuggestions(
       centralGeneId: r.id,
       searchQuery: searchText,
       humanSymbol: r.human_symbol,
-      mouseSymbols: r.mouse_symbols,
-      humanSynonyms: r.human_synonyms,
-      mouseSynonyms: r.mouse_synonyms,
+      mouseSymbols: r.mouse_symbols ? r.mouse_symbols.split(",").filter(Boolean) : null,
+      humanSynonyms: r.human_synonyms ? r.human_synonyms.split(",").filter(Boolean) : null,
+      mouseSynonyms: r.mouse_synonyms ? r.mouse_synonyms.split(",").filter(Boolean) : null,
       datasetCount: r.dataset_count,
     });
     if (suggestions.length >= pageLimit) break;
