@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -300,6 +300,71 @@ export default function AllGenes() {
                   >
                     Next
                   </button>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  {/* Page number links: first, second, surrounding, last */}
+                  {(() => {
+                    const items: ReactNode[] = [];
+                    if (totalPages > 1) {
+                      const addBtn = (label: string | number, targetPage: number, key: string) => {
+                        const isActive = targetPage === page;
+                        const isDisabled = loading || targetPage < 1 || targetPage > totalPages;
+                        items.push(
+                          <button
+                            key={key}
+                            onClick={() => !isDisabled && setPage(targetPage)}
+                            disabled={isDisabled}
+                            aria-current={isActive ? "page" : undefined}
+                            style={{
+                              padding: "6px 10px",
+                              minWidth: 36,
+                              background: isActive ? "#334155" : isDisabled ? "#0f172a" : "#1e293b",
+                              border: "1px solid #334155",
+                              color: "#e5e7eb",
+                              borderRadius: 6,
+                              cursor: isDisabled ? "not-allowed" : "pointer",
+                              fontWeight: isActive ? 700 : 500,
+                            }}
+                          >
+                            {label}
+                          </button>
+                        );
+                      };
+
+                      // Always show first (1) and second (2) when available
+                      addBtn(1, 1, "pg-1");
+                      if (totalPages >= 2) addBtn(2, 2, "pg-2");
+
+                      // Determine surrounding range around current page
+                      const surround: number[] = [];
+                      for (let p = page - 2; p <= page + 2; p++) {
+                        if (p >= 1 && p <= totalPages && p !== 1 && p !== 2 && p !== totalPages) {
+                          surround.push(p);
+                        }
+                      }
+
+                      // Insert ellipsis if gap after 2
+                      if (surround.length > 0 && Math.min(...surround) > 3) {
+                        items.push(
+                          <span key="pg-ell-1" style={{ color: "#94a3b8", padding: "0 4px" }}>…</span>
+                        );
+                      }
+
+                      surround.forEach((pnum) => addBtn(pnum, pnum, `pg-${pnum}`));
+
+                      // Insert ellipsis if gap before last
+                      if (surround.length > 0 && Math.max(...surround) < totalPages - 1) {
+                        items.push(
+                          <span key="pg-ell-2" style={{ color: "#94a3b8", padding: "0 4px" }}>…</span>
+                        );
+                      }
+
+                      // Always show last page
+                      if (totalPages > 2) addBtn(totalPages, totalPages, "pg-last");
+                    }
+                    return <div style={{ display: "flex", gap: 6, alignItems: "center" }}>{items}</div>;
+                  })()}
                 </div>
 
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
