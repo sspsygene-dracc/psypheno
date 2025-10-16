@@ -26,7 +26,7 @@ export function fetchGeneSuggestions(
 
   const whereClauses: string[] = [
     "LOWER(cg.human_symbol) LIKE ?",
-    "LOWER(ms.mouse_symbols) LIKE ?",
+    "LOWER(ms.symbol) LIKE ?",
     "LOWER(gs.synonym) LIKE ?",
   ];
 
@@ -36,8 +36,12 @@ export function fetchGeneSuggestions(
   while (allRows.length < pageLimit && whereClauseIdx < whereClauses.length) {
     const whereClause = whereClauses[whereClauseIdx];
 
-    const textStmt = db.prepare(
-      `SELECT cg.id AS id,
+    const seen = allRows.map((r) => r.id);
+    const notInClause = seen.length
+      ? `AND cg.id NOT IN (${seen.map(() => "?").join(",")})`
+      : "";
+
+    const sql = `SELECT DISTINCT cg.id AS id,
               cg.human_symbol AS human_symbol,
               cg.mouse_symbols AS mouse_symbols,
               cg.human_synonyms AS human_synonyms,
@@ -47,39 +51,40 @@ export function fetchGeneSuggestions(
       LEFT JOIN extra_gene_synonyms gs ON gs.central_gene_id = cg.id
       LEFT JOIN extra_mouse_symbols ms ON ms.central_gene_id = cg.id
       WHERE ${whereClause}
-      AND cg.id not in ?
+      ${notInClause}
       GROUP BY cg.id
       ORDER BY cg.num_datasets DESC,
       cg.human_symbol ASC,
       cg.mouse_symbols ASC
-      LIMIT ?`
-    );
+      LIMIT ?`;
 
-    const seen = allRows.map((r) => r.id);
-    const rows = textStmt.all(
-      likePrefix,
-      seen,
-      pageLimit
-    ) as Array<GeneSuggestionRow>;
+    const textStmt = db.prepare(sql);
+    const params = seen.length
+      ? [likePrefix, ...seen, pageLimit]
+      : [likePrefix, pageLimit];
+    const rows = textStmt.all(...params) as Array<GeneSuggestionRow>;
 
     allRows.push(...rows.slice(0, pageLimit - allRows.length));
     whereClauseIdx++;
   }
 
   for (const r of allRows) {
+    const humanSynonyms = r.human_synonyms
+      ? r.human_synonyms.split(",").filter(Boolean)
+      : null;
+    const mouseSynonyms = r.mouse_synonyms
+      ? r.mouse_synonyms.split(",").filter(Boolean)
+      : null;
+    const mouseSymbols = r.mouse_symbols
+      ? r.mouse_symbols.split(",").filter(Boolean)
+      : null;
     suggestions.push({
       centralGeneId: r.id,
       searchQuery: searchText,
       humanSymbol: r.human_symbol,
-      mouseSymbols: r.mouse_symbols
-        ? r.mouse_symbols.split(",").filter(Boolean)
-        : null,
-      humanSynonyms: r.human_synonyms
-        ? r.human_synonyms.split(",").filter(Boolean)
-        : null,
-      mouseSynonyms: r.mouse_synonyms
-        ? r.mouse_synonyms.split(",").filter(Boolean)
-        : null,
+      mouseSymbols: mouseSymbols,
+      humanSynonyms: humanSynonyms,
+      mouseSynonyms: mouseSynonyms,
       datasetCount: r.dataset_count,
     });
     if (suggestions.length >= pageLimit) break;

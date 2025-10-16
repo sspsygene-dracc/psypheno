@@ -1,5 +1,5 @@
 import { fetchGeneSuggestions } from "@/lib/suggestions";
-import type { SearchSuggestion } from "@/lib/suggestions";
+import { SearchSuggestion } from "@/state/SearchSuggestion";
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 

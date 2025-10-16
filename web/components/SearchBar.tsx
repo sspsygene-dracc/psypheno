@@ -1,4 +1,4 @@
-import { SearchSuggestion } from "@/lib/suggestions";
+import { SearchSuggestion } from "@/state/SearchSuggestion";
 import { useEffect, useRef, useState } from "react";
 
 export default function SearchBar({
@@ -123,6 +123,47 @@ export default function SearchBar({
     setOpen(false);
   };
 
+  const findMatchingSynonym = (
+    searchQuery: string,
+    synonyms: string[] | null,
+    species: string
+  ) => {
+    const lowerSearch = searchQuery.trim().toLowerCase();
+
+    if (!synonyms) return null;
+    console.log(synonyms);
+    const found = synonyms.find((syn) =>
+      syn.toLowerCase().startsWith(lowerSearch)
+    );
+    if (found) {
+      return (
+        <span
+          style={{
+            opacity: 0.7,
+            fontSize: 12,
+            marginLeft: 10,
+          }}
+        >
+          {species} synonym:{" "}
+          <span style={{ fontStyle: "italic" }}>{found}</span>
+        </span>
+      );
+    }
+    return null;
+  };
+
+  const getDisplaySynonyms = (
+    searchQuery: string,
+    humanSynonyms: string[] | null,
+    mouseSynonyms: string[] | null
+  ) => {
+    console.log(searchQuery, humanSynonyms, mouseSynonyms);
+    return (
+      findMatchingSynonym(searchQuery, humanSynonyms, "Human") ||
+      findMatchingSynonym(searchQuery, mouseSynonyms, "Mouse")
+    );
+  };
+
   return (
     <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
       <input
@@ -190,51 +231,26 @@ export default function SearchBar({
               <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                 {/* Show human symbol */}
                 {s.humanSymbol && (
-                  <span style={{ fontWeight: 600 }}>{s.humanSymbol} (human)</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {s.humanSymbol} (human)
+                  </span>
                 )}
                 {/* Show first mouse symbol, if any */}
                 {s.mouseSymbols && (
-                  <span style={{ marginLeft: 8 }}>{s.mouseSymbols[0]} (mouse)</span>
+                  <span style={{ marginLeft: 8 }}>
+                    {s.mouseSymbols.join(", ")} (mouse)
+                  </span>
                 )}
                 {/* Show matching synonym and its species if it triggered the match */}
                 {s.searchQuery &&
-                  (() => {
-                    // Synonyms could be comma separated for both human and mouse
-                    const lowerSearch = s.searchQuery.trim().toLowerCase();
-                    const findMatchingSynonym = (
-                      synonyms: string[] | null,
-                      species: string
-                    ) => {
-                      if (!synonyms) return null;
-                      const found = synonyms
-                        .find((syn) =>
-                          syn.toLowerCase().startsWith(lowerSearch)
-                        );
-                      if (found) {
-                        return (
-                          <span
-                            style={{
-                              opacity: 0.7,
-                              fontSize: 12,
-                              marginLeft: 10,
-                            }}
-                          >
-                            {species} synonym:{" "}
-                            <span style={{ fontStyle: "italic" }}>{found}</span>
-                          </span>
-                        );
-                      }
-                      return null;
-                    };
-                    // Try human synonyms first, then mouse synonyms
-                    return (
-                      findMatchingSynonym(s.humanSynonyms, "Human") ||
-                      findMatchingSynonym(s.mouseSynonyms, "Mouse")
-                    );
-                  })()}
-                  <span style={{ opacity: 0.7, fontSize: 12, marginLeft: 10 }}>
-                    {s.datasetCount} datasets
-                  </span>
+                  getDisplaySynonyms(
+                    s.searchQuery,
+                    s.humanSynonyms,
+                    s.mouseSynonyms
+                  )}
+                <span style={{ opacity: 0.7, fontSize: 12, marginLeft: 10 }}>
+                  {s.datasetCount} datasets
+                </span>
               </div>
             </div>
           ))}

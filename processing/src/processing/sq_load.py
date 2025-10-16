@@ -94,9 +94,9 @@ def load_gene_tables(
         for mouse_symbol in entry.mouse_symbols:
             cur.execute(
                 """INSERT INTO extra_mouse_symbols (
-                central_gene_id, species, synonym)
-                VALUES (?, ?, ?)""",
-                (entry.row_id, "m", mouse_symbol),
+                central_gene_id, symbol)
+                VALUES (?, ?)""",
+                (entry.row_id, mouse_symbol),
             )
     create_indexes(
         conn,

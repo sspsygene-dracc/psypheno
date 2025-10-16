@@ -6,7 +6,7 @@ import GeneResults from "@/components/GeneResults";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { TableResult } from "@/lib/table_result";
-import { SearchSuggestion } from "@/lib/suggestions";
+import { SearchSuggestion } from "@/state/SearchSuggestion";
 
 export default function Home() {
   const router = useRouter();
