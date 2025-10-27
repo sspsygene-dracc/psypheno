@@ -1,0 +1,127 @@
+# SSPsygene
+
+SSPsygene is a web platform for exploring neuropsychiatric genetics data from multiple experimental datasets and phenotypes. The project integrates differential expression data, perturbation studies, and mouse phenotype data from various sources into a unified SQLite database with a Next.js web interface.
+
+## Project Structure
+
+The repository is organized into three main directories:
+
+- **`data/`** - Raw data files and generated SQLite database
+
+  - `datasets/` - Experimental datasets (mouse perturbations, zebrafish, psychscreen, etc.)
+  - `homology/` - Gene homology mapping files for cross-species analysis
+  - `db/sspsygene.db` - Generated SQLite database (created by processing pipeline)
+
+- **`processing/`** - Python data processing pipeline
+
+  - Data loading and transformation scripts
+  - Gene name mapping and homology resolution
+  - Database schema creation and population
+  - CLI tool: `sspsygene load_db`
+
+- **`web/`** - Next.js web application
+  - React components for data visualization
+  - API routes for database queries
+  - Gene search and dataset browsing interface
+
+## Generating Data
+
+Raw data files are organized by dataset in `data/datasets/`. Most datasets include a `BUILD` and/or a `README.txt` file with instructions for downloading and preparing the data. `README.txt` files generally contain human-readable pointers to papers and where the data is from, while BUILD files contain commands to download and/or process the data.
+
+### Dataset Download Scripts
+
+Each `BUILD` file contains download instructions or processing scripts:
+
+- **Mouse perturbation data** (`data/datasets/mouse-perturb-4tf/`): See README.txt
+- **Perturb-Fish data** (`data/datasets/perturb-fish/BUILD`): Extract from processed files using `extract_pheno.py`
+- **Phenome.JAX data** (`data/datasets/phenome_jax/BUILD`): Download from [phenome.jax.org](https://phenome.jax.org/downloads)
+- **PsychScreen data** (`data/datasets/psychscreen/BUILD`): Download from [psychscreen.wenglab.org](https://psychscreen.wenglab.org/psychscreen/downloads)
+- **SFARI gene data** (`data/datasets/sfari/`): Download from [gene.sfari.org/tools](https://gene.sfari.org/tools/)
+- **Homology mapping files** (`data/homology/BUILD`): Download HGNC, MGI, and ZFIN gene mapping files
+
+Run the BUILD scripts in each dataset directory to download and prepare the required data files.
+
+## Loading the Database
+
+Once the raw data files are in place, build and run the processing pipeline to create the SQLite database.
+
+### 1. Install Python Dependencies
+
+```bash
+conda create -n sspsygene python=3.13.7
+conda activate sspsygene 
+cd processing
+pip install -e .
+```
+
+### 2. Set Environment Variable
+
+The processing pipeline requires a configuration JSON file path:
+
+```bash
+export SSPSYGENE_CONFIG_JSON="processing/src/processing/config.json"
+```
+
+### 3. Load Database
+
+```bash
+sspsygene load_db
+```
+
+This will:
+
+- Read gene homology mapping files
+- Process each dataset defined in `config.json`
+- Create gene mappings between species (mouse, human, zebrafish)
+- Populate the SQLite database at `data/db/sspsygene.db`
+
+The configuration file (`processing/src/processing/config.json`) defines which datasets to load and how to process gene name conversions.
+
+## Starting the Web Server
+
+The web application is a Next.js app that queries the SQLite database.
+
+### 1. Install Dependencies
+
+```bash
+cd web
+npm install
+```
+
+### 2. Set Environment Variable
+
+Point to the SQLite database path:
+
+```bash
+export SSPSYGENE_DATA_DB="$(pwd)/data/db/sspsygene.db"
+```
+
+### 3. Run Development Server
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:3000`.
+
+### 4. Build for Production (Optional)
+
+```bash
+npm run build
+npm start
+```
+
+## Features
+
+- **Gene search**: Search across datasets by gene symbol with fuzzy matching
+- **Dataset browser**: View all loaded datasets with descriptions
+- **Cross-species mapping**: Automatic homology resolution for mouse, human, and zebrafish genes
+- **Phenotype data**: Integration of mouse phenotype data from JAX
+- **Perturbation studies**: CRISPR perturbation results and differential expression data
+
+## Development Notes
+
+- The database uses `better-sqlite3` for Node.js and Python `sqlite3` for processing
+- Gene names are mapped to Entrez IDs internally for consistency
+- The web app runs in readonly mode for safety
+- See `TODOs.txt` for planned additions and improvements
