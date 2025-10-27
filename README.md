@@ -1,6 +1,6 @@
-# SSPsygene
+# SSPSyGene Data Website
 
-SSPsygene is a web platform for exploring neuropsychiatric genetics data from multiple experimental datasets and phenotypes. The project integrates differential expression data, perturbation studies, and mouse phenotype data from various sources into a unified SQLite database with a Next.js web interface.
+The SSPsyGene data website is a web platform for exploring neuropsychiatric genetics data from multiple experimental datasets and phenotypes. The project integrates differential expression data, perturbation studies, and mouse phenotype data from various sources into a unified SQLite database with a Next.js web interface.
 
 ## Project Structure
 
@@ -28,18 +28,9 @@ The repository is organized into three main directories:
 
 Raw data files are organized by dataset in `data/datasets/`. Most datasets include a `BUILD` and/or a `README.txt` file with instructions for downloading and preparing the data. `README.txt` files generally contain human-readable pointers to papers and where the data is from, while BUILD files contain commands to download and/or process the data.
 
-### Dataset Download Scripts
+### Dataset Download and Preparation
 
-Each `BUILD` file contains download instructions or processing scripts:
-
-- **Mouse perturbation data** (`data/datasets/mouse-perturb-4tf/`): See README.txt
-- **Perturb-Fish data** (`data/datasets/perturb-fish/BUILD`): Extract from processed files using `extract_pheno.py`
-- **Phenome.JAX data** (`data/datasets/phenome_jax/BUILD`): Download from [phenome.jax.org](https://phenome.jax.org/downloads)
-- **PsychScreen data** (`data/datasets/psychscreen/BUILD`): Download from [psychscreen.wenglab.org](https://psychscreen.wenglab.org/psychscreen/downloads)
-- **SFARI gene data** (`data/datasets/sfari/`): Download from [gene.sfari.org/tools](https://gene.sfari.org/tools/)
-- **Homology mapping files** (`data/homology/BUILD`): Download HGNC, MGI, and ZFIN gene mapping files
-
-Run the BUILD scripts in each dataset directory to download and prepare the required data files.
+Read the `README.txt` files and run the `BUILD` scripts in each dataset directory to download and prepare the required data files.
 
 ## Loading the Database
 
