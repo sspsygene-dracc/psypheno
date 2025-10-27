@@ -5,7 +5,7 @@ from typing import Any, Literal
 import pandas as pd
 
 from processing.types.data_load_result import DataLoadResult
-from processing.types.entrez_conversion import EntrezConversion
+from processing.types.gene_conversion import GeneMapping
 from processing.types.entrez_gene import EntrezGene
 from processing.types.link_table import LinkTable
 from processing.types.split_column_entry import SplitColumnEntry
@@ -25,28 +25,28 @@ class TableToProcessConfig:
     description: str
     in_path: Path
     split_column_map: list[SplitColumnEntry]
-    entrez_conversions: list[EntrezConversion]
+    gene_mappings: list[GeneMapping]
     separator: str
 
     def __post_init__(self):
         num_perturbed = 0
         num_target = 0
-        for entrez_conversion in self.entrez_conversions:
-            if entrez_conversion.is_perturbed:
+        for gene_mapping in self.gene_mappings:
+            if gene_mapping.is_perturbed:
                 num_perturbed += 1
-            if entrez_conversion.is_target:
+            if gene_mapping.is_target:
                 num_target += 1
         if num_perturbed > 1:
             raise ValueError(
-                f"table {self.table}: A table cannot have more than one perturbed entrez conversion"
+                f"table {self.table}: A table cannot have more than one perturbed central gene conversion"
             )
         if num_target > 1:
             raise ValueError(
-                f"table {self.table}: A table cannot have more than one target entrez conversion"
+                f"table {self.table}: A table cannot have more than one target central gene conversion"
             )
         if num_perturbed != num_target:
             raise ValueError(
-                f"table {self.table}: A table must have exactly one perturbed and one target entrez conversion, or none"
+                f"table {self.table}: A table must have exactly one perturbed and one target central gene conversion, or none"
             )
         assert (num_perturbed == 0 and num_target == 0) or (
             num_perturbed == 1 and num_target == 1
@@ -64,9 +64,9 @@ class TableToProcessConfig:
                 SplitColumnEntry.from_json(split_column_map)
                 for split_column_map in json_data["split_column_map"]
             ],
-            entrez_conversions=[
-                EntrezConversion.from_json(entrez_conversion)
-                for entrez_conversion in json_data["entrez_conversions"]
+            gene_mappings=[
+                GeneMapping.from_json(gene_mapping)
+                for gene_mapping in json_data["gene_mappings"]
             ],
             separator=json_data["separator"] if "separator" in json_data else "\t",
         )
@@ -91,7 +91,7 @@ class TableToProcessConfig:
         gene_columns: list[str] = []
         used_entrez_ids: set[EntrezGene] = set()
         link_tables: list[LinkTable] = []
-        for conversion in self.entrez_conversions:
+        for conversion in self.gene_mappings:
             gene_columns.append(conversion.column_name.lower())
             species_list.append(conversion.species)
             link_table = conversion.resolve_to_central_gene_table(

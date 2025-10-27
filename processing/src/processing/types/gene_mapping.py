@@ -10,7 +10,7 @@ from processing.types.link_table import LinkTable
 
 
 @dataclass
-class EntrezConversion:
+class GeneMapping:
     column_name: str
     species: Literal["human", "mouse"]
     link_table_name: str
@@ -32,7 +32,7 @@ class EntrezConversion:
                 raise ValueError(f"Invalid replace: {self.replace}")
 
     @classmethod
-    def from_json(cls, json_data: dict[str, Any]) -> "EntrezConversion":
+    def from_json(cls, json_data: dict[str, Any]) -> "GeneMapping":
         to_upper = json_data["to_upper"] if "to_upper" in json_data else False
         replace: dict[str, str] = json_data["replace"] if "replace" in json_data else {}
         return cls(
