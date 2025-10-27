@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 from processing.config import get_sspsygene_config
+from processing.types.ensembl_gene import EnsemblGene
 from processing.types.entrez_gene import EntrezGene
 
 
@@ -51,6 +52,7 @@ class CentralGeneTableEntry:
     hgnc_id: str | None
     mouse_symbols: set[str]
     mouse_entrez_genes: set[EntrezGene]
+    mouse_ensembl_genes: set[EnsemblGene]
     human_synonyms: set[str]
     mouse_synonyms: set[str]
     manually_added: bool = False
@@ -60,10 +62,7 @@ class CentralGeneTableEntry:
     used: bool = False
 
     def add_used_name(
-        self,
-        species: Literal["human", "mouse"],
-        name: str,
-        dataset_name: str
+        self, species: Literal["human", "mouse"], name: str, dataset_name: str
     ) -> None:
         self.used = True
         self.dataset_names.add(dataset_name)
@@ -119,6 +118,7 @@ class CentralGeneTable:
             hgnc_id=None,
             mouse_symbols={symbol},
             mouse_entrez_genes=set(),
+            mouse_ensembl_genes=set(),
             human_synonyms=set(),
             mouse_synonyms=set(),
             dataset_names={dataset},
@@ -139,6 +139,7 @@ class CentralGeneTable:
             hgnc_id=None,
             mouse_symbols=set(),
             mouse_entrez_genes=set(),
+            mouse_ensembl_genes=set(),
             human_synonyms=set(),
             mouse_synonyms=set(),
             dataset_names={dataset},
@@ -173,7 +174,7 @@ class CentralGeneTable:
 
     def construct(self):
         self.parse_hgnc(get_sspsygene_config().gene_map_config.hgnc_file)
-        mgi_entrez_to_hgnc = self.parse_mgi_entrez_to_hgnc(
+        mgi_entrez_to_hgnc, mgi_entrez_to_ensembl = self.parse_mgi_homology(
             get_sspsygene_config().gene_map_config.alliance_homology_file
         )
         hgnc_to_human_entrez = self.get_hgnc_id_to_human_entrez_id()
@@ -181,6 +182,7 @@ class CentralGeneTable:
             get_sspsygene_config().gene_map_config.mgi_file,
             hgnc_to_human_entrez=hgnc_to_human_entrez,
             mgi_entrez_to_hgnc=mgi_entrez_to_hgnc,
+            mgi_entrez_to_ensembl=mgi_entrez_to_ensembl,
         )
 
     def parse_hgnc(self, fname: Path) -> None:
@@ -215,32 +217,40 @@ class CentralGeneTable:
                     ),
                     mouse_symbols=set(),
                     mouse_entrez_genes=set(),
+                    mouse_ensembl_genes=set(),
                     human_synonyms=synonyms,
                     mouse_synonyms=set(),
                 )
             )
 
-    def parse_mgi_entrez_to_hgnc(
+    def parse_mgi_homology(
         self,
         alliance_homology_fname: Path,
-    ) -> dict[EntrezGene, set[str]]:
-        rv: dict[EntrezGene, set[str]] = defaultdict(set)
+    ) -> tuple[dict[EntrezGene, set[str]], dict[EntrezGene, set[EnsemblGene]]]:
+        entrez_rv: dict[EntrezGene, set[str]] = defaultdict(set)
+        ensembl_rv: dict[EntrezGene, set[EnsemblGene]] = defaultdict(set)
         with open(alliance_homology_fname, encoding="utf-8") as f:
             reader = csv.DictReader(f, delimiter="\t")
             for row in reader:
                 entrez_id_str = row["EntrezGene ID"]
+                hgnc_id = row["HGNC ID"]
                 if entrez_id_str == "" or entrez_id_str == "null":
                     continue
                 entrez_id = int(entrez_id_str)
-                hgnc_id = row["HGNC ID"]
-                rv[EntrezGene(entrez_id)].add(hgnc_id)
-        return rv
+                entrez_gene = EntrezGene(entrez_id)
+                entrez_rv[entrez_gene].add(hgnc_id)
+                ensembl_id_str = row["Ensembl Gene ID"]
+                if not (ensembl_id_str == "" or ensembl_id_str == "null"):
+                    ensembl_id = EnsemblGene(ensembl_id_str)
+                    ensembl_rv[entrez_gene].add(ensembl_id)
+        return entrez_rv, ensembl_rv
 
     def parse_mgi(
         self,
         mgi_fname: Path,
         hgnc_to_human_entrez: dict[str, EntrezGene],
         mgi_entrez_to_hgnc: dict[EntrezGene, set[str]],
+        mgi_entrez_to_ensembl: dict[EntrezGene, set[EnsemblGene]],
     ) -> None:
         rows: list[dict[str, str]] = []
         withdrawn_map: dict[str, set[str]] = defaultdict(set)
@@ -308,6 +318,11 @@ class CentralGeneTable:
                     hgnc_id=None,
                     mouse_symbols={symbol},
                     mouse_entrez_genes={mouse_entrez_id} if mouse_entrez_id else set(),
+                    mouse_ensembl_genes=(
+                        mgi_entrez_to_ensembl.get(mouse_entrez_id, set())
+                        if mouse_entrez_id
+                        else set()
+                    ),
                     human_synonyms=set(),
                     mouse_synonyms=synonyms,
                 )

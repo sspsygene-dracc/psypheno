@@ -1,0 +1,13 @@
+MGI Allele Accession ID 
+Allele Symbol 
+Allele Name 
+Allele Type 
+Allele Attribute 
+PubMed ID for original reference 
+MGI Marker Accession ID 
+Marker Symbol 
+Marker RefSeq ID 
+Marker Ensembl ID 
+High-level Mammalian Phenotype ID (comma-delimited) 
+Synonyms (|-delimited) 
+Marker Name

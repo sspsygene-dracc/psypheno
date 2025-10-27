@@ -5,7 +5,7 @@ from typing import Any, Literal
 import pandas as pd
 
 from processing.types.data_load_result import DataLoadResult
-from processing.types.gene_conversion import GeneMapping
+from processing.types.gene_mapping import GeneMapping
 from processing.types.entrez_gene import EntrezGene
 from processing.types.link_table import LinkTable
 from processing.types.split_column_entry import SplitColumnEntry
