@@ -27,7 +27,7 @@ export default function PhenoPage(props: PageProps) {
       { table: string; rows: unknown[][]; headers: string[] }[]
     ][];
     return (
-      <div style={{ padding: 12 }}>
+      <div style={{ padding: 12, background: "#ffffff", minHeight: "100vh", color: "#1f2937" }}>
         <p>
           <Link href="/pheno">Back</Link>
         </p>
@@ -93,7 +93,7 @@ export default function PhenoPage(props: PageProps) {
     }
   >;
   return (
-    <div style={{ padding: 12 }}>
+    <div style={{ padding: 12, background: "#ffffff", minHeight: "100vh", color: "#1f2937" }}>
       <p>
         <Link href="/pheno">Back</Link>
       </p>

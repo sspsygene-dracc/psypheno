@@ -131,7 +131,6 @@ export default function SearchBar({
     const lowerSearch = searchQuery.trim().toLowerCase();
 
     if (!synonyms) return null;
-    console.log(synonyms);
     const found = synonyms.find((syn) =>
       syn.toLowerCase().startsWith(lowerSearch)
     );
@@ -157,7 +156,6 @@ export default function SearchBar({
     humanSynonyms: string[] | null,
     mouseSynonyms: string[] | null
   ) => {
-    console.log(searchQuery, humanSynonyms, mouseSynonyms);
     return (
       findMatchingSynonym(searchQuery, humanSynonyms, "Human") ||
       findMatchingSynonym(searchQuery, mouseSynonyms, "Mouse")
@@ -183,12 +181,12 @@ export default function SearchBar({
           width: "100%",
           padding: "16px 18px",
           borderRadius: 12,
-          border: "1px solid #334155",
+          border: "1px solid #d1d5db",
           outline: "none",
           fontSize: 16,
-          background: "#111827",
-          color: "#e5e7eb",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+          background: "#ffffff",
+          color: "#1f2937",
+          boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
           boxSizing: "border-box",
         }}
       />
@@ -200,11 +198,11 @@ export default function SearchBar({
             left: 0,
             right: 0,
             marginTop: 8,
-            background: "#0f172a",
-            border: "1px solid #334155",
+            background: "#ffffff",
+            border: "1px solid #d1d5db",
             borderRadius: 12,
             overflow: "hidden",
-            boxShadow: "0 14px 40px rgba(0,0,0,0.35)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             zIndex: 20,
           }}
         >
@@ -220,8 +218,8 @@ export default function SearchBar({
                 alignItems: "center",
                 padding: "12px 16px",
                 cursor: "pointer",
-                background: idx === highlightIndex ? "#1e293b" : "transparent",
-                color: "#e2e8f0",
+                background: idx === highlightIndex ? "#f3f4f6" : "transparent",
+                color: "#374151",
               }}
             >
               <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>

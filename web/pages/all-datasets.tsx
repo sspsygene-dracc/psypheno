@@ -86,7 +86,7 @@ export default function AllDatasets() {
       <div
         style={{
           minHeight: "100vh",
-          background: "#0b1220",
+          background: "#ffffff",
           display: "flex",
           flexDirection: "column",
         }}
@@ -103,7 +103,7 @@ export default function AllDatasets() {
         >
           <h1
             style={{
-              color: "#f1f5f9",
+              color: "#1f2937",
               fontSize: 32,
               fontWeight: 700,
               marginBottom: 8,
@@ -111,13 +111,13 @@ export default function AllDatasets() {
           >
             All Datasets
           </h1>
-          <p style={{ color: "#94a3b8", marginBottom: 24 }}>
+          <p style={{ color: "#6b7280", marginBottom: 24 }}>
             Browse all available datasets in the SSPsyGene database
           </p>
 
           {loading && (
             <div
-              style={{ color: "#e5e7eb", textAlign: "center", marginTop: 32 }}
+              style={{ color: "#6b7280", textAlign: "center", marginTop: 32 }}
             >
               Loading datasets...
             </div>
@@ -125,7 +125,7 @@ export default function AllDatasets() {
 
           {error && (
             <div
-              style={{ color: "#ef4444", textAlign: "center", marginTop: 32 }}
+              style={{ color: "#dc2626", textAlign: "center", marginTop: 32 }}
             >
               {error}
             </div>
@@ -135,8 +135,8 @@ export default function AllDatasets() {
             <div style={{ display: "grid", gap: 24 }}>
               <div
                 style={{
-                  background: "#0f172a",
-                  border: "1px solid #334155",
+                  background: "#ffffff",
+                  border: "1px solid #e5e7eb",
                   borderRadius: 12,
                   overflowX: "auto",
                   overflowY: "hidden",
@@ -145,8 +145,8 @@ export default function AllDatasets() {
                 <div
                   style={{
                     padding: "16px",
-                    background: "#1e293b",
-                    color: "#94a3b8",
+                    background: "#f9fafb",
+                    color: "#6b7280",
                     fontWeight: 600,
                     fontSize: 14,
                   }}
@@ -160,9 +160,9 @@ export default function AllDatasets() {
                       style={{
                         width: "100%",
                         padding: "16px",
-                        borderTop: "1px solid #334155",
+                        borderTop: "1px solid #e5e7eb",
                         background: "transparent",
-                        color: "#e5e7eb",
+                        color: "#1f2937",
                         transition: "background 0.2s ease",
                         userSelect: "text",
                         WebkitUserSelect: "text",
@@ -178,7 +178,7 @@ export default function AllDatasets() {
                       }}
                       onMouseEnter={(e) => {
                         (e.currentTarget as HTMLDivElement).style.background =
-                          "#1e293b66";
+                          "#f3f4f6";
                       }}
                       onMouseLeave={(e) => {
                         (e.currentTarget as HTMLDivElement).style.background =
@@ -195,7 +195,7 @@ export default function AllDatasets() {
                                 txt.charAt(0).toUpperCase() + txt.slice(1)
                             )}
                         </div>
-                        <div style={{ fontSize: 14, color: "#94a3b8" }}>
+                        <div style={{ fontSize: 14, color: "#6b7280" }}>
                           <b>{dataset.display_columns.split(",").length} Columns:</b>{" "}
                           {dataset.display_columns.split(",").join(", ")}
                         </div>
@@ -203,7 +203,7 @@ export default function AllDatasets() {
                           <div
                             style={{
                               fontSize: 14,
-                              color: "#94a3b8",
+                              color: "#6b7280",
                               marginTop: 6,
                             }}
                           >
@@ -215,9 +215,9 @@ export default function AllDatasets() {
                         <button
                           onClick={() => setSelectedDataset(dataset.table_name)}
                           style={{
-                            background: "#1e293b",
-                            color: "#e5e7eb",
-                            border: "1px solid #334155",
+                            background: "#ffffff",
+                            color: "#1f2937",
+                            border: "1px solid #d1d5db",
                             borderRadius: 8,
                             padding: "8px 12px",
                             cursor: "pointer",
@@ -238,8 +238,8 @@ export default function AllDatasets() {
                   <div id="dataset-table-top" />
                   <div
                     style={{
-                      background: "#0f172a",
-                      border: "1px solid #334155",
+                      background: "#ffffff",
+                      border: "1px solid #e5e7eb",
                       borderRadius: 12,
                       overflow: "hidden",
                     }}
@@ -247,8 +247,8 @@ export default function AllDatasets() {
                     <div
                       style={{
                         padding: "16px",
-                        background: "#1e293b",
-                        color: "#f1f5f9",
+                        background: "#f9fafb",
+                        color: "#1f2937",
                         fontWeight: 600,
                       }}
                     >
@@ -265,7 +265,7 @@ export default function AllDatasets() {
                         style={{
                           padding: 32,
                           textAlign: "center",
-                          color: "#e5e7eb",
+                          color: "#6b7280",
                         }}
                       >
                         Loading data...

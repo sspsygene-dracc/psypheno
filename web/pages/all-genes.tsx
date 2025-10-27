@@ -75,7 +75,7 @@ export default function AllGenes() {
       <div
         style={{
           minHeight: "100vh",
-          background: "#0b1220",
+          background: "#ffffff",
           display: "flex",
           flexDirection: "column",
         }}
@@ -92,7 +92,7 @@ export default function AllGenes() {
         >
           <h1
             style={{
-              color: "#f1f5f9",
+              color: "#1f2937",
               fontSize: 32,
               fontWeight: 700,
               marginBottom: 8,
@@ -100,7 +100,7 @@ export default function AllGenes() {
           >
             All Genes
           </h1>
-          <p style={{ color: "#94a3b8", marginBottom: 24 }}>
+          <p style={{ color: "#6b7280", marginBottom: 24 }}>
             Browse gene suggestions and related symbols/synonyms with dataset
             counts
           </p>
@@ -114,21 +114,21 @@ export default function AllGenes() {
               style={{
                 width: "100%",
                 padding: "12px 16px",
-                background: "#0f172a",
-                border: "1px solid #334155",
+                background: "#ffffff",
+                border: "1px solid #d1d5db",
                 borderRadius: 8,
-                color: "#e5e7eb",
+                color: "#1f2937",
                 fontSize: 16,
                 outline: "none",
               }}
             />
             {loading && (
-              <div style={{ color: "#94a3b8", marginTop: 8, fontSize: 14 }}>
+              <div style={{ color: "#6b7280", marginTop: 8, fontSize: 14 }}>
                 Loading…
               </div>
             )}
             {error && (
-              <div style={{ color: "#ef4444", marginTop: 8 }}>{error}</div>
+              <div style={{ color: "#dc2626", marginTop: 8 }}>{error}</div>
             )}
           </div>
 
@@ -136,8 +136,8 @@ export default function AllGenes() {
             <>
               <div
                 style={{
-                  background: "#0f172a",
-                  border: "1px solid #334155",
+                  background: "#ffffff",
+                  border: "1px solid #e5e7eb",
                   borderRadius: 12,
                   overflow: "hidden",
                 }}
@@ -147,8 +147,8 @@ export default function AllGenes() {
                     display: "grid",
                     gridTemplateColumns: "1.2fr 1fr 1fr 1fr 100px",
                     padding: "16px",
-                    background: "#1e293b",
-                    color: "#94a3b8",
+                    background: "#f9fafb",
+                    color: "#6b7280",
                     fontWeight: 600,
                     fontSize: 14,
                   }}
@@ -171,7 +171,7 @@ export default function AllGenes() {
                       style={{
                         padding: 32,
                         textAlign: "center",
-                        color: "#94a3b8",
+                        color: "#6b7280",
                       }}
                     >
                       No genes found
@@ -188,15 +188,15 @@ export default function AllGenes() {
                             display: "grid",
                             gridTemplateColumns: "1.2fr 1fr 1fr 1fr 100px",
                             padding: "16px",
-                            borderTop: "1px solid #334155",
-                            color: "#e5e7eb",
+                            borderTop: "1px solid #e5e7eb",
+                            color: "#1f2937",
                             textDecoration: "none",
                             transition: "background 0.2s ease",
                           }}
                           onMouseEnter={(e) => {
                             (
                               e.currentTarget as HTMLDivElement
-                            ).style.background = "#1e293b";
+                            ).style.background = "#f3f4f6";
                           }}
                           onMouseLeave={(e) => {
                             (
@@ -207,22 +207,22 @@ export default function AllGenes() {
                           <div style={{ fontWeight: 500 }}>
                             {sug.humanSymbol ?? "—"}
                           </div>
-                          <div style={{ color: "#94a3b8" }}>
+                          <div style={{ color: "#6b7280" }}>
                             {sug.mouseSymbols && sug.mouseSymbols.length
                               ? sug.mouseSymbols.join(", ")
                               : "—"}
                           </div>
-                          <div style={{ color: "#94a3b8" }}>
+                          <div style={{ color: "#6b7280" }}>
                             {sug.humanSynonyms && sug.humanSynonyms.length
                               ? sug.humanSynonyms.join(", ")
                               : "—"}
                           </div>
-                          <div style={{ color: "#94a3b8" }}>
+                          <div style={{ color: "#6b7280" }}>
                             {sug.mouseSynonyms && sug.mouseSynonyms.length
                               ? sug.mouseSynonyms.join(", ")
                               : "—"}
                           </div>
-                          <div style={{ textAlign: "right", color: "#94a3b8" }}>
+                          <div style={{ textAlign: "right", color: "#6b7280" }}>
                             {sug.datasetCount}
                           </div>
                         </div>
@@ -246,7 +246,7 @@ export default function AllGenes() {
                 </div>
               </div>
 
-              <div style={{ marginTop: 16, color: "#94a3b8", fontSize: 14 }}>
+              <div style={{ marginTop: 16, color: "#6b7280", fontSize: 14 }}>
                 Showing page {page} of {totalPages} · {total} total genes
               </div>
 
@@ -265,9 +265,9 @@ export default function AllGenes() {
                     disabled={page <= 1 || loading}
                     style={{
                       padding: "8px 12px",
-                      background: page <= 1 || loading ? "#0f172a" : "#1e293b",
-                      border: "1px solid #334155",
-                      color: "#e5e7eb",
+                      background: page <= 1 || loading ? "#f9fafb" : "#ffffff",
+                      border: "1px solid #d1d5db",
+                      color: "#1f2937",
                       borderRadius: 8,
                       cursor: page <= 1 || loading ? "not-allowed" : "pointer",
                     }}
@@ -280,9 +280,9 @@ export default function AllGenes() {
                     style={{
                       padding: "8px 12px",
                       background:
-                        page >= totalPages || loading ? "#0f172a" : "#1e293b",
-                      border: "1px solid #334155",
-                      color: "#e5e7eb",
+                        page >= totalPages || loading ? "#f9fafb" : "#ffffff",
+                      border: "1px solid #d1d5db",
+                      color: "#1f2937",
                       borderRadius: 8,
                       cursor:
                         page >= totalPages || loading
@@ -317,12 +317,12 @@ export default function AllGenes() {
                               padding: "6px 10px",
                               minWidth: 36,
                               background: isActive
-                                ? "#334155"
+                                ? "#f3f4f6"
                                 : isDisabled
-                                ? "#0f172a"
-                                : "#1e293b",
-                              border: "1px solid #334155",
-                              color: "#e5e7eb",
+                                ? "#f9fafb"
+                                : "#ffffff",
+                              border: "1px solid #d1d5db",
+                              color: "#1f2937",
                               borderRadius: 6,
                               cursor: isDisabled ? "not-allowed" : "pointer",
                               fontWeight: isActive ? 700 : 500,
@@ -356,7 +356,7 @@ export default function AllGenes() {
                         items.push(
                           <span
                             key="pg-ell-1"
-                            style={{ color: "#94a3b8", padding: "0 4px" }}
+                            style={{ color: "#6b7280", padding: "0 4px" }}
                           >
                             …
                           </span>
@@ -375,7 +375,7 @@ export default function AllGenes() {
                         items.push(
                           <span
                             key="pg-ell-2"
-                            style={{ color: "#94a3b8", padding: "0 4px" }}
+                            style={{ color: "#6b7280", padding: "0 4px" }}
                           >
                             …
                           </span>
@@ -401,16 +401,16 @@ export default function AllGenes() {
                 </div>
 
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ color: "#94a3b8" }}>Rows per page</span>
+                  <span style={{ color: "#6b7280" }}>Rows per page</span>
                   <select
                     value={pageSize}
                     onChange={(e) => setPageSize(parseInt(e.target.value, 10))}
                     disabled={loading}
                     style={{
                       padding: "8px 12px",
-                      background: "#0f172a",
-                      border: "1px solid #334155",
-                      color: "#e5e7eb",
+                      background: "#ffffff",
+                      border: "1px solid #d1d5db",
+                      color: "#1f2937",
                       borderRadius: 8,
                     }}
                   >

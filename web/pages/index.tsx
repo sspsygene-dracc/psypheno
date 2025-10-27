@@ -196,7 +196,7 @@ export default function Home() {
       {loading && (
         <div
           style={{
-            color: "#e5e7eb",
+            color: "#6b7280",
             textAlign: "center",
             marginTop: 16,
           }}
@@ -207,7 +207,7 @@ export default function Home() {
       {error && (
         <div
           style={{
-            color: "#ef4444",
+            color: "#dc2626",
             textAlign: "center",
             marginTop: 16,
           }}
@@ -226,7 +226,7 @@ export default function Home() {
       <div
         style={{
           minHeight: "100vh",
-          background: "#0b1220",
+          background: "#ffffff",
           display: "flex",
           flexDirection: "column",
         }}
@@ -244,7 +244,7 @@ export default function Home() {
           <div
             style={{
               textAlign: "center",
-              color: "#f1f5f9",
+              color: "#1f2937",
               marginBottom: 32,
             }}
           >
@@ -277,8 +277,8 @@ export default function Home() {
               boxSizing: "border-box",
               display: "flex",
               gap: 8,
-              background: "#0f172a",
-              border: "1px solid #334155",
+              background: "#f9fafb",
+              border: "1px solid #e5e7eb",
               borderRadius: 12,
               padding: 4,
             }}
@@ -292,9 +292,10 @@ export default function Home() {
                 border: "none",
                 cursor: "pointer",
                 background:
-                  searchMode === "general" ? "#1e293b" : "transparent",
-                color: "#e5e7eb",
+                  searchMode === "general" ? "#ffffff" : "transparent",
+                color: "#1f2937",
                 fontWeight: 600,
+                boxShadow: searchMode === "general" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
               }}
             >
               General gene search
@@ -307,9 +308,10 @@ export default function Home() {
                 borderRadius: 10,
                 border: "none",
                 cursor: "pointer",
-                background: searchMode === "pair" ? "#1e293b" : "transparent",
-                color: "#e5e7eb",
+                background: searchMode === "pair" ? "#ffffff" : "transparent",
+                color: "#1f2937",
                 fontWeight: 600,
+                boxShadow: searchMode === "pair" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
               }}
             >
               Perturbed/Target search
@@ -322,8 +324,8 @@ export default function Home() {
                 width: "min(720px, 92%)",
                 boxSizing: "border-box",
                 marginTop: 16,
-                background: "#0f172a",
-                border: "1px solid #334155",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
                 borderRadius: 12,
                 padding: 4,
               }}
@@ -342,8 +344,8 @@ export default function Home() {
                 width: "min(720px, 92%)",
                 boxSizing: "border-box",
                 marginTop: 16,
-                background: "#0f172a",
-                border: "1px solid #334155",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
                 borderRadius: 12,
                 padding: 4,
                 display: "grid",

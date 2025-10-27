@@ -24,16 +24,16 @@ export default function DataTable({
         }}
       >
         <thead>
-          <tr style={{ background: "#1e293b" }}>
+          <tr style={{ background: "#f9fafb" }}>
             {columns.map((col) => (
               <th
                 key={col}
                 style={{
                   padding: "12px 16px",
                   textAlign: "left",
-                  color: "#94a3b8",
+                  color: "#6b7280",
                   fontWeight: 600,
-                  borderTop: "1px solid #334155",
+                  borderTop: "1px solid #e5e7eb",
                   whiteSpace: "nowrap",
                 }}
               >
@@ -44,13 +44,13 @@ export default function DataTable({
         </thead>
         <tbody>
           {rowsToDisplay.map((row, idx) => (
-            <tr key={idx} style={{ borderTop: "1px solid #334155" }}>
+            <tr key={idx} style={{ borderTop: "1px solid #e5e7eb" }}>
               {columns.map((col) => (
                 <td
                   key={col}
                   style={{
                     padding: "12px 16px",
-                    color: "#e5e7eb",
+                    color: "#1f2937",
                   }}
                 >
                   {String(row[col] ?? "")}
@@ -65,9 +65,9 @@ export default function DataTable({
           style={{
             padding: 16,
             textAlign: "center",
-            color: "#94a3b8",
+            color: "#6b7280",
             fontSize: 14,
-            borderTop: "1px solid #334155",
+            borderTop: "1px solid #e5e7eb",
           }}
         >
           {(() => {

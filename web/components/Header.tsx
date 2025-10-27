@@ -6,18 +6,18 @@ export default function Header() {
 
   const linkStyle = (path: string) => ({
     padding: "10px 20px",
-    color: router.pathname === path ? "#60a5fa" : "#e5e7eb",
+    color: router.pathname === path ? "#2563eb" : "#374151",
     textDecoration: "none",
     fontWeight: 600,
-    borderBottom: router.pathname === path ? "2px solid #60a5fa" : "2px solid transparent",
+    borderBottom: router.pathname === path ? "2px solid #2563eb" : "2px solid transparent",
     transition: "all 0.2s ease",
   });
 
   return (
     <header
       style={{
-        background: "#0f172a",
-        borderBottom: "1px solid #334155",
+        background: "#ffffff",
+        borderBottom: "1px solid #e5e7eb",
         padding: "16px 0",
       }}
     >

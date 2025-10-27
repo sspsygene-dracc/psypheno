@@ -2,12 +2,12 @@ export default function Footer() {
   return (
     <footer
       style={{
-        background: "#0f172a",
-        borderTop: "1px solid #334155",
+        background: "#ffffff",
+        borderTop: "1px solid #e5e7eb",
         padding: "24px 16px",
         marginTop: "auto",
         textAlign: "center",
-        color: "#94a3b8",
+        color: "#6b7280",
       }}
     >
       <p style={{ margin: 0, fontSize: 14 }}>

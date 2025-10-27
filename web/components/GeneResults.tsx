@@ -32,7 +32,7 @@ export default function GeneResults({
       style={{
         width: "min(1100px, 96%)",
         margin: "28px auto",
-        color: "#e5e7eb",
+        color: "#1f2937",
       }}
     >
       <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
@@ -44,8 +44,8 @@ export default function GeneResults({
           key={section.tableName}
           style={{
             marginTop: 18,
-            background: "#0f172a",
-            border: "1px solid #334155",
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
             borderRadius: 12,
             overflow: "hidden",
           }}
@@ -53,7 +53,7 @@ export default function GeneResults({
           <div
             style={{
               padding: "12px 14px",
-              borderBottom: "1px solid #334155",
+              borderBottom: "1px solid #e5e7eb",
               fontWeight: 600,
             }}
           >
@@ -63,7 +63,7 @@ export default function GeneResults({
           </div>
           {section.description && (
             <div
-              style={{ padding: "10px 14px", color: "#94a3b8", fontSize: 14 }}
+              style={{ padding: "10px 14px", color: "#6b7280", fontSize: 14 }}
             >
               {section.description}
             </div>
@@ -84,8 +84,8 @@ export default function GeneResults({
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "10px 14px",
-                borderTop: "1px solid #334155",
-                background: "#0b1220",
+                borderTop: "1px solid #e5e7eb",
+                background: "#f9fafb",
               }}
             >
               <div style={{ opacity: 0.8, fontSize: 13 }}>
@@ -97,9 +97,9 @@ export default function GeneResults({
                 onClick={() => toggleSection(section.tableName)}
                 style={{
                   padding: "8px 12px",
-                  background: "#111827",
-                  border: "1px solid #334155",
-                  color: "#e5e7eb",
+                  background: "#ffffff",
+                  border: "1px solid #d1d5db",
+                  color: "#1f2937",
                   borderRadius: 10,
                   fontSize: 14,
                   fontWeight: 500,

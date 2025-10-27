@@ -76,8 +76,6 @@ export default async function handler(
       dataset_count: number;
     }>;
 
-    console.log(rows);
-
     const genes: SearchSuggestion[] = rows.map((r) => ({
       centralGeneId: r.id,
       searchQuery: "",
