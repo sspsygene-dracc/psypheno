@@ -79,16 +79,26 @@ class CentralGeneTable:
 
     entries: list[CentralGeneTableEntry] = field(default_factory=list)
 
-    def get_mouse_map(self) -> dict[str, list[CentralGeneTableEntry]]:
+    def get_mouse_map(
+        self, gene_type: Literal["ensmus"] | None
+    ) -> dict[str, list[CentralGeneTableEntry]]:
         rv: dict[str, list[CentralGeneTableEntry]] = defaultdict(list)
-        for entry in self.entries:
-            for symbol in entry.mouse_symbols:
-                rv[symbol].append(entry)
-            for synonym in entry.mouse_synonyms:
-                rv[synonym].append(entry)
+        if gene_type is None:
+            for entry in self.entries:
+                for symbol in entry.mouse_symbols:
+                    rv[symbol].append(entry)
+                for synonym in entry.mouse_synonyms:
+                    rv[synonym].append(entry)
+        else:
+            for entry in self.entries:
+                for ensg in entry.mouse_ensembl_genes:
+                    rv[ensg.ensembl_id].append(entry)
         return dict(rv)
 
-    def get_human_map(self) -> dict[str, list[CentralGeneTableEntry]]:
+    def get_human_map(
+        self, gene_type: Literal["ensmus"] | None
+    ) -> dict[str, list[CentralGeneTableEntry]]:
+        assert gene_type is None
         rv: dict[str, list[CentralGeneTableEntry]] = defaultdict(list)
         for entry in self.entries:
             if entry.human_symbol is None:
@@ -99,12 +109,12 @@ class CentralGeneTable:
         return dict(rv)
 
     def get_species_map(
-        self, species: Literal["human", "mouse"]
+        self, species: Literal["human", "mouse"], gene_type: Literal["ensmus"] | None
     ) -> dict[str, list[CentralGeneTableEntry]]:
         if species == "human":
-            return self.get_human_map()
+            return self.get_human_map(gene_type)
         elif species == "mouse":
-            return self.get_mouse_map()
+            return self.get_mouse_map(gene_type)
         else:
             raise ValueError(f"Invalid species: {species}")
 

@@ -19,6 +19,8 @@ class GeneMapping:
     replace: dict[str, str]
     is_perturbed: bool
     is_target: bool
+    gene_type: Literal["ensmus"] | None
+    ignore_empty: bool
 
     def __post_init__(self):
         if self.species not in ["human", "mouse"]:
@@ -46,6 +48,10 @@ class GeneMapping:
             replace=replace,
             is_perturbed=(json_data["is_perturbed"]),
             is_target=json_data["is_target"],
+            gene_type=json_data["gene_type"] if "gene_type" in json_data else None,
+            ignore_empty=(
+                json_data["ignore_empty"] if "ignore_empty" in json_data else False
+            ),
         )
 
     def resolve_to_central_gene_table(
@@ -61,36 +67,47 @@ class GeneMapping:
         id_column: list[int] = data["id"].tolist()
         in_column: list[str] = data[self.column_name].tolist()
         data_id_to_central_gene_id: list[tuple[int, int | None]] = []
-        species_map = CENTRAL_GENE_TABLE.get_species_map(self.species)
+        species_map = CENTRAL_GENE_TABLE.get_species_map(
+            species=self.species, gene_type=self.gene_type
+        )
         for row_id, elem in zip(id_column, in_column):
+            if self.ignore_empty and (pd.isna(elem) or not elem):
+                data_id_to_central_gene_id.append((row_id, None))
+                continue
             if self.to_upper:
                 elem = elem.upper()
             if elem in self.replace:
                 elem = self.replace[elem]
             if elem not in species_map:
+                # Check for NA values and empty strings
                 if elem in self.ignore_missing:
                     data_id_to_central_gene_id.append((row_id, None))
-                else:
-                    # write a regex for this format: AC118555.1 or AC118555.1 or AL512330.1; so A[CL]number.number:
-                    contig_regex = re.compile(r"^(((C[RU]|F[OP]|AUXG|BX|A[CDFJLP])\d{6}\.\d{1,2})|([UZ]\d{5}\.\d))$")
-                    if not contig_regex.match(elem):
-                        get_sspsygene_logger().warning(
-                            "Path %s, column %s, gene %s not in gene maps for species %s; adding manually",
-                            in_path,
-                            self.column_name,
-                            elem,
-                            self.species,
-                        )
-                    new_entry = CENTRAL_GENE_TABLE.add_species_entry(
-                        species=self.species,
-                        symbol=elem,
-                        dataset=primary_table_name,
+                    continue
+
+                # write a regex for this format: AC118555.1 or AC118555.1 or AL512330.1; so A[CL]number.number:
+                contig_regex = re.compile(
+                    r"^(((C[RU]|F[OP]|AUXG|BX|A[CDFJLP])\d{6}\.\d{1,2})|([UZ]\d{5}\.\d))$"
+                )
+                if not contig_regex.match(elem):
+                    get_sspsygene_logger().warning(
+                        "Path %s, column %s, gene %s not in gene maps for species %s; adding manually",
+                        in_path,
+                        self.column_name,
+                        elem,
+                        self.species,
                     )
-                    species_map[elem] = [new_entry]
+                new_entry = CENTRAL_GENE_TABLE.add_species_entry(
+                    species=self.species,
+                    symbol=elem,
+                    dataset=primary_table_name,
+                )
+                species_map[elem] = [new_entry]
             else:
                 for entry in species_map[elem]:
                     data_id_to_central_gene_id.append((row_id, entry.row_id))
-                    entry.add_used_name(species=self.species, name=elem, dataset_name=primary_table_name)
+                    entry.add_used_name(
+                        species=self.species, name=elem, dataset_name=primary_table_name
+                    )
         link_table_full_name = primary_table_name + "__" + self.link_table_name
         return LinkTable(
             central_gene_table_links=data_id_to_central_gene_id,
