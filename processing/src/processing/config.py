@@ -29,7 +29,8 @@ class Config:
     def __init__(self, config_json_file: Path):
         with open(config_json_file, "r") as f:
             config = json.load(f)
-        self.base_dir: Path = Path(config["basedir"])
+        # Use environment variable for data directory to improve portability
+        self.base_dir: Path = Path(os.environ["SSPSYGENE_DATA_DIR"])  # e.g., /absolute/path/to/data
         self.out_db: Path = self.base_dir / config["out_db"]
         self.gene_map_config = GeneMapConfig(self.base_dir, config["gene_map_files"])
         self.tables_config = TablesConfig(config["tables"], self.base_dir)

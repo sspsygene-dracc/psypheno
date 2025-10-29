@@ -1,17 +1,16 @@
 {
-  "basedir": "/Users/jbirgmei/prog/sspsygene",
-  "out_db": "data/db/sspsygene.db",
+  "out_db": "db/sspsygene.db",
   "gene_map_files": {
-    "mgi": "data/homology/MGI_EntrezGene.rpt",
-    "zfin": "data/homology/human_orthos.txt",
-    "hgnc": "data/homology/hgnc_complete_set.txt",
-    "alliance_homology_file": "data/homology/HGNC_AllianceHomology.rpt"
+    "mgi": "homology/MGI_EntrezGene.rpt",
+    "zfin": "homology/human_orthos.txt",
+    "hgnc": "homology/hgnc_complete_set.txt",
+    "alliance_homology_file": "homology/HGNC_AllianceHomology.rpt"
   },
   "tables": [
     {
       "table": "mouse_perturb_deg",
       "description": "Differentially expressed genes from Zheng et al., 2024, Cell: 'Massively parallel in vivo Perturb-seq reveals cell-type-specific transcriptional networks in cortical development'",
-      "in_path": "data/datasets/mouse-perturb-4tf/deg.txt",
+      "in_path": "datasets/mouse-perturb-4tf/deg.txt",
       "split_column_map": [
         {
           "source_col": "perturbation",
@@ -41,7 +40,7 @@
     {
       "table": "mouse_perturb_clusterprop",
       "description": "Cluster proportions from Zheng et al., 2024, Cell: 'Massively parallel in vivo Perturb-seq reveals cell-type-specific transcriptional networks in cortical development'",
-      "in_path": "data/datasets/mouse-perturb-4tf/clusterprop.txt",
+      "in_path": "datasets/mouse-perturb-4tf/clusterprop.txt",
       "split_column_map": [
         {
           "source_col": "guide",
@@ -64,7 +63,7 @@
     {
       "table": "perturb_fish_astro",
       "description": "Binan et al., 2023: 'Simultaneous CRISPR screening and spatial transcriptomics reveals intracellular, intercellular, and functional transcriptional circuits'",
-      "in_path": "data/datasets/perturb-fish/perturbfish-astro.csv",
+      "in_path": "datasets/perturb-fish/perturbfish-astro.csv",
       "split_column_map": [],
       "gene_mappings": [
         {
@@ -89,7 +88,7 @@
     {
       "table": "zebra_asd",
       "description": "Weinschutz Mendes et al., 2023, Cell Reports: 'High-throughput functional analysis of autism genes in zebrafish identifies convergence in dopaminergic and neuroimmune pathways'",
-      "in_path": "data/datasets/zebraAsd/1-s2.0-S2211124723002541-mmc5.txt",
+      "in_path": "datasets/zebraAsd/1-s2.0-S2211124723002541-mmc5.txt",
       "split_column_map": [
         {
           "source_col": "Mutant_Experiment_Sample",
@@ -115,7 +114,7 @@
     {
       "table": "sfari_animal_genes",
       "description": "Data from SFARI gene, gene.sfari.org, Animal Gene Data",
-      "in_path": "data/datasets/sfari/SFARI-Gene_animal-genes_07-08-2025release_10-03-2025export.csv",
+      "in_path": "datasets/sfari/SFARI-Gene_animal-genes_07-08-2025release_10-03-2025export.csv",
       "split_column_map": [],
       "separator": ",",
       "gene_mappings": [
@@ -132,7 +131,7 @@
     {
       "table": "sfari_animal_rescues",
       "description": "Data from SFARI gene, gene.sfari.org, Animal Rescue Data",
-      "in_path": "data/datasets/sfari/SFARI-Gene_animal-rescues_07-08-2025release_10-03-2025export.csv",
+      "in_path": "datasets/sfari/SFARI-Gene_animal-rescues_07-08-2025release_10-03-2025export.csv",
       "split_column_map": [],
       "separator": ",",
       "gene_mappings": [
@@ -149,7 +148,7 @@
     {
       "table": "sfari_human_genes",
       "description": "Data from SFARI gene, gene.sfari.org, Human Gene Data",
-      "in_path": "data/datasets/sfari/SFARI-Gene_genes_07-08-2025release_10-03-2025export.csv",
+      "in_path": "datasets/sfari/SFARI-Gene_genes_07-08-2025release_10-03-2025export.csv",
       "split_column_map": [],
       "separator": ",",
       "gene_mappings": [
@@ -166,7 +165,7 @@
     {
       "table": "psychscreen_age_deg",
       "description": "PsychScreen, https://downloads.wenglab.org/Age_DEGcombined.csv",
-      "in_path": "data/datasets/psychscreen/Age_DEGcombined.csv",
+      "in_path": "datasets/psychscreen/Age_DEGcombined.csv",
       "split_column_map": [],
       "separator": ",",
       "gene_mappings": [
@@ -183,7 +182,7 @@
     {
       "table": "psychscreen_asd_deg",
       "description": "PsychScreen, https://downloads.wenglab.org/ASD_DEGcombined.csv",
-      "in_path": "data/datasets/psychscreen/ASD_DEGcombined.csv",
+      "in_path": "datasets/psychscreen/ASD_DEGcombined.csv",
       "split_column_map": [],
       "separator": ",",
       "gene_mappings": [
@@ -200,7 +199,7 @@
     {
       "table": "psychscreen_bipolar_deg",
       "description": "PsychScreen, https://downloads.wenglab.org/Bipolar_DEGcombined.csv",
-      "in_path": "data/datasets/psychscreen/Bipolar_DEGcombined.csv",
+      "in_path": "datasets/psychscreen/Bipolar_DEGcombined.csv",
       "split_column_map": [],
       "separator": ",",
       "gene_mappings": [
@@ -217,7 +216,7 @@
     {
       "table": "psychscreen_schizophrenia_deg",
       "description": "PsychScreen, https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv",
-      "in_path": "data/datasets/psychscreen/Schizophrenia_DEGcombined.csv",
+      "in_path": "datasets/psychscreen/Schizophrenia_DEGcombined.csv",
       "split_column_map": [],
       "separator": ",",
       "gene_mappings": [
@@ -234,7 +233,7 @@
     {
       "table": "mgi_high_level_phenotypes",
       "description": "MGI Phenotypes, https://www.informatics.jax.org/downloads/reports/MGI_PhenotypicAllele.rpt",
-      "in_path": "data/datasets/mgi_phenotypes/MGI_PhenotypicAllele_annotated.rpt",
+      "in_path": "datasets/mgi_phenotypes/MGI_PhenotypicAllele_annotated.rpt",
       "split_column_map": [],
       "separator": "\t",
       "gene_mappings": [
