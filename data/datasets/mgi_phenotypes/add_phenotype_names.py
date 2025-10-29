@@ -64,15 +64,13 @@ def add_phenotype_labels(
                 if mp_id and mp_id in phenotype_mapping:
                     labels.append(phenotype_mapping[mp_id])
 
-            # Add the labels as a new column
-            if labels:
-                fields.append("|".join(labels))
-            else:
-                fields.append("")
-        else:
-            fields.append("")
-
-        result_lines.append("\t".join(fields))
+            # Insert the labels as the 3rd column only if present
+            label_col = " | ".join(labels) if labels else ""
+            if label_col:
+                fields.insert(2, label_col)
+                result_lines.append("\t".join(fields))
+            # else: skip row entirely when no phenotype labels
+        # else: skip row entirely when no MP IDs
 
     return result_lines
 
@@ -95,8 +93,8 @@ def main() -> None:
     with open(columns_file, "r") as f:
         columns: list[str] = [line.strip() for line in f.readlines()]
 
-    # Add the new column header
-    columns.append("High-level Mammalian Phenotype Names (comma-delimited)")
+    # Insert the new column header as the 3rd column
+    columns.insert(2, "High-level Mammalian Phenotype Names (comma-delimited)")
 
     # Parse RPT file
     print("Parsing MGI_PhenotypicAllele.rpt...")

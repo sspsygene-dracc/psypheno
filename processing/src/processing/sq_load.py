@@ -25,7 +25,8 @@ def load_gene_tables(
         human_entrez_gene INTEGER,
         hgnc_id TEXT,
         mouse_symbols TEXT,
-        mouse_entrez_genes TEXT,
+        mouse_mgi_accession_ids TEXT,
+        mouse_ensembl_genes TEXT,
         human_synonyms TEXT,
         mouse_synonyms TEXT,
         dataset_names TEXT,
@@ -60,10 +61,11 @@ def load_gene_tables(
             entry.hgnc_id if entry.hgnc_id else None,
             ",".join(entry.mouse_symbols) if entry.mouse_symbols else None,
             (
-                ",".join(str(x.entrez_id) for x in entry.mouse_entrez_genes)
-                if entry.mouse_entrez_genes
+                ",".join(str(x.mgi_accession_id) for x in entry.mouse_mgi_accession_ids)
+                if entry.mouse_mgi_accession_ids
                 else None
             ),
+            ",".join(str(x) for x in entry.mouse_ensembl_genes) if entry.mouse_ensembl_genes else None,
             ",".join(human_synonyms) if entry.human_synonyms else None,
             ",".join(mouse_synonyms) if entry.mouse_synonyms else None,
             ",".join(entry.dataset_names) if entry.dataset_names else None,
@@ -73,8 +75,8 @@ def load_gene_tables(
         cur.execute(
             """INSERT INTO central_gene (
             id, human_symbol, human_entrez_gene, hgnc_id, mouse_symbols, 
-            mouse_entrez_genes, human_synonyms, mouse_synonyms, dataset_names, num_datasets, manually_added) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            mouse_mgi_accession_ids, mouse_ensembl_genes, human_synonyms, mouse_synonyms, dataset_names, num_datasets, manually_added) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             to_insert,
         )
         for synonym in human_synonyms:
@@ -106,7 +108,8 @@ def load_gene_tables(
             "human_entrez_gene",
             "hgnc_id",
             "mouse_symbols",
-            "mouse_entrez_genes",
+            "mouse_mgi_accession_ids",
+            "mouse_ensembl_genes",
             "human_synonyms",
             "mouse_synonyms",
             "dataset_names",
