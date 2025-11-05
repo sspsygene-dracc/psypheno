@@ -78,9 +78,12 @@ class TableToProcessConfig:
             "convert_boolean": False,
             "convert_floating": False,
         }
-        data = pd.read_csv(self.in_path, sep=self.separator).convert_dtypes(
-            **conversion_dict
-        )
+        gene_column_dtypes: Any = {
+            gene_mapping.column_name: "object" for gene_mapping in self.gene_mappings
+        }
+        data = pd.read_csv(
+            self.in_path, sep=self.separator, dtype=gene_column_dtypes
+        ).convert_dtypes(**conversion_dict)
         assert "id" not in data.columns, "id column already exists in data"
         # add id column:
         display_columns = get_sql_friendly_columns(data)

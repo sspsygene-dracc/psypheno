@@ -79,7 +79,6 @@ class GeneMapping:
             if elem in self.replace:
                 elem = self.replace[elem]
             if elem not in species_map:
-                # Check for NA values and empty strings
                 if elem in self.ignore_missing:
                     data_id_to_central_gene_id.append((row_id, None))
                     continue
