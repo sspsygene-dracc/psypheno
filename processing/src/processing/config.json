@@ -268,7 +268,7 @@
     },
     {
       "table": "brain_organoid_atlas_nebula_gene_0_05_FDR",
-      "description": "Brain Organoid Atlas, NEBULA DE Analysis at 0.05 FDR: Wang et al., 2025, 'A phenotypic brain organoid atlas and biobank for neurodevelopmental disorders'",
+      "description": "Brain Organoid Atlas, Table S10: NEBULA DE Analysis at 0.05 FDR: Wang et al., 2025, 'A phenotypic brain organoid atlas and biobank for neurodevelopmental disorders'",
       "in_path": "datasets/brain_organoid_atlas/nebula_gene_0.05_FDR.txt",
       "split_column_map": [],
       "separator": "\t",
@@ -292,7 +292,7 @@
     },
     {
       "table": "brain_organoid_atlas_nebula_gene_0_2_FDR",
-      "description": "Brain Organoid Atlas, NEBULA DE Analysis at 0.2 FDR: Wang et al., 2025, 'A phenotypic brain organoid atlas and biobank for neurodevelopmental disorders'",
+      "description": "Brain Organoid Atlas, Table S10: NEBULA DE Analysis at 0.2 FDR: Wang et al., 2025, 'A phenotypic brain organoid atlas and biobank for neurodevelopmental disorders'",
       "in_path": "datasets/brain_organoid_atlas/nebula_gene_0.2_FDR.tsv",
       "split_column_map": [],
       "separator": "\t",
@@ -315,9 +315,9 @@
       ]
     },
     {
-      "table": "brain_organoid_atlas_",
-      "description": "Brain Organoid Atlas, S11, Selected genes in cell subclass pseudobulk Wilcox test raw p values add FDR, related to STAR Methods: Wang et al., 2025, 'A phenotypic brain organoid atlas and biobank for neurodevelopmental disorders'",
-      "in_path": "datasets/brain_organoid_atlas/s11.tsv",
+      "table": "brain_organoid_atlas_S10",
+      "description": "Brain Organoid Atlas, S10, Differentially expressed genes with NEBULA, related to STAR Methods. List of genes that are differentially expressed Sheet 1 full list: Wang et al., 2025, 'A phenotypic brain organoid atlas and biobank for neurodevelopmental disorders'",
+      "in_path": "datasets/brain_organoid_atlas/s10.tsv",
       "split_column_map": [],
       "separator": "\t",
       "gene_mappings": [
@@ -327,7 +327,66 @@
           "species": "human",
           "ignore_missing": [],
           "is_perturbed": false,
+          "is_target": false,
+          "replace": {
+            "TBCE.1": "TBCE",
+            "CYB561D2.1": "CYB561D2",
+            "MATR3.1": "MATR3",
+            "HSPA14.1": "HSPA14",
+            "TMSB15B.1": "TMSB15B",
+            "ARMCX5-GPRASP2.1": "ARMCX5-GPRASP2"
+          }
+        }
+      ]
+    },
+    {
+      "table": "brain_organoid_atlas_S11",
+      "description": "Brain Organoid Atlas, Table S11: Selected genes in cell subclass pseudobulk Wilcox test raw p values add FDR, related to STAR Methods: Wang et al., 2025, 'A phenotypic brain organoid atlas and biobank for neurodevelopmental disorders'",
+      "in_path": "datasets/brain_organoid_atlas/Table_8_Selected_validate_genes.txt",
+      "split_column_map": [],
+      "separator": "\t",
+      "gene_mappings": [
+        {
+          "column_name": "gene",
+          "link_table_name": "gene",
+          "species": "human",
+          "ignore_missing": [],
+          "is_perturbed": false,
           "is_target": false
+        }
+      ]
+    },
+    {
+      "table": "dynamic_convergence_S2",
+      "description": "Data that identifies genes with significantly convergent and consistent effects across perturbations and cell types in neurodevelopment disorders. From Fernandez Garcia et al., 2025: 'Dynamic convergence of neurodevelopmental disorder risk genes across neurodevelopment'",
+      "in_path": "datasets/dynamic_convergence/Supplemental_Data_2(META_DEGs).csv",
+      "split_column_map": [],
+      "separator": ",",
+      "gene_mappings": [
+        {
+          "column_name": "MarkerName",
+          "link_table_name": "gene",
+          "species": "human",
+          "ignore_missing": [],
+          "is_perturbed": false,
+          "is_target": false,
+          "replace": {
+            "EMG1.1": "EMG1",
+            "SOD2.1": "SOD2",
+            "ATXN7.1": "ATXN7",
+            "ABCF2.1": "ABCF2",
+            "ABALON.": "ABALON",
+            "IGF2.1": "IGF2",
+            "DIABLO.1": "DIABLO",
+            "SGK494.": "SGK494",
+            "PINX1.1": "PINX1",
+            "KC877982.1": "KC877982",
+            "COG8.1": "COG8",
+            "RGS5.1": "RGS5",
+            "SCO2.1": "SCO2",
+            "LINC01238.1": "LINC01238",
+            "POLR2J3.1": "POLR2J3"
+          }
         }
       ]
     }
