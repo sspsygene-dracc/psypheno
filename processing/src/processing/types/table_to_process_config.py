@@ -32,6 +32,12 @@ class TableToProcessConfig:
     links: list[str] = field(default_factory=list)
     categories: list[str] = field(default_factory=list)
     organism: str | None = None
+    publication_first_author: str | None = None
+    publication_last_author: str | None = None
+    publication_year: int | None = None
+    publication_journal: str | None = None
+    publication_doi: str | None = None
+    publication_pmid: str | None = None
 
     def __post_init__(self):
         num_perturbed = 0
@@ -61,6 +67,19 @@ class TableToProcessConfig:
     def from_json(
         cls, json_data: dict[str, Any], base_dir: Path
     ) -> "TableToProcessConfig":
+        publication = json_data.get("_publication") or json_data.get("publication") or {}
+        authors: list[str] = list(publication.get("authors", [])) if isinstance(
+            publication.get("authors", []), list
+        ) else []
+        first_author = authors[0] if authors else None
+        last_author = authors[-1] if authors else None
+        year_val = publication.get("year")
+        year_int: int | None
+        try:
+            year_int = int(year_val) if year_val is not None else None
+        except (TypeError, ValueError):
+            year_int = None
+
         return cls(
             table=json_data["table"],
             description=json_data["description"],
@@ -79,6 +98,12 @@ class TableToProcessConfig:
             links=list(json_data.get("links", [])),
             categories=list(json_data.get("categories", [])),
             organism=json_data.get("organism"),
+            publication_first_author=first_author,
+            publication_last_author=last_author,
+            publication_year=year_int,
+            publication_journal=publication.get("journal"),
+            publication_doi=publication.get("doi"),
+            publication_pmid=publication.get("pmid"),
         )
 
     def load_data_table(self) -> DataLoadResult:

@@ -22,8 +22,9 @@ class GeneMapConfig:
         )
 
 
-class YamlTablesFile(TypedDict):
+class YamlTablesFile(TypedDict, total=False):
     tables: List[dict[str, Any]]
+    publication: dict[str, Any]
 
 
 class TablesConfig:
@@ -56,13 +57,18 @@ class TablesConfig:
                 continue
 
             table_entries = loaded.get("tables", [])
+            publication = loaded.get("publication")
 
             # For each YAML file, in_path values are interpreted relative
             # to the directory containing that YAML file.
             base_dir_for_tables = yaml_path.parent
             for table_config in table_entries:
+                # Merge dataset-level publication metadata into each table config
+                merged_config: dict[str, Any] = dict(table_config)
+                if publication:
+                    merged_config["_publication"] = publication
                 tables.append(
-                    TableToProcessConfig.from_json(table_config, base_dir_for_tables)
+                    TableToProcessConfig.from_json(merged_config, base_dir_for_tables)
                 )
 
         return cls(tables)

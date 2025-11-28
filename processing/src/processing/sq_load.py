@@ -144,7 +144,16 @@ def load_data_tables(
         gene_species TEXT,
         display_columns TEXT,
         scalar_columns TEXT,
-        link_tables TEXT)"""
+        link_tables TEXT,
+        links TEXT,
+        categories TEXT,
+        organism TEXT,
+        publication_first_author TEXT,
+        publication_last_author TEXT,
+        publication_year INTEGER,
+        publication_journal TEXT,
+        publication_doi TEXT,
+        publication_pmid TEXT)"""
     )
     for table_config in table_configs:
         data_and_meta = table_config.load_data_table()
@@ -160,8 +169,11 @@ def load_data_tables(
             """INSERT INTO data_tables (
             table_name, short_label, long_label, description, gene_columns, 
             gene_species, display_columns, 
-            scalar_columns, link_tables)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            scalar_columns, link_tables,
+            links, categories, organism,
+            publication_first_author, publication_last_author, publication_year,
+            publication_journal, publication_doi, publication_pmid)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -175,6 +187,17 @@ def load_data_tables(
                     link_table.get_meta_entry()
                     for link_table in data_and_meta.link_tables
                 ),
+                ",".join(table_config.links) if table_config.links else None,
+                ",".join(table_config.categories)
+                if table_config.categories
+                else None,
+                table_config.organism,
+                table_config.publication_first_author,
+                table_config.publication_last_author,
+                table_config.publication_year,
+                table_config.publication_journal,
+                table_config.publication_doi,
+                table_config.publication_pmid,
             ),
         )
     create_indexes(

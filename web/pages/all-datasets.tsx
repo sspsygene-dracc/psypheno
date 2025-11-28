@@ -14,6 +14,14 @@ type Dataset = {
   display_columns: string;
   scalar_columns: string;
   link_tables: string | null;
+  links: string | null;
+  categories: string | null;
+  organism: string | null;
+  publication_first_author: string | null;
+  publication_last_author: string | null;
+  publication_year: number | null;
+  publication_journal: string | null;
+  publication_doi: string | null;
 };
 
 type DatasetData = {
@@ -21,6 +29,17 @@ type DatasetData = {
   shortLabel: string | null;
   longLabel: string | null;
   description: string | null;
+  organism: string | null;
+  links: string[];
+  categories: string[];
+  publication: {
+    firstAuthor: string | null;
+    lastAuthor: string | null;
+    year: number | null;
+    journal: string | null;
+    doi: string | null;
+    pmid: string | null;
+  } | null;
   displayColumns: string[];
   rows: Record<string, unknown>[];
   totalRows?: number;
@@ -215,10 +234,58 @@ export default function AllDatasets() {
                           )}
                           <div style={{ fontSize: 14, color: "#6b7280" }}>
                             <b>
-                              {dataset.display_columns.split(",").length} Columns:
+                              {dataset.display_columns.split(",").length}{" "}
+                              Columns:
                             </b>{" "}
                             {dataset.display_columns.split(",").join(", ")}
                           </div>
+                          <div
+                            style={{
+                              fontSize: 13,
+                              color: "#6b7280",
+                              marginTop: 4,
+                            }}
+                          >
+                            {dataset.organism && (
+                              <span>
+                                <b>Organism:</b> {dataset.organism}
+                              </span>
+                            )}
+                            {!dataset.organism && dataset.gene_species && (
+                              <span>
+                                <b>Species:</b> {dataset.gene_species}
+                              </span>
+                            )}
+                          </div>
+                          {dataset.categories && (
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "#4b5563",
+                                marginTop: 4,
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 6,
+                              }}
+                            >
+                              {dataset.categories
+                                .split(",")
+                                .map((c) => c.trim())
+                                .filter(Boolean)
+                                .map((cat) => (
+                                  <span
+                                    key={cat}
+                                    style={{
+                                      backgroundColor: "#f3f4f6",
+                                      borderRadius: 9999,
+                                      padding: "2px 8px",
+                                    }}
+                                  >
+                                    {cat}
+                                  </span>
+                                ))}
+                            </div>
+                          )}
                           {dataset.description && (
                             <div
                               style={{
@@ -280,8 +347,7 @@ export default function AllDatasets() {
                           ?.replace(/_/g, " ")
                           .replace(
                             /\w\S*/g,
-                            (txt) =>
-                              txt.charAt(0).toUpperCase() + txt.slice(1)
+                            (txt) => txt.charAt(0).toUpperCase() + txt.slice(1)
                           )}
                     </div>
 
@@ -310,6 +376,70 @@ export default function AllDatasets() {
                         <b>Description:</b> {datasetData.description}
                       </div>
                     )}
+
+                    {datasetData &&
+                      (datasetData.organism ||
+                        (datasetData.categories?.length ?? 0) > 0 ||
+                        (datasetData.links?.length ?? 0) > 0 ||
+                        datasetData.publication) && (
+                        <div
+                          style={{
+                            padding: "8px 16px 0 16px",
+                            color: "#6b7280",
+                            fontSize: 13,
+                            display: "grid",
+                            gap: 4,
+                          }}
+                        >
+                          {datasetData.organism && (
+                            <div>
+                              <b>Organism:</b> {datasetData.organism}
+                            </div>
+                          )}
+                          {datasetData.categories?.length > 0 && (
+                            <div>
+                              <b>Categories:</b>{" "}
+                              {datasetData.categories.join(", ")}
+                            </div>
+                          )}
+                          {datasetData.publication && (
+                            <div>
+                              <b>Publication:</b>{" "}
+                              {[
+                                datasetData.publication.firstAuthor,
+                                datasetData.publication.lastAuthor,
+                              ]
+                                .filter(Boolean)
+                                .join(" & ")}
+                              {datasetData.publication.year
+                                ? ` (${datasetData.publication.year})`
+                                : ""}
+                              {datasetData.publication.journal
+                                ? `, ${datasetData.publication.journal}`
+                                : ""}
+                              {datasetData.publication.doi
+                                ? `, DOI: ${datasetData.publication.doi}`
+                                : ""}
+                            </div>
+                          )}
+                          {datasetData.links?.length > 0 && (
+                            <div>
+                              <b>Links:</b>{" "}
+                              {datasetData.links.map((url) => (
+                                <a
+                                  key={url}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ marginRight: 8 }}
+                                >
+                                  {url}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                     {loadingData && (
                       <div
