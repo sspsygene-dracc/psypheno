@@ -2,11 +2,13 @@ from functools import lru_cache
 import json
 import os
 from pathlib import Path
-from typing import Any, TypedDict, List
+from typing import Any, TypedDict, List, TYPE_CHECKING
 
 import yaml
 
-from processing.types.table_to_process_config import TableToProcessConfig
+if TYPE_CHECKING:
+    # Imported only for type checking to avoid circular import at runtime
+    from processing.types.table_to_process_config import TableToProcessConfig
 
 
 class GeneMapConfig:
@@ -25,8 +27,8 @@ class YamlTablesFile(TypedDict):
 
 
 class TablesConfig:
-    def __init__(self, tables: list[TableToProcessConfig]):
-        self.tables: list[TableToProcessConfig] = tables
+    def __init__(self, tables: list["TableToProcessConfig"]):
+        self.tables = tables
 
     @classmethod
     def from_yaml_root(cls, data_base_dir: Path, tables_root: Path) -> "TablesConfig":
@@ -41,6 +43,9 @@ class TablesConfig:
         root_dir = data_base_dir / tables_root
         if not root_dir.exists():
             raise FileNotFoundError(f"tables_root directory does not exist: {root_dir}")
+
+        # Local import to avoid circular dependency with central_gene_table
+        from processing.types.table_to_process_config import TableToProcessConfig
 
         tables: list[TableToProcessConfig] = []
         for yaml_path in root_dir.rglob("config.yaml"):
@@ -69,6 +74,9 @@ class TablesConfig:
         """
         Backwards-compatible loader for the old JSON-based `tables` list.
         """
+        # Local import to avoid circular dependency with central_gene_table
+        from processing.types.table_to_process_config import TableToProcessConfig
+
         tables = [
             TableToProcessConfig.from_json(table_config, base_dir)
             for table_config in tables_config
