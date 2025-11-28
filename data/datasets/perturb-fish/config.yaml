@@ -1,3 +1,6 @@
+authors:
+  - ["Johannes Birgmeier", "jbirgmei@ucsc.edu", "2025-11-28", "Initial table creation"]
+
 tables:
   - table: perturb_fish_astro
     description: >
