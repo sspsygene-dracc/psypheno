@@ -297,6 +297,33 @@ export default function AllDatasets() {
                               <b>Description:</b> {dataset.description}
                             </div>
                           )}
+                          {(dataset.publication_first_author ||
+                            dataset.publication_year ||
+                            dataset.publication_journal ||
+                            dataset.publication_doi) && (
+                            <div
+                              style={{
+                                fontSize: 13,
+                                color: "#6b7280",
+                                marginTop: 4,
+                              }}
+                            >
+                              <b>Publication:</b>{" "}
+                              {dataset.publication_first_author
+                                ? `${dataset.publication_first_author}${
+                                    dataset.publication_last_author
+                                      ? " & " + dataset.publication_last_author
+                                      : " et al."
+                                  }`
+                                : ""}
+                              {dataset.publication_year
+                                ? ` (${dataset.publication_year})`
+                                : ""}
+                              {dataset.publication_journal
+                                ? `, ${dataset.publication_journal}`
+                                : ""}
+                            </div>
+                          )}
                         </div>
                         <div style={{ flexShrink: 0 }}>
                           <button
@@ -381,7 +408,7 @@ export default function AllDatasets() {
                       (datasetData.organism ||
                         (datasetData.categories?.length ?? 0) > 0 ||
                         (datasetData.links?.length ?? 0) > 0 ||
-                        datasetData.publication) && (
+                          datasetData.publication) && (
                         <div
                           style={{
                             padding: "8px 16px 0 16px",

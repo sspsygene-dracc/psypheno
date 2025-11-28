@@ -31,16 +31,18 @@ export default async function handler(
     const db = getDb();
     const tables = db
       .prepare(
-        `SELECT table_name, display_columns, link_tables FROM data_tables ORDER BY id ASC`
+        `SELECT table_name, short_label, display_columns, link_tables FROM data_tables ORDER BY id ASC`
       )
       .all() as Array<{
-      table_name: string;
-      display_columns: string;
-      link_tables: string | null;
-    }>;
+        table_name: string;
+        short_label: string | null;
+        display_columns: string;
+        link_tables: string | null;
+      }>;
 
     const results: Array<{
       tableName: string;
+      shortLabel: string | null;
       displayColumns: string[];
       rows: Record<string, unknown>[];
     }> = [];
@@ -106,6 +108,7 @@ export default async function handler(
         if (rows.length > 0) {
           results.push({
             tableName: t.table_name,
+            shortLabel: t.short_label ?? null,
             displayColumns: displayCols,
             rows,
           });

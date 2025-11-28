@@ -57,9 +57,10 @@ export default function GeneResults({
               fontWeight: 600,
             }}
           >
-            {section.tableName
-              .replace(/_/g, " ")
-              .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1))}
+              {section.shortLabel ??
+                section.tableName
+                  .replace(/_/g, " ")
+                  .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1))}
           </div>
           {section.description && (
             <div
