@@ -1,0 +1,44 @@
+tables:
+  - table: sfari_animal_genes
+    description: >
+      Data from SFARI gene, gene.sfari.org, Animal Gene Data
+    in_path: SFARI-Gene_animal-genes_07-08-2025release_10-03-2025export.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: gene-symbol
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+
+  - table: sfari_animal_rescues
+    description: >
+      Data from SFARI gene, gene.sfari.org, Animal Rescue Data
+    in_path: SFARI-Gene_animal-rescues_07-08-2025release_10-03-2025export.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: model-symbol
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+
+  - table: sfari_human_genes
+    description: >
+      Data from SFARI gene, gene.sfari.org, Human Gene Data
+    in_path: SFARI-Gene_genes_07-08-2025release_10-03-2025export.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: gene-symbol
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+
+

@@ -1,0 +1,103 @@
+tables:
+  - table: brain_organoid_atlas_patient_list
+    description: >
+      Brain Organoid Atlas, Patient List (Table 1): Wang et al., 2025,
+      'A phenotypic brain organoid atlas and biobank for neurodevelopmental
+      disorders'
+    in_path: patient_list.tsv
+    split_column_map: []
+    separator: "\t"
+    gene_mappings:
+      - column_name: Pathologic causative mutation
+        link_table_name: gene
+        species: human
+        ignore_missing: ["not_available", "none identified"]
+        is_perturbed: false
+        is_target: false
+
+  - table: brain_organoid_atlas_nebula_gene_0_05_FDR
+    description: >
+      Brain Organoid Atlas, Table S10: NEBULA DE Analysis at 0.05 FDR:
+      Wang et al., 2025, 'A phenotypic brain organoid atlas and biobank
+      for neurodevelopmental disorders'
+    in_path: nebula_gene_0.05_FDR.txt
+    split_column_map: []
+    separator: "\t"
+    gene_mappings:
+      - column_name: gene_symbol
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+        replace:
+          TBCE.1: TBCE
+          MATR3.1: MATR3
+          HSPA14.1: HSPA14
+          TMSB15B.1: TMSB15B
+          CYB561D2.1: CYB561D2
+
+  - table: brain_organoid_atlas_nebula_gene_0_2_FDR
+    description: >
+      Brain Organoid Atlas, Table S10: NEBULA DE Analysis at 0.2 FDR:
+      Wang et al., 2025, 'A phenotypic brain organoid atlas and biobank
+      for neurodevelopmental disorders'
+    in_path: nebula_gene_0.2_FDR.tsv
+    split_column_map: []
+    separator: "\t"
+    gene_mappings:
+      - column_name: gene_symbol
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+        replace:
+          TBCE.1: TBCE
+          MATR3.1: MATR3
+          HSPA14.1: HSPA14
+          TMSB15B.1: TMSB15B
+          CYB561D2.1: CYB561D2
+
+  - table: brain_organoid_atlas_S10
+    description: >
+      Brain Organoid Atlas, S10, Differentially expressed genes with
+      NEBULA, related to STAR Methods. List of genes that are differentially
+      expressed Sheet 1 full list: Wang et al., 2025, 'A phenotypic brain
+      organoid atlas and biobank for neurodevelopmental disorders'
+    in_path: s10.tsv
+    split_column_map: []
+    separator: "\t"
+    gene_mappings:
+      - column_name: gene_symbol
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+        replace:
+          TBCE.1: TBCE
+          CYB561D2.1: CYB561D2
+          MATR3.1: MATR3
+          HSPA14.1: HSPA14
+          TMSB15B.1: TMSB15B
+          ARMCX5-GPRASP2.1: ARMCX5-GPRASP2
+
+  - table: brain_organoid_atlas_S11
+    description: >
+      Brain Organoid Atlas, Table S11: Selected genes in cell subclass
+      pseudobulk Wilcox test raw p values add FDR, related to STAR Methods:
+      Wang et al., 2025, 'A phenotypic brain organoid atlas and biobank
+      for neurodevelopmental disorders'
+    in_path: Table_8_Selected_validate_genes.txt
+    split_column_map: []
+    separator: "\t"
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+
+

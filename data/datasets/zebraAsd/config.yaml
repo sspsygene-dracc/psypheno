@@ -1,0 +1,23 @@
+tables:
+  - table: zebra_asd
+    description: >
+      Weinschutz Mendes et al., 2023, Cell Reports: 'High-throughput functional
+      analysis of autism genes in zebrafish identifies convergence in
+      dopaminergic and neuroimmune pathways'
+    in_path: 1-s2.0-S2211124723002541-mmc5.txt
+    split_column_map:
+      - source_col: Mutant_Experiment_Sample
+        new_col1: _Mutant_Experiment_Sample_gene
+        new_col2: _Mutant_Experiment_Sample_gene_idx
+        sep: "_"
+    gene_mappings:
+      - column_name: _Mutant_Experiment_Sample_gene
+        link_table_name: Mutant_Experiment_Sample_gene
+        species: human
+        to_upper: true
+        replace:
+          SCN1LAB: SCN1A
+        is_perturbed: false
+        is_target: false
+
+

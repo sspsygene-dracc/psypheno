@@ -1,0 +1,18 @@
+tables:
+  - table: mgi_high_level_phenotypes
+    description: >
+      MGI Phenotypes, https://www.informatics.jax.org/downloads/reports/MGI_PhenotypicAllele.rpt
+    in_path: MGI_PhenotypicAllele_annotated.rpt
+    split_column_map: []
+    separator: "\t"
+    gene_mappings:
+      - column_name: Marker Ensembl ID
+        link_table_name: gene
+        species: mouse
+        gene_type: ensmus
+        ignore_missing: []
+        ignore_empty: true
+        is_perturbed: false
+        is_target: false
+
+

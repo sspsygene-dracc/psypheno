@@ -1,0 +1,58 @@
+tables:
+  - table: psychscreen_age_deg
+    description: >
+      PsychScreen, https://downloads.wenglab.org/Age_DEGcombined.csv
+    in_path: Age_DEGcombined.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+
+  - table: psychscreen_asd_deg
+    description: >
+      PsychScreen, https://downloads.wenglab.org/ASD_DEGcombined.csv
+    in_path: ASD_DEGcombined.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+
+  - table: psychscreen_bipolar_deg
+    description: >
+      PsychScreen, https://downloads.wenglab.org/Bipolar_DEGcombined.csv
+    in_path: Bipolar_DEGcombined.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+
+  - table: psychscreen_schizophrenia_deg
+    description: >
+      PsychScreen, https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv
+    in_path: Schizophrenia_DEGcombined.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+
+
