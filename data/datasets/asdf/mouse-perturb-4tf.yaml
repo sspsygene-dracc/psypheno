@@ -1,0 +1,69 @@
+shortLabel: "Mouse Perturb-seq 4TF"
+longLabel: "Massively parallel in vivo Perturb-seq of four transcription factors in developing mouse cortex"
+description: |
+  This dataset contains results from an in vivo Perturb-seq screen in developing mouse cortex,
+  in which four neurodevelopmental transcription factors were systematically perturbed and
+  single-cell transcriptomes were profiled across multiple cell types.
+
+  The differential expression (DEG) table captures gene-level changes induced by each
+  perturbation within specific cell types, while the cluster-proportion table summarizes
+  how individual perturbations shift cell-type and subcluster abundances.
+links: []
+publication:
+  firstAuthor: "Zheng"
+  lastAuthor: "Zheng"
+  year: 2024
+  journal: "Cell"
+categories:
+  - "scRNA-seq"
+  - "CRISPR perturbation"
+  - "neurodevelopment"
+organism: "Mus musculus"
+maintainers:
+  - ["Johannes Birgmeier", "jbirgmei@ucsc.edu", "2025-11-28", "Initial table creation"]
+
+tables:
+  - table: mouse_perturb_deg
+    description: >
+      Differentially expressed genes from Zheng et al., 2024, Cell:
+      'Massively parallel in vivo Perturb-seq reveals cell-type-specific
+      transcriptional networks in cortical development'
+    in_path: deg.txt
+    split_column_map:
+      - source_col: perturbation
+        new_col1: _perturbation_gene
+        new_col2: _perturbation_gene_idx
+        sep: "_"
+    gene_mappings:
+      - column_name: Gene
+        link_table_name: gene
+        species: mouse
+        is_perturbed: false
+        is_target: true
+      - column_name: _perturbation_gene
+        link_table_name: perturbation_gene
+        species: mouse
+        ignore_missing: ["NonTarget1", "SafeTarget"]
+        is_perturbed: true
+        is_target: false
+
+  - table: mouse_perturb_clusterprop
+    description: >
+      Cluster proportions from Zheng et al., 2024, Cell:
+      'Massively parallel in vivo Perturb-seq reveals cell-type-specific
+      transcriptional networks in cortical development'
+    in_path: clusterprop.txt
+    split_column_map:
+      - source_col: guide
+        new_col1: _guide_gene
+        new_col2: _guide_gene_idx
+        sep: "_"
+    gene_mappings:
+      - column_name: _guide_gene
+        link_table_name: guide_gene
+        species: mouse
+        ignore_missing: ["NonTarget1", "SafeTarget", "GFP"]
+        is_perturbed: false
+        is_target: false
+
+

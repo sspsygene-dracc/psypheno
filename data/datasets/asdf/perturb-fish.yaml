@@ -1,0 +1,49 @@
+shortLabel: "Perturb-Fish Astrocytes"
+longLabel: "CRISPR screening with spatial transcriptomics in zebrafish astrocytes"
+description: |
+  This dataset originates from a study that combined pooled CRISPR perturbations with
+  spatial transcriptomics to interrogate transcriptional circuits in zebrafish astrocytes.
+  It reports the effects of individual gene perturbations on spatial gene expression
+  patterns and cell states within the brain.
+
+  The table encodes gene-level and perturbation-level statistics, enabling analysis of
+  intracellular and intercellular responses to targeted perturbations in a vertebrate
+  model system.
+links: []
+publication:
+  firstAuthor: "Binan"
+  lastAuthor: "Binan"
+  year: 2023
+  journal: "Cell"
+categories:
+  - "spatial transcriptomics"
+  - "CRISPR perturbation"
+  - "neuroglia"
+organism: "Danio rerio"
+maintainers:
+  - ["Johannes Birgmeier", "jbirgmei@ucsc.edu", "2025-11-28", "Initial table creation"]
+
+tables:
+  - table: perturb_fish_astro
+    description: >
+      Binan et al., 2023: 'Simultaneous CRISPR screening and spatial
+      transcriptomics reveals intracellular, intercellular, and functional
+      transcriptional circuits'
+    in_path: perturbfish-astro.csv
+    split_column_map: []
+    gene_mappings:
+      - column_name: perturbGene
+        link_table_name: perturbGene
+        comment: this zebrafish dataset seems to list human gene names
+        species: human
+        ignore_missing: ["Control_ST"]
+        is_perturbed: true
+        is_target: false
+      - column_name: gene
+        link_table_name: gene
+        comment: this zebrafish dataset seems to list human gene names
+        species: human
+        is_perturbed: false
+        is_target: true
+
+

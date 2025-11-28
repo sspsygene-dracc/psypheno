@@ -1,0 +1,47 @@
+shortLabel: "Zebrafish ASD Screen"
+longLabel: "High-throughput functional analysis of autism risk genes in zebrafish"
+description: |
+  This dataset comes from a large-scale in vivo screen that perturbed candidate autism
+  spectrum disorder (ASD) risk genes in zebrafish and measured phenotypic and molecular
+  consequences, focusing on dopaminergic and neuroimmune pathways.
+
+  The table provides sample-level information that can be mapped back to individual
+  gene perturbations, supporting analyses of convergence across ASD risk genes in a
+  vertebrate whole-organism model.
+links: []
+publication:
+  firstAuthor: "Weinschutz Mendes"
+  lastAuthor: "Weinschutz Mendes"
+  year: 2023
+  journal: "Cell Reports"
+categories:
+  - "functional genetics"
+  - "behavior"
+  - "development"
+organism: "Danio rerio"
+maintainers:
+  - ["Johannes Birgmeier", "jbirgmei@ucsc.edu", "2025-11-28", "Initial table creation"]
+
+tables:
+  - table: zebra_asd
+    description: >
+      Weinschutz Mendes et al., 2023, Cell Reports: 'High-throughput functional
+      analysis of autism genes in zebrafish identifies convergence in
+      dopaminergic and neuroimmune pathways'
+    in_path: 1-s2.0-S2211124723002541-mmc5.txt
+    split_column_map:
+      - source_col: Mutant_Experiment_Sample
+        new_col1: _Mutant_Experiment_Sample_gene
+        new_col2: _Mutant_Experiment_Sample_gene_idx
+        sep: "_"
+    gene_mappings:
+      - column_name: _Mutant_Experiment_Sample_gene
+        link_table_name: Mutant_Experiment_Sample_gene
+        species: human
+        to_upper: true
+        replace:
+          SCN1LAB: SCN1A
+        is_perturbed: false
+        is_target: false
+
+
