@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
@@ -27,6 +27,11 @@ class TableToProcessConfig:
     split_column_map: list[SplitColumnEntry]
     gene_mappings: list[GeneMapping]
     separator: str
+    short_label: str | None = None
+    long_label: str | None = None
+    links: list[str] = field(default_factory=list)
+    categories: list[str] = field(default_factory=list)
+    organism: str | None = None
 
     def __post_init__(self):
         num_perturbed = 0
@@ -69,6 +74,11 @@ class TableToProcessConfig:
                 for gene_mapping in json_data["gene_mappings"]
             ],
             separator=json_data["separator"] if "separator" in json_data else "\t",
+            short_label=json_data.get("shortLabel"),
+            long_label=json_data.get("longLabel"),
+            links=list(json_data.get("links", [])),
+            categories=list(json_data.get("categories", [])),
+            organism=json_data.get("organism"),
         )
 
     def load_data_table(self) -> DataLoadResult:

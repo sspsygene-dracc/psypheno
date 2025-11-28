@@ -137,6 +137,8 @@ def load_data_tables(
         """CREATE TABLE data_tables (
         id INTEGER PRIMARY KEY AUTOINCREMENT, 
         table_name TEXT,
+        short_label TEXT,
+        long_label TEXT,
         description TEXT,
         gene_columns TEXT,
         gene_species TEXT,
@@ -156,12 +158,14 @@ def load_data_tables(
         assert "id" in data_and_meta.data.columns, "id column not found in data"
         cur.execute(
             """INSERT INTO data_tables (
-            table_name, description, gene_columns, 
+            table_name, short_label, long_label, description, gene_columns, 
             gene_species, display_columns, 
             scalar_columns, link_tables)
-            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
+                table_config.short_label,
+                table_config.long_label,
                 table_config.description,
                 ",".join(data_and_meta.gene_columns),
                 data_and_meta.gene_species,

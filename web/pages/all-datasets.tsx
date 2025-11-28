@@ -6,6 +6,8 @@ import DataTable from "@/components/DataTable";
 
 type Dataset = {
   table_name: string;
+  short_label: string | null;
+  long_label: string | null;
   description: string | null;
   gene_columns: string;
   gene_species: string;
@@ -16,6 +18,9 @@ type Dataset = {
 
 type DatasetData = {
   tableName: string;
+  shortLabel: string | null;
+  longLabel: string | null;
+  description: string | null;
   displayColumns: string[];
   rows: Record<string, unknown>[];
   totalRows?: number;
@@ -154,82 +159,100 @@ export default function AllDatasets() {
                   Available Datasets ({datasets.length})
                 </div>
                 <div>
-                  {datasets.map((dataset) => (
-                    <div
-                      key={dataset.table_name}
-                      style={{
-                        width: "100%",
-                        padding: "16px",
-                        borderTop: "1px solid #e5e7eb",
-                        background: "transparent",
-                        color: "#1f2937",
-                        transition: "background 0.2s ease",
-                        userSelect: "text",
-                        WebkitUserSelect: "text",
-                        MozUserSelect: "text",
-                        msUserSelect: "text",
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 12,
-                        alignItems: "flex-start",
-                        justifyContent: "space-between",
-                        boxSizing: "border-box",
-                        maxWidth: "100%",
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLDivElement).style.background =
-                          "#f3f4f6";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLDivElement).style.background =
-                          "transparent";
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                          {dataset.table_name
-                            .replace(/_/g, " ")
-                            .replace(
-                              /\w\S*/g,
-                              (txt) =>
-                                txt.charAt(0).toUpperCase() + txt.slice(1)
-                            )}
-                        </div>
-                        <div style={{ fontSize: 14, color: "#6b7280" }}>
-                          <b>{dataset.display_columns.split(",").length} Columns:</b>{" "}
-                          {dataset.display_columns.split(",").join(", ")}
-                        </div>
-                        {dataset.description && (
-                          <div
-                            style={{
-                              fontSize: 14,
-                              color: "#6b7280",
-                              marginTop: 6,
-                            }}
-                          >
-                            <b>Description:</b> {dataset.description}
+                  {datasets.map((dataset) => {
+                    const prettifiedName = dataset.table_name
+                      .replace(/_/g, " ")
+                      .replace(
+                        /\w\S*/g,
+                        (txt) => txt.charAt(0).toUpperCase() + txt.slice(1)
+                      );
+                    const heading = dataset.short_label ?? prettifiedName;
+                    return (
+                      <div
+                        key={dataset.table_name}
+                        style={{
+                          width: "100%",
+                          padding: "16px",
+                          borderTop: "1px solid #e5e7eb",
+                          background: "transparent",
+                          color: "#1f2937",
+                          transition: "background 0.2s ease",
+                          userSelect: "text",
+                          WebkitUserSelect: "text",
+                          MozUserSelect: "text",
+                          msUserSelect: "text",
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 12,
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          boxSizing: "border-box",
+                          maxWidth: "100%",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLDivElement).style.background =
+                            "#f3f4f6";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLDivElement).style.background =
+                            "transparent";
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                            {heading}
                           </div>
-                        )}
+                          {dataset.long_label && (
+                            <div
+                              style={{
+                                fontSize: 14,
+                                color: "#4b5563",
+                                marginBottom: 4,
+                              }}
+                            >
+                              {dataset.long_label}
+                            </div>
+                          )}
+                          <div style={{ fontSize: 14, color: "#6b7280" }}>
+                            <b>
+                              {dataset.display_columns.split(",").length} Columns:
+                            </b>{" "}
+                            {dataset.display_columns.split(",").join(", ")}
+                          </div>
+                          {dataset.description && (
+                            <div
+                              style={{
+                                fontSize: 14,
+                                color: "#6b7280",
+                                marginTop: 6,
+                              }}
+                            >
+                              <b>Description:</b> {dataset.description}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ flexShrink: 0 }}>
+                          <button
+                            onClick={() =>
+                              setSelectedDataset(dataset.table_name)
+                            }
+                            style={{
+                              background: "#ffffff",
+                              color: "#1f2937",
+                              border: "1px solid #d1d5db",
+                              borderRadius: 8,
+                              padding: "8px 12px",
+                              cursor: "pointer",
+                              whiteSpace: "nowrap",
+                            }}
+                            aria-label={`Show first 100 rows of ${dataset.table_name}`}
+                          >
+                            Show first 100 rows
+                          </button>
+                        </div>
                       </div>
-                      <div style={{ flexShrink: 0 }}>
-                        <button
-                          onClick={() => setSelectedDataset(dataset.table_name)}
-                          style={{
-                            background: "#ffffff",
-                            color: "#1f2937",
-                            border: "1px solid #d1d5db",
-                            borderRadius: 8,
-                            padding: "8px 12px",
-                            cursor: "pointer",
-                            whiteSpace: "nowrap",
-                          }}
-                          aria-label={`Show first 100 rows of ${dataset.table_name}`}
-                        >
-                          Show first 100 rows
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -252,13 +275,41 @@ export default function AllDatasets() {
                         fontWeight: 600,
                       }}
                     >
-                      {selectedDataset
-                        .replace(/_/g, " ")
-                        .replace(
-                          /\w\S*/g,
-                          (txt) => txt.charAt(0).toUpperCase() + txt.slice(1)
-                        )}
+                      {datasetData?.shortLabel ??
+                        selectedDataset
+                          ?.replace(/_/g, " ")
+                          .replace(
+                            /\w\S*/g,
+                            (txt) =>
+                              txt.charAt(0).toUpperCase() + txt.slice(1)
+                          )}
                     </div>
+
+                    {datasetData?.longLabel && (
+                      <div
+                        style={{
+                          padding: "8px 16px",
+                          background: "#f9fafb",
+                          color: "#4b5563",
+                          borderTop: "1px solid #e5e7eb",
+                          fontSize: 14,
+                        }}
+                      >
+                        {datasetData.longLabel}
+                      </div>
+                    )}
+
+                    {datasetData?.description && (
+                      <div
+                        style={{
+                          padding: "8px 16px 0 16px",
+                          color: "#6b7280",
+                          fontSize: 14,
+                        }}
+                      >
+                        <b>Description:</b> {datasetData.description}
+                      </div>
+                    )}
 
                     {loadingData && (
                       <div
