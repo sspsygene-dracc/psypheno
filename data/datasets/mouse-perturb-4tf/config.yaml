@@ -1,4 +1,25 @@
-authors:
+shortLabel: "Mouse Perturb-seq 4TF"
+longLabel: "Massively parallel in vivo Perturb-seq of four transcription factors in developing mouse cortex"
+description: |
+  This dataset contains results from an in vivo Perturb-seq screen in developing mouse cortex,
+  in which four neurodevelopmental transcription factors were systematically perturbed and
+  single-cell transcriptomes were profiled across multiple cell types.
+
+  The differential expression (DEG) table captures gene-level changes induced by each
+  perturbation within specific cell types, while the cluster-proportion table summarizes
+  how individual perturbations shift cell-type and subcluster abundances.
+links: []
+publication:
+  firstAuthor: "Zheng"
+  lastAuthor: "Zheng"
+  year: 2024
+  journal: "Cell"
+categories:
+  - "scRNA-seq"
+  - "CRISPR perturbation"
+  - "neurodevelopment"
+organism: "Mus musculus"
+maintainers:
   - ["Johannes Birgmeier", "jbirgmei@ucsc.edu", "2025-11-28", "Initial table creation"]
 
 tables:

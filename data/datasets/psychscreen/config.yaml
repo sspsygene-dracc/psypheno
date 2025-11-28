@@ -1,4 +1,28 @@
-authors:
+shortLabel: "PsychScreen DEGs"
+longLabel: "PsychScreen differential expression signatures for major psychiatric disorders"
+description: |
+  PsychScreen is a transcriptomic resource that aggregates differential expression
+  signatures from large cohorts across major psychiatric disorders, including age-related,
+  autism spectrum disorder, bipolar disorder, and schizophrenia contrasts.
+
+  The tables in this dataset provide gene-level statistics for each disorder-specific
+  comparison, enabling cross-disorder meta-analysis and integration with other gene-level
+  resources in SSPsyGene.
+links:
+  - "https://downloads.wenglab.org/Age_DEGcombined.csv"
+  - "https://downloads.wenglab.org/ASD_DEGcombined.csv"
+  - "https://downloads.wenglab.org/Bipolar_DEGcombined.csv"
+  - "https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv"
+publication:
+  firstAuthor: "Weng Lab"
+  lastAuthor: "Weng Lab"
+  year: 2023
+  journal: "Resource"
+categories:
+  - "bulk RNA-seq"
+  - "psychiatric disorders"
+organism: "Homo sapiens"
+maintainers:
   - ["Johannes Birgmeier", "jbirgmei@ucsc.edu", "2025-11-28", "Initial table creation"]
 
 tables:

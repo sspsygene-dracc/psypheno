@@ -1,4 +1,26 @@
-authors:
+shortLabel: "Dynamic Convergence META-DEGs"
+longLabel: "Dynamic convergence of neurodevelopmental disorder risk gene effects across development"
+description: |
+  This dataset provides a meta-analysis of differential expression effects for
+  neurodevelopmental disorder (NDD) risk genes across multiple perturbations,
+  cell types, and developmental stages. It quantifies where and when NDD risk
+  genes show convergent transcriptional consequences in the developing brain.
+
+  The META-DEGs table aggregates marker-level statistics, including effect
+  sizes and significance measures, enabling integrative analyses of convergent
+  trajectories among NDD-associated genes over neurodevelopment.
+links: []
+publication:
+  firstAuthor: "Fernandez Garcia"
+  lastAuthor: "Fernandez Garcia"
+  year: 2025
+  journal: "TBD"
+categories:
+  - "meta-analysis"
+  - "neurodevelopmental disorders"
+  - "transcriptomics"
+organism: "Homo sapiens"
+maintainers:
   - ["Johannes Birgmeier", "jbirgmei@ucsc.edu", "2025-11-28", "Initial table creation"]
 
 tables:

@@ -1,4 +1,27 @@
-authors:
+shortLabel: "Brain Organoid Atlas"
+longLabel: "Phenotypic brain organoid atlas and biobank for neurodevelopmental disorders"
+description: |
+  This dataset suite comes from a phenotypic brain organoid atlas and biobank spanning
+  neurodevelopmental disorders. It includes patient-level metadata linking individuals
+  and their pathogenic variants to brain organoid lines, as well as multiple differential
+  expression resources derived from single-cell and pseudobulk analyses.
+
+  The tables capture patient lists, NEBULA-based differential expression at multiple
+  FDR thresholds, full gene-level screens, and selected pseudobulk validation genes
+  across organoid subclasses, supporting the study of convergent mechanisms in
+  neurodevelopmental pathology.
+links: []
+publication:
+  firstAuthor: "Wang"
+  lastAuthor: "Wang"
+  year: 2025
+  journal: "TBD"
+categories:
+  - "brain organoids"
+  - "scRNA-seq"
+  - "neurodevelopmental disorders"
+organism: "Homo sapiens (organoids)"
+maintainers:
   - ["Johannes Birgmeier", "jbirgmei@ucsc.edu", "2025-11-28", "Initial table creation"]
 
 tables:

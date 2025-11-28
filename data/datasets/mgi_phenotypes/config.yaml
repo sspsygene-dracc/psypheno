@@ -1,4 +1,25 @@
-authors:
+shortLabel: "MGI Phenotypes"
+longLabel: "Mouse Genome Informatics high-level phenotypes for mutant alleles"
+description: |
+  The Mouse Genome Informatics (MGI) project curates phenotypic annotations for mouse
+  mutant alleles, mapping them to standardized mammalian phenotype ontology terms and
+  associated genes.
+
+  This table summarizes high-level phenotype information linked to Ensembl mouse genes,
+  providing a bridge between genetic perturbations and organism-level phenotypes in the
+  mouse model organism.
+links:
+  - "https://www.informatics.jax.org"
+publication:
+  firstAuthor: "Bult"
+  lastAuthor: "Bult"
+  year: 2019
+  journal: "Nucleic Acids Research"
+categories:
+  - "phenotypes"
+  - "mouse genetics"
+organism: "Mus musculus"
+maintainers:
   - ["Johannes Birgmeier", "jbirgmei@ucsc.edu", "2025-11-28", "Initial table creation"]
 
 tables:

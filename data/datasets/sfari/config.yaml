@@ -1,4 +1,25 @@
-authors:
+shortLabel: "SFARI Gene Resources"
+longLabel: "SFARI Gene human and animal resources for autism spectrum disorder"
+description: |
+  The SFARI Gene resource curates human and animal model evidence for genes associated
+  with autism spectrum disorder (ASD). It aggregates genetic, functional, and model
+  organism data and assigns evidence scores to candidate ASD genes.
+
+  These tables capture SFARI gene lists across human and animal model systems, including
+  annotated human genes, animal genes, and rescue models, enabling integration of SFARI
+  evidence with other transcriptomic and phenotypic datasets.
+links:
+  - "https://gene.sfari.org"
+publication:
+  firstAuthor: "SFARI Gene Consortium"
+  lastAuthor: "SFARI Gene Consortium"
+  year: 2025
+  journal: "Resource"
+categories:
+  - "curated resource"
+  - "autism genetics"
+organism: "Homo sapiens and model organisms"
+maintainers:
   - ["Johannes Birgmeier", "jbirgmei@ucsc.edu", "2025-11-28", "Initial table creation"]
 
 tables:
