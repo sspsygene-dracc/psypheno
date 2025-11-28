@@ -1,104 +1,108 @@
 publication:
   authors:
-  - Weng Lab
+    - Weng Lab
   year: 2023
   journal: Resource
   pmid: null
 maintainers:
-- - Johannes Birgmeier
-  - jbirgmei@ucsc.edu
-  - '2025-11-28'
-  - Initial table creation
+  - - Johannes Birgmeier
+    - jbirgmei@ucsc.edu
+    - "2025-11-28"
+    - Initial table creation
 tables:
-- table: psychscreen_age_deg
-  shortLabel: PsychScreen Age DEGs
-  longLabel: Age-related differential expression in psychiatric disorders
-  description: Differentially expressed genes associated with aging in brain tissue from large psychiatric
-    cohorts. Aggregates transcriptomic signatures across age-related comparisons.
-  links:
-  - https://downloads.wenglab.org/Age_DEGcombined.csv
-  - https://psychscreen.org
-  categories:
-  - bulk RNA-seq
-  - aging
-  - psychiatric disorders
-  organism: Homo sapiens (postmortem brain)
-  in_path: Age_DEGcombined.csv
-  split_column_map: []
-  separator: ','
-  gene_mappings:
-  - column_name: gene
-    link_table_name: gene
-    species: human
-    ignore_missing: []
-    is_perturbed: false
-    is_target: false
-- table: psychscreen_asd_deg
-  shortLabel: PsychScreen ASD DEGs
-  longLabel: Autism spectrum disorder differential expression signatures
-  description: Differentially expressed genes in autism spectrum disorder from aggregated postmortem brain
-    transcriptomic studies. Provides ASD-specific gene expression changes across brain regions.
-  links:
-  - https://downloads.wenglab.org/ASD_DEGcombined.csv
-  - https://psychscreen.org
-  categories:
-  - bulk RNA-seq
-  - autism
-  - psychiatric disorders
-  organism: Homo sapiens (postmortem brain)
-  in_path: ASD_DEGcombined.csv
-  split_column_map: []
-  separator: ','
-  gene_mappings:
-  - column_name: gene
-    link_table_name: gene
-    species: human
-    ignore_missing: []
-    is_perturbed: false
-    is_target: false
-- table: psychscreen_bipolar_deg
-  shortLabel: PsychScreen Bipolar DEGs
-  longLabel: Bipolar disorder differential expression signatures
-  description: Differentially expressed genes in bipolar disorder from aggregated postmortem brain transcriptomic
-    studies. Captures transcriptional alterations associated with bipolar disorder.
-  links:
-  - https://downloads.wenglab.org/Bipolar_DEGcombined.csv
-  - https://psychscreen.org
-  categories:
-  - bulk RNA-seq
-  - bipolar disorder
-  - psychiatric disorders
-  organism: Homo sapiens (postmortem brain)
-  in_path: Bipolar_DEGcombined.csv
-  split_column_map: []
-  separator: ','
-  gene_mappings:
-  - column_name: gene
-    link_table_name: gene
-    species: human
-    ignore_missing: []
-    is_perturbed: false
-    is_target: false
-- table: psychscreen_schizophrenia_deg
-  shortLabel: PsychScreen Schizophrenia DEGs
-  longLabel: Schizophrenia differential expression signatures
-  description: Differentially expressed genes in schizophrenia from aggregated postmortem brain transcriptomic
-    studies. Provides schizophrenia-specific transcriptional changes across brain regions.
-  links:
-  - https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv
-  - https://psychscreen.org
-  categories:
-  - bulk RNA-seq
-  - schizophrenia
-  - psychiatric disorders
-  organism: Homo sapiens (postmortem brain)
-  in_path: Schizophrenia_DEGcombined.csv
-  split_column_map: []
-  separator: ','
-  gene_mappings:
-  - column_name: gene
-    link_table_name: gene
-    species: human
-    ignore_missing: []
-    is_perturbed: false
-    is_target: false
+  - table: psychscreen_age_deg
+    shortLabel: PsychScreen Age DEGs
+    longLabel: Age-related differential expression in psychiatric disorders
+    description:
+      Differentially expressed genes associated with aging in brain tissue from large psychiatric
+      cohorts. Aggregates transcriptomic signatures across age-related comparisons.
+    links:
+      - https://downloads.wenglab.org/Age_DEGcombined.csv
+      - https://psychscreen.org
+    categories:
+      - bulk RNA-seq
+      - aging
+      - psychiatric disorders
+    organism: Homo sapiens (postmortem brain)
+    in_path: Age_DEGcombined.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+  - table: psychscreen_asd_deg
+    shortLabel: PsychScreen ASD DEGs
+    longLabel: Autism spectrum disorder differential expression signatures
+    description:
+      Differentially expressed genes in autism spectrum disorder from aggregated postmortem brain
+      transcriptomic studies. Provides ASD-specific gene expression changes across brain regions.
+    links:
+      - https://downloads.wenglab.org/ASD_DEGcombined.csv
+      - https://psychscreen.org
+    categories:
+      - bulk RNA-seq
+      - autism
+      - psychiatric disorders
+    organism: Homo sapiens (postmortem brain)
+    in_path: ASD_DEGcombined.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+  - table: psychscreen_bipolar_deg
+    shortLabel: PsychScreen Bipolar DEGs
+    longLabel: Bipolar disorder differential expression signatures
+    description:
+      Differentially expressed genes in bipolar disorder from aggregated postmortem brain transcriptomic
+      studies. Captures transcriptional alterations associated with bipolar disorder.
+    links:
+      - https://downloads.wenglab.org/Bipolar_DEGcombined.csv
+      - https://psychscreen.org
+    categories:
+      - bulk RNA-seq
+      - bipolar disorder
+      - psychiatric disorders
+    organism: Homo sapiens (postmortem brain)
+    in_path: Bipolar_DEGcombined.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+  - table: psychscreen_schizophrenia_deg
+    shortLabel: PsychScreen Schizophrenia DEGs
+    longLabel: Schizophrenia differential expression signatures
+    description:
+      Differentially expressed genes in schizophrenia from aggregated postmortem brain transcriptomic
+      studies. Provides schizophrenia-specific transcriptional changes across brain regions.
+    links:
+      - https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv
+      - https://psychscreen.org
+    categories:
+      - bulk RNA-seq
+      - schizophrenia
+      - psychiatric disorders
+    organism: Homo sapiens (postmortem brain)
+    in_path: Schizophrenia_DEGcombined.csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false

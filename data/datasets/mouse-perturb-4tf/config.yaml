@@ -1,100 +1,102 @@
 publication:
   authors:
-  - Xinhe Zheng
-  - Boli Wu
-  - Yuejia Liu
-  - Sean K Simmons
-  - Kwanho Kim
-  - Grace S Clarke
-  - Abdullah Ashiq
-  - Joshua Park
-  - Jiwen Li
-  - Zhilin Wang
-  - Liqi Tong
-  - Qizhao Wang
-  - Keerthi T Rajamani
-  - Rodrigo Muñoz-Castañeda
-  - Shang Mu
-  - Tianbo Qi
-  - Yunxiao Zhang
-  - Zi Chao Ngiam
-  - Naoto Ohte
-  - Carina Hanashima
-  - Zhuhao Wu
-  - Xiangmin Xu
-  - Joshua Z Levin
-  - Xin Jin
+    - Xinhe Zheng
+    - Boli Wu
+    - Yuejia Liu
+    - Sean K Simmons
+    - Kwanho Kim
+    - Grace S Clarke
+    - Abdullah Ashiq
+    - Joshua Park
+    - Jiwen Li
+    - Zhilin Wang
+    - Liqi Tong
+    - Qizhao Wang
+    - Keerthi T Rajamani
+    - Rodrigo Muñoz-Castañeda
+    - Shang Mu
+    - Tianbo Qi
+    - Yunxiao Zhang
+    - Zi Chao Ngiam
+    - Naoto Ohte
+    - Carina Hanashima
+    - Zhuhao Wu
+    - Xiangmin Xu
+    - Joshua Z Levin
+    - Xin Jin
   year: 2024
   journal: Cell
   doi: 10.1016/j.cell.2024.04.050
-  pmid: '38772369'
+  pmid: "38772369"
 maintainers:
-- - Johannes Birgmeier
-  - jbirgmei@ucsc.edu
-  - '2025-11-28'
-  - Initial table creation
+  - - Johannes Birgmeier
+    - jbirgmei@ucsc.edu
+    - "2025-11-28"
+    - Initial table creation
 tables:
-- table: mouse_perturb_deg
-  shortLabel: 4TF Perturb-seq DEGs
-  longLabel: Differential expression from in vivo Perturb-seq of four transcription factors
-  description: Cell-type-specific differential expression results from massively parallel in vivo Perturb-seq
-    targeting Foxg1, Nr2f1, Tbr1, and Tcf4 in developing mouse cortex. Captures transcriptional changes
-    across excitatory and inhibitory neuron subtypes.
-  links:
-  - https://www.cell.com/cell/fulltext/S0092-8674(24)00476-8
-  categories:
-  - in vivo Perturb-seq
-  - transcription factors
-  - cortical development
-  organism: Mus musculus (embryonic cortex)
-  in_path: deg.txt
-  split_column_map:
-  - source_col: perturbation
-    new_col1: _perturbation_gene
-    new_col2: _perturbation_gene_idx
-    sep: _
-  separator: "\t"
-  gene_mappings:
-  - column_name: Gene
-    link_table_name: gene
-    species: mouse
-    is_perturbed: false
-    is_target: true
-  - column_name: _perturbation_gene
-    link_table_name: perturbation_gene
-    species: mouse
-    ignore_missing:
-    - NonTarget1
-    - SafeTarget
-    is_perturbed: true
-    is_target: false
-- table: mouse_perturb_clusterprop
-  shortLabel: 4TF Cell Proportion Changes
-  longLabel: Cell type proportion shifts from transcription factor perturbations
-  description: Quantification of cell type and subcluster abundance changes resulting from CRISPR perturbations
-    of four neurodevelopmental transcription factors in mouse cortex, revealing cell fate specification
-    effects.
-  links:
-  - https://www.cell.com/cell/fulltext/S0092-8674(24)00476-8
-  categories:
-  - in vivo Perturb-seq
-  - cell fate
-  - cortical development
-  organism: Mus musculus (embryonic cortex)
-  in_path: clusterprop.txt
-  split_column_map:
-  - source_col: guide
-    new_col1: _guide_gene
-    new_col2: _guide_gene_idx
-    sep: _
-  separator: "\t"
-  gene_mappings:
-  - column_name: _guide_gene
-    link_table_name: guide_gene
-    species: mouse
-    ignore_missing:
-    - NonTarget1
-    - SafeTarget
-    - GFP
-    is_perturbed: false
-    is_target: false
+  - table: mouse_perturb_deg
+    shortLabel: 4TF Perturb-seq DEGs
+    longLabel: Differential expression from in vivo Perturb-seq of four transcription factors
+    description:
+      Cell-type-specific differential expression results from massively parallel in vivo Perturb-seq
+      targeting Foxg1, Nr2f1, Tbr1, and Tcf4 in developing mouse cortex. Captures transcriptional changes
+      across excitatory and inhibitory neuron subtypes.
+    links:
+      - https://www.cell.com/cell/fulltext/S0092-8674(24)00476-8
+    categories:
+      - in vivo Perturb-seq
+      - transcription factors
+      - cortical development
+    organism: Mus musculus (embryonic cortex)
+    in_path: deg.txt
+    split_column_map:
+      - source_col: perturbation
+        new_col1: _perturbation_gene
+        new_col2: _perturbation_gene_idx
+        sep: _
+    separator: "\t"
+    gene_mappings:
+      - column_name: Gene
+        link_table_name: gene
+        species: mouse
+        is_perturbed: false
+        is_target: true
+      - column_name: _perturbation_gene
+        link_table_name: perturbation_gene
+        species: mouse
+        ignore_missing:
+          - NonTarget1
+          - SafeTarget
+        is_perturbed: true
+        is_target: false
+  - table: mouse_perturb_clusterprop
+    shortLabel: 4TF Cell Proportion Changes
+    longLabel: Cell type proportion shifts from transcription factor perturbations
+    description:
+      Quantification of cell type and subcluster abundance changes resulting from CRISPR perturbations
+      of four neurodevelopmental transcription factors in mouse cortex, revealing cell fate specification
+      effects.
+    links:
+      - https://www.cell.com/cell/fulltext/S0092-8674(24)00476-8
+    categories:
+      - in vivo Perturb-seq
+      - cell fate
+      - cortical development
+    organism: Mus musculus (embryonic cortex)
+    in_path: clusterprop.txt
+    split_column_map:
+      - source_col: guide
+        new_col1: _guide_gene
+        new_col2: _guide_gene_idx
+        sep: _
+    separator: "\t"
+    gene_mappings:
+      - column_name: _guide_gene
+        link_table_name: guide_gene
+        species: mouse
+        ignore_missing:
+          - NonTarget1
+          - SafeTarget
+          - GFP
+        is_perturbed: false
+        is_target: false

@@ -1,84 +1,85 @@
 publication:
   authors:
-  - Meilin Fernandez Garcia
-  - Kayla Retallick-Townsley
-  - April Pruitt
-  - Elizabeth Davidson
-  - Novin Balafkan
-  - Jonathan Warrell
-  - Tzu-Chieh Huang
-  - Alfred Kibowen
-  - Zhiyuan Chu
-  - Yi Dai
-  - Sarah E Fitzpatrick
-  - Ran Meng
-  - Annabel Sen
-  - Sophie Cohen
-  - Olivia Livoti
-  - Suha Khan
-  - Charlotte Becker
-  - Andre Luiz Teles E Silva
-  - Jenny Liu
-  - Grace Dossou
-  - Jen Cheung
-  - Susanna Liu
-  - Sadaf Ghorbani
-  - P J Michael Deans
-  - Marisa DeCiucis
-  - Prashant Emani
-  - Huanyao Gao
-  - Hongying Shen
-  - Mark Gerstein
-  - Zuoheng Wang
-  - Laura M Huckins
-  - Ellen J Hoffman
-  - Kristen Brennand
+    - Meilin Fernandez Garcia
+    - Kayla Retallick-Townsley
+    - April Pruitt
+    - Elizabeth Davidson
+    - Novin Balafkan
+    - Jonathan Warrell
+    - Tzu-Chieh Huang
+    - Alfred Kibowen
+    - Zhiyuan Chu
+    - Yi Dai
+    - Sarah E Fitzpatrick
+    - Ran Meng
+    - Annabel Sen
+    - Sophie Cohen
+    - Olivia Livoti
+    - Suha Khan
+    - Charlotte Becker
+    - Andre Luiz Teles E Silva
+    - Jenny Liu
+    - Grace Dossou
+    - Jen Cheung
+    - Susanna Liu
+    - Sadaf Ghorbani
+    - P J Michael Deans
+    - Marisa DeCiucis
+    - Prashant Emani
+    - Huanyao Gao
+    - Hongying Shen
+    - Mark Gerstein
+    - Zuoheng Wang
+    - Laura M Huckins
+    - Ellen J Hoffman
+    - Kristen Brennand
   year: 2025
   journal: bioRxiv
   doi: 10.1101/2024.08.23.609190
-  pmid: '39229156'
+  pmid: "39229156"
 maintainers:
-- - Johannes Birgmeier
-  - jbirgmei@ucsc.edu
-  - '2025-11-28'
-  - Initial table creation
+  - - Johannes Birgmeier
+    - jbirgmei@ucsc.edu
+    - "2025-11-28"
+    - Initial table creation
 tables:
-- table: dynamic_convergence_S2
-  shortLabel: META-DEGs NDD Convergence
-  longLabel: Meta-analysis of convergent NDD risk gene effects across development
-  description: Meta-differentially expressed genes showing convergent transcriptional effects across 29
-    neurodevelopmental disorder risk genes in neural progenitors, glutamatergic neurons, and GABAergic
-    neurons. Integrates effect sizes and significance across cell types and developmental stages.
-  links:
-  - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4
-  categories:
-  - meta-analysis
-  - CRISPR perturbation
-  - developmental transcriptomics
-  organism: Homo sapiens (hiPSC-derived neurons)
-  in_path: Supplemental_Data_2(META_DEGs).csv
-  split_column_map: []
-  separator: ','
-  gene_mappings:
-  - column_name: MarkerName
-    link_table_name: gene
-    species: human
-    ignore_missing: []
-    is_perturbed: false
-    is_target: false
-    replace:
-      EMG1.1: EMG1
-      SOD2.1: SOD2
-      ATXN7.1: ATXN7
-      ABCF2.1: ABCF2
-      ABALON.: ABALON
-      IGF2.1: IGF2
-      DIABLO.1: DIABLO
-      SGK494.: SGK494
-      PINX1.1: PINX1
-      KC877982.1: KC877982
-      COG8.1: COG8
-      RGS5.1: RGS5
-      SCO2.1: SCO2
-      LINC01238.1: LINC01238
-      POLR2J3.1: POLR2J3
+  - table: dynamic_convergence_S2
+    shortLabel: META-DEGs NDD Convergence
+    longLabel: Meta-analysis of convergent NDD risk gene effects across development
+    description:
+      Meta-differentially expressed genes showing convergent transcriptional effects across 29
+      neurodevelopmental disorder risk genes in neural progenitors, glutamatergic neurons, and GABAergic
+      neurons. Integrates effect sizes and significance across cell types and developmental stages.
+    links:
+      - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4
+    categories:
+      - meta-analysis
+      - CRISPR perturbation
+      - developmental transcriptomics
+    organism: Homo sapiens (hiPSC-derived neurons)
+    in_path: Supplemental_Data_2(META_DEGs).csv
+    split_column_map: []
+    separator: ","
+    gene_mappings:
+      - column_name: MarkerName
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
+        replace:
+          EMG1.1: EMG1
+          SOD2.1: SOD2
+          ATXN7.1: ATXN7
+          ABCF2.1: ABCF2
+          ABALON.: ABALON
+          IGF2.1: IGF2
+          DIABLO.1: DIABLO
+          SGK494.: SGK494
+          PINX1.1: PINX1
+          KC877982.1: KC877982
+          COG8.1: COG8
+          RGS5.1: RGS5
+          SCO2.1: SCO2
+          LINC01238.1: LINC01238
+          POLR2J3.1: POLR2J3

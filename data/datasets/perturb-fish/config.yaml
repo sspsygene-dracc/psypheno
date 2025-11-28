@@ -1,55 +1,56 @@
 publication:
   authors:
-  - Loïc Binan
-  - Aiping Jiang
-  - Serwah A Danquah
-  - Vera Valakh
-  - Brooke Simonton
-  - Jon Bezney
-  - Robert T Manguso
-  - Kathleen B Yates
-  - Ralda Nehme
-  - Brian Cleary
-  - Samouil L Farhi
+    - Loïc Binan
+    - Aiping Jiang
+    - Serwah A Danquah
+    - Vera Valakh
+    - Brooke Simonton
+    - Jon Bezney
+    - Robert T Manguso
+    - Kathleen B Yates
+    - Ralda Nehme
+    - Brian Cleary
+    - Samouil L Farhi
   year: 2025
   journal: Cell
   doi: 10.1016/j.cell.2025.02.012
-  pmid: '40081369'
+  pmid: "40081369"
 maintainers:
-- - Johannes Birgmeier
-  - jbirgmei@ucsc.edu
-  - '2025-11-28'
-  - Initial table creation
+  - - Johannes Birgmeier
+    - jbirgmei@ucsc.edu
+    - "2025-11-28"
+    - Initial table creation
 tables:
-- table: perturb_fish_astro
-  shortLabel: Perturb-FISH Astrocyte Screen
-  longLabel: CRISPR screening with spatial transcriptomics in astrocytes
-  description: Spatial transcriptomics and functional calcium imaging screen of 127 autism spectrum disorder
-    risk genes in human iPSC-derived astrocytes. Combines Perturb-FISH with ATP-stimulated calcium activity
-    phenotypes to link genetic perturbations with transcriptional and functional profiles.
-  links:
-  - https://www.cell.com/cell/fulltext/S0092-8674(25)00197-7
-  categories:
-  - spatial transcriptomics
-  - CRISPR screening
-  - astrocyte function
-  - autism genetics
-  organism: Homo sapiens (iPSC-derived astrocytes)
-  in_path: perturbfish-astro.csv
-  split_column_map: []
-  separator: "\t"
-  gene_mappings:
-  - column_name: perturbGene
-    link_table_name: perturbGene
-    comment: this zebrafish dataset seems to list human gene names
-    species: human
-    ignore_missing:
-    - Control_ST
-    is_perturbed: true
-    is_target: false
-  - column_name: gene
-    link_table_name: gene
-    comment: this zebrafish dataset seems to list human gene names
-    species: human
-    is_perturbed: false
-    is_target: true
+  - table: perturb_fish_astro
+    shortLabel: Perturb-FISH Astrocyte Screen
+    longLabel: CRISPR screening with spatial transcriptomics in astrocytes
+    description:
+      Spatial transcriptomics and functional calcium imaging screen of 127 autism spectrum disorder
+      risk genes in human iPSC-derived astrocytes. Combines Perturb-FISH with ATP-stimulated calcium activity
+      phenotypes to link genetic perturbations with transcriptional and functional profiles.
+    links:
+      - https://www.cell.com/cell/fulltext/S0092-8674(25)00197-7
+    categories:
+      - spatial transcriptomics
+      - CRISPR screening
+      - astrocyte function
+      - autism genetics
+    organism: Homo sapiens (iPSC-derived astrocytes)
+    in_path: perturbfish-astro.csv
+    split_column_map: []
+    separator: "\t"
+    gene_mappings:
+      - column_name: perturbGene
+        link_table_name: perturbGene
+        comment: this zebrafish dataset seems to list human gene names
+        species: human
+        ignore_missing:
+          - Control_ST
+        is_perturbed: true
+        is_target: false
+      - column_name: gene
+        link_table_name: gene
+        comment: this zebrafish dataset seems to list human gene names
+        species: human
+        is_perturbed: false
+        is_target: true
