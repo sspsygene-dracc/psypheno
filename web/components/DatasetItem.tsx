@@ -70,6 +70,7 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
         background: "transparent",
         color: "#1f2937",
         transition: "background 0.15s ease",
+        fontSize: 15,
         userSelect: "text",
         WebkitUserSelect: "text",
         MozUserSelect: "text",
@@ -101,7 +102,7 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
           <div
             style={{
               fontWeight: 600,
-              fontSize: 15,
+              fontSize: 17,
               marginBottom: 2,
               color: "#111827",
             }}
@@ -111,7 +112,7 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
           {dataset.long_label && (
             <div
               style={{
-                fontSize: 13,
+                fontSize: 15,
                 color: "#4b5563",
                 lineHeight: 1.3,
               }}
@@ -133,7 +134,7 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
           {(dataset.organism || dataset.gene_species) && (
             <span
               style={{
-                fontSize: 11,
+                fontSize: 13,
                 color: "#374151",
                 backgroundColor: "#e5e7eb",
                 borderRadius: 9999,
@@ -155,7 +156,7 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
                 <span
                   key={cat}
                   style={{
-                    fontSize: 11,
+                    fontSize: 13,
                     color: "#374151",
                     backgroundColor: "#f3f4f6",
                     borderRadius: 9999,
@@ -171,7 +172,7 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
         {dataset.description && (
           <div
             style={{
-              fontSize: 13,
+              fontSize: 15,
               color: "#4b5563",
               marginTop: 4,
             }}
@@ -187,7 +188,7 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
             flexWrap: "wrap",
             gap: 12,
             marginTop: 6,
-            fontSize: 12,
+            fontSize: 14,
             color: "#6b7280",
           }}
         >
@@ -220,7 +221,7 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
           dataset.publication_doi) && (
           <div
             style={{
-              fontSize: 12,
+              fontSize: 14,
               color: "#6b7280",
               marginTop: 4,
             }}
@@ -249,10 +250,10 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
             color: "#1f2937",
             border: "1px solid #d1d5db",
             borderRadius: 8,
-            padding: "8px 14px",
+            padding: "9px 16px",
             cursor: "pointer",
             whiteSpace: "nowrap",
-            fontSize: 13,
+            fontSize: 14,
           }}
           aria-label={`Show first 100 rows of ${dataset.table_name}`}
         >
