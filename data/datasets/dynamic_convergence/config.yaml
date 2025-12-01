@@ -38,10 +38,10 @@ publication:
   doi: 10.1101/2024.08.23.609190
   pmid: "39229156"
 maintainers:
-  - - Johannes Birgmeier
-    - jbirgmei@ucsc.edu
-    - "2025-11-28"
-    - Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2025-11-28"
+    comment: Initial table creation
 tables:
   - table: dynamic_convergence_S2
     shortLabel: META-DEGs NDD Convergence

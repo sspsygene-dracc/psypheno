@@ -5,10 +5,10 @@ publication:
   journal: Resource
   pmid: null
 maintainers:
-  - - Johannes Birgmeier
-    - jbirgmei@ucsc.edu
-    - "2025-11-28"
-    - Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2025-11-28"
+    comment: Initial table creation
 tables:
   - table: sfari_animal_genes
     shortLabel: SFARI Animal Model Genes

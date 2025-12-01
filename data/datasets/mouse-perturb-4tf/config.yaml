@@ -29,10 +29,10 @@ publication:
   doi: 10.1016/j.cell.2024.04.050
   pmid: "38772369"
 maintainers:
-  - - Johannes Birgmeier
-    - jbirgmei@ucsc.edu
-    - "2025-11-28"
-    - Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2025-11-28"
+    comment: Initial table creation
 tables:
   - table: mouse_perturb_deg
     shortLabel: 4TF Perturb-seq DEGs

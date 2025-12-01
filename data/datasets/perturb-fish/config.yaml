@@ -16,10 +16,10 @@ publication:
   doi: 10.1016/j.cell.2025.02.012
   pmid: "40081369"
 maintainers:
-  - - Johannes Birgmeier
-    - jbirgmei@ucsc.edu
-    - "2025-11-28"
-    - Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2025-11-28"
+    comment: Initial table creation
 tables:
   - table: perturb_fish_astro
     shortLabel: Perturb-FISH Astrocyte Screen

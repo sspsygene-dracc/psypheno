@@ -26,10 +26,10 @@ publication:
   doi: 10.1016/j.stem.2025.10.006
   pmid: "41187745"
 maintainers:
-  - - Johannes Birgmeier
-    - jbirgmei@ucsc.edu
-    - "2025-11-28"
-    - Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2025-11-28"
+    comment: Initial table creation
 tables:
   - table: brain_organoid_atlas_patient_list
     shortLabel: NDD Patient List

@@ -37,10 +37,10 @@ publication:
   doi: 10.1016/j.celrep.2023.112243
   pmid: "36933215"
 maintainers:
-  - - Johannes Birgmeier
-    - jbirgmei@ucsc.edu
-    - "2025-11-28"
-    - Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2025-11-28"
+    comment: Initial table creation
 tables:
   - table: zebra_asd
     shortLabel: Zebrafish ASD Functional Screen

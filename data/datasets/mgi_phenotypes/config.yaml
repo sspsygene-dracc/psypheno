@@ -11,10 +11,10 @@ publication:
   doi: 10.1093/nar/gky1056
   pmid: "30407594"
 maintainers:
-  - - Johannes Birgmeier
-    - jbirgmei@ucsc.edu
-    - "2025-11-28"
-    - Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2025-11-28"
+    comment: Initial table creation
 tables:
   - table: mgi_high_level_phenotypes
     shortLabel: MGI Phenotype Annotations
