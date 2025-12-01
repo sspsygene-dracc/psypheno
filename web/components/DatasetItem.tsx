@@ -41,6 +41,12 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
   const visibleColumns = displayColumns.slice(0, maxColumnsToShow);
   const remainingColumnCount = displayColumns.length - visibleColumns.length;
 
+  const parsedLinks =
+    dataset.links
+      ?.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean) ?? [];
+
   const authorText = (() => {
     const first = dataset.publication_first_author;
     const last = dataset.publication_last_author;
@@ -231,7 +237,47 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
             {dataset.publication_journal
               ? `, ${dataset.publication_journal}`
               : ""}
-            {dataset.publication_doi ? `, DOI: ${dataset.publication_doi}` : ""}
+            {dataset.publication_doi && (
+              <>
+                {", "}
+                <a
+                  href={`https://doi.org/${dataset.publication_doi}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#2563eb", textDecoration: "underline" }}
+                >
+                  DOI: {dataset.publication_doi}
+                </a>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Dataset links */}
+        {parsedLinks.length > 0 && (
+          <div
+            style={{
+              fontSize: 14,
+              color: "#6b7280",
+              marginTop: 4,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              alignItems: "center",
+            }}
+          >
+            <span style={{ fontWeight: 500 }}>Links:</span>
+            {parsedLinks.map((url) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#2563eb", textDecoration: "underline" }}
+              >
+                {url}
+              </a>
+            ))}
           </div>
         )}
       </div>
