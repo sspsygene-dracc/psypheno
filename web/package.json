@@ -11,26 +11,26 @@
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
-    "better-sqlite3": "^12.4.1",
+    "better-sqlite3": "^12.5.0",
     "headlessui": "^0.0.0",
-    "igv": "^3.5.3",
-    "lucide-react": "^0.544.0",
-    "next": "15.5.4",
+    "igv": "^3.6.0",
+    "lucide-react": "^0.555.0",
+    "next": "16.0.7",
     "react": "^19",
     "react-dom": "^19",
     "react-highlight-words": "^0.21.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
-    "zod": "^4.1.11"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "24.9.1",
-    "@types/react": "19.2.2",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
     "@types/react-dom": "^19",
     "@types/react-highlight-words": "^0.20.0",
     "eslint": "^9",
-    "eslint-config-next": "15.5.4",
+    "eslint-config-next": "16.0.7",
     "postcss": "^8",
     "typescript": "5.9.3"
   }
