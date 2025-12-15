@@ -9,7 +9,8 @@ export default function Header() {
     color: router.pathname === path ? "#2563eb" : "#374151",
     textDecoration: "none",
     fontWeight: 600,
-    borderBottom: router.pathname === path ? "2px solid #2563eb" : "2px solid transparent",
+    borderBottom:
+      router.pathname === path ? "2px solid #2563eb" : "2px solid transparent",
     transition: "all 0.2s ease",
   });
 
@@ -32,15 +33,24 @@ export default function Header() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <img
-            src="/1763-ssPsyGeneLogo_v2_A.png"
-            alt="SSPsyGene Logo"
-            style={{
-              width: 120,
-              height: "auto",
-              borderRadius: 8,
-            }}
-          />
+          <Link href="/" style={{ textDecoration: "none", cursor: "pointer" }}>
+            <img
+              src="/1763-ssPsyGeneLogo_v2_A.png"
+              alt="SSPsyGene Logo"
+              style={{
+                width: 120,
+                height: "auto",
+                borderRadius: 8,
+                transition: "opacity 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.8";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+              }}
+            />
+          </Link>
         </div>
         <nav style={{ display: "flex", gap: 8 }}>
           <Link href="/" style={linkStyle("/")}>
@@ -57,4 +67,3 @@ export default function Header() {
     </header>
   );
 }
-
