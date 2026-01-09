@@ -75,7 +75,7 @@ deploy_to_server() {
 
     # Cache sudo password early (will prompt once)
     log "Caching sudo credentials on $host..."
-    if ! ssh "$host" "sudo -v" 2>/dev/null; then
+    if ! ssh "$host" "sudo -v"; then
         error "Failed to cache sudo credentials on $host"
         return 1
     fi
