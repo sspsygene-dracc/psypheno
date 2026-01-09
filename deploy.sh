@@ -72,25 +72,28 @@ deploy_to_server() {
     local path="$2"
 
     log "Deploying to $host..."
+    log "You will be prompted for your sudo password..."
+    echo
 
-    # Cache sudo password early (will prompt once)
-    log "Caching sudo credentials on $host..."
-    if ! ssh "$host" "sudo -v"; then
-        error "Failed to cache sudo credentials on $host"
-        return 1
-    fi
+    # Run all commands in a single SSH session to preserve sudo cache
+    # Using -t to allocate TTY for sudo password prompt
+    if ! ssh -t "$host" "bash -c '
+        set -e
+        echo \"[DEPLOY] Caching sudo credentials...\"
+        sudo -v || exit 1
 
-    # Run git pull and build in web directory
-    log "Pulling latest changes and building on $host..."
-    if ! ssh "$host" "cd '$path' && git pull origin $GITHUB_BRANCH && cd web/ && npm run build" 2>&1 | sed "s/^/  [$host] /"; then
-        error "Build failed on $host"
-        return 1
-    fi
+        echo \"[DEPLOY] Pulling latest changes and building...\"
+        cd \"$path\" || exit 1
+        git pull origin $GITHUB_BRANCH || exit 1
+        cd web/ || exit 1
+        npm run build || exit 1
 
-    # Restart service (should not prompt due to cached credentials)
-    log "Restarting service on $host..."
-    if ! ssh "$host" "$SYSTEMCTL_CMD" 2>&1 | sed "s/^/  [$host] /"; then
-        error "Service restart failed on $host"
+        echo \"[DEPLOY] Restarting service...\"
+        $SYSTEMCTL_CMD || exit 1
+
+        echo \"[SUCCESS] Deployment complete\"
+    '"; then
+        error "Deployment failed on $host"
         return 1
     fi
 
