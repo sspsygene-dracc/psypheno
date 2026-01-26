@@ -85,42 +85,38 @@ class CentralGeneTable:
     entries: list[CentralGeneTableEntry] = field(default_factory=list)
 
     def get_mouse_map(
-        self, gene_type: Literal["ensmus"] | None
+        self,
     ) -> dict[str, list[CentralGeneTableEntry]]:
         rv: dict[str, list[CentralGeneTableEntry]] = defaultdict(list)
-        if gene_type is None:
-            for entry in self.entries:
-                for symbol in entry.mouse_symbols:
-                    rv[symbol].append(entry)
-                for synonym in entry.mouse_synonyms:
-                    rv[synonym].append(entry)
-        else:
-            for entry in self.entries:
-                for ensg in entry.mouse_ensembl_genes:
-                    rv[ensg.ensembl_id].append(entry)
-            # assert _ENSMUS_STR_TO_CHECK in rv
+        for entry in self.entries:
+            for symbol in entry.mouse_symbols:
+                rv[symbol].append(entry)
+            for synonym in entry.mouse_synonyms:
+                rv[synonym].append(entry)
+            for ensg in entry.mouse_ensembl_genes:
+                rv[ensg.ensembl_id].append(entry)
         return dict(rv)
 
     def get_human_map(
-        self, gene_type: Literal["ensmus"] | None
+        self,
     ) -> dict[str, list[CentralGeneTableEntry]]:
-        assert gene_type is None
         rv: dict[str, list[CentralGeneTableEntry]] = defaultdict(list)
         for entry in self.entries:
-            if entry.human_symbol is None:
-                continue
-            rv[entry.human_symbol].append(entry)
+            if entry.human_symbol is not None:
+                rv[entry.human_symbol].append(entry)
             for synonym in entry.human_synonyms:
                 rv[synonym].append(entry)
+            if entry.human_ensembl_gene is not None:
+                rv[entry.human_ensembl_gene.ensembl_id].append(entry)
         return dict(rv)
 
     def get_species_map(
-        self, species: Literal["human", "mouse"], gene_type: Literal["ensmus"] | None
+        self, species: Literal["human", "mouse"]
     ) -> dict[str, list[CentralGeneTableEntry]]:
         if species == "human":
-            return self.get_human_map(gene_type)
+            return self.get_human_map()
         elif species == "mouse":
-            return self.get_mouse_map(gene_type)
+            return self.get_mouse_map()
         else:
             raise ValueError(f"Invalid species: {species}")
 

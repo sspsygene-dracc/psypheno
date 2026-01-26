@@ -19,7 +19,6 @@ class GeneMapping:
     replace: dict[str, str]
     is_perturbed: bool
     is_target: bool
-    gene_type: Literal["ensmus"] | None
     ignore_empty: bool
 
     def __post_init__(self):
@@ -48,7 +47,6 @@ class GeneMapping:
             replace=replace,
             is_perturbed=(json_data["is_perturbed"]),
             is_target=json_data["is_target"],
-            gene_type=json_data["gene_type"] if "gene_type" in json_data else None,
             ignore_empty=(
                 json_data["ignore_empty"] if "ignore_empty" in json_data else False
             ),
@@ -68,7 +66,7 @@ class GeneMapping:
         in_column: list[str] = data[self.column_name].tolist()
         data_id_to_central_gene_id: list[tuple[int, int | None]] = []
         species_map = CENTRAL_GENE_TABLE.get_species_map(
-            species=self.species, gene_type=self.gene_type
+            species=self.species,
         )
         for row_id, elem in zip(id_column, in_column):
             if self.ignore_empty and (pd.isna(elem) or not elem):
