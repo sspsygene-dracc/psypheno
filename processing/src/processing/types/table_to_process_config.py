@@ -67,7 +67,7 @@ class TableToProcessConfig:
     def from_json(
         cls, json_data: dict[str, Any], base_dir: Path
     ) -> "TableToProcessConfig":
-        publication = json_data.get("_publication") or json_data.get("publication") or {}
+        publication: dict[str, Any] = json_data.get("_publication") or json_data.get("publication") or {}
         authors: list[str] = list(publication.get("authors", [])) if isinstance(
             publication.get("authors", []), list
         ) else []

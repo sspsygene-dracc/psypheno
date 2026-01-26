@@ -53,6 +53,7 @@ class CentralGeneTableEntry:
     row_id: int
     human_symbol: str | None
     human_entrez_gene: EntrezGene | None
+    human_ensembl_gene: EnsemblGene | None
     hgnc_id: str | None
     mouse_symbols: set[str]
     mouse_mgi_accession_ids: set[MGIAcessionID]
@@ -130,6 +131,7 @@ class CentralGeneTable:
             row_id=len(self.entries),
             human_symbol=None,
             human_entrez_gene=None,
+            human_ensembl_gene=None,
             hgnc_id=None,
             mouse_symbols={symbol},
             mouse_ensembl_genes=set(),
@@ -151,6 +153,7 @@ class CentralGeneTable:
             row_id=len(self.entries),
             human_symbol=symbol,
             human_entrez_gene=None,
+            human_ensembl_gene=None,
             hgnc_id=None,
             mouse_symbols=set(),
             mouse_ensembl_genes=set(),
@@ -176,7 +179,7 @@ class CentralGeneTable:
             raise ValueError(f"Invalid species: {species}")
 
     def get_hgnc_id_to_human_entrez_id(self) -> dict[str, EntrezGene]:
-        rv: dict[str, EntrezGene] = {}
+        rv_entrez: dict[str, EntrezGene] = {}
         for entry in self.entries:
             if entry.human_entrez_gene is None:
                 continue
@@ -184,8 +187,8 @@ class CentralGeneTable:
                 entry.hgnc_id is None
             ):  # this is just to ensure we only get HGNC names --- manually added entries have no HGNC ID
                 continue
-            rv[entry.hgnc_id] = entry.human_entrez_gene
-        return rv
+            rv_entrez[entry.hgnc_id] = entry.human_entrez_gene
+        return rv_entrez
 
     def construct(self):
         self.parse_hgnc(get_sspsygene_config().gene_map_config.hgnc_file)
@@ -207,6 +210,12 @@ class CentralGeneTable:
                 return None
             return int(entrez_id_str)
 
+        def get_ensembl_gene_id(row: dict[str, str]) -> EnsemblGene | None:
+            ensembl_id_str = row["ensembl_gene_id"]
+            if ensembl_id_str == "" or ensembl_id_str == "null":
+                return None
+            return EnsemblGene(ensembl_id_str)
+
         rows: list[dict[str, str]] = []
         with open(fname, encoding="utf-8") as f:
             reader = csv.DictReader(f, delimiter="\t")
@@ -217,6 +226,7 @@ class CentralGeneTable:
         for row in rows:
             synonyms = set(row["prev_symbol"].split("|")) - symbols
             entrez_id = get_entrez_id(row)
+            ensembl_gene_id = get_ensembl_gene_id(row)
             symbol = row["symbol"]
             self.entries.append(
                 CentralGeneTableEntry(
@@ -225,6 +235,7 @@ class CentralGeneTable:
                     human_entrez_gene=(
                         EntrezGene(entrez_id) if entrez_id is not None else None
                     ),
+                    human_ensembl_gene=ensembl_gene_id,
                     hgnc_id=(
                         row["hgnc_id"]
                         if (row["hgnc_id"] and row["hgnc_id"] != "null")
@@ -339,6 +350,7 @@ class CentralGeneTable:
                     row_id=len(self.entries),
                     human_symbol=None,
                     human_entrez_gene=None,
+                    human_ensembl_gene=None,
                     hgnc_id=None,
                     mouse_symbols={symbol},
                     mouse_mgi_accession_ids=(
