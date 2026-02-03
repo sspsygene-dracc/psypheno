@@ -156,6 +156,13 @@ export SSPSYGENE_DATA_DIR="/hive/groups/SSPsyGene/sspsygene_website/data"
 export SSPSYGENE_CONFIG_JSON="/hive/groups/SSPsyGene/sspsygene_website/processing/src/processing/config.json"
 ```
 
+On internal [psypheno-int](https://psypheno-int.gi.ucsc.edu/all-datasets) machine, you would set:
+
+```bash
+export SSPSYGENE_DATA_DIR="/hive/groups/SSPsyGene/sspsygene_website_int/data"
+export SSPSYGENE_CONFIG_JSON="/hive/groups/SSPsyGene/sspsygene_website_int/processing/src/processing/config.json"
+```
+
 ### 3. Load Database
 
 ```bash
