@@ -159,7 +159,7 @@ export SSPSYGENE_CONFIG_JSON="/hive/groups/SSPsyGene/sspsygene_website/processin
 ### 3. Load Database
 
 ```bash
-sspsygene load_db
+sspsygene load-db
 ```
 
 This will:
