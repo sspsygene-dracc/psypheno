@@ -17,7 +17,7 @@ The repository is organized into three main directories:
   - Data loading and transformation scripts
   - Gene name mapping and homology resolution
   - Database schema creation and population
-  - CLI tool: `sspsygene load_db`
+  - CLI tool: `sspsygene load-db`
 
 - **`web/`** - Next.js web application
   - React components for data visualization
