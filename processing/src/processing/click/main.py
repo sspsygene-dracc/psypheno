@@ -39,8 +39,12 @@ def cli(
 )
 def load_db(dataset: str | None) -> None:
     """Load the database"""
-    from processing.sq_load import load_db
+    try:
+        from processing.sq_load import load_db
 
-    config = get_sspsygene_config(dataset=dataset)
-    config.out_db.parent.mkdir(parents=True, exist_ok=True)
-    load_db(config.out_db, config.tables_config.tables)
+        config = get_sspsygene_config(dataset=dataset)
+        config.out_db.parent.mkdir(parents=True, exist_ok=True)
+        load_db(config.out_db, config.tables_config.tables)
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
