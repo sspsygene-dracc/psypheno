@@ -1,5 +1,11 @@
 import React from "react";
 
+function formatColumnHeader(col: string): string {
+  return col
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function DataTable({
   columns,
   rows,
@@ -37,7 +43,7 @@ export default function DataTable({
                   whiteSpace: "nowrap",
                 }}
               >
-                {col}
+                {formatColumnHeader(col)}
               </th>
             ))}
           </tr>

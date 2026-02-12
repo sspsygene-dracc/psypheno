@@ -54,7 +54,7 @@ export default function PhenoPage(props: PageProps) {
                             {t.headers
                               .filter((h: string) => h !== "hgnc_id")
                               .map((h: string) => (
-                                <th key={h}>{h}</th>
+                                <th key={h}>{h.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</th>
                               ))}
                           </tr>
                         </thead>
@@ -110,7 +110,7 @@ export default function PhenoPage(props: PageProps) {
         <thead>
           <tr>
             {headers.map((h: string) => (
-              <th key={h}>{h.replaceAll("_", " ")}</th>
+              <th key={h}>{h.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</th>
             ))}
           </tr>
         </thead>
