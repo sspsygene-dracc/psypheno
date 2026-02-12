@@ -141,6 +141,9 @@ export SSPSYGENE_DATA_DIR="$(pwd)/data"
 
 # processing config JSON
 export SSPSYGENE_CONFIG_JSON="processing/src/processing/config.json"
+
+# export sspsygene data db
+export SSPSYGENE_DATA_DB=/path/to/sspsygene.db
 ```
 
 On the UCSC `hgwdev` server, the code and data currently live in:
@@ -154,6 +157,7 @@ On that machine, you would normally set:
 ```bash
 export SSPSYGENE_DATA_DIR="/hive/groups/SSPsyGene/sspsygene_website/data"
 export SSPSYGENE_CONFIG_JSON="/hive/groups/SSPsyGene/sspsygene_website/processing/src/processing/config.json"
+export SSPSYGENE_DATA_DB="/hive/groups/SSPsyGene/sspsygene_website/data/db/sspsygene.db"
 ```
 
 On internal [psypheno-int](https://psypheno-int.gi.ucsc.edu/all-datasets) machine, you would set:

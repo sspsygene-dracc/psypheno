@@ -28,3 +28,7 @@ David P:
 https://www.psychencode.org/resources.
 The AD Knowledge Portal includes data from many programs generating human multiomic data: https://adknowledgeportal.synapse.org/Explore/Programs.
 For cell/anatomy x gene, you’ll want to touch base with folks from ADGC #6 since part of their explicit experimental design is web visualization of image data across modalities/scales (MRI, 3D anatomy, spatial gene expression). Yongsoo Kim (yuk17@psu.edu) is leading this part and is drawing from his existing single cell & anatomy work as part of BICCN, the datasets from which I think will be valuable here. Yongsoo may have specific ideas of reference datasets they’ll want to use and/or needs for structuring a knowledge base with respect to their data modalities.
+
+
+
+Better errors when parsing yamls
