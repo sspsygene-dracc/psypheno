@@ -30,10 +30,17 @@ def cli(
 
 
 @cli.command()
-def load_db() -> None:
+@click.option(
+    "--dataset",
+    type=str,
+    default=None,
+    help="Load only this dataset directory (e.g. 'mouse-cortex-perturb-4tf'). "
+    "If omitted, all datasets are loaded.",
+)
+def load_db(dataset: str | None) -> None:
     """Load the database"""
     from processing.sq_load import load_db
 
-    config = get_sspsygene_config()
+    config = get_sspsygene_config(dataset=dataset)
     config.out_db.parent.mkdir(parents=True, exist_ok=True)
     load_db(config.out_db, config.tables_config.tables)

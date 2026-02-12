@@ -71,11 +71,10 @@ export default function GeneResults({
           )}
           <DataTable
             columns={section.displayColumns}
-            rows={
-              expandedSections.has(section.tableName)
-                ? section.rows
-                : section.rows.slice(0, 5)
-            }
+            rows={section.rows}
+            maxRows={expandedSections.has(section.tableName) ? undefined : 5}
+            totalRows={section.rows.length}
+            scalarColumns={section.scalarColumns}
             showSummary={false}
           />
           {section.rows.length > 5 && (

@@ -22,6 +22,7 @@ type DatasetData = {
     pmid: string | null;
   } | null;
   displayColumns: string[];
+  scalarColumns?: string[];
   rows: Record<string, unknown>[];
   totalRows?: number;
 };
@@ -215,6 +216,7 @@ export default function AllDatasets() {
                         rows={datasetData.rows}
                         maxRows={100}
                         totalRows={datasetData.totalRows}
+                        scalarColumns={datasetData.scalarColumns}
                       />
                     )}
                   </div>

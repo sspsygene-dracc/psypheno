@@ -32,7 +32,12 @@ class TablesConfig:
         self.tables = tables
 
     @classmethod
-    def from_yaml_root(cls, data_base_dir: Path, tables_root: Path) -> "TablesConfig":
+    def from_yaml_root(
+        cls,
+        data_base_dir: Path,
+        tables_root: Path,
+        dataset: str | None = None,
+    ) -> "TablesConfig":
         """
         Recursively discover per-dataset config.yaml files and load table configs.
 
@@ -40,6 +45,8 @@ class TablesConfig:
         - `tables_root` is a path (relative to data_base_dir) that contains all
           dataset subdirectories. Each dataset directory may contain a config.yaml
           describing one or more tables.
+        - `dataset` is an optional dataset directory name to load. If provided,
+          only the config.yaml in that specific dataset directory is loaded.
         """
         root_dir = data_base_dir / tables_root
         if not root_dir.exists():
@@ -48,10 +55,25 @@ class TablesConfig:
         # Local import to avoid circular dependency with central_gene_table
         from processing.types.table_to_process_config import TableToProcessConfig
 
+        if dataset is not None:
+            dataset_yaml = root_dir / dataset / "config.yaml"
+            if not dataset_yaml.exists():
+                raise FileNotFoundError(
+                    f"config.yaml not found for dataset '{dataset}': {dataset_yaml}"
+                )
+            yaml_paths = [dataset_yaml]
+        else:
+            yaml_paths = sorted(root_dir.rglob("config.yaml"))
+
         tables: list[TableToProcessConfig] = []
-        for yaml_path in root_dir.rglob("config.yaml"):
-            with open(yaml_path, "r") as f:
-                loaded: YamlTablesFile | None = yaml.safe_load(f)  # type: ignore[assignment]
+        for yaml_path in yaml_paths:
+            try:
+                with open(yaml_path, "r") as f:
+                    loaded: YamlTablesFile | None = yaml.safe_load(f)  # type: ignore[assignment]
+            except yaml.YAMLError as e:
+                raise ValueError(
+                    f"Error parsing YAML file {yaml_path}: {e}"
+                ) from e
 
             if loaded is None:
                 continue
@@ -67,9 +89,15 @@ class TablesConfig:
                 merged_config: dict[str, Any] = dict(table_config)
                 if publication:
                     merged_config["_publication"] = publication
-                tables.append(
-                    TableToProcessConfig.from_json(merged_config, base_dir_for_tables)
-                )
+                try:
+                    tables.append(
+                        TableToProcessConfig.from_json(merged_config, base_dir_for_tables)
+                    )
+                except Exception as e:
+                    table_name = table_config.get("table", "<unknown>")
+                    raise ValueError(
+                        f"Error loading table '{table_name}' from {yaml_path}: {e}"
+                    ) from e
 
         return cls(tables)
 
@@ -91,7 +119,7 @@ class TablesConfig:
 
 
 class Config:
-    def __init__(self, config_json_file: Path):
+    def __init__(self, config_json_file: Path, dataset: str | None = None):
         with open(config_json_file, "r") as f:
             config = json.load(f)
 
@@ -106,7 +134,9 @@ class Config:
         # discovered recursively from the configured root directory.
         if "table_config_root" in config:
             tables_root = Path(config["table_config_root"])
-            self.tables_config = TablesConfig.from_yaml_root(self.base_dir, tables_root)
+            self.tables_config = TablesConfig.from_yaml_root(
+                self.base_dir, tables_root, dataset=dataset
+            )
         elif "tables" in config:
             # Fallback for legacy configs that still embed the tables list.
             self.tables_config = TablesConfig.from_legacy_tables_list(
@@ -116,6 +146,6 @@ class Config:
             raise KeyError("Config must define either 'table_config_root' or 'tables'.")
 
 
-@lru_cache(maxsize=1)
-def get_sspsygene_config() -> "Config":
-    return Config(Path(os.environ["SSPSYGENE_CONFIG_JSON"]))
+@lru_cache(maxsize=None)
+def get_sspsygene_config(dataset: str | None = None) -> "Config":
+    return Config(Path(os.environ["SSPSYGENE_CONFIG_JSON"]), dataset=dataset)

@@ -33,7 +33,7 @@ export default async function handler(
     // Get table metadata
     const metadata = db
       .prepare(
-        `SELECT display_columns, description, short_label, long_label,
+        `SELECT display_columns, scalar_columns, description, short_label, long_label,
                 links, categories, organism,
                 publication_first_author, publication_last_author, publication_year,
                 publication_journal, publication_doi, publication_pmid
@@ -41,6 +41,7 @@ export default async function handler(
       )
       .get(tableName) as {
         display_columns: string;
+        scalar_columns: string | null;
         description: string | null;
         short_label: string | null;
         long_label: string | null;
@@ -109,6 +110,10 @@ export default async function handler(
         pmid: metadata.publication_pmid,
       },
       displayColumns: displayCols,
+      scalarColumns: (metadata.scalar_columns || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
       rows,
       totalRows,
     });

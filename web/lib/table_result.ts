@@ -3,6 +3,7 @@ export interface TableResult {
   shortLabel?: string | null;
   description: string | null;
   displayColumns: string[];
+  scalarColumns?: string[];
   rows: Record<string, unknown>[];
   totalRows?: number;
 }
