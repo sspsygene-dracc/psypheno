@@ -15,12 +15,12 @@
     "headlessui": "^0.0.0",
     "igv": "^3.6.0",
     "lucide-react": "^0.555.0",
-    "next": "16.0.7",
+    "next": "^16.1.6",
     "react": "^19",
     "react-dom": "^19",
     "react-highlight-words": "^0.21.0",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^5.0.2",
     "zod": "^4.1.13"
   },
   "devDependencies": {
@@ -29,6 +29,7 @@
     "@types/react": "19.2.7",
     "@types/react-dom": "^19",
     "@types/react-highlight-words": "^0.20.0",
+    "baseline-browser-mapping": "^2.9.19",
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
     "postcss": "^8",
