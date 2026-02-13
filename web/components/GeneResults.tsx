@@ -153,6 +153,35 @@ export default function GeneResults({
                 {section.description}
               </div>
             )}
+            {expandedSections.has(section.tableName) &&
+              section.rows.length > 5 && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    padding: "6px 14px",
+                    background: "#f9fafb",
+                    borderBottom: "1px solid #e5e7eb",
+                  }}
+                >
+                  <button
+                    onClick={() => toggleSection(section.tableName)}
+                    style={{
+                      padding: "6px 12px",
+                      background: "#ffffff",
+                      border: "1px solid #d1d5db",
+                      color: "#1f2937",
+                      borderRadius: 10,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Collapse
+                  </button>
+                </div>
+              )}
             <DataTable
               columns={section.displayColumns}
               rows={section.rows}
