@@ -31,6 +31,9 @@ class TableToProcessConfig:
     long_label: str | None = None
     links: list[str] = field(default_factory=list)
     categories: list[str] = field(default_factory=list)
+    source: str | None = None
+    assay: list[str] = field(default_factory=list)
+    field_labels: dict[str, str] = field(default_factory=dict)
     organism: str | None = None
     publication_first_author: str | None = None
     publication_last_author: str | None = None
@@ -65,7 +68,10 @@ class TableToProcessConfig:
 
     @classmethod
     def from_json(
-        cls, json_data: dict[str, Any], base_dir: Path
+        cls,
+        json_data: dict[str, Any],
+        base_dir: Path,
+        global_field_labels: dict[str, str] | None = None,
     ) -> "TableToProcessConfig":
         publication: dict[str, Any] = json_data.get("_publication") or json_data.get("publication") or {}
         authors: list[str] = list(publication.get("authors", [])) if isinstance(
@@ -79,6 +85,17 @@ class TableToProcessConfig:
             year_int = int(year_val) if year_val is not None else None
         except (TypeError, ValueError):
             year_int = None
+
+        # Assay: normalize string to list
+        raw_assay = json_data.get("assay", [])
+        if isinstance(raw_assay, str):
+            assay = [raw_assay]
+        else:
+            assay = list(raw_assay)
+
+        # Field labels: merge global defaults with per-table overrides
+        merged_field_labels: dict[str, str] = dict(global_field_labels or {})
+        merged_field_labels.update(json_data.get("fieldLabels", {}))
 
         return cls(
             table=json_data["table"],
@@ -97,6 +114,9 @@ class TableToProcessConfig:
             long_label=json_data.get("longLabel"),
             links=list(json_data.get("links", [])),
             categories=list(json_data.get("categories", [])),
+            source=json_data.get("source"),
+            assay=assay,
+            field_labels=merged_field_labels,
             organism=json_data.get("organism"),
             publication_first_author=first_author,
             publication_last_author=last_author,

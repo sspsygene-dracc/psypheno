@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 import sqlite3
@@ -135,7 +136,7 @@ def load_data_tables(
     cur = conn.cursor()
     cur.execute(
         """CREATE TABLE data_tables (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         table_name TEXT,
         short_label TEXT,
         long_label TEXT,
@@ -147,6 +148,9 @@ def load_data_tables(
         link_tables TEXT,
         links TEXT,
         categories TEXT,
+        source TEXT,
+        assay TEXT,
+        field_labels TEXT,
         organism TEXT,
         publication_first_author TEXT,
         publication_last_author TEXT,
@@ -165,15 +169,23 @@ def load_data_tables(
                 link_table.link_table_name, conn, if_exists="replace", index=False
             )
         assert "id" in data_and_meta.data.columns, "id column not found in data"
+
+        # Only store field labels for columns that actually exist in the table
+        display_col_set = set(data_and_meta.display_columns)
+        filtered_field_labels = {
+            k: v for k, v in table_config.field_labels.items()
+            if k in display_col_set
+        }
+
         cur.execute(
             """INSERT INTO data_tables (
-            table_name, short_label, long_label, description, gene_columns, 
-            gene_species, display_columns, 
+            table_name, short_label, long_label, description, gene_columns,
+            gene_species, display_columns,
             scalar_columns, link_tables,
-            links, categories, organism,
+            links, categories, source, assay, field_labels, organism,
             publication_first_author, publication_last_author, publication_year,
             publication_journal, publication_doi, publication_pmid)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -191,6 +203,9 @@ def load_data_tables(
                 ",".join(table_config.categories)
                 if table_config.categories
                 else None,
+                table_config.source,
+                ",".join(table_config.assay) if table_config.assay else None,
+                json.dumps(filtered_field_labels) if filtered_field_labels else None,
                 table_config.organism,
                 table_config.publication_first_author,
                 table_config.publication_last_author,
@@ -208,7 +223,28 @@ def load_data_tables(
     conn.commit()
 
 
-def load_db(db_name: Path, table_configs: list[TableToProcessConfig]) -> None:
+def load_assay_types(
+    conn: sqlite3.Connection, assay_types: dict[str, str]
+) -> None:
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE assay_types (
+        key TEXT PRIMARY KEY,
+        label TEXT)"""
+    )
+    for key, label in assay_types.items():
+        cur.execute(
+            "INSERT INTO assay_types (key, label) VALUES (?, ?)",
+            (key, label),
+        )
+    conn.commit()
+
+
+def load_db(
+    db_name: Path,
+    table_configs: list[TableToProcessConfig],
+    assay_types: dict[str, str] | None = None,
+) -> None:
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
     db_wal = db_name.parent / (db_name.name + "-wal")
@@ -220,3 +256,4 @@ def load_db(db_name: Path, table_configs: list[TableToProcessConfig]) -> None:
         conn = new_sqlite3.conn
         load_data_tables(conn, table_configs)
         load_gene_tables(conn)
+        load_assay_types(conn, assay_types or {})

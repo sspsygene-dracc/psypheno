@@ -15,9 +15,9 @@ export default async function handler(
     const datasets = db
       .prepare(
         `SELECT table_name, short_label, long_label, description, gene_columns, gene_species, display_columns, scalar_columns, link_tables,
-                links, categories, organism,
+                links, categories, source, assay, organism,
                 publication_first_author, publication_last_author, publication_year, publication_journal, publication_doi
-         FROM data_tables 
+         FROM data_tables
          ORDER BY table_name ASC`
       )
       .all() as Array<{
@@ -32,6 +32,8 @@ export default async function handler(
       link_tables: string | null;
       links: string | null;
       categories: string | null;
+      source: string | null;
+      assay: string | null;
       organism: string | null;
       publication_first_author: string | null;
       publication_last_author: string | null;

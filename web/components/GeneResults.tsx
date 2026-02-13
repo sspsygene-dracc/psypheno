@@ -1,6 +1,7 @@
 import { TableResult } from "@/lib/table_result";
 import { useState, useEffect } from "react";
 import DataTable from "@/components/DataTable";
+import InfoTooltip from "@/components/InfoTooltip";
 
 const formatTableName = (section: TableResult) =>
   section.shortLabel ??
@@ -141,6 +142,9 @@ export default function GeneResults({
               }}
             >
               {formatTableName(section)}
+              {section.source && (
+                <InfoTooltip text={`Source: ${section.source}`} size={14} />
+              )}
             </div>
             {section.description && (
               <div
@@ -188,6 +192,7 @@ export default function GeneResults({
               maxRows={expandedSections.has(section.tableName) ? undefined : 5}
               totalRows={section.rows.length}
               scalarColumns={section.scalarColumns}
+              fieldLabels={section.fieldLabels}
               showSummary={false}
             />
             {section.rows.length > 5 && (

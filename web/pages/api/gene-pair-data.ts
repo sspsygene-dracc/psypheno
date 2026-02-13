@@ -31,11 +31,14 @@ export default async function handler(
     const db = getDb();
     const tables = db
       .prepare(
-        `SELECT table_name, short_label, display_columns, scalar_columns, link_tables FROM data_tables ORDER BY id ASC`
+        `SELECT table_name, short_label, description, source, field_labels, display_columns, scalar_columns, link_tables FROM data_tables ORDER BY id ASC`
       )
       .all() as Array<{
         table_name: string;
         short_label: string | null;
+        description: string | null;
+        source: string | null;
+        field_labels: string | null;
         display_columns: string;
         scalar_columns: string | null;
         link_tables: string | null;
@@ -44,6 +47,9 @@ export default async function handler(
     const results: Array<{
       tableName: string;
       shortLabel: string | null;
+      description: string | null;
+      source: string | null;
+      fieldLabels: Record<string, string> | null;
       displayColumns: string[];
       scalarColumns: string[];
       rows: Record<string, unknown>[];
@@ -108,9 +114,20 @@ export default async function handler(
         const stmt = db.prepare(sql);
         const rows = stmt.all(...params) as Record<string, unknown>[];
         if (rows.length > 0) {
+          let fieldLabels: Record<string, string> | null = null;
+          if (t.field_labels) {
+            try {
+              fieldLabels = JSON.parse(t.field_labels);
+            } catch {
+              fieldLabels = null;
+            }
+          }
           results.push({
             tableName: t.table_name,
             shortLabel: t.short_label ?? null,
+            description: t.description ?? null,
+            source: t.source ?? null,
+            fieldLabels,
             displayColumns: displayCols,
             scalarColumns: (t.scalar_columns || "")
               .split(",")

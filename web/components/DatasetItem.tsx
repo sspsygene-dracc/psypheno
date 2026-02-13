@@ -1,4 +1,5 @@
 import React from "react";
+import InfoTooltip from "@/components/InfoTooltip";
 
 export type Dataset = {
   table_name: string;
@@ -12,6 +13,8 @@ export type Dataset = {
   link_tables: string | null;
   links: string | null;
   categories: string | null;
+  source: string | null;
+  assay: string | null;
   organism: string | null;
   publication_first_author: string | null;
   publication_last_author: string | null;
@@ -23,9 +26,10 @@ export type Dataset = {
 type DatasetItemProps = {
   dataset: Dataset;
   onSelect: (tableName: string) => void;
+  assayTypeLabels?: Record<string, string>;
 };
 
-export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
+export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {} }: DatasetItemProps) {
   const prettifiedName = dataset.table_name
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
@@ -114,6 +118,9 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
             }}
           >
             {heading}
+            {dataset.source && (
+              <InfoTooltip text={`Source: ${dataset.source}`} size={14} />
+            )}
           </div>
           {dataset.long_label && (
             <div
@@ -153,6 +160,26 @@ export default function DatasetItem({ dataset, onSelect }: DatasetItemProps) {
               {dataset.organism ?? dataset.gene_species}
             </span>
           )}
+          {dataset.assay &&
+            dataset.assay
+              .split(",")
+              .map((c) => c.trim())
+              .filter(Boolean)
+              .map((a) => (
+                <span
+                  key={`assay-${a}`}
+                  style={{
+                    fontSize: 13,
+                    color: "#1e40af",
+                    backgroundColor: "#dbeafe",
+                    borderRadius: 9999,
+                    padding: "2px 8px",
+                    fontWeight: 500,
+                  }}
+                >
+                  {assayTypeLabels[a] ?? a}
+                </span>
+              ))}
           {dataset.categories &&
             dataset.categories
               .split(",")

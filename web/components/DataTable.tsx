@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import InfoTooltip from "@/components/InfoTooltip";
 
 function formatColumnHeader(col: string): string {
   return col
@@ -25,6 +26,7 @@ export default function DataTable({
   totalRows,
   showSummary = true,
   scalarColumns,
+  fieldLabels,
 }: {
   columns: string[];
   rows: Record<string, unknown>[];
@@ -32,6 +34,7 @@ export default function DataTable({
   totalRows?: number;
   showSummary?: boolean;
   scalarColumns?: string[];
+  fieldLabels?: Record<string, string> | null;
 }) {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("none");
@@ -133,6 +136,9 @@ export default function DataTable({
                   }}
                 >
                   {formatColumnHeader(col)}
+                  {fieldLabels?.[col] && (
+                    <InfoTooltip text={fieldLabels[col]} size={13} />
+                  )}
                   <span
                     style={{
                       fontSize: isActive ? 12 : 18,

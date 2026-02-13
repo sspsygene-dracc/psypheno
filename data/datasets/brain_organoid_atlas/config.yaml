@@ -38,6 +38,7 @@ tables:
       Patient-level metadata linking individuals with neurodevelopmental disorders to their pathogenic
       causative mutations and brain organoid lines. Includes clinical details for microcephaly, polymicrogyria,
       epilepsy, and intellectual disability cases.
+    source: "Supplemental Table EXAMPLE"
     links:
       - https://www.biorxiv.org/content/10.1101/2025.09.12.675864v1
     categories:
@@ -63,6 +64,12 @@ tables:
     description:
       Differentially expressed genes identified using NEBULA (negative binomial mixed model)
       in brain organoids from neurodevelopmental disorder patients at stringent FDR threshold of 0.05.
+    source: "Supplemental Table EXAMPLE"
+    assay: expression
+    fieldLabels:
+      gene_symbol: "HGNC gene symbol"
+      logfc: "Log fold change"
+      pvalue: "Nominal p-value"
     links:
       - https://www.biorxiv.org/content/10.1101/2025.09.12.675864v1
     categories:

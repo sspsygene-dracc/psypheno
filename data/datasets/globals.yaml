@@ -1,0 +1,12 @@
+fieldLabels:
+  p_value: "P-value (statistical significance)"
+  log2_fold_change: "Log2 fold change"
+  fdr: "False discovery rate (adjusted p-value)"
+
+assayTypes:
+  expression: "Gene Expression (RNA-seq)"
+  spatial: "Spatial Transcriptomics"
+  behavior: "Behavioral Assays"
+  perturbation: "Perturbation Screen"
+  curated: "Curated Database"
+  phenotype: "Phenotype Annotation"

@@ -44,7 +44,11 @@ def load_db(dataset: str | None) -> None:
 
         config = get_sspsygene_config(dataset=dataset)
         config.out_db.parent.mkdir(parents=True, exist_ok=True)
-        load_db(config.out_db, config.tables_config.tables)
+        load_db(
+            config.out_db,
+            config.tables_config.tables,
+            assay_types=config.global_config.get("assayTypes", {}),
+        )
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)

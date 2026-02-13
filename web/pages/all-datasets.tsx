@@ -3,6 +3,7 @@ import Head from "next/head";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DataTable from "@/components/DataTable";
+import InfoTooltip from "@/components/InfoTooltip";
 import DatasetItem, { Dataset } from "@/components/DatasetItem";
 
 type DatasetData = {
@@ -11,8 +12,11 @@ type DatasetData = {
   longLabel: string | null;
   description: string | null;
   organism: string | null;
+  source: string | null;
   links: string[];
   categories: string[];
+  assay: string[];
+  fieldLabels: Record<string, string> | null;
   publication: {
     firstAuthor: string | null;
     lastAuthor: string | null;
@@ -34,6 +38,7 @@ export default function AllDatasets() {
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
   const [datasetData, setDatasetData] = useState<DatasetData | null>(null);
   const [loadingData, setLoadingData] = useState(false);
+  const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchDatasets = async () => {
@@ -48,7 +53,19 @@ export default function AllDatasets() {
         setLoading(false);
       }
     };
+    const fetchAssayTypes = async () => {
+      try {
+        const res = await fetch("/api/assay-types");
+        if (res.ok) {
+          const data = await res.json();
+          setAssayTypeLabels(data.assayTypes ?? {});
+        }
+      } catch {
+        // Non-critical, assay keys will be shown as-is
+      }
+    };
     fetchDatasets();
+    fetchAssayTypes();
   }, []);
 
   useEffect(() => {
@@ -165,6 +182,7 @@ export default function AllDatasets() {
                       key={dataset.table_name}
                       dataset={dataset}
                       onSelect={setSelectedDataset}
+                      assayTypeLabels={assayTypeLabels}
                     />
                   ))}
                 </div>
@@ -196,6 +214,9 @@ export default function AllDatasets() {
                             /\w\S*/g,
                             (txt) => txt.charAt(0).toUpperCase() + txt.slice(1)
                           )}
+                      {datasetData?.source && (
+                        <InfoTooltip text={`Source: ${datasetData.source}`} size={14} />
+                      )}
                     </div>
 
                     {loadingData && (
@@ -217,6 +238,7 @@ export default function AllDatasets() {
                         maxRows={100}
                         totalRows={datasetData.totalRows}
                         scalarColumns={datasetData.scalarColumns}
+                        fieldLabels={datasetData.fieldLabels}
                       />
                     )}
                   </div>

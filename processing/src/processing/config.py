@@ -22,6 +22,11 @@ class GeneMapConfig:
         )
 
 
+class GlobalConfig(TypedDict, total=False):
+    fieldLabels: dict[str, str]
+    assayTypes: dict[str, str]
+
+
 class YamlTablesFile(TypedDict, total=False):
     tables: List[dict[str, Any]]
     publication: dict[str, Any]
@@ -37,6 +42,7 @@ class TablesConfig:
         data_base_dir: Path,
         tables_root: Path,
         dataset: str | None = None,
+        global_config: "GlobalConfig | None" = None,
     ) -> "TablesConfig":
         """
         Recursively discover per-dataset config.yaml files and load table configs.
@@ -47,6 +53,7 @@ class TablesConfig:
           describing one or more tables.
         - `dataset` is an optional dataset directory name to load. If provided,
           only the config.yaml in that specific dataset directory is loaded.
+        - `global_config` provides global field labels and assay type definitions.
         """
         root_dir = data_base_dir / tables_root
         if not root_dir.exists():
@@ -54,6 +61,8 @@ class TablesConfig:
 
         # Local import to avoid circular dependency with central_gene_table
         from processing.types.table_to_process_config import TableToProcessConfig
+
+        global_field_labels: dict[str, str] = (global_config or {}).get("fieldLabels", {})
 
         if dataset is not None:
             dataset_yaml = root_dir / dataset / "config.yaml"
@@ -91,7 +100,11 @@ class TablesConfig:
                     merged_config["_publication"] = publication
                 try:
                     tables.append(
-                        TableToProcessConfig.from_json(merged_config, base_dir_for_tables)
+                        TableToProcessConfig.from_json(
+                            merged_config,
+                            base_dir_for_tables,
+                            global_field_labels=global_field_labels,
+                        )
                     )
                 except Exception as e:
                     table_name = table_config.get("table", "<unknown>")
@@ -130,12 +143,23 @@ class Config:
         self.out_db: Path = self.base_dir / config["out_db"]
         self.gene_map_config = GeneMapConfig(self.base_dir, config["gene_map_files"])
 
+        # Load global config (field labels, assay types) if specified
+        self.global_config: GlobalConfig = {}
+        if "global_config" in config:
+            global_yaml_path = self.base_dir / config["global_config"]
+            if global_yaml_path.exists():
+                with open(global_yaml_path, "r") as f:
+                    loaded_global = yaml.safe_load(f)
+                if loaded_global:
+                    self.global_config = loaded_global
+
         # New: load table configurations from per-dataset YAML files,
         # discovered recursively from the configured root directory.
         if "table_config_root" in config:
             tables_root = Path(config["table_config_root"])
             self.tables_config = TablesConfig.from_yaml_root(
-                self.base_dir, tables_root, dataset=dataset
+                self.base_dir, tables_root, dataset=dataset,
+                global_config=self.global_config,
             )
         elif "tables" in config:
             # Fallback for legacy configs that still embed the tables list.

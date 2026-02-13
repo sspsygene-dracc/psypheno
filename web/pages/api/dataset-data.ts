@@ -34,7 +34,7 @@ export default async function handler(
     const metadata = db
       .prepare(
         `SELECT display_columns, scalar_columns, description, short_label, long_label,
-                links, categories, organism,
+                links, categories, source, assay, field_labels, organism,
                 publication_first_author, publication_last_author, publication_year,
                 publication_journal, publication_doi, publication_pmid
          FROM data_tables WHERE table_name = ?`
@@ -47,6 +47,9 @@ export default async function handler(
         long_label: string | null;
         links: string | null;
         categories: string | null;
+        source: string | null;
+        assay: string | null;
+        field_labels: string | null;
         organism: string | null;
         publication_first_author: string | null;
         publication_last_author: string | null;
@@ -93,14 +96,32 @@ export default async function handler(
         .map((s) => s.trim())
         .filter(Boolean) ?? [];
 
+    const assay =
+      metadata.assay
+        ?.split(",")
+        .map((s) => s.trim())
+        .filter(Boolean) ?? [];
+
+    let fieldLabels: Record<string, string> | null = null;
+    if (metadata.field_labels) {
+      try {
+        fieldLabels = JSON.parse(metadata.field_labels);
+      } catch {
+        fieldLabels = null;
+      }
+    }
+
     return res.status(200).json({
       tableName,
       description: metadata.description ?? null,
       shortLabel: metadata.short_label ?? null,
       longLabel: metadata.long_label ?? null,
       organism: metadata.organism ?? null,
+      source: metadata.source ?? null,
       links,
       categories,
+      assay,
+      fieldLabels,
       publication: {
         firstAuthor: metadata.publication_first_author,
         lastAuthor: metadata.publication_last_author,

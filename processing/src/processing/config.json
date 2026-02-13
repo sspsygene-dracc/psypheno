@@ -6,5 +6,6 @@
     "hgnc": "homology/hgnc_complete_set.txt",
     "alliance_homology_file": "homology/HGNC_AllianceHomology.rpt"
   },
-  "table_config_root": "datasets"
+  "table_config_root": "datasets",
+  "global_config": "datasets/globals.yaml"
 }
