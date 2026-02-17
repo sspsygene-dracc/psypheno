@@ -94,3 +94,25 @@ tables:
           SCO2.1: SCO2
           LINC01238.1: LINC01238
           POLR2J3.1: POLR2J3
+  - table: Perturbed_Baseline_behavior_pvalues
+    shortLabel: Mutant behavior fingerprints
+    longLabel: Mutant zebrafish baseline behavioral fingerprint pvalues 
+    description:
+      Comparing behaviors in stable mutant and background-matched wild-type fish pvalues.
+      Mutant behavioral fingerprint across startle-OFF, startle-ON, and sleep-wake parameters.
+    links:
+      - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4
+    categories:
+      - mutant zebrafish
+      - behavioral fingerprints 
+    organism: Danio rerio (crispant mutants)
+    in_path: HumanName_Baseline_behavior_pvalues.csv
+    separator: ","
+    split_column_map: []
+    gene_mappings:
+      - column_name: human_gene_name
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
