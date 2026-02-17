@@ -18,7 +18,17 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [generalData, setGeneralData] = useState<TableResult[]>([]);
   const [pairData, setPairData] = useState<TableResult[]>([]);
+  const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
   const hydratedFromQuery = useRef<boolean>(false);
+
+  useEffect(() => {
+    fetch("/api/assay-types")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.assayTypes) setAssayTypeLabels(data.assayTypes);
+      })
+      .catch(() => {});
+  }, []);
 
   // Resolve a gene symbol to a SearchSuggestion via the search API
   const resolveSymbol = async (
@@ -373,6 +383,7 @@ export default function Home() {
                   <GeneResults
                     geneDisplayName={displayGeneString()}
                     data={searchMode === "general" ? generalData : pairData}
+                    assayTypeLabels={assayTypeLabels}
                   />
                 )}
               </div>
