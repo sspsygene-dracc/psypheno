@@ -28,6 +28,9 @@ tables:
       Spatial transcriptomics and functional calcium imaging screen of 127 autism spectrum disorder
       risk genes in human iPSC-derived astrocytes. Combines Perturb-FISH with ATP-stimulated calcium activity
       phenotypes to link genetic perturbations with transcriptional and functional profiles.
+    assay:
+      - spatial
+      - perturbation
     links:
       - https://www.cell.com/cell/fulltext/S0092-8674(25)00197-7
     categories:

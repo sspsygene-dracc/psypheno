@@ -67,8 +67,6 @@ export default function GeneResults({
           style={{
             width: 220,
             flexShrink: 0,
-            position: "sticky",
-            top: 20,
             background: "#f9fafb",
             border: "1px solid #e5e7eb",
             borderRadius: 12,

@@ -16,6 +16,7 @@ tables:
     description:
       Differentially expressed genes associated with aging in brain tissue from large psychiatric
       cohorts. Aggregates transcriptomic signatures across age-related comparisons.
+    assay: expression
     links:
       - https://downloads.wenglab.org/Age_DEGcombined.csv
       - https://psychscreen.org
@@ -40,6 +41,7 @@ tables:
     description:
       Differentially expressed genes in autism spectrum disorder from aggregated postmortem brain
       transcriptomic studies. Provides ASD-specific gene expression changes across brain regions.
+    assay: expression
     links:
       - https://downloads.wenglab.org/ASD_DEGcombined.csv
       - https://psychscreen.org
@@ -64,6 +66,7 @@ tables:
     description:
       Differentially expressed genes in bipolar disorder from aggregated postmortem brain transcriptomic
       studies. Captures transcriptional alterations associated with bipolar disorder.
+    assay: expression
     links:
       - https://downloads.wenglab.org/Bipolar_DEGcombined.csv
       - https://psychscreen.org
@@ -88,6 +91,7 @@ tables:
     description:
       Differentially expressed genes in schizophrenia from aggregated postmortem brain transcriptomic
       studies. Provides schizophrenia-specific transcriptional changes across brain regions.
+    assay: expression
     links:
       - https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv
       - https://psychscreen.org

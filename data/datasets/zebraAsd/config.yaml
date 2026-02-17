@@ -49,6 +49,7 @@ tables:
       Parallel functional analysis of 10 autism spectrum disorder risk genes in zebrafish, measuring
       behavioral, structural, and circuit-level phenotypes. Identifies convergence on dopaminergic and neuroimmune
       pathways across ASD gene perturbations.
+    assay: behavior
     links:
       - https://www.cell.com/cell-reports/fulltext/S2211-1247(23)00254-1
     categories:

@@ -41,6 +41,7 @@ tables:
       Cell-type-specific differential expression results from massively parallel in vivo Perturb-seq
       targeting Foxg1, Nr2f1, Tbr1, and Tcf4 in developing mouse cortex. Captures transcriptional changes
       across excitatory and inhibitory neuron subtypes.
+    assay: perturbation
     links:
       - https://www.cell.com/cell/fulltext/S0092-8674(24)00476-8
     categories:
@@ -76,6 +77,7 @@ tables:
       Quantification of cell type and subcluster abundance changes resulting from CRISPR perturbations
       of four neurodevelopmental transcription factors in mouse cortex, revealing cell fate specification
       effects.
+    assay: perturbation
     links:
       - https://www.cell.com/cell/fulltext/S0092-8674(24)00476-8
     categories:

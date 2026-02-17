@@ -99,6 +99,7 @@ tables:
     description:
       Differentially expressed genes identified using NEBULA in brain organoids from neurodevelopmental
       disorder patients at relaxed FDR threshold of 0.2, capturing additional candidate genes.
+    assay: expression
     links:
       - https://www.biorxiv.org/content/10.1101/2025.09.12.675864v1
     categories:
@@ -128,6 +129,7 @@ tables:
     description:
       Comprehensive gene-level screen showing all differentially expressed genes across brain
       organoid subclasses and neurodevelopmental disease categories using single-cell NEBULA analysis.
+    assay: expression
     links:
       - https://www.biorxiv.org/content/10.1101/2025.09.12.675864v1
     categories:
@@ -158,6 +160,7 @@ tables:
     description:
       Wilcoxon test results for selected genes across cell subclass pseudobulk comparisons, providing
       validation of single-cell differential expression findings with FDR-adjusted p-values.
+    assay: expression
     links:
       - https://www.biorxiv.org/content/10.1101/2025.09.12.675864v1
     categories:

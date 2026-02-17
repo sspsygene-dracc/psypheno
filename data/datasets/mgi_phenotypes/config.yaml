@@ -22,6 +22,7 @@ tables:
     description:
       Curated phenotypic annotations for mouse mutant alleles from MGI, mapping Mammalian Phenotype
       Ontology terms to Ensembl mouse genes. Provides organism-level phenotypes for genetic perturbations.
+    assay: phenotype
     links:
       - https://www.informatics.jax.org
       - https://www.informatics.jax.org/downloads/reports/MGI_PhenotypicAllele.rpt

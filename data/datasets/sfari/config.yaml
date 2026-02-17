@@ -16,6 +16,7 @@ tables:
     description:
       Curated animal model data for autism spectrum disorder candidate genes from SFARI Gene
       database. Includes functional evidence from rodent, zebrafish, and other model organism studies.
+    assay: curated
     links:
       - https://gene.sfari.org
     categories:
@@ -39,6 +40,7 @@ tables:
     description:
       Curated rescue experiment data showing genetic or pharmacological interventions that ameliorate
       autism-related phenotypes in animal models. Maps rescue strategies to ASD candidate genes.
+    assay: curated
     links:
       - https://gene.sfari.org
     categories:
@@ -62,6 +64,7 @@ tables:
     description:
       Curated human genetic evidence for autism spectrum disorder candidate genes with assigned
       confidence scores. Aggregates de novo mutations, inherited variants, and functional data.
+    assay: curated
     links:
       - https://gene.sfari.org
     categories:
