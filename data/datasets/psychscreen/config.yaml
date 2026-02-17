@@ -1,8 +1,17 @@
 publication:
   authors:
-    - Weng Lab
-  year: 2023
-  journal: Resource
+    - Henry E Pratt
+    - Gregory Andrews
+    - Nicole Shedd
+    - Nishigandha Phalke
+    - Tongyu Li
+    - Anusri Pampari
+    - Matthew Jensen
+    - Chengyu Wen
+    - Zhiping Weng
+  year: 2024
+  journal: Science Advances
+  doi: 10.1126/sciadv.adj4452
   pmid: null
 maintainers:
   - name: Johannes Birgmeier
@@ -16,6 +25,7 @@ tables:
     description:
       Differentially expressed genes associated with aging in brain tissue from large psychiatric
       cohorts. Aggregates transcriptomic signatures across age-related comparisons.
+    source: "PsychScreen download (psychscreen.org)"
     assay: expression
     links:
       - https://downloads.wenglab.org/Age_DEGcombined.csv
@@ -41,6 +51,7 @@ tables:
     description:
       Differentially expressed genes in autism spectrum disorder from aggregated postmortem brain
       transcriptomic studies. Provides ASD-specific gene expression changes across brain regions.
+    source: "PsychScreen download (psychscreen.org)"
     assay: expression
     links:
       - https://downloads.wenglab.org/ASD_DEGcombined.csv
@@ -66,6 +77,7 @@ tables:
     description:
       Differentially expressed genes in bipolar disorder from aggregated postmortem brain transcriptomic
       studies. Captures transcriptional alterations associated with bipolar disorder.
+    source: "PsychScreen download (psychscreen.org)"
     assay: expression
     links:
       - https://downloads.wenglab.org/Bipolar_DEGcombined.csv
@@ -91,6 +103,7 @@ tables:
     description:
       Differentially expressed genes in schizophrenia from aggregated postmortem brain transcriptomic
       studies. Provides schizophrenia-specific transcriptional changes across brain regions.
+    source: "PsychScreen download (psychscreen.org)"
     assay: expression
     links:
       - https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv

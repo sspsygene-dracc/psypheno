@@ -1,7 +1,17 @@
 fieldLabels:
-  p_value: "P-value (statistical significance)"
-  log2_fold_change: "Log2 fold change"
+  p_value: "P-value"
+  pvalue: "Nominal p-value"
+  padj: "BH-adjusted p-value"
   fdr: "False discovery rate (adjusted p-value)"
+  qval: "Q-value (FDR-adjusted p-value)"
+  logfc: "Log fold change"
+  lfc: "Log fold change"
+  log2foldchange: "Log2 fold change"
+  log2_fold_change: "Log2 fold change"
+  basemean: "Mean of normalized counts (DESeq2)"
+  lfcse: "Log fold change standard error"
+  stat: "Wald test statistic (DESeq2)"
+  cell_type: "Brain cell type"
 
 assayTypes:
   expression: "Gene Expression (RNA-seq)"

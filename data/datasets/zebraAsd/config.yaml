@@ -49,7 +49,18 @@ tables:
       Parallel functional analysis of 10 autism spectrum disorder risk genes in zebrafish, measuring
       behavioral, structural, and circuit-level phenotypes. Identifies convergence on dopaminergic and neuroimmune
       pathways across ASD gene perturbations.
+    source: "Table S4"
     assay: behavior
+    fieldLabels:
+      mutant_experiment_sample: "Mutant/experiment/genotype/replicate identifier"
+      forebrain: "Forebrain pERK/tERK activity ratio"
+      optic_tectum: "Optic tectum pERK/tERK activity ratio"
+      thalamus: "Thalamus pERK/tERK activity ratio"
+      hypothalamus: "Hypothalamus pERK/tERK activity ratio"
+      cerebellum: "Cerebellum pERK/tERK activity ratio"
+      hindbrain: "Hindbrain pERK/tERK activity ratio"
+      habenula: "Habenula pERK/tERK activity ratio"
+      posterior_tuberculum: "Posterior tuberculum pERK/tERK activity ratio"
     links:
       - https://www.cell.com/cell-reports/fulltext/S2211-1247(23)00254-1
     categories:

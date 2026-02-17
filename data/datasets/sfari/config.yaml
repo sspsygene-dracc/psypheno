@@ -1,9 +1,11 @@
 publication:
   authors:
-    - SFARI Gene Consortium
-  year: 2025
-  journal: Resource
-  pmid: null
+    - Sharmila Banerjee-Basu
+    - Alan Packer
+  year: 2010
+  journal: Disease Models & Mechanisms
+  doi: 10.1242/dmm.005439
+  pmid: "20212079"
 maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
@@ -16,7 +18,15 @@ tables:
     description:
       Curated animal model data for autism spectrum disorder candidate genes from SFARI Gene
       database. Includes functional evidence from rodent, zebrafish, and other model organism studies.
+    source: "SFARI Gene database export (07-08-2025 release)"
     assay: curated
+    fieldLabels:
+      status: "Curation status"
+      human_gene_score: "SFARI gene score (strength of ASD evidence)"
+      human_syndromic: "Whether gene is linked to a syndromic form of ASD"
+      syntenic: "Syntenic region conserved across species"
+      number_of_models: "Number of animal models available"
+      has_rescue_model: "Whether a rescue model exists"
     links:
       - https://gene.sfari.org
     categories:
@@ -40,7 +50,16 @@ tables:
     description:
       Curated rescue experiment data showing genetic or pharmacological interventions that ameliorate
       autism-related phenotypes in animal models. Maps rescue strategies to ASD candidate genes.
+    source: "SFARI Gene database export (07-08-2025 release)"
     assay: curated
+    fieldLabels:
+      status: "Curation status"
+      model_id: "SFARI model identifier"
+      model_type: "Type of animal model (genetic, rescue, inbred, CNV, induced)"
+      rescue_type: "Type of rescue intervention"
+      rescue_agent: "Rescue agent or compound used"
+      number_of_rescue_models: "Number of rescue models"
+      parent_model_name: "Name of the parent animal model"
     links:
       - https://gene.sfari.org
     categories:
@@ -64,7 +83,15 @@ tables:
     description:
       Curated human genetic evidence for autism spectrum disorder candidate genes with assigned
       confidence scores. Aggregates de novo mutations, inherited variants, and functional data.
+    source: "SFARI Gene database export (07-08-2025 release)"
     assay: curated
+    fieldLabels:
+      status: "Curation status"
+      genetic_category: "Genetic evidence category"
+      gene_score: "SFARI gene score (1=high confidence, 2=strong candidate, 3=suggestive evidence)"
+      syndromic: "Whether gene is linked to a syndromic form of ASD"
+      eagle: "EAGLE automated gene scoring"
+      number_of_reports: "Number of publications reporting this gene"
     links:
       - https://gene.sfari.org
     categories:

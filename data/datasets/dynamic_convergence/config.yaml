@@ -50,7 +50,17 @@ tables:
       Meta-differentially expressed genes showing convergent transcriptional effects across 29
       neurodevelopmental disorder risk genes in neural progenitors, glutamatergic neurons, and GABAergic
       neurons. Integrates effect sizes and significance across cell types and developmental stages.
+    source: "Supplemental Data 2"
     assay: perturbation
+    fieldLabels:
+      markername: "Gene name"
+      weight: "Meta-analysis sample size weight"
+      zscore: "Combined Z-score from METAL meta-analysis"
+      direction: "Direction of effect across studies (+/-)"
+      hetisq: "I-squared heterogeneity statistic (%)"
+      hetchisq: "Cochran's Q heterogeneity chi-square"
+      hetdf: "Heterogeneity degrees of freedom"
+      hetpval: "Heterogeneity p-value"
     links:
       - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4
     categories:

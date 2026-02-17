@@ -28,6 +28,10 @@ tables:
       Spatial transcriptomics and functional calcium imaging screen of 127 autism spectrum disorder
       risk genes in human iPSC-derived astrocytes. Combines Perturb-FISH with ATP-stimulated calcium activity
       phenotypes to link genetic perturbations with transcriptional and functional profiles.
+    source: "Extracted from supplemental LFC and q-value matrices"
+    fieldLabels:
+      perturbgene: "CRISPR-targeted gene (perturbation)"
+      gene: "Differentially expressed target gene"
     assay:
       - spatial
       - perturbation
@@ -45,7 +49,7 @@ tables:
     gene_mappings:
       - column_name: perturbGene
         link_table_name: perturbGene
-        comment: this zebrafish dataset seems to list human gene names
+        comment: human iPSC-derived astrocyte dataset
         species: human
         ignore_missing:
           - Control_ST
@@ -53,7 +57,7 @@ tables:
         is_target: false
       - column_name: gene
         link_table_name: gene
-        comment: this zebrafish dataset seems to list human gene names
+        comment: human iPSC-derived astrocyte dataset
         species: human
         is_perturbed: false
         is_target: true

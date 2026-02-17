@@ -1,15 +1,14 @@
 publication:
   authors:
-    - Carol J Bult
-    - Judith A Blake
-    - James A Kadin
+    - Richard M Baldarelli
+    - Cynthia L Smith
+    - Martin Ringwald
     - Joel E Richardson
-    - Janan T Eppig
-    - Mouse Genome Database Group
-  year: 2019
-  journal: Nucleic Acids Research
-  doi: 10.1093/nar/gky1056
-  pmid: "30407594"
+    - Carol J Bult
+  year: 2024
+  journal: Genetics
+  doi: 10.1093/genetics/iyae031
+  pmid: "38531069"
 maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
@@ -22,7 +21,20 @@ tables:
     description:
       Curated phenotypic annotations for mouse mutant alleles from MGI, mapping Mammalian Phenotype
       Ontology terms to Ensembl mouse genes. Provides organism-level phenotypes for genetic perturbations.
+    source: "MGI Phenotypic Allele Report (informatics.jax.org)"
     assay: phenotype
+    fieldLabels:
+      mgi_allele_accession_id: "MGI accession ID for the allele"
+      allele_symbol: "Standard allele symbol notation"
+      high_level_mammalian_phenotype_names_comma_delimited_: "Top-level Mammalian Phenotype ontology terms"
+      allele_type: "Type of allele (targeted, gene trap, endonuclease-mediated, etc.)"
+      allele_attribute: "Allele attributes (null/knockout, conditional ready, etc.)"
+      pubmed_id_for_original_reference: "PubMed ID of the original publication"
+      mgi_marker_accession_id: "MGI accession ID for the gene marker"
+      marker_refseq_id: "RefSeq gene ID"
+      marker_ensembl_id: "Ensembl gene ID"
+      high_level_mammalian_phenotype_id_comma_delimited_: "MP ontology term IDs"
+      synonyms_delimited_: "Gene/allele synonyms"
     links:
       - https://www.informatics.jax.org
       - https://www.informatics.jax.org/downloads/reports/MGI_PhenotypicAllele.rpt
