@@ -182,6 +182,14 @@ This will:
 
 The configuration file (`processing/src/processing/config.json`) defines where to write the database (`out_db`), which homology mapping files to use, and the root directory (`table_config_root`) where dataset `config.yaml` files are discovered.
 
+#### Load specific database
+
+```bash
+sspsygene load-db --dataset directory_name_dataset
+```
+This will load the config.yaml at the named location ( ```sspsygene_website/data/datasets/directory_name_dataset```)
+
+
 ### After Reloading the Database (Production)
 
 After rebuilding the database on `hgwdev`, restart the SSPSyGene data web service so the running Next.js app sees the updated SQLite file:
