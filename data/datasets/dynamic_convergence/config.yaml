@@ -94,3 +94,54 @@ tables:
           SCO2.1: SCO2
           LINC01238.1: LINC01238
           POLR2J3.1: POLR2J3
+  - table: Perturbed_Baseline_behavior_pvalues
+    shortLabel: Mutant behavior fingerprints
+    source: "Supplemental Data 3 download media-5.xlsx"
+    longLabel: Mutant zebrafish baseline behavioral fingerprint pvalues
+    description:
+      Comparing behaviors in stable mutant and background-matched wild-type fish pvalues.
+      Mutant behavioral fingerprint across startle-OFF, startle-ON, and sleep-wake parameters.
+    links:
+      - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4
+    categories:
+      - mutant zebrafish
+      - behavioral fingerprints
+    assay: behavior
+    fieldLabels:
+       human_gene_name: "Human Gene Name"
+       zebrafish_mutant: "Zebrafish Mutant"
+       activityd: "Average Activity Day"
+       activityn: "Average Activity Night"
+       wakingactivityd: "Average Waking Activity Day"
+       wakingactivityn: "Average Waking Activity Night"
+       restboutd: "Sleep Bouts Day"
+       restboutn: "Sleep Bouts Night"
+       sleeplatencyd: "Sleep Latency Day"
+       sleeplatencyn: "Sleep Latency Night"
+       sleeplengthd: "Sleep Length Day"
+       sleeplengthn: "Sleep Length Night"
+       sleepd: "Sleep Day"
+       sleepn: "Sleep Night"
+       on_avg_stim: "Startle-On Average Response to all Stimuli"
+       on_avg_post: "Startle-On Average Activity after all Stimuli"
+       on_avg_stim1: "Startle-On Average Response to Stimulus #1"
+       on_avg_post1: "Startle-On Average Activity after Stimulus #1"
+       on_avg_stimvpost: "Startle-On Average Difference between response to stimuli versus activity after stimulus"
+       on_avg_stim5: "Startle-On Average Response to Stimulus #5"
+       off_avg_stim: "Startle-Off Average Response to all Stimuli"
+       off_avg_post: "Startle-Off Average Activity after all Stimuli"
+       off_avg_stim1: "Startle-Off Average Response to Stimulus #1"
+       off_avg_post1: "Startle-Off Average Activity after Stimulus #1"
+       off_avg_stimvpost: "Startle-Off Average Difference between response to stimuli versus activity after stimulus"
+       off_avg_stim5: "Startle-Off Average Response to Stimulus #5"
+    organism: Danio rerio (crispant mutants)
+    in_path: HumanName_Baseline_behavior_pvalues.csv
+    separator: ","
+    split_column_map: []
+    gene_mappings:
+      - column_name: human_gene_name
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
