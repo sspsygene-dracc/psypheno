@@ -182,12 +182,15 @@ This will:
 
 The configuration file (`processing/src/processing/config.json`) defines where to write the database (`out_db`), which homology mapping files to use, and the root directory (`table_config_root`) where dataset `config.yaml` files are discovered.
 
-#### Load specific database
+#### Load specific database on dev
 
 ```bash
 sspsygene load-db --dataset directory_name_dataset
 ```
-This will load the config.yaml at the named location ( ```sspsygene_website/data/datasets/directory_name_dataset```)
+For testing purposes this will load the config.yaml at the named
+location ( ```sspsygene_website/data/datasets/directory_name_dataset```).
+Only those tables will populate. You will need to run
+```bash sspsygene load-db ``` to return all tables. 
 
 
 ### After Reloading the Database (Production)
