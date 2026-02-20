@@ -189,8 +189,8 @@ sspsygene load-db --dataset directory_name_dataset
 ```
 For testing purposes this will load the config.yaml at the named
 location ( ```sspsygene_website/data/datasets/directory_name_dataset```).
-Only those tables will populate. You will need to run
-```bash sspsygene load-db ``` to return all tables. 
+Only those tables will populate to allow quick testing of changes.
+You will need to run ```sspsygene load-db ``` to return all tables when done.
 
 
 ### After Reloading the Database (Production)
