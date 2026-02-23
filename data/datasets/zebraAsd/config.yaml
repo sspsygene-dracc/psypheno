@@ -85,3 +85,38 @@ tables:
           SCN1LAB: SCN1A
         is_perturbed: false
         is_target: false
+  - table: RestWake_VisStart_byGene
+    shortLabel: Mutant behavior rest-wake and visual-startle
+    source: "Supplemental Table S2, Related to Figure 2"
+    longLabel: "Sleep-wake and Visual-Startle Parameters in Zebrafish Mutants of 10 ASD Genes"
+    description:
+        "Experimental setup and behavioral assays. Visual-startle: Larvae are exposed to
+        five 1-s flashes of lights-off or -on stimuli at 29-s intervals at 5 dpf. Sleep-wake:
+        Larvae are exposed to a 14 h:10 h white light:dark schedule at 5–7 dpf."
+    links:
+      - https://ars.els-cdn.com/content/image/1-s2.0-S2211124723002541-mmc3.xlsx
+    categories:
+      - mutant zebrafish
+      - behavioral fingerprints
+    assay: behavior
+    fieldLabels:
+      human_gene_name: "Human Gene Name"
+      mutant_line: "Mutant Zebrafish line"
+      behavioral_parameter: "Behavioral data captured in either rest-wake or visual-startle tests"
+      wt_mean: "Mean for Wild-type Data"
+      wt_sd: "Standard Deviation for Wild-type Data"
+      mutant_mean: "Mean for Mutant Data"
+      mutant_sd: "Standard Deviation for Mutant Data"
+      beta: "The change in the outcome variable (phenotype/expression) associated with having the mutation"
+      pvalue: "Nominal p-value"
+    organism: Danio rerio (crispant mutants)
+    in_path: RestWake_VisStart_byGene.csv
+    separator: ","
+    split_column_map: []
+    gene_mappings:
+      - column_name: human_gene_name
+        link_table_name: gene
+        species: human
+        ignore_missing: []
+        is_perturbed: false
+        is_target: false
