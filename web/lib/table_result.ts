@@ -9,6 +9,7 @@ export interface TableResult {
   scalarColumns?: string[];
   publicationFirstAuthor?: string | null;
   publicationLastAuthor?: string | null;
+  publicationAuthorCount?: number | null;
   publicationYear?: number | null;
   publicationJournal?: string | null;
   publicationDoi?: string | null;

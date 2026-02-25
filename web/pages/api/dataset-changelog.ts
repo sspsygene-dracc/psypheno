@@ -17,7 +17,7 @@ export default async function handler(
         `SELECT c.date, c.message, c.table_name,
                 d.short_label, d.long_label, d.description,
                 d.organism, d.source,
-                d.publication_first_author, d.publication_last_author,
+                d.publication_first_author, d.publication_last_author, d.publication_author_count,
                 d.publication_year, d.publication_journal, d.publication_doi
          FROM changelog_entries c
          JOIN data_tables d ON c.table_name = d.table_name
@@ -34,6 +34,7 @@ export default async function handler(
       source: string | null;
       publication_first_author: string | null;
       publication_last_author: string | null;
+      publication_author_count: number | null;
       publication_year: number | null;
       publication_journal: string | null;
       publication_doi: string | null;

@@ -155,6 +155,7 @@ class TableToProcessConfig:
             organism=json_data.get("organism"),
             publication_first_author=first_author,
             publication_last_author=last_author,
+            publication_author_count=author_count,
             publication_year=year_int,
             publication_journal=publication.get("journal"),
             publication_doi=publication.get("doi"),

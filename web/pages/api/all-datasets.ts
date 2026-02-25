@@ -16,7 +16,7 @@ export default async function handler(
       .prepare(
         `SELECT table_name, short_label, long_label, description, gene_columns, gene_species, display_columns, scalar_columns, link_tables,
                 links, categories, source, assay, organism,
-                publication_first_author, publication_last_author, publication_year, publication_journal, publication_doi
+                publication_first_author, publication_last_author, publication_author_count, publication_year, publication_journal, publication_doi
          FROM data_tables
          ORDER BY table_name ASC`
       )
@@ -37,6 +37,7 @@ export default async function handler(
       organism: string | null;
       publication_first_author: string | null;
       publication_last_author: string | null;
+      publication_author_count: number | null;
       publication_year: number | null;
       publication_journal: string | null;
       publication_doi: string | null;

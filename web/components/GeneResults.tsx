@@ -10,9 +10,12 @@ const formatTableName = (section: TableResult) =>
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
 
-const formatAuthors = (first: string | null | undefined, last: string | null | undefined) => {
+const formatAuthors = (first: string | null | undefined, last: string | null | undefined, count: number | null | undefined) => {
   if (!first && !last) return "";
-  if (first && last) return first === last ? first : `${first} & ${last}`;
+  if (first && last) {
+    if (first === last) return first;
+    return count != null && count > 2 ? `${first}, ..., ${last}` : `${first} & ${last}`;
+  }
   if (first) return `${first} et al.`;
   return last ?? "";
 };
@@ -470,7 +473,7 @@ export default function GeneResults({
                       }}
                     >
                       <span style={{ fontWeight: 500 }}>Publication:</span>{" "}
-                      {formatAuthors(section.publicationFirstAuthor, section.publicationLastAuthor)}
+                      {formatAuthors(section.publicationFirstAuthor, section.publicationLastAuthor, section.publicationAuthorCount)}
                       {section.publicationYear ? ` (${section.publicationYear})` : ""}
                       {section.publicationJournal ? `, ${section.publicationJournal}` : ""}
                       {section.publicationDoi && (

@@ -57,11 +57,12 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {} }:
 
     if (!first && !last) return "";
 
+    const count = dataset.publication_author_count;
     if (first && last) {
       if (first === last) {
         return first;
       }
-      return `${first} & ${last}`;
+      return count != null && count > 2 ? `${first}, ..., ${last}` : `${first} & ${last}`;
     }
 
     if (first) {

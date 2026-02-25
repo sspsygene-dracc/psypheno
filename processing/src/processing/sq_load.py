@@ -159,6 +159,7 @@ def load_data_tables(
         organism TEXT,
         publication_first_author TEXT,
         publication_last_author TEXT,
+        publication_author_count INTEGER,
         publication_year INTEGER,
         publication_journal TEXT,
         publication_doi TEXT,
@@ -208,9 +209,9 @@ def load_data_tables(
             gene_species, display_columns,
             scalar_columns, link_tables,
             links, categories, source, assay, field_labels, organism,
-            publication_first_author, publication_last_author, publication_year,
+            publication_first_author, publication_last_author, publication_author_count, publication_year,
             publication_journal, publication_doi, publication_pmid)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -234,6 +235,7 @@ def load_data_tables(
                 table_config.organism,
                 table_config.publication_first_author,
                 table_config.publication_last_author,
+                table_config.publication_author_count,
                 table_config.publication_year,
                 table_config.publication_journal,
                 table_config.publication_doi,
