@@ -13,6 +13,7 @@ maintainers:
     comment: Initial table creation
 tables:
   - table: sfari_animal_genes
+    date_added: "2025-10-06"
     shortLabel: SFARI Animal Model Genes
     longLabel: SFARI Gene animal model evidence for autism genes
     description:
@@ -45,6 +46,7 @@ tables:
         is_perturbed: false
         is_target: false
   - table: sfari_animal_rescues
+    date_added: "2025-10-06"
     shortLabel: SFARI Animal Rescue Models
     longLabel: SFARI Gene animal rescue experiment data
     description:
@@ -78,6 +80,7 @@ tables:
         is_perturbed: false
         is_target: false
   - table: sfari_human_genes
+    date_added: "2025-10-06"
     shortLabel: SFARI Human Gene Scores
     longLabel: SFARI Gene human genetic evidence and scoring
     description:

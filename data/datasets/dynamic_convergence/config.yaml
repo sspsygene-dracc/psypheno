@@ -44,6 +44,7 @@ maintainers:
     comment: Initial table creation
 tables:
   - table: dynamic_convergence_S2
+    date_added: "2025-11-07"
     shortLabel: META-DEGs NDD Convergence
     longLabel: Meta-analysis of convergent NDD risk gene effects across development
     description:
@@ -95,6 +96,7 @@ tables:
           LINC01238.1: LINC01238
           POLR2J3.1: POLR2J3
   - table: Perturbed_Baseline_behavior_pvalues
+    date_added: "2026-02-17"
     shortLabel: Mutant behavior fingerprints
     source: "Supplemental Data 3 download media-5.xlsx"
     longLabel: Mutant zebrafish baseline behavioral fingerprint pvalues

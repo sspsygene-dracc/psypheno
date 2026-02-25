@@ -32,6 +32,7 @@ maintainers:
     comment: Initial table creation
 tables:
   - table: brain_organoid_atlas_patient_list
+    date_added: "2025-11-05"
     shortLabel: NDD Patient List
     longLabel: Brain organoid atlas patient metadata with pathogenic variants
     description:
@@ -73,6 +74,7 @@ tables:
         is_perturbed: false
         is_target: false
   - table: brain_organoid_atlas_nebula_gene_0_05_FDR
+    date_added: "2025-11-05"
     shortLabel: NEBULA DEGs (FDR 0.05)
     longLabel: NEBULA differential expression analysis at 0.05 FDR threshold
     description:
@@ -106,6 +108,7 @@ tables:
           TMSB15B.1: TMSB15B
           CYB561D2.1: CYB561D2
   - table: brain_organoid_atlas_nebula_gene_0_2_FDR
+    date_added: "2025-11-05"
     shortLabel: NEBULA DEGs (FDR 0.2)
     longLabel: NEBULA differential expression analysis at 0.2 FDR threshold
     description:
@@ -139,6 +142,7 @@ tables:
           TMSB15B.1: TMSB15B
           CYB561D2.1: CYB561D2
   - table: brain_organoid_atlas_S10
+    date_added: "2025-11-05"
     shortLabel: Full NEBULA Gene List
     longLabel: Complete list of differentially expressed genes from NEBULA analysis
     description:
@@ -173,6 +177,7 @@ tables:
           TMSB15B.1: TMSB15B
           ARMCX5-GPRASP2.1: ARMCX5-GPRASP2
   - table: brain_organoid_atlas_S11
+    date_added: "2025-11-05"
     shortLabel: Pseudobulk Validation Genes
     longLabel: Selected validation genes from cell subclass pseudobulk analysis
     description:

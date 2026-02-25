@@ -63,6 +63,7 @@ class TableToProcessConfig:
     publication_journal: str | None = None
     publication_doi: str | None = None
     publication_pmid: str | None = None
+    date_added: str | None = None
 
     def __post_init__(self):
         num_perturbed = 0
@@ -156,6 +157,7 @@ class TableToProcessConfig:
             publication_journal=publication.get("journal"),
             publication_doi=publication.get("doi"),
             publication_pmid=publication.get("pmid"),
+            date_added=json_data.get("date_added"),
         )
 
     def load_data_table(self) -> DataLoadResult:

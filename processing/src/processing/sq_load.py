@@ -162,7 +162,8 @@ def load_data_tables(
         publication_year INTEGER,
         publication_journal TEXT,
         publication_doi TEXT,
-        publication_pmid TEXT)"""
+        publication_pmid TEXT,
+        date_added TEXT)"""
     )
     loaded: list[str] = []
     skipped: list[str] = []
@@ -209,8 +210,9 @@ def load_data_tables(
             scalar_columns, link_tables,
             links, categories, source, assay, field_labels, organism,
             publication_first_author, publication_last_author, publication_year,
-            publication_journal, publication_doi, publication_pmid)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            publication_journal, publication_doi, publication_pmid,
+            date_added)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -238,6 +240,7 @@ def load_data_tables(
                 table_config.publication_journal,
                 table_config.publication_doi,
                 table_config.publication_pmid,
+                table_config.date_added,
             ),
         )
     create_indexes(

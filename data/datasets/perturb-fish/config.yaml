@@ -22,6 +22,7 @@ maintainers:
     comment: Initial table creation
 tables:
   - table: perturb_fish_astro
+    date_added: "2025-10-06"
     shortLabel: Perturb-FISH Astrocyte Screen
     longLabel: CRISPR screening with spatial transcriptomics in astrocytes
     description:

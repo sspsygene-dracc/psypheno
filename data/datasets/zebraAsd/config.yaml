@@ -43,6 +43,7 @@ maintainers:
     comment: Initial table creation
 tables:
   - table: zebra_asd
+    date_added: "2025-10-06"
     shortLabel: Zebrafish ASD Functional Screen
     longLabel: High-throughput in vivo screen of autism risk genes in zebrafish
     description:
@@ -86,6 +87,7 @@ tables:
         is_perturbed: false
         is_target: false
   - table: RestWake_VisStart_byGene
+    date_added: "2026-02-23"
     shortLabel: Mutant behavior rest-wake and visual-startle
     source: "Supplemental Table S2, Related to Figure 2"
     longLabel: "Sleep-wake and Visual-Startle Parameters in Zebrafish Mutants of 10 ASD Genes"
