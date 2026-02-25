@@ -162,8 +162,7 @@ def load_data_tables(
         publication_year INTEGER,
         publication_journal TEXT,
         publication_doi TEXT,
-        publication_pmid TEXT,
-        date_added TEXT)"""
+        publication_pmid TEXT)"""
     )
     loaded: list[str] = []
     skipped: list[str] = []
@@ -210,9 +209,8 @@ def load_data_tables(
             scalar_columns, link_tables,
             links, categories, source, assay, field_labels, organism,
             publication_first_author, publication_last_author, publication_year,
-            publication_journal, publication_doi, publication_pmid,
-            date_added)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            publication_journal, publication_doi, publication_pmid)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -240,13 +238,34 @@ def load_data_tables(
                 table_config.publication_journal,
                 table_config.publication_doi,
                 table_config.publication_pmid,
-                table_config.date_added,
             ),
         )
+    # Create changelog_entries table
+    cur.execute(
+        """CREATE TABLE changelog_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        table_name TEXT,
+        date TEXT,
+        message TEXT)"""
+    )
+    for table_config in table_configs:
+        if table_config.table in set(skipped):
+            continue
+        for entry in table_config.changelog:
+            cur.execute(
+                "INSERT INTO changelog_entries (table_name, date, message) VALUES (?, ?, ?)",
+                (table_config.table, entry.get("date"), entry.get("message")),
+            )
+
     create_indexes(
         conn,
         "data_tables",
         ["table_name", "gene_species", "link_tables"],
+    )
+    create_indexes(
+        conn,
+        "changelog_entries",
+        ["table_name", "date"],
     )
     conn.commit()
 

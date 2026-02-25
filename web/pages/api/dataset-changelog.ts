@@ -14,19 +14,22 @@ export default async function handler(
 
     const entries = db
       .prepare(
-        `SELECT table_name, short_label, long_label, description,
-                date_added, organism, source,
-                publication_first_author, publication_last_author,
-                publication_year, publication_journal, publication_doi
-         FROM data_tables
-         ORDER BY date_added DESC, table_name ASC`
+        `SELECT c.date, c.message, c.table_name,
+                d.short_label, d.long_label, d.description,
+                d.organism, d.source,
+                d.publication_first_author, d.publication_last_author,
+                d.publication_year, d.publication_journal, d.publication_doi
+         FROM changelog_entries c
+         JOIN data_tables d ON c.table_name = d.table_name
+         ORDER BY c.date DESC, c.table_name ASC`
       )
       .all() as Array<{
+      date: string | null;
+      message: string | null;
       table_name: string;
       short_label: string | null;
       long_label: string | null;
       description: string | null;
-      date_added: string | null;
       organism: string | null;
       source: string | null;
       publication_first_author: string | null;

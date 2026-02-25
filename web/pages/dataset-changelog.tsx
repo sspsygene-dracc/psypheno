@@ -5,11 +5,12 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 type ChangelogEntry = {
+  date: string | null;
+  message: string | null;
   table_name: string;
   short_label: string | null;
   long_label: string | null;
   description: string | null;
-  date_added: string | null;
   organism: string | null;
   source: string | null;
   publication_first_author: string | null;
@@ -35,7 +36,7 @@ function formatAuthor(entry: ChangelogEntry): string {
   if (!first && !last) return "";
   if (first && last) {
     if (first === last) return first;
-    return `${first} & ${last}`;
+    return `${first}, ..., ${last}`;
   }
   if (first) return `${first} et al.`;
   return last ?? "";
@@ -119,7 +120,7 @@ export default function DatasetChangelog() {
             Dataset Changelog
           </h1>
           <p style={{ color: "#6b7280", marginBottom: 24 }}>
-            Track additions and updates to the SSPsyGene dataset collection
+            History of additions and updates to the SSPsyGene dataset collection
           </p>
 
           {loading && (
@@ -156,21 +157,22 @@ export default function DatasetChangelog() {
               >
                 <thead>
                   <tr>
-                    <th style={thStyle}>Date Added</th>
+                    <th style={thStyle}>Date</th>
                     <th style={thStyle}>Table</th>
+                    <th style={thStyle}>Change</th>
                     <th style={thStyle}>Organism</th>
                     <th style={thStyle}>Publication</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {entries.map((entry) => {
+                  {entries.map((entry, idx) => {
                     const authorText = formatAuthor(entry);
                     const slug = entry.short_label
                       ? slugFromLabel(entry.short_label)
                       : entry.table_name;
                     return (
                       <tr
-                        key={entry.table_name}
+                        key={`${entry.table_name}-${entry.date}-${idx}`}
                         style={{ transition: "background 0.15s ease" }}
                         onMouseEnter={(e) => {
                           (e.currentTarget as HTMLTableRowElement).style.background =
@@ -188,7 +190,7 @@ export default function DatasetChangelog() {
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          {formatDate(entry.date_added)}
+                          {formatDate(entry.date)}
                         </td>
                         <td style={tdStyle}>
                           <Link
@@ -212,6 +214,15 @@ export default function DatasetChangelog() {
                               {entry.long_label}
                             </div>
                           )}
+                        </td>
+                        <td
+                          style={{
+                            ...tdStyle,
+                            fontSize: 13,
+                            color: "#4b5563",
+                          }}
+                        >
+                          {entry.message ?? "—"}
                         </td>
                         <td
                           style={{

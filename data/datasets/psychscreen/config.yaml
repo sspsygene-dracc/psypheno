@@ -20,7 +20,9 @@ maintainers:
     comment: Initial table creation
 tables:
   - table: psychscreen_age_deg
-    date_added: "2025-10-14"
+    changelog:
+      - date: "2025-10-14"
+        message: "Initial data load"
     shortLabel: PsychScreen Age DEGs
     longLabel: Age-related differential expression in psychiatric disorders
     description:
@@ -47,7 +49,9 @@ tables:
         is_perturbed: false
         is_target: false
   - table: psychscreen_asd_deg
-    date_added: "2025-10-14"
+    changelog:
+      - date: "2025-10-14"
+        message: "Initial data load"
     shortLabel: PsychScreen ASD DEGs
     longLabel: Autism spectrum disorder differential expression signatures
     description:
@@ -74,7 +78,9 @@ tables:
         is_perturbed: false
         is_target: false
   - table: psychscreen_bipolar_deg
-    date_added: "2025-10-14"
+    changelog:
+      - date: "2025-10-14"
+        message: "Initial data load"
     shortLabel: PsychScreen Bipolar DEGs
     longLabel: Bipolar disorder differential expression signatures
     description:
@@ -101,7 +107,9 @@ tables:
         is_perturbed: false
         is_target: false
   - table: psychscreen_schizophrenia_deg
-    date_added: "2025-10-14"
+    changelog:
+      - date: "2025-10-14"
+        message: "Initial data load"
     shortLabel: PsychScreen Schizophrenia DEGs
     longLabel: Schizophrenia differential expression signatures
     description:

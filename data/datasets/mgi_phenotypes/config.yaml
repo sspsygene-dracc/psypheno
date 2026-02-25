@@ -16,7 +16,9 @@ maintainers:
     comment: Initial table creation
 tables:
   - table: mgi_high_level_phenotypes
-    date_added: "2025-10-27"
+    changelog:
+      - date: "2025-10-27"
+        message: "Initial data load"
     shortLabel: MGI Phenotype Annotations
     longLabel: Mouse Genome Informatics phenotypic allele annotations
     description:

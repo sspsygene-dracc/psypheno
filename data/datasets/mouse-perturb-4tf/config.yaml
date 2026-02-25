@@ -35,7 +35,9 @@ maintainers:
     comment: Initial table creation
 tables:
   - table: mouse_perturb_deg
-    date_added: "2025-10-06"
+    changelog:
+      - date: "2025-10-06"
+        message: "Initial data load"
     shortLabel: 4TF Perturb-seq DEGs
     longLabel: Differential expression from in vivo Perturb-seq of four transcription factors
     description:
@@ -77,7 +79,9 @@ tables:
         is_perturbed: true
         is_target: false
   - table: mouse_perturb_clusterprop
-    date_added: "2025-10-06"
+    changelog:
+      - date: "2025-10-06"
+        message: "Initial data load"
     shortLabel: 4TF Cell Proportion Changes
     longLabel: Cell type proportion shifts from transcription factor perturbations
     description:
