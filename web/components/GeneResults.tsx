@@ -52,33 +52,30 @@ export default function GeneResults({
       groupMap.get(key)!.push(section);
     }
 
-    // Order groups: known assay types first (in assayTypeLabels order), then unknown, then "_other"
-    const knownKeys = Object.keys(assayTypeLabels);
+    // Build groups with labels
     const ordered: AssayGroup[] = [];
-    for (const k of knownKeys) {
-      if (groupMap.has(k)) {
-        ordered.push({
-          assayKey: k,
-          label: assayTypeLabels[k],
-          sections: groupMap.get(k)!,
-        });
-        groupMap.delete(k);
-      }
-    }
-    // Remaining non-"_other" keys (unknown assay types)
     for (const [k, sections] of groupMap) {
-      if (k !== "_other") {
-        ordered.push({ assayKey: k, label: k, sections });
-      }
-    }
-    // "_other" last
-    if (groupMap.has("_other")) {
       ordered.push({
-        assayKey: "_other",
-        label: "Other",
-        sections: groupMap.get("_other")!,
+        assayKey: k,
+        label: k === "_other" ? "Other" : (assayTypeLabels[k] ?? k),
+        sections,
       });
     }
+
+    // Sort groups alphabetically by label, keeping "_other" last
+    ordered.sort((a, b) => {
+      if (a.assayKey === "_other") return 1;
+      if (b.assayKey === "_other") return -1;
+      return a.label.localeCompare(b.label);
+    });
+
+    // Sort sections within each group alphabetically by display name
+    for (const group of ordered) {
+      group.sections.sort((a, b) =>
+        formatTableName(a).localeCompare(formatTableName(b))
+      );
+    }
+
     return ordered;
   }, [data, assayTypeLabels]);
 
