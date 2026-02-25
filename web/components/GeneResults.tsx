@@ -195,7 +195,7 @@ export default function GeneResults({
           ))}
         </nav>
       )}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, marginLeft: showToc && data.length === 0 ? 244 : undefined }}>
         <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
         {data.length === 0 && (
           <div style={{ opacity: 0.8 }}>No results found in any dataset.</div>
