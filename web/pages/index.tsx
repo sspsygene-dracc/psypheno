@@ -231,7 +231,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>SSPsyGene Demo</title>
+        <title>SSPsyGene Datasets</title>
       </Head>
       <div
         style={{
