@@ -384,6 +384,9 @@ export default function Home() {
                     geneDisplayName={displayGeneString()}
                     data={searchMode === "general" ? generalData : pairData}
                     assayTypeLabels={assayTypeLabels}
+                    centralGeneId={searchMode === "general" ? selected?.centralGeneId : undefined}
+                    perturbedCentralGeneId={searchMode === "pair" ? (perturbed?.centralGeneId ?? null) : undefined}
+                    targetCentralGeneId={searchMode === "pair" ? (target?.centralGeneId ?? null) : undefined}
                   />
                 )}
               </div>

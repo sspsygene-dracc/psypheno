@@ -1,7 +1,9 @@
 import { TableResult } from "@/lib/table_result";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import DataTable from "@/components/DataTable";
 import InfoTooltip from "@/components/InfoTooltip";
+
+const ROW_LIMIT = 200;
 
 const formatTableName = (section: TableResult) =>
   section.shortLabel ??
@@ -22,19 +24,36 @@ type AssayGroup = {
   sections: TableResult[];
 };
 
+type TablePageState = {
+  page: number;
+  rows: Record<string, unknown>[];
+  totalRows: number;
+  totalPages: number;
+  loading: boolean;
+  error: string | null;
+};
+
 export default function GeneResults({
   geneDisplayName,
   data,
   assayTypeLabels = {},
+  centralGeneId,
+  perturbedCentralGeneId,
+  targetCentralGeneId,
 }: {
   geneDisplayName: string | null;
   data: TableResult[];
   assayTypeLabels?: Record<string, string>;
+  centralGeneId?: number;
+  perturbedCentralGeneId?: number | null;
+  targetCentralGeneId?: number | null;
 }) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set()
   );
   const [showToc, setShowToc] = useState(false);
+  const [tablePageOverrides, setTablePageOverrides] = useState<Record<string, TablePageState>>({});
+  const abortControllers = useRef<Record<string, AbortController>>({});
 
   useEffect(() => {
     const mql = window.matchMedia("(min-width: 900px)");
@@ -43,6 +62,76 @@ export default function GeneResults({
     mql.addEventListener("change", handler);
     return () => mql.removeEventListener("change", handler);
   }, []);
+
+  // Reset pagination overrides when data changes (new gene selected)
+  useEffect(() => {
+    Object.values(abortControllers.current).forEach((c) => c.abort());
+    abortControllers.current = {};
+    setTablePageOverrides({});
+  }, [data]);
+
+  const fetchTablePage = async (tableName: string, page: number) => {
+    // Abort any in-flight request for this table
+    abortControllers.current[tableName]?.abort();
+    const controller = new AbortController();
+    abortControllers.current[tableName] = controller;
+
+    setTablePageOverrides((prev) => ({
+      ...prev,
+      [tableName]: {
+        page,
+        rows: prev[tableName]?.rows ?? [],
+        totalRows: prev[tableName]?.totalRows ?? 0,
+        totalPages: prev[tableName]?.totalPages ?? 1,
+        loading: true,
+        error: null,
+      },
+    }));
+
+    try {
+      const body: Record<string, unknown> = { tableName, page };
+      if (centralGeneId !== undefined) {
+        body.centralGeneId = centralGeneId;
+      } else {
+        body.perturbedCentralGeneId = perturbedCentralGeneId ?? null;
+        body.targetCentralGeneId = targetCentralGeneId ?? null;
+      }
+
+      const res = await fetch("/api/gene-table-page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`Failed: ${res.status}`);
+      const payload = await res.json();
+
+      setTablePageOverrides((prev) => ({
+        ...prev,
+        [tableName]: {
+          page: payload.page,
+          rows: payload.rows,
+          totalRows: payload.totalRows,
+          totalPages: payload.totalPages,
+          loading: false,
+          error: null,
+        },
+      }));
+
+      // Auto-expand the table when paginating
+      setExpandedSections((prev) => new Set([...prev, tableName]));
+    } catch (e: any) {
+      if (e.name === "AbortError") return;
+      setTablePageOverrides((prev) => ({
+        ...prev,
+        [tableName]: {
+          ...prev[tableName]!,
+          loading: false,
+          error: e?.message || "Failed to load page",
+        },
+      }));
+    }
+  };
 
   const groups: AssayGroup[] = useMemo(() => {
     const groupMap = new Map<string, TableResult[]>();
@@ -102,6 +191,89 @@ export default function GeneResults({
   };
 
   const hasMultipleGroups = groups.length > 1;
+
+  const renderPageNumbers = (
+    currentPage: number,
+    totalPages: number,
+    tableName: string,
+    isLoading: boolean
+  ): ReactNode => {
+    const items: ReactNode[] = [];
+    if (totalPages <= 1) return null;
+
+    const addBtn = (label: string | number, targetPage: number, key: string) => {
+      const isActive = targetPage === currentPage;
+      const isDisabled = isLoading || targetPage < 1 || targetPage > totalPages;
+      items.push(
+        <button
+          key={key}
+          onClick={() => !isDisabled && !isActive && fetchTablePage(tableName, targetPage)}
+          disabled={isDisabled}
+          aria-current={isActive ? "page" : undefined}
+          style={{
+            padding: "4px 8px",
+            minWidth: 30,
+            background: isActive ? "#e5e7eb" : isDisabled ? "#f9fafb" : "#ffffff",
+            border: "1px solid #d1d5db",
+            color: "#1f2937",
+            borderRadius: 6,
+            cursor: isDisabled || isActive ? "default" : "pointer",
+            fontWeight: isActive ? 700 : 500,
+            fontSize: 13,
+          }}
+        >
+          {label}
+        </button>
+      );
+    };
+
+    addBtn(1, 1, "pg-1");
+    if (totalPages >= 2) addBtn(2, 2, "pg-2");
+
+    const surround: number[] = [];
+    for (let p = currentPage - 2; p <= currentPage + 2; p++) {
+      if (p >= 1 && p <= totalPages && p !== 1 && p !== 2 && p !== totalPages) {
+        surround.push(p);
+      }
+    }
+
+    if (surround.length > 0 && Math.min(...surround) > 3) {
+      items.push(
+        <span key="pg-ell-1" style={{ color: "#6b7280", padding: "0 2px", fontSize: 13 }}>
+          ...
+        </span>
+      );
+    }
+
+    surround.forEach((pnum) => addBtn(pnum, pnum, `pg-${pnum}`));
+
+    if (surround.length > 0 && Math.max(...surround) < totalPages - 1) {
+      items.push(
+        <span key="pg-ell-2" style={{ color: "#6b7280", padding: "0 2px", fontSize: 13 }}>
+          ...
+        </span>
+      );
+    }
+
+    if (totalPages > 2) addBtn(totalPages, totalPages, "pg-last");
+
+    return (
+      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+        {items}
+      </div>
+    );
+  };
+
+  const btnStyle = (disabled: boolean) => ({
+    padding: "4px 10px",
+    background: disabled ? "#f9fafb" : "#ffffff",
+    border: "1px solid #d1d5db",
+    color: disabled ? "#9ca3af" : "#1f2937",
+    borderRadius: 6,
+    cursor: disabled ? "not-allowed" : "pointer" as const,
+    fontSize: 13,
+    fontWeight: 500 as const,
+  });
 
   return (
     <div
@@ -233,163 +405,238 @@ export default function GeneResults({
                 </span>
               </div>
             )}
-            {group.sections.map((section) => (
-              <div
-                key={section.tableName}
-                id={`table-${section.tableName}`}
-                style={{
-                  marginTop: 18,
-                  background: "#ffffff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  scrollMarginTop: 16,
-                }}
-              >
+            {group.sections.map((section) => {
+              const override = tablePageOverrides[section.tableName];
+              const effectiveRows = override ? override.rows : section.rows;
+              const effectiveTotalRows = override
+                ? override.totalRows
+                : (section.totalRows ?? section.rows.length);
+              const effectivePage = override ? override.page : 1;
+              const effectiveTotalPages = override
+                ? override.totalPages
+                : Math.max(1, Math.ceil(effectiveTotalRows / ROW_LIMIT));
+              const isPageLoading = override?.loading ?? false;
+              const pageError = override?.error ?? null;
+              const hasPagination = effectiveTotalPages > 1;
+
+              return (
                 <div
+                  key={section.tableName}
+                  id={`table-${section.tableName}`}
                   style={{
-                    padding: "12px 14px",
-                    borderBottom: "1px solid #e5e7eb",
-                    fontWeight: 600,
+                    marginTop: 18,
+                    background: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    scrollMarginTop: 16,
                   }}
                 >
-                  {formatTableName(section)}
-                  {section.source && (
-                    <InfoTooltip
-                      text={`Source: ${section.source}`}
-                      size={14}
-                    />
-                  )}
-                </div>
-                {section.description && (
                   <div
                     style={{
-                      padding: "10px 14px",
-                      color: "#6b7280",
-                      fontSize: 14,
+                      padding: "12px 14px",
+                      borderBottom: "1px solid #e5e7eb",
+                      fontWeight: 600,
                     }}
                   >
-                    {section.description}
-                  </div>
-                )}
-                {(section.publicationFirstAuthor ||
-                  section.publicationLastAuthor ||
-                  section.publicationYear ||
-                  section.publicationJournal ||
-                  section.publicationDoi) && (
-                  <div
-                    style={{
-                      padding: "4px 14px 8px",
-                      fontSize: 13,
-                      color: "#6b7280",
-                    }}
-                  >
-                    <span style={{ fontWeight: 500 }}>Publication:</span>{" "}
-                    {formatAuthors(section.publicationFirstAuthor, section.publicationLastAuthor)}
-                    {section.publicationYear ? ` (${section.publicationYear})` : ""}
-                    {section.publicationJournal ? `, ${section.publicationJournal}` : ""}
-                    {section.publicationDoi && (
-                      <>
-                        {", "}
-                        <a
-                          href={`https://doi.org/${section.publicationDoi}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: "#2563eb", textDecoration: "underline" }}
-                        >
-                          DOI: {section.publicationDoi}
-                        </a>
-                      </>
+                    {formatTableName(section)}
+                    {section.source && (
+                      <InfoTooltip
+                        text={`Source: ${section.source}`}
+                        size={14}
+                      />
                     )}
                   </div>
-                )}
-                {expandedSections.has(section.tableName) &&
-                  section.rows.length > 5 && (
+                  {section.description && (
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "flex-end",
-                        padding: "6px 14px",
-                        background: "#f9fafb",
-                        borderBottom: "1px solid #e5e7eb",
+                        padding: "10px 14px",
+                        color: "#6b7280",
+                        fontSize: 14,
                       }}
                     >
-                      <button
-                        onClick={() => toggleSection(section.tableName)}
-                        style={{
-                          padding: "6px 12px",
-                          background: "#ffffff",
-                          border: "1px solid #d1d5db",
-                          color: "#1f2937",
-                          borderRadius: 10,
-                          fontSize: 13,
-                          fontWeight: 500,
-                          cursor: "pointer",
-                        }}
-                      >
-                        Collapse
-                      </button>
+                      {section.description}
                     </div>
                   )}
-                <DataTable
-                  columns={section.displayColumns}
-                  rows={section.rows}
-                  maxRows={
-                    expandedSections.has(section.tableName) ? undefined : 5
-                  }
-                  totalRows={section.totalRows ?? section.rows.length}
-                  scalarColumns={section.scalarColumns}
-                  fieldLabels={section.fieldLabels}
-                  showSummary={false}
-                />
-                {(() => {
-                  const apiTotal = section.totalRows ?? section.rows.length;
-                  const truncated = apiTotal > section.rows.length;
-                  const showFooter = section.rows.length > 5 || truncated;
-                  if (!showFooter) return null;
-                  const isExpanded = expandedSections.has(section.tableName);
-                  const visibleCount = isExpanded ? section.rows.length : Math.min(5, section.rows.length);
-                  return (
+                  {(section.publicationFirstAuthor ||
+                    section.publicationLastAuthor ||
+                    section.publicationYear ||
+                    section.publicationJournal ||
+                    section.publicationDoi) && (
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "10px 14px",
-                        borderTop: "1px solid #e5e7eb",
-                        background: "#f9fafb",
+                        padding: "4px 14px 8px",
+                        fontSize: 13,
+                        color: "#6b7280",
                       }}
                     >
-                      <div style={{ opacity: 0.8, fontSize: 13 }}>
-                        {truncated
-                          ? `Showing ${visibleCount.toLocaleString()} of ${apiTotal.toLocaleString()} total rows (result limit reached)`
-                          : isExpanded
-                            ? `Showing all ${section.rows.length}`
-                            : `Showing 5 of ${section.rows.length}`}
-                      </div>
-                      {section.rows.length > 5 && (
+                      <span style={{ fontWeight: 500 }}>Publication:</span>{" "}
+                      {formatAuthors(section.publicationFirstAuthor, section.publicationLastAuthor)}
+                      {section.publicationYear ? ` (${section.publicationYear})` : ""}
+                      {section.publicationJournal ? `, ${section.publicationJournal}` : ""}
+                      {section.publicationDoi && (
+                        <>
+                          {", "}
+                          <a
+                            href={`https://doi.org/${section.publicationDoi}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: "#2563eb", textDecoration: "underline" }}
+                          >
+                            DOI: {section.publicationDoi}
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {expandedSections.has(section.tableName) &&
+                    effectiveRows.length > 5 && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "flex-end",
+                          padding: "6px 14px",
+                          background: "#f9fafb",
+                          borderBottom: "1px solid #e5e7eb",
+                        }}
+                      >
                         <button
                           onClick={() => toggleSection(section.tableName)}
                           style={{
-                            padding: "8px 12px",
+                            padding: "6px 12px",
                             background: "#ffffff",
                             border: "1px solid #d1d5db",
                             color: "#1f2937",
                             borderRadius: 10,
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: 500,
                             cursor: "pointer",
                           }}
                         >
-                          {isExpanded ? "Collapse" : "Expand"}
+                          Collapse
                         </button>
-                      )}
+                      </div>
+                    )}
+                  <div style={{
+                    opacity: isPageLoading ? 0.5 : 1,
+                    pointerEvents: isPageLoading ? "none" : "auto",
+                    position: "relative",
+                    transition: "opacity 0.15s",
+                  }}>
+                    <DataTable
+                      columns={section.displayColumns}
+                      rows={effectiveRows}
+                      maxRows={
+                        expandedSections.has(section.tableName) ? undefined : 5
+                      }
+                      totalRows={effectiveTotalRows}
+                      scalarColumns={section.scalarColumns}
+                      fieldLabels={section.fieldLabels}
+                      showSummary={false}
+                    />
+                    {isPageLoading && (
+                      <div style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        fontSize: 14,
+                        color: "#6b7280",
+                      }}>
+                        Loading...
+                      </div>
+                    )}
+                  </div>
+                  {pageError && (
+                    <div style={{
+                      padding: "8px 14px",
+                      fontSize: 13,
+                      color: "#dc2626",
+                      borderTop: "1px solid #e5e7eb",
+                      background: "#fef2f2",
+                    }}>
+                      Failed to load page. {pageError}
                     </div>
-                  );
-                })()}
-              </div>
-            ))}
+                  )}
+                  {(() => {
+                    const showFooter = effectiveRows.length > 5 || hasPagination;
+                    if (!showFooter) return null;
+                    const isExpanded = expandedSections.has(section.tableName);
+                    const visibleCount = isExpanded
+                      ? effectiveRows.length
+                      : Math.min(5, effectiveRows.length);
+
+                    // Summary text
+                    let summaryText: string;
+                    if (hasPagination) {
+                      const rangeStart = (effectivePage - 1) * ROW_LIMIT + 1;
+                      const rangeEnd = rangeStart + effectiveRows.length - 1;
+                      summaryText = `Showing ${visibleCount.toLocaleString()} of rows ${rangeStart.toLocaleString()}\u2013${rangeEnd.toLocaleString()} (${effectiveTotalRows.toLocaleString()} total)`;
+                    } else if (isExpanded) {
+                      summaryText = `Showing all ${effectiveRows.length}`;
+                    } else {
+                      summaryText = `Showing 5 of ${effectiveRows.length}`;
+                    }
+
+                    return (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 14px",
+                          borderTop: "1px solid #e5e7eb",
+                          background: "#f9fafb",
+                          flexWrap: "wrap",
+                          gap: 8,
+                        }}
+                      >
+                        <div style={{ opacity: 0.8, fontSize: 13 }}>
+                          {summaryText}
+                        </div>
+                        {hasPagination && (
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <button
+                              disabled={effectivePage <= 1 || isPageLoading}
+                              onClick={() => fetchTablePage(section.tableName, effectivePage - 1)}
+                              style={btnStyle(effectivePage <= 1 || isPageLoading)}
+                            >
+                              Prev
+                            </button>
+                            {renderPageNumbers(effectivePage, effectiveTotalPages, section.tableName, isPageLoading)}
+                            <button
+                              disabled={effectivePage >= effectiveTotalPages || isPageLoading}
+                              onClick={() => fetchTablePage(section.tableName, effectivePage + 1)}
+                              style={btnStyle(effectivePage >= effectiveTotalPages || isPageLoading)}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        )}
+                        {effectiveRows.length > 5 && (
+                          <button
+                            onClick={() => toggleSection(section.tableName)}
+                            style={{
+                              padding: "8px 12px",
+                              background: "#ffffff",
+                              border: "1px solid #d1d5db",
+                              color: "#1f2937",
+                              borderRadius: 10,
+                              fontSize: 14,
+                              fontWeight: 500,
+                              cursor: "pointer",
+                            }}
+                          >
+                            {isExpanded ? "Collapse" : "Expand"}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
