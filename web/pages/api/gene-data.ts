@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { performance } from "perf_hooks";
 import { sanitizeIdentifier, parseDisplayColumns, buildGeneQuery, queryFirstPage } from "@/lib/gene-query";
 
 const bodySchema = z.object({
@@ -22,7 +21,6 @@ export default async function handler(
   }
 
   const centralGeneId = parse.data.centralGeneId;
-  const tHandler = performance.now();
 
   try {
     const db = getDb();
@@ -83,11 +81,7 @@ export default async function handler(
       if (!query) continue;
 
       try {
-        const tq = performance.now();
         const result = queryFirstPage(db, query.selectCols, query.fromAndWhere, query.params);
-        const queryMs = performance.now() - tq;
-        console.log(`[gene-data] table=${baseTable} time=${queryMs.toFixed(1)}ms`);
-
         if (!result) continue;
 
         let fieldLabels: Record<string, string> | null = null;
@@ -130,8 +124,6 @@ export default async function handler(
       }
     }
 
-    const totalMs = performance.now() - tHandler;
-    console.log(`[gene-data] TOTAL time=${totalMs.toFixed(1)}ms tables_with_results=${results.length}`);
     return res.status(200).json({ centralGeneId, results });
   } catch (err) {
     // eslint-disable-next-line no-console

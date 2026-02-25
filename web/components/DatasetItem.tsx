@@ -330,9 +330,9 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {} }:
             whiteSpace: "nowrap",
             fontSize: 14,
           }}
-          aria-label={`Show first 100 rows of ${dataset.table_name}`}
+          aria-label={`Show data for ${dataset.table_name}`}
         >
-          Show first 100 rows
+          Show data
         </button>
       </div>
     </div>

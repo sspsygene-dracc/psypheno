@@ -40,8 +40,6 @@ export default function DataTable({
   const [sortMode, setSortMode] = useState<SortMode>("none");
 
   const scalarSet = useMemo(() => {
-    console.log("[DataTable] scalarColumns prop:", scalarColumns);
-    console.log("[DataTable] columns prop:", columns);
     return new Set(scalarColumns ?? []);
   }, [scalarColumns, columns]);
 
@@ -186,7 +184,7 @@ export default function DataTable({
               ? Math.min(rows.length, maxRows)
               : rows.length;
             const total = totalRows ?? rows.length;
-            return `Showing first ${shown} of ${total} rows`;
+            return `Showing ${shown} of ${total} rows`;
           })()}
         </div>
       )}

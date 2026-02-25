@@ -2,8 +2,11 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 
+const DATASET_PAGE_LIMIT = 25;
+
 const querySchema = z.object({
   tableName: z.string().min(1),
+  page: z.coerce.number().min(1).optional(),
 });
 
 function sanitizeIdentifier(id: string): string {
@@ -26,6 +29,7 @@ export default async function handler(
   }
 
   const tableName = sanitizeIdentifier(parse.data.tableName);
+  const page = parse.data.page ?? 1;
 
   try {
     const db = getDb();
@@ -73,17 +77,19 @@ export default async function handler(
       return res.status(400).json({ error: "No display columns found" });
     }
 
-    // Get all data from the table (preview up to 101 to detect if >100)
     const selectCols = displayCols.join(", ");
-    const sql = `SELECT ${selectCols} FROM ${tableName} LIMIT 101`;
-
-    const rows = db.prepare(sql).all() as Record<string, unknown>[];
 
     // Get total row count
     const totalRowResult = db
       .prepare(`SELECT COUNT(*) as count FROM ${tableName}`)
       .get() as { count: number };
-    const totalRows = totalRowResult?.count ?? rows.length;
+    const totalRows = totalRowResult?.count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(totalRows / DATASET_PAGE_LIMIT));
+    const effectivePage = Math.min(page, totalPages);
+    const offset = (effectivePage - 1) * DATASET_PAGE_LIMIT;
+
+    const sql = `SELECT ${selectCols} FROM ${tableName} LIMIT ${DATASET_PAGE_LIMIT} OFFSET ${offset}`;
+    const rows = db.prepare(sql).all() as Record<string, unknown>[];
 
     const links =
       metadata.links
@@ -113,6 +119,8 @@ export default async function handler(
 
     return res.status(200).json({
       tableName,
+      page: effectivePage,
+      totalPages,
       description: metadata.description ?? null,
       shortLabel: metadata.short_label ?? null,
       longLabel: metadata.long_label ?? null,

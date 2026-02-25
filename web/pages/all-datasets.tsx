@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Header from "@/components/Header";
@@ -30,6 +30,8 @@ type DatasetData = {
   scalarColumns?: string[];
   rows: Record<string, unknown>[];
   totalRows?: number;
+  page?: number;
+  totalPages?: number;
 };
 
 function slugFromLabel(label: string): string {
@@ -49,7 +51,9 @@ export default function AllDatasets() {
   const [datasetData, setDatasetData] = useState<DatasetData | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
+  const [loadingPage, setLoadingPage] = useState(false);
   const hydratedFromQuery = useRef(false);
+  const pageAbort = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const fetchDatasets = async () => {
@@ -148,7 +152,103 @@ export default function AllDatasets() {
         anchor.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
-  }, [loadingData, datasetData, selectedDataset]);
+  }, [loadingData, selectedDataset]);
+
+  const fetchPage = async (page: number) => {
+    if (!selectedDataset) return;
+    pageAbort.current?.abort();
+    const controller = new AbortController();
+    pageAbort.current = controller;
+    setLoadingPage(true);
+    try {
+      const res = await fetch(
+        `/api/dataset-data?tableName=${encodeURIComponent(selectedDataset)}&page=${page}`,
+        { signal: controller.signal }
+      );
+      if (!res.ok) throw new Error(`Failed: ${res.status}`);
+      const data = await res.json();
+      setDatasetData(data);
+    } catch (e: any) {
+      if (e.name === "AbortError") return;
+      setError(e?.message || "Failed to load page");
+    } finally {
+      setLoadingPage(false);
+    }
+  };
+
+  const currentPage = datasetData?.page ?? 1;
+  const totalPages = datasetData?.totalPages ?? 1;
+  const hasPagination = totalPages > 1;
+  const isPageBusy = loadingData || loadingPage;
+
+  const renderPageNumbers = (): ReactNode => {
+    if (totalPages <= 1) return null;
+    const items: ReactNode[] = [];
+
+    const addBtn = (label: string | number, targetPage: number, key: string) => {
+      const isActive = targetPage === currentPage;
+      const isDisabled = isPageBusy || targetPage < 1 || targetPage > totalPages;
+      items.push(
+        <button
+          key={key}
+          onClick={() => !isDisabled && !isActive && fetchPage(targetPage)}
+          disabled={isDisabled}
+          aria-current={isActive ? "page" : undefined}
+          style={{
+            padding: "4px 8px",
+            minWidth: 30,
+            background: isActive ? "#e5e7eb" : isDisabled ? "#f9fafb" : "#ffffff",
+            border: "1px solid #d1d5db",
+            color: "#1f2937",
+            borderRadius: 6,
+            cursor: isDisabled || isActive ? "default" : "pointer",
+            fontWeight: isActive ? 700 : 500,
+            fontSize: 13,
+          }}
+        >
+          {label}
+        </button>
+      );
+    };
+
+    addBtn(1, 1, "pg-1");
+    if (totalPages >= 2) addBtn(2, 2, "pg-2");
+
+    const surround: number[] = [];
+    for (let p = currentPage - 2; p <= currentPage + 2; p++) {
+      if (p >= 1 && p <= totalPages && p !== 1 && p !== 2 && p !== totalPages) {
+        surround.push(p);
+      }
+    }
+
+    if (surround.length > 0 && Math.min(...surround) > 3) {
+      items.push(
+        <span key="pg-ell-1" style={{ color: "#6b7280", padding: "0 2px", fontSize: 13 }}>...</span>
+      );
+    }
+    surround.forEach((pnum) => addBtn(pnum, pnum, `pg-${pnum}`));
+    if (surround.length > 0 && Math.max(...surround) < totalPages - 1) {
+      items.push(
+        <span key="pg-ell-2" style={{ color: "#6b7280", padding: "0 2px", fontSize: 13 }}>...</span>
+      );
+    }
+    if (totalPages > 2) addBtn(totalPages, totalPages, "pg-last");
+
+    return (
+      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>{items}</div>
+    );
+  };
+
+  const pageBtnStyle = (disabled: boolean) => ({
+    padding: "4px 10px",
+    background: disabled ? "#f9fafb" : "#ffffff",
+    border: "1px solid #d1d5db",
+    color: disabled ? "#9ca3af" : "#1f2937",
+    borderRadius: 6,
+    cursor: disabled ? "not-allowed" : "pointer" as const,
+    fontSize: 13,
+    fontWeight: 500 as const,
+  });
 
   return (
     <>
@@ -268,7 +368,7 @@ export default function AllDatasets() {
                       )}
                     </div>
 
-                    {loadingData && (
+                    {loadingData && !loadingPage && (
                       <div
                         style={{
                           padding: 32,
@@ -280,15 +380,78 @@ export default function AllDatasets() {
                       </div>
                     )}
 
-                    {!loadingData && datasetData && (
-                      <DataTable
-                        columns={datasetData.displayColumns}
-                        rows={datasetData.rows}
-                        maxRows={100}
-                        totalRows={datasetData.totalRows}
-                        scalarColumns={datasetData.scalarColumns}
-                        fieldLabels={datasetData.fieldLabels}
-                      />
+                    {datasetData && (
+                      <>
+                        <div style={{
+                          opacity: loadingPage ? 0.5 : 1,
+                          pointerEvents: loadingPage ? "none" : "auto",
+                          position: "relative",
+                          transition: "opacity 0.15s",
+                        }}>
+                          <DataTable
+                            columns={datasetData.displayColumns}
+                            rows={datasetData.rows}
+                            scalarColumns={datasetData.scalarColumns}
+                            fieldLabels={datasetData.fieldLabels}
+                            showSummary={false}
+                          />
+                          {loadingPage && (
+                            <div style={{
+                              position: "absolute",
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, -50%)",
+                              fontSize: 14,
+                              color: "#6b7280",
+                            }}>
+                              Loading...
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "10px 14px",
+                            borderTop: "1px solid #e5e7eb",
+                            background: "#f9fafb",
+                            flexWrap: "wrap",
+                            gap: 8,
+                          }}
+                        >
+                          <div style={{ opacity: 0.8, fontSize: 13 }}>
+                            {(() => {
+                              const total = datasetData.totalRows ?? datasetData.rows.length;
+                              if (hasPagination) {
+                                const rangeStart = (currentPage - 1) * 50 + 1;
+                                const rangeEnd = rangeStart + datasetData.rows.length - 1;
+                                return `Showing rows ${rangeStart.toLocaleString()}\u2013${rangeEnd.toLocaleString()} of ${total.toLocaleString()}`;
+                              }
+                              return `Showing all ${total.toLocaleString()} rows`;
+                            })()}
+                          </div>
+                          {hasPagination && (
+                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                              <button
+                                disabled={currentPage <= 1 || isPageBusy}
+                                onClick={() => fetchPage(currentPage - 1)}
+                                style={pageBtnStyle(currentPage <= 1 || isPageBusy)}
+                              >
+                                Prev
+                              </button>
+                              {renderPageNumbers()}
+                              <button
+                                disabled={currentPage >= totalPages || isPageBusy}
+                                onClick={() => fetchPage(currentPage + 1)}
+                                style={pageBtnStyle(currentPage >= totalPages || isPageBusy)}
+                              >
+                                Next
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 </>
