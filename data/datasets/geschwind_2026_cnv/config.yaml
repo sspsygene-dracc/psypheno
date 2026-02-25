@@ -67,12 +67,12 @@ tables:
         link_table_name: gene
         species: human
         is_perturbed: false
-        is_target: false
+        is_target: true
         ignore_empty: true
       - column_name: region_genes
         link_table_name: region_gene
         species: human
-        is_perturbed: false
+        is_perturbed: true
         is_target: false
         ignore_empty: true
         multi_gene_separator: ","
