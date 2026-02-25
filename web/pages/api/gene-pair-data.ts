@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { performance } from "perf_hooks";
 
 const bodySchema = z.object({
   perturbedCentralGeneId: z.number().nullable(),
@@ -26,6 +27,7 @@ export default async function handler(
   }
 
   const { perturbedCentralGeneId, targetCentralGeneId } = parse.data;
+  const tHandler = performance.now();
 
   try {
     const db = getDb();
@@ -95,33 +97,54 @@ export default async function handler(
       const targetLT = targetLTs[0];
 
       const selectCols = displayCols.map((c) => `b.${c}`).join(", ");
-      let fromAndJoins = `FROM ${baseTable} b`;
       const params: Array<string> = [];
 
-      // Join at least one perturbed and one target link table and require both ids
-      const whereParts: string[] = [];
+      // Build subqueries on link tables using indexed central_gene_id lookups.
+      // When both are provided, INTERSECT ensures rows match both genes.
+      const subqueries: string[] = [];
       if (perturbedCentralGeneId) {
-        const lt = perturbedLT;
-        fromAndJoins += ` LEFT JOIN ${lt} p ON b.id = p.id`;
-        whereParts.push(`p.central_gene_id = ?`);
+        subqueries.push(`SELECT id FROM ${perturbedLT} WHERE central_gene_id = ?`);
         params.push(String(perturbedCentralGeneId));
       }
       if (targetCentralGeneId) {
-        const lt = targetLT;
-        fromAndJoins += ` LEFT JOIN ${lt} t ON b.id = t.id`;
-        whereParts.push(`t.central_gene_id = ?`);
+        subqueries.push(`SELECT id FROM ${targetLT} WHERE central_gene_id = ?`);
         params.push(String(targetCentralGeneId));
       }
 
-      fromAndJoins += ` WHERE ${whereParts.join(" AND ")}`;
+      const idSubquery = subqueries.length === 1
+        ? subqueries[0]
+        : subqueries.join(" INTERSECT ");
+      const fromAndWhere = `FROM ${baseTable} b WHERE b.id IN (${idSubquery})`;
 
       try {
-        const countSql = `SELECT COUNT(*) as cnt FROM (SELECT DISTINCT ${selectCols} ${fromAndJoins})`;
-        const totalRows = (db.prepare(countSql).get(...params) as { cnt: number }).cnt;
-        if (totalRows === 0) continue;
+        // Fetch one extra row to detect whether more rows exist beyond the limit
+        const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndWhere} LIMIT ${ROW_LIMIT + 1}`;
 
-        const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndJoins} LIMIT ${ROW_LIMIT}`;
-        const rows = db.prepare(dataSql).all(...params) as Record<string, unknown>[];
+        // Query plan
+        const plan = db.prepare(`EXPLAIN QUERY PLAN ${dataSql}`).all(...params);
+        console.log(`[gene-pair-data] table=${baseTable} QUERY PLAN:`, JSON.stringify(plan));
+
+        const tq = performance.now();
+        const allRows = db.prepare(dataSql).all(...params) as Record<string, unknown>[];
+        const queryMs = performance.now() - tq;
+        console.log(`[gene-pair-data] table=${baseTable} SELECT rows=${allRows.length} time=${queryMs.toFixed(1)}ms`);
+
+        if (allRows.length === 0) continue;
+
+        const hasMore = allRows.length > ROW_LIMIT;
+        const rows = hasMore ? allRows.slice(0, ROW_LIMIT) : allRows;
+
+        // Only run the expensive COUNT query when there are more rows than the limit
+        let totalRows: number;
+        if (hasMore) {
+          const countSql = `SELECT COUNT(*) as cnt FROM (SELECT DISTINCT ${selectCols} ${fromAndWhere})`;
+          const tc = performance.now();
+          totalRows = (db.prepare(countSql).get(...params) as { cnt: number }).cnt;
+          const countMs = performance.now() - tc;
+          console.log(`[gene-pair-data] table=${baseTable} COUNT=${totalRows} time=${countMs.toFixed(1)}ms`);
+        } else {
+          totalRows = rows.length;
+        }
 
         let fieldLabels: Record<string, string> | null = null;
         if (t.field_labels) {
@@ -156,6 +179,8 @@ export default async function handler(
       }
     }
 
+    const totalMs = performance.now() - tHandler;
+    console.log(`[gene-pair-data] TOTAL time=${totalMs.toFixed(1)}ms tables_with_results=${results.length}`);
     return res.status(200).json({ perturbedCentralGeneId, targetCentralGeneId, results });
   } catch (err) {
     // eslint-disable-next-line no-console

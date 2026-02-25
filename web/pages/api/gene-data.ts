@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { performance } from "perf_hooks";
 
 const bodySchema = z.object({
   centralGeneId: z.number().min(0),
@@ -26,6 +27,7 @@ export default async function handler(
   }
 
   const centralGeneId = parse.data.centralGeneId;
+  const tHandler = performance.now();
 
   try {
     const db = getDb();
@@ -94,33 +96,55 @@ export default async function handler(
           return sanitizeIdentifier(tableName);
         });
 
-      // Build SQL
+      // Build SQL using subqueries so SQLite can drive from the indexed link tables
+      // instead of scanning the base table
       const selectCols = displayCols.map((c) => `b.${c}`).join(", ");
-
-      let fromAndJoins = `FROM ${baseTable} b`;
       const params: Array<string> = [];
 
-      if (linkTables.length > 0) {
-        const whereParts: string[] = [];
-        linkTables.forEach((lt, idx) => {
-          const alias = `lt${idx}`;
-          fromAndJoins += ` LEFT JOIN ${lt} ${alias} ON b.id = ${alias}.id`;
-          whereParts.push(`${alias}.central_gene_id = ?`);
-          params.push(String(centralGeneId));
-        });
-        fromAndJoins += ` WHERE ${whereParts.join(" OR ")}`;
-      } else {
+      if (linkTables.length === 0) {
         // No way to filter for this table
         continue;
       }
 
-      try {
-        const countSql = `SELECT COUNT(*) as cnt FROM (SELECT DISTINCT ${selectCols} ${fromAndJoins})`;
-        const totalRows = (db.prepare(countSql).get(...params) as { cnt: number }).cnt;
-        if (totalRows === 0) continue;
+      // Build a UNION of subqueries on link tables, each using the central_gene_id index
+      const subqueries = linkTables.map((lt) => {
+        params.push(String(centralGeneId));
+        return `SELECT id FROM ${lt} WHERE central_gene_id = ?`;
+      });
+      const idSubquery = subqueries.length === 1
+        ? subqueries[0]
+        : subqueries.join(" UNION ");
+      const fromAndWhere = `FROM ${baseTable} b WHERE b.id IN (${idSubquery})`;
 
-        const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndJoins} LIMIT ${ROW_LIMIT}`;
-        const rows = db.prepare(dataSql).all(...params) as Record<string, unknown>[];
+      try {
+        // Fetch one extra row to detect whether more rows exist beyond the limit
+        const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndWhere} LIMIT ${ROW_LIMIT + 1}`;
+
+        // Query plan
+        const plan = db.prepare(`EXPLAIN QUERY PLAN ${dataSql}`).all(...params);
+        console.log(`[gene-data] table=${baseTable} QUERY PLAN:`, JSON.stringify(plan));
+
+        const tq = performance.now();
+        const allRows = db.prepare(dataSql).all(...params) as Record<string, unknown>[];
+        const queryMs = performance.now() - tq;
+        console.log(`[gene-data] table=${baseTable} SELECT rows=${allRows.length} time=${queryMs.toFixed(1)}ms`);
+
+        if (allRows.length === 0) continue;
+
+        const hasMore = allRows.length > ROW_LIMIT;
+        const rows = hasMore ? allRows.slice(0, ROW_LIMIT) : allRows;
+
+        // Only run the expensive COUNT query when there are more rows than the limit
+        let totalRows: number;
+        if (hasMore) {
+          const countSql = `SELECT COUNT(*) as cnt FROM (SELECT DISTINCT ${selectCols} ${fromAndWhere})`;
+          const tc = performance.now();
+          totalRows = (db.prepare(countSql).get(...params) as { cnt: number }).cnt;
+          const countMs = performance.now() - tc;
+          console.log(`[gene-data] table=${baseTable} COUNT=${totalRows} time=${countMs.toFixed(1)}ms`);
+        } else {
+          totalRows = rows.length;
+        }
 
         let fieldLabels: Record<string, string> | null = null;
         if (t.field_labels) {
@@ -161,6 +185,8 @@ export default async function handler(
       }
     }
 
+    const totalMs = performance.now() - tHandler;
+    console.log(`[gene-data] TOTAL time=${totalMs.toFixed(1)}ms tables_with_results=${results.length}`);
     return res.status(200).json({ centralGeneId, results });
   } catch (err) {
     // eslint-disable-next-line no-console

@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
 import { SearchSuggestion } from "@/state/SearchSuggestion";
+import { performance } from "perf_hooks";
 
 interface GeneSuggestionRow {
   id: number;
@@ -14,6 +15,7 @@ export function fetchGeneSuggestions(
   text: string,
   pageLimit: number = 8
 ): SearchSuggestion[] {
+  const t0 = performance.now();
   const db = getDb();
   const searchText = text.trim().replace(/['"]/g, "");
   if (!searchText) return [];
@@ -24,6 +26,7 @@ export function fetchGeneSuggestions(
   // Collect suggestions, prioritizing numeric id match if provided
   const suggestions: SearchSuggestion[] = [];
 
+  const stageLabels = ["human_symbol", "mouse_symbol", "synonym"];
   const whereClauses: string[] = [
     "LOWER(cg.human_symbol) LIKE ?",
     "LOWER(ms.symbol) LIKE ?",
@@ -35,6 +38,7 @@ export function fetchGeneSuggestions(
   const allRows: GeneSuggestionRow[] = [];
   while (allRows.length < pageLimit && whereClauseIdx < whereClauses.length) {
     const whereClause = whereClauses[whereClauseIdx];
+    const stageLabel = stageLabels[whereClauseIdx];
 
     const seen = allRows.map((r) => r.id);
     const notInClause = seen.length
@@ -62,7 +66,15 @@ export function fetchGeneSuggestions(
     const params = seen.length
       ? [likePrefix, ...seen, pageLimit]
       : [likePrefix, pageLimit];
+
+    // Query plan
+    const plan = db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...params);
+    console.log(`[suggestions] stage=${stageLabel} QUERY PLAN:`, JSON.stringify(plan));
+
+    const tq = performance.now();
     const rows = textStmt.all(...params) as Array<GeneSuggestionRow>;
+    const queryMs = performance.now() - tq;
+    console.log(`[suggestions] stage=${stageLabel} rows=${rows.length} time=${queryMs.toFixed(1)}ms`);
 
     allRows.push(...rows.slice(0, pageLimit - allRows.length));
     whereClauseIdx++;
@@ -90,5 +102,6 @@ export function fetchGeneSuggestions(
     if (suggestions.length >= pageLimit) break;
   }
 
+  console.log(`[suggestions] total time=${(performance.now() - t0).toFixed(1)}ms results=${suggestions.length}`);
   return suggestions;
 }

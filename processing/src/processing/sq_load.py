@@ -193,7 +193,9 @@ def load_data_tables(
             link_table.get_df().to_sql(
                 link_table.link_table_name, conn, if_exists="replace", index=False
             )
+            create_indexes(conn, link_table.link_table_name, ["central_gene_id"])
         assert "id" in data_and_meta.data.columns, "id column not found in data"
+        create_indexes(conn, table_config.table, ["id"])
 
         # Only store field labels for columns that actually exist in the table
         display_col_set = set(data_and_meta.display_columns)
