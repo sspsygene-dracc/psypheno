@@ -1,0 +1,89 @@
+publication:
+  authors:
+    - Michael Deans, PJ
+    - Retallick-Townsley, Kayla G.
+    - Li, Aiqun
+    - Seah, Carina
+    - Johnson, Jessica
+    - Garcia Gonzalez, Judit
+    - Cao, Evan
+    - Schrode, Nadine
+    - Yu, Alex
+    - Cartwright, Sam
+    - Voloudakis, Georgios
+    - Zhang, Wen
+    - Wang, Minghui
+    - Fullard, John F.
+    - Girdhar, Kiran
+    - Stahl, Eli
+    - Akbarian, Schahram
+    - Zhang, Bin
+    - Roussos, Panos
+    - OReilly, Paul
+    - Huckins, Laura M.
+    - Brennand, Kristen J.
+  year: 2026
+  journal: Nature Communications
+  doi: 10.1038/s41467-025-67959-z
+  pmid: "41519853"
+maintainers:
+  - name: Brian Lee
+    email: brianlee@ucsc.edu
+    date: "2026-02-02"
+    comment: Initial table creation
+tables:
+  - table: SCZ_Risk_Arrayed_RNAseq_supp_1
+    shortLabel: SCZ Risk Arrayed bulk RNA-seq
+    longLabel: Polygenic risk for schizophrenia -arrayed assay perturbation on CALN1 CLCN3 CUL9 DOC2A FURIN GATAD2A INO80E PCCB PLCL1 SF3B1 SNAP91 SNCA THOC7 TMEM219 TSNARE1 ZNF823
+    description:
+        "This data shows effects of arrayed perturbation data fromn bulk RNA-seq DEG tables
+        from the paper's supplemental spreadsheet 1 (sheets 2-8, 15, 16, 35-37, 41-44)
+        for CRISPa/RNAi on 16 genes: CALN1 CLCN3 CUL9 DOC2A FURIN GATAD2A INO80E
+        PCCB PLCL1 SF3B1 SNAP91 SNCA THOC7 TMEM219 TSNARE1 ZNF823"
+    categories:
+      - bulk RNA-seq
+      - iPSC-derived neurons
+      - NGN2 induction
+      - CRISPRa and RNAi knockout
+    organism: Homo sapiens (iPSC-derived neurons)
+    in_path: Supp_1_all.csv 
+    separator: ","
+    split_column_map: []
+    gene_mappings:
+      - column_name: target_gene
+        link_table_name: Target_Gene
+        species: human
+        is_perturbed: false
+        is_target: true
+      - column_name: perturbed_gene 
+        link_table_name: Perturbed_Gene
+        species: human
+        is_perturbed: true
+        is_target: false
+  - table: SCZ_Risk_Pooled_ECCITEseq_supp_2
+    shortLabel: SCZ Risk Pooled ECCITE-seq
+    longLabel: Polygenic risk for schizophrenia - pooled assay perturbation on CALN1 CLCN3 FES NAGA PLCL1 SF3B1 TMEM219 UBE2Q2L ZNF804A ZNF823
+    description:
+        "This data shows effects of pooled ECCITE-seq assays (Target vs. Scramble DEGs)
+        from the paper's supplemental spreadsheet 2 for 10 genes:
+        CALN1 CLCN3 FES NAGA PLCL1 SF3B1 TMEM219 UBE2Q2L ZNF804A ZNF823"
+    categories:
+      - ECCITE-seq
+      - iPSC-derived neurons
+      - NGN2 induction
+      - CRISPRa and RNAi knockout
+    organism: Homo sapiens (iPSC-derived neurons)
+    in_path: Supp_2_all.csv 
+    separator: ","
+    split_column_map: []
+    gene_mappings:
+      - column_name: target_gene
+        link_table_name: Target_Gene
+        species: human
+        is_perturbed: false
+        is_target: true
+      - column_name: perturbed_gene 
+        link_table_name: Perturbed_Gene
+        species: human
+        is_perturbed: true
+        is_target: false

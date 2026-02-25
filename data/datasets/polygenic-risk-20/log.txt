@@ -1,0 +1,122 @@
+===
+Michael Deans points to these sheets:
+
+Sheets 2-44 Differential Gene Expression Lists for all comparisons in arrayed screen
+
+2	CALN1 CRISPRa
+3	CLCN3 CRISPRa
+4	CUL9 CRISPRa
+5	DOC2A CRISPRa
+6	FURIN RNAi
+7	GATAD2A RNAi
+8	INO80E CRISPRa
+
+
+15	PCCB RNAi
+16	PLCL1 CRISPRa
+
+35	SF3B1 CRISPRa	
+36	SNAP91 CRISPRa	
+37	SNCA RNAi	
+
+41	THOC7 RNAi
+42	TMEM219 CRISPRa
+43	TSNARE1 CRISPRa
+44	ZNF823 CRISPRa
+
+
+Gene will be those table names
+Similarly for Supplemental 2 
+The gene will be these names. 
+
+CALN1-gRNAvsScramble_PrestoPW
+CLCN3-gRNAvsScramble_PrestoPW
+FES-gRNAvsScramble_PrestoPW
+NAGA-gRNAvsScramble_PrestoPW
+SF3B1-gRNAvsScramble_PrestoPW
+TMEM219-gRNAvsScramble_PrestoPW
+PLCL1-gRNAvsScramble_PrestoPW
+UBE2Q2L-gRNAvsScramble_PrestoPW
+ZNF804A-gRNAvsScramble_PrestoPW
+ZNF823-gRNAvsScramble_PrestoPW
+
+These are two different assays, so two different tables.
+
+
+Combining all
+Sup1
+perturbed_gene,target_gene,description,logFC,CI.L,CI.R,AveExpr,t,P.Value,adj.P.Val,B
+ 
+for i in $(ls csv_perturbs); do cat csv_perturbs/$i | grep -v "perturbed_gene,target_gen" >> all_Degs.csv;  done
+ADD back top row
+
+Sup2
+for i in $(ls csv_scramble_perturbs); do cat csv_scramble_perturbs/$i | grep -v "perturbed_gene,target_gen" >> Supp_2_all.csv;  done
+
+perturbed_gene,target_gene,avgExpr,logFC,statistic,auc,pval,padj,pct_in,pct_out
+
+
+
+EX
+ 1044  cat output_in2cvs/Supp2_CALN1-gRNAvsScramble_PrestoPW.csv  | head -n 4 | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "CALN1," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#CALN1,target_gene#perturbed_gene,target_gene#'
+
+Output to file
+1052  cat output_in2cvs/Supp2_CALN1-gRNAvsScramble_PrestoPW.csv  | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "CALN1," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#CALN1,target_gene#perturbed_gene,target_gene#' > csv_scramble_perturbs/CALN1scramble.csv
+ 1058  cat output_in2cvs/Supp2_CLCN3-gRNAvsScramble_PrestoPW.csv  | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "CLCN3," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#CLCN3,target_gene#perturbed_gene,target_gene#' > csv_scramble_perturbs/CLCN3scramble.csv
+ 1060  cat output_in2cvs/Supp2_FES-gRNAvsScramble_PrestoPW.csv  | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "FES," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#FES,target_gene#perturbed_gene,target_gene#' > csv_scramble_perturbs/FESscramble.csv
+ 1062  cat output_in2cvs/Supp2_NAGA-gRNAvsScramble_PrestoPW.csv  | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "NAGA," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#NAGA,target_gene#perturbed_gene,target_gene#' > csv_scramble_perturbs/NAGAscramble.csv
+ 1064  cat output_in2cvs/Supp2_PLCL1-gRNAvsScramble_PrestoPW.csv  | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "PLCL1," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#PLCL1,target_gene#perturbed_gene,target_gene#' > csv_scramble_perturbs/PLCL1scramble.csv
+ 1065  cat output_in2cvs/Supp2_SF3B1-gRNAvsScramble_PrestoPW.csv  | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "SF3B1," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#SF3B1,target_gene#perturbed_gene,target_gene#' > csv_scramble_perturbs/SF3B1scramble.csv
+ 1066  cat output_in2cvs/Supp2_TMEM219-gRNAvsScramble_PrestoPW.csv  | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "TMEM219," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#TMEM219,target_gene#perturbed_gene,target_gene#' > csv_scramble_perturbs/TMEM219scramble.csv
+ 1067  cat output_in2cvs/Supp2_UBE2Q2L-gRNAvsScramble_PrestoPW.csv  | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "UBE2Q2L," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#UBE2Q2L,target_gene#perturbed_gene,target_gene#' > csv_scramble_perturbs/UBE2Q2Lscramble.csv
+ 1068  cat output_in2cvs/Supp2_ZNF804A-gRNAvsScramble_PrestoPW.csv  | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "ZNF804A," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#ZNF804A,target_gene#perturbed_gene,target_gene#' > csv_scramble_perturbs/ZNF804Ascramble.csv
+ 1069  cat output_in2cvs/Supp2_ZNF823-gRNAvsScramble_PrestoPW.csv  | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "ZNF823," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#ZNF823,target_gene#perturbed_gene,target_gene#' > csv_scramble_perturbs/ZNF823scramble.csv
+
+
+
+
+All Supp2 no ","  so can awk/cut on ',' rearrange 2nd column to first, first to second. 
+
+perturbed_gene,target_gene,
+
+
+
+cat output_in2cvs/Supp2_CALN1-gRNAvsScramble_PrestoPW.csv  | head -n 4 | sed -e 's#feature#target_gene#' | awk -F ',' '{ print "CALN1," $1 "," $3 "," $4 "," $5 "," $6 "," $7 "," $8 "," $9 "," $10}' OFS=',' | sed -e 's#CALN1,target_gene#perturbed_gene,target_gene#'
+
+
+Supp2 work 
+
+Tool to expand XLSX to sheets (puts it where ALL_sheets.xls is located, not where run).
+in2csv -v -f=xlsx --write-sheets - --use-sheet-names Supp2.xlsx
+
+
+
+
+===
+
+Remember, you have column headers on each of these, so you will need to grep-v them before making one large file
+
+1080  cat output_in2cvs/All_sheets_15\ PCCB\ RNAi\ DEGs.csv  | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#PCCB,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/PCCB.cvs
+ 1087  cat output_in2cvs/All_sheets_2\ CALN1\ CRISPRa\ DEGs.csv  | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#CALN1,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/CALN1.cvs
+ 1090  cat output_in2cvs/All_sheets_3\ CLCN3\ CRISPRa\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#CLCN3,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/CLCN3.cvs
+ 1092  cat output_in2cvs/All_sheets_4\ CUL9\ CRISPRa\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#CUL9,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/CUL9.cvs
+ 1094  cat output_in2cvs/All_sheets_5\ DOC2A\ CRISPRa\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#DOC2A,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/DOC2A.cvs
+ 1097  cat output_in2cvs/All_sheets_6\ FURIN\ RNAi\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#FURIN,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/FURIN.cvs
+ 1099  cat output_in2cvs/All_sheets_7\ GATAD2A\ RNAi\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#GATAD2A,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/GATAD2A.cvs
+ 1101  cat output_in2cvs/All_sheets_8\ INO80E\ CRISPRa\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#INO80E,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/INO80E.cvs
+ 1104  cat output_in2cvs/All_sheets_16\ PLCL1\ CRISPRa\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#PLCL1,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/PLCL1.cvs
+ 1106  cat output_in2cvs/All_sheets_35\ SF3B1\ CRISPRa\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#SF3B1,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/SF3B1.cvs
+ 1108  cat output_in2cvs/All_sheets_36\ SNAP91\ CRISPRa\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#SNAP91,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/SNAP91.cvs
+ 1110  cat output_in2cvs/All_sheets_37\ SNCA\ RNAi\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#SNCA,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/SNCA.cvs
+ 1112  cat output_in2cvs/All_sheets_41\ THOC7\ RNAi\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#THOC7,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/THOC7.cvs
+ 1114  cat output_in2cvs/All_sheets_42\ TMEM219\ CRISPRa\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#TMEM219,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/TMEM219.cvs
+ 1116  cat output_in2cvs/All_sheets_43\ TSNARE1\ CRISPRa\ DEGs.csv | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#TSNARE1,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/TSNARE1.cvs
+ 1129  cat output_in2cvs/ZNF823_special | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#ZNF823,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/ZNF823.cvs
+
+SWAPPING out row1 for perturb_gene, in this case PCCB from sheet 15
+
+ cat output_in2cvs/All_sheets_15\ PCCB\ RNAi\ DEGs.csv  | cut -d "," -f 2- | sed -e 's#^ENS[^,]*,#PCCB,#' | sed -e 's#ensembl#perturbed_gene#' | sed -e 's#Gene_name#target_gene#' > csv_perturbs/PCCB.cvs
+ 
+
+Tool to expand XLSX to sheets (puts it where ALL_sheets.xls is located, not where run). 
+in2csv -v -f=xlsx --write-sheets - --use-sheet-names ../All_sheets.xls 
