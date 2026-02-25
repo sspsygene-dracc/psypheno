@@ -52,6 +52,8 @@ export default async function handler(
         publication_doi: string | null;
       }>;
 
+    const ROW_LIMIT = 200;
+
     const results: Array<{
       tableName: string;
       shortLabel: string | null;
@@ -67,6 +69,7 @@ export default async function handler(
       publicationJournal: string | null;
       publicationDoi: string | null;
       rows: Record<string, unknown>[];
+      totalRows: number;
     }> = [];
 
     for (const t of tables) {
@@ -94,59 +97,63 @@ export default async function handler(
       // Build SQL
       const selectCols = displayCols.map((c) => `b.${c}`).join(", ");
 
-      let sql = `SELECT ${selectCols} FROM ${baseTable} b`;
+      let fromAndJoins = `FROM ${baseTable} b`;
       const params: Array<string> = [];
 
       if (linkTables.length > 0) {
         const whereParts: string[] = [];
         linkTables.forEach((lt, idx) => {
           const alias = `lt${idx}`;
-          sql += ` LEFT JOIN ${lt} ${alias} ON b.id = ${alias}.id`;
+          fromAndJoins += ` LEFT JOIN ${lt} ${alias} ON b.id = ${alias}.id`;
           whereParts.push(`${alias}.central_gene_id = ?`);
           params.push(String(centralGeneId));
         });
-        sql += ` WHERE ${whereParts.join(" OR ")}`;
+        fromAndJoins += ` WHERE ${whereParts.join(" OR ")}`;
       } else {
         // No way to filter for this table
         continue;
       }
 
       try {
-        const stmt = db.prepare(sql);
-        const rows = stmt.all(...params) as Record<string, unknown>[];
-        if (rows.length > 0) {
-          let fieldLabels: Record<string, string> | null = null;
-          if (t.field_labels) {
-            try {
-              fieldLabels = JSON.parse(t.field_labels);
-            } catch {
-              fieldLabels = null;
-            }
+        const countSql = `SELECT COUNT(*) as cnt FROM (SELECT DISTINCT ${selectCols} ${fromAndJoins})`;
+        const totalRows = (db.prepare(countSql).get(...params) as { cnt: number }).cnt;
+        if (totalRows === 0) continue;
+
+        const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndJoins} LIMIT ${ROW_LIMIT}`;
+        const rows = db.prepare(dataSql).all(...params) as Record<string, unknown>[];
+
+        let fieldLabels: Record<string, string> | null = null;
+        if (t.field_labels) {
+          try {
+            fieldLabels = JSON.parse(t.field_labels);
+          } catch {
+            fieldLabels = null;
           }
-          const assay = (t.assay || "")
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean);
-          results.push({
-            tableName: t.table_name,
-            shortLabel: t.short_label ?? null,
-            description: t.description ?? null,
-            source: t.source ?? null,
-            assay,
-            fieldLabels,
-            displayColumns: displayCols,
-            scalarColumns: (t.scalar_columns || "")
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean),
-            publicationFirstAuthor: t.publication_first_author ?? null,
-            publicationLastAuthor: t.publication_last_author ?? null,
-            publicationYear: t.publication_year ?? null,
-            publicationJournal: t.publication_journal ?? null,
-            publicationDoi: t.publication_doi ?? null,
-            rows,
-          });
         }
+        const assay = (t.assay || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        results.push({
+          tableName: t.table_name,
+          shortLabel: t.short_label ?? null,
+          description: t.description ?? null,
+          source: t.source ?? null,
+          assay,
+          fieldLabels,
+          displayColumns: displayCols,
+          scalarColumns: (t.scalar_columns || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          publicationFirstAuthor: t.publication_first_author ?? null,
+          publicationLastAuthor: t.publication_last_author ?? null,
+          publicationYear: t.publication_year ?? null,
+          publicationJournal: t.publication_journal ?? null,
+          publicationDoi: t.publication_doi ?? null,
+          rows,
+          totalRows,
+        });
       } catch (innerErr) {
         // Skip tables that fail (e.g., column missing) to keep response robust
         // eslint-disable-next-line no-console

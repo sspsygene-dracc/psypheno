@@ -1,0 +1,78 @@
+publication:
+  authors:
+    - Aaron Gordon
+    - Se-Jin Yoon
+    - Lucy K. Bicks
+    - Jacqueline M. Martín
+    - Greta Pintacuda
+    - Stephanie Arteaga
+    - Brie Wamsley
+    - Qiuyu Guo
+    - Lubayna Elahi
+    - Ricardo E. Dolmetsch
+    - Jonathan A. Bernstein
+    - Ruth O'Hara
+    - Joachim F. Hallmayer
+    - Kasper Lage
+    - Sergiu P. Pasca
+    - Daniel H. Geschwind
+  year: 2026
+  journal: Nature
+  doi: "10.1038/s41586-025-10047-5"
+  pmid: null
+maintainers:
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-02-25"
+    comment: Initial table creation
+tables:
+  - table: geschwind_2026_cnv_de
+    changelog:
+      - date: "2026-02-25"
+        message: "Initial data load"
+    shortLabel: "ASD CNV DE Results"
+    longLabel: "Differential expression across ASD-associated CNV deletions and mutations"
+    description: >
+      Genome-wide differential expression results for 9 ASD-associated genetic forms
+      (15q13.3 del, 16p11.2 del/dup, 22q11.2 del, 22q13.3 del, PCDH19, SHANK3,
+      Timothy syndrome, idiopathic ASD) in iPSC-derived cortical organoids at Day 25,
+      50, 75, 100 and combined across all timepoints. The region_genes column lists
+      genes encompassed by each structural variant.
+    source: "Supplementary Table 3 (all 45 sheets)"
+    assay: expression
+    fieldLabels:
+      sheet: "Source sheet (deletion type + timepoint)"
+      hgnc_symbol: "Gene symbol (HGNC)"
+      logfc: "Log fold change vs control"
+      fdr: "FDR-adjusted p-value"
+      aveexpr: "Average expression"
+      z_std: "Standardized Z-score"
+      chromosome_name: "Chromosome"
+      band: "Cytogenetic band"
+      gene_biotype: "Gene biotype"
+      region_genes: "Genes encompassed by the structural variant"
+    links:
+      - https://doi.org/10.1038/s41586-025-10047-5
+    categories:
+      - ASD
+      - CNV deletion
+      - cortical organoids
+      - developmental transcriptomics
+    organism: "Homo sapiens (iPSC-derived cortical organoids)"
+    in_path: de_results.tsv
+    split_column_map: []
+    separator: "\t"
+    gene_mappings:
+      - column_name: hgnc_symbol
+        link_table_name: gene
+        species: human
+        is_perturbed: false
+        is_target: false
+        ignore_empty: true
+      - column_name: region_genes
+        link_table_name: region_gene
+        species: human
+        is_perturbed: false
+        is_target: false
+        ignore_empty: true
+        multi_gene_separator: ","

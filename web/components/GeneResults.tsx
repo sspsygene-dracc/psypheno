@@ -341,46 +341,56 @@ export default function GeneResults({
                   maxRows={
                     expandedSections.has(section.tableName) ? undefined : 5
                   }
-                  totalRows={section.rows.length}
+                  totalRows={section.totalRows ?? section.rows.length}
                   scalarColumns={section.scalarColumns}
                   fieldLabels={section.fieldLabels}
                   showSummary={false}
                 />
-                {section.rows.length > 5 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "10px 14px",
-                      borderTop: "1px solid #e5e7eb",
-                      background: "#f9fafb",
-                    }}
-                  >
-                    <div style={{ opacity: 0.8, fontSize: 13 }}>
-                      {expandedSections.has(section.tableName)
-                        ? `Showing all ${section.rows.length}`
-                        : `Showing 5 of ${section.rows.length}`}
-                    </div>
-                    <button
-                      onClick={() => toggleSection(section.tableName)}
+                {(() => {
+                  const apiTotal = section.totalRows ?? section.rows.length;
+                  const truncated = apiTotal > section.rows.length;
+                  const showFooter = section.rows.length > 5 || truncated;
+                  if (!showFooter) return null;
+                  const isExpanded = expandedSections.has(section.tableName);
+                  const visibleCount = isExpanded ? section.rows.length : Math.min(5, section.rows.length);
+                  return (
+                    <div
                       style={{
-                        padding: "8px 12px",
-                        background: "#ffffff",
-                        border: "1px solid #d1d5db",
-                        color: "#1f2937",
-                        borderRadius: 10,
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 14px",
+                        borderTop: "1px solid #e5e7eb",
+                        background: "#f9fafb",
                       }}
                     >
-                      {expandedSections.has(section.tableName)
-                        ? "Collapse"
-                        : "Expand"}
-                    </button>
-                  </div>
-                )}
+                      <div style={{ opacity: 0.8, fontSize: 13 }}>
+                        {truncated
+                          ? `Showing ${visibleCount.toLocaleString()} of ${apiTotal.toLocaleString()} total rows (result limit reached)`
+                          : isExpanded
+                            ? `Showing all ${section.rows.length}`
+                            : `Showing 5 of ${section.rows.length}`}
+                      </div>
+                      {section.rows.length > 5 && (
+                        <button
+                          onClick={() => toggleSection(section.tableName)}
+                          style={{
+                            padding: "8px 12px",
+                            background: "#ffffff",
+                            border: "1px solid #d1d5db",
+                            color: "#1f2937",
+                            borderRadius: 10,
+                            fontSize: 14,
+                            fontWeight: 500,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {isExpanded ? "Collapse" : "Expand"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ))}
           </div>

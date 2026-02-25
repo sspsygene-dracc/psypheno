@@ -20,6 +20,7 @@ class GeneMapping:
     is_perturbed: bool
     is_target: bool
     ignore_empty: bool
+    multi_gene_separator: str | None = None
 
     def __post_init__(self):
         if self.species not in ["human", "mouse"]:
@@ -50,6 +51,7 @@ class GeneMapping:
             ignore_empty=(
                 json_data["ignore_empty"] if "ignore_empty" in json_data else False
             ),
+            multi_gene_separator=json_data.get("multi_gene_separator", None),
         )
 
     def resolve_to_central_gene_table(
@@ -72,39 +74,47 @@ class GeneMapping:
             if self.ignore_empty and (pd.isna(elem) or not elem):
                 data_id_to_central_gene_id.append((row_id, None))
                 continue
-            if self.to_upper:
-                elem = elem.upper()
-            if elem in self.replace:
-                elem = self.replace[elem]
-            if elem not in species_map:
-                if elem in self.ignore_missing:
-                    data_id_to_central_gene_id.append((row_id, None))
-                    continue
 
-                # write a regex for this format: AC118555.1 or AC118555.1 or AL512330.1; so A[CL]number.number:
-                contig_regex = re.compile(
-                    r"^(((C[RU]|F[OP]|AUXG|BX|A[CDFJLP])\d{6}\.\d{1,2})|([UZ]\d{5}\.\d))$"
-                )
-                if not contig_regex.match(elem):
-                    get_sspsygene_logger().warning(
-                        "Path %s, column %s, gene %s not in gene maps for species %s; adding manually",
-                        in_path,
-                        self.column_name,
-                        elem,
-                        self.species,
-                    )
-                new_entry = get_central_gene_table().add_species_entry(
-                    species=self.species,
-                    symbol=elem,
-                    dataset=primary_table_name,
-                )
-                species_map[elem] = [new_entry]
+            # Split multi-gene values into individual genes
+            if self.multi_gene_separator:
+                gene_values = [g.strip() for g in str(elem).split(self.multi_gene_separator) if g.strip()]
             else:
-                for entry in species_map[elem]:
-                    data_id_to_central_gene_id.append((row_id, entry.row_id))
-                    entry.add_used_name(
-                        species=self.species, name=elem, dataset_name=primary_table_name
+                gene_values = [elem]
+
+            for gene_val in gene_values:
+                if self.to_upper:
+                    gene_val = gene_val.upper()
+                if gene_val in self.replace:
+                    gene_val = self.replace[gene_val]
+                if gene_val not in species_map:
+                    if gene_val in self.ignore_missing:
+                        data_id_to_central_gene_id.append((row_id, None))
+                        continue
+
+                    # write a regex for this format: AC118555.1 or AC118555.1 or AL512330.1; so A[CL]number.number:
+                    contig_regex = re.compile(
+                        r"^(((C[RU]|F[OP]|AUXG|BX|A[CDFJLP])\d{6}\.\d{1,2})|([UZ]\d{5}\.\d))$"
                     )
+                    if not contig_regex.match(gene_val):
+                        get_sspsygene_logger().warning(
+                            "Path %s, column %s, gene %s not in gene maps for species %s; adding manually",
+                            in_path,
+                            self.column_name,
+                            gene_val,
+                            self.species,
+                        )
+                    new_entry = get_central_gene_table().add_species_entry(
+                        species=self.species,
+                        symbol=gene_val,
+                        dataset=primary_table_name,
+                    )
+                    species_map[gene_val] = [new_entry]
+                else:
+                    for entry in species_map[gene_val]:
+                        data_id_to_central_gene_id.append((row_id, entry.row_id))
+                        entry.add_used_name(
+                            species=self.species, name=gene_val, dataset_name=primary_table_name
+                        )
         link_table_full_name = primary_table_name + "__" + self.link_table_name
         return LinkTable(
             central_gene_table_links=data_id_to_central_gene_id,

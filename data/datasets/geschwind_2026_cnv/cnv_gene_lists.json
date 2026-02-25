@@ -1,0 +1,85 @@
+{
+  "15q13": {
+    "region": "15q13.3 (BP4-BP5)",
+    "size": "~1.5 Mb",
+    "coordinates_hg38": "chr15:30,900,686-32,153,204",
+    "coordinates_hg19": "chr15:31,192,889-32,445,405",
+    "genes": ["FAN1", "MTMR10", "TRPM1", "KLF13", "OTUD7A", "CHRNA7"],
+    "sources": [
+      "ClinGen ISCA-37411",
+      "OMIM #612001",
+      "GeneReviews NBK50780",
+      "Lowther et al. 2014 EJHG (PMC4200442)"
+    ]
+  },
+  "16p11del": {
+    "region": "16p11.2 proximal (BP4-BP5)",
+    "size": "~593 kb",
+    "coordinates_hg38": "chr16:29,638,676-30,188,531",
+    "coordinates_hg19": "chr16:29,649,997-30,199,852",
+    "genes": [
+      "SPN", "QPRT", "C16orf54", "ZG16", "KIF22", "MAZ", "PRRT2", "PAGR1",
+      "MVP", "CDIPT", "SEZ6L2", "ASPHD1", "KCTD13", "TMEM219", "TAOK2",
+      "HIRIP3", "INO80E", "DOC2A", "C16orf92", "FAM57B", "ALDOA", "PPP4C",
+      "TBX6", "YPEL3", "GDPD3", "MAPK3", "CORO1A"
+    ],
+    "notes": "27 core protein-coding genes in unique sequence. Multi-copy genes in flanking segmental duplications (BOLA2/2B, SLX1A/1B, SULT1A3/4, NPIPB11/12/13) are excluded since they are variably affected.",
+    "sources": [
+      "ClinGen ISCA-37400",
+      "OMIM #611913",
+      "GeneReviews NBK11167",
+      "Frontiers Pharmacol 2024 (10.3389/fphar.2024.1407865)"
+    ]
+  },
+  "16p11dup": {
+    "region": "16p11.2 proximal (BP4-BP5)",
+    "note": "Same region as 16p11del, duplicated instead of deleted",
+    "genes": "same as 16p11del"
+  },
+  "22q11del": {
+    "region": "22q11.2 (LCR22A-LCR22D)",
+    "size": "~2.5 Mb",
+    "coordinates_hg38": "chr22:18,924,718-21,111,383",
+    "coordinates_hg19": "chr22:18,912,231-21,465,672",
+    "genes": [
+      "DGCR6", "PRODH", "DGCR2", "DGCR14", "TSSK2", "GSC2", "SLC25A1",
+      "CLTCL1", "HIRA", "MRPL40", "C22orf39", "UFD1", "CDC45", "CLDN5",
+      "SEPT5", "GP1BB", "TBX1", "GNB1L", "TXNRD2", "COMT", "ARVCF",
+      "TANGO2", "DGCR8", "TRMT2A", "RANBP1", "ZDHHC8", "RTN4R",
+      "DGCR6L", "USP41", "SCARF2", "KLHL22", "MED15", "PI4KA",
+      "SERPIND1", "SNAP29", "CRKL", "AIFM3", "LZTR1", "THAP7",
+      "P2RX6", "SLC7A4", "LRRC74B", "HIC2", "ZNF74"
+    ],
+    "notes": "~44 well-established protein-coding genes in the typical ~2.5Mb (LCR22A-D) deletion. ~85-90% of patients carry this size.",
+    "sources": [
+      "ClinGen ISCA-37446",
+      "GeneReviews NBK1523",
+      "Burnside 2015 (PMC4487986)",
+      "Morrow et al. 2018 (PMC6214629)"
+    ]
+  },
+  "22q13del": {
+    "region": "22q13.33 (Phelan-McDermid)",
+    "size": "variable, 130 kb to 9 Mb; using full 22q13.33 sub-band",
+    "coordinates_hg38": "chr22:49,100,000-50,818,468 (22q13.33 band)",
+    "genes": [
+      "BRD1", "ZBED4", "ALG12", "CRELD2", "PIM3", "IL17REL", "TTLL8",
+      "MLC1", "MOV10L1", "PANX2", "TRABD", "SELENOO", "TUBGCP6",
+      "HDAC10", "MAPK12", "MAPK11", "PLXNB2", "DENND6B", "PPP6R2",
+      "SBF1", "ADM2", "MIOX", "LMF2", "NCAPH2", "SCO2", "TYMP",
+      "CIMAP1B", "KLHDC7B", "SYCE3", "CPT1B", "CHKB", "MAPK8IP2",
+      "ARSA", "SHANK3", "ACR", "RABL2B"
+    ],
+    "notes": "~36 protein-coding genes in 22q13.33 sub-band. Actual deletion size varies per patient; this uses the full sub-band as a practical definition.",
+    "sources": [
+      "GeneReviews NBK1198",
+      "OMIM #606232",
+      "Ricciardello et al. 2021 (PMC8251815)",
+      "Tabet et al. 2017 (PMC5838980)"
+    ]
+  },
+  "PCDH19": { "genes": ["PCDH19"] },
+  "SHANK3": { "genes": ["SHANK3"] },
+  "TS": { "genes": ["CACNA1C"] },
+  "IdiopathicASD": { "genes": [] }
+}

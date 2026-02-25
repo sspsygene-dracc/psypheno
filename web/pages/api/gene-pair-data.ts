@@ -45,6 +45,8 @@ export default async function handler(
         link_tables: string | null;
       }>;
 
+    const ROW_LIMIT = 200;
+
     const results: Array<{
       tableName: string;
       shortLabel: string | null;
@@ -55,6 +57,7 @@ export default async function handler(
       displayColumns: string[];
       scalarColumns: string[];
       rows: Record<string, unknown>[];
+      totalRows: number;
     }> = [];
 
     for (const t of tables) {
@@ -92,57 +95,61 @@ export default async function handler(
       const targetLT = targetLTs[0];
 
       const selectCols = displayCols.map((c) => `b.${c}`).join(", ");
-      let sql = `SELECT ${selectCols} FROM ${baseTable} b`;
+      let fromAndJoins = `FROM ${baseTable} b`;
       const params: Array<string> = [];
 
       // Join at least one perturbed and one target link table and require both ids
       const whereParts: string[] = [];
       if (perturbedCentralGeneId) {
         const lt = perturbedLT;
-        sql += ` LEFT JOIN ${lt} p ON b.id = p.id`;
+        fromAndJoins += ` LEFT JOIN ${lt} p ON b.id = p.id`;
         whereParts.push(`p.central_gene_id = ?`);
         params.push(String(perturbedCentralGeneId));
       }
       if (targetCentralGeneId) {
         const lt = targetLT;
-        sql += ` LEFT JOIN ${lt} t ON b.id = t.id`;
+        fromAndJoins += ` LEFT JOIN ${lt} t ON b.id = t.id`;
         whereParts.push(`t.central_gene_id = ?`);
         params.push(String(targetCentralGeneId));
       }
 
-      sql += ` WHERE ${whereParts.join(" AND ")}`;
+      fromAndJoins += ` WHERE ${whereParts.join(" AND ")}`;
 
       try {
-        const stmt = db.prepare(sql);
-        const rows = stmt.all(...params) as Record<string, unknown>[];
-        if (rows.length > 0) {
-          let fieldLabels: Record<string, string> | null = null;
-          if (t.field_labels) {
-            try {
-              fieldLabels = JSON.parse(t.field_labels);
-            } catch {
-              fieldLabels = null;
-            }
+        const countSql = `SELECT COUNT(*) as cnt FROM (SELECT DISTINCT ${selectCols} ${fromAndJoins})`;
+        const totalRows = (db.prepare(countSql).get(...params) as { cnt: number }).cnt;
+        if (totalRows === 0) continue;
+
+        const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndJoins} LIMIT ${ROW_LIMIT}`;
+        const rows = db.prepare(dataSql).all(...params) as Record<string, unknown>[];
+
+        let fieldLabels: Record<string, string> | null = null;
+        if (t.field_labels) {
+          try {
+            fieldLabels = JSON.parse(t.field_labels);
+          } catch {
+            fieldLabels = null;
           }
-          const assay = (t.assay || "")
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean);
-          results.push({
-            tableName: t.table_name,
-            shortLabel: t.short_label ?? null,
-            description: t.description ?? null,
-            source: t.source ?? null,
-            assay,
-            fieldLabels,
-            displayColumns: displayCols,
-            scalarColumns: (t.scalar_columns || "")
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean),
-            rows,
-          });
         }
+        const assay = (t.assay || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        results.push({
+          tableName: t.table_name,
+          shortLabel: t.short_label ?? null,
+          description: t.description ?? null,
+          source: t.source ?? null,
+          assay,
+          fieldLabels,
+          displayColumns: displayCols,
+          scalarColumns: (t.scalar_columns || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          rows,
+          totalRows,
+        });
       } catch (innerErr) {
         // eslint-disable-next-line no-console
         console.error(`Pair query failed for table ${baseTable}`, innerErr);
