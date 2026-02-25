@@ -381,5 +381,12 @@ class CentralGeneTable:
                     central_entry.mouse_synonyms.add(other_id)
 
 
-CENTRAL_GENE_TABLE = CentralGeneTable()
-CENTRAL_GENE_TABLE.construct()
+_CENTRAL_GENE_TABLE: CentralGeneTable | None = None
+
+
+def get_central_gene_table() -> CentralGeneTable:
+    global _CENTRAL_GENE_TABLE
+    if _CENTRAL_GENE_TABLE is None:
+        _CENTRAL_GENE_TABLE = CentralGeneTable()
+        _CENTRAL_GENE_TABLE.construct()
+    return _CENTRAL_GENE_TABLE

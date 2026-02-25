@@ -24,12 +24,13 @@ class NewSqlite3:
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         assert self.final_path is not None
-        if self._conn is not None:
+        if exc_type is None and self._conn is not None:
             self._conn.commit()
-        if self._cursor is not None:
+        if exc_type is None and self._cursor is not None:
             self.loggger.info("Optimizing sqlite3 at %s", self.final_path)
             self._cursor.execute("PRAGMA optimize")
             self.loggger.info("Done optimizing sqlite3 at %s", self.final_path)
+        if self._cursor is not None:
             self._cursor.close()
         if self._conn is not None:
             self._conn.close()

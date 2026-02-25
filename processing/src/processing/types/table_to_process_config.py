@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -11,12 +12,33 @@ from processing.types.link_table import LinkTable
 from processing.types.split_column_entry import SplitColumnEntry
 
 
+def normalize_column_name(name: str) -> str:
+    result = name.lower()
+    result = re.sub(r"[^a-z0-9_]", "_", result)
+    result = re.sub(r"_+", "_", result)
+    return result
+
+
 def get_sql_friendly_columns(df: pd.DataFrame) -> list[str]:
-    return list(
-        df.columns.str.lower()
-        .str.replace(r"[^a-z0-9_]", "_", regex=True)
-        .str.replace(r"_+", "_", regex=True)
-    )
+    return [normalize_column_name(col) for col in df.columns]
+
+
+def normalize_field_labels(
+    raw_labels: dict[str, str], context: str
+) -> dict[str, str]:
+    normalized: dict[str, str] = {}
+    seen_originals: dict[str, str] = {}  # normalized_key -> original_key
+    for original_key, value in raw_labels.items():
+        norm_key = normalize_column_name(original_key)
+        if norm_key in seen_originals and seen_originals[norm_key] != original_key:
+            raise ValueError(
+                f'Conflicting fieldLabels in {context}: keys "{seen_originals[norm_key]}" and '
+                f'"{original_key}" both normalize to "{norm_key}". '
+                f"fieldLabels keys are case-insensitive — please remove the duplicate."
+            )
+        seen_originals[norm_key] = original_key
+        normalized[norm_key] = value
+    return normalized
 
 
 @dataclass
@@ -94,8 +116,18 @@ class TableToProcessConfig:
             assay = list(raw_assay)
 
         # Field labels: merge global defaults with per-table overrides
-        merged_field_labels: dict[str, str] = dict(global_field_labels or {})
-        merged_field_labels.update(json_data.get("fieldLabels", {}))
+        # Keys are normalized (lowercased, sanitized) to match column names
+        table_name = json_data["table"]
+        merged_field_labels = normalize_field_labels(
+            global_field_labels or {},
+            context=f"global config for table {table_name}",
+        )
+        merged_field_labels.update(
+            normalize_field_labels(
+                json_data.get("fieldLabels", {}),
+                context=f"table {table_name}",
+            )
+        )
 
         return cls(
             table=json_data["table"],

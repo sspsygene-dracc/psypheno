@@ -2,8 +2,11 @@ import json
 import logging
 from pathlib import Path
 import sqlite3
+import sys
 
-from processing.central_gene_table import CENTRAL_GENE_TABLE
+import click
+
+from processing.central_gene_table import get_central_gene_table
 from processing.new_sqlite3 import NewSqlite3
 from processing.types.table_to_process_config import TableToProcessConfig
 
@@ -50,7 +53,7 @@ def load_gene_tables(
         central_gene_id INTEGER
         )"""
     )
-    for entry in CENTRAL_GENE_TABLE.entries:
+    for entry in get_central_gene_table().entries:
         if not entry.used:
             continue
         human_synonyms = entry.human_synonyms & entry.used_human_names
@@ -131,7 +134,9 @@ def load_gene_tables(
 
 
 def load_data_tables(
-    conn: sqlite3.Connection, table_configs: list[TableToProcessConfig]
+    conn: sqlite3.Connection,
+    table_configs: list[TableToProcessConfig],
+    skip_missing: bool = False,
 ) -> None:
     cur = conn.cursor()
     cur.execute(
@@ -159,8 +164,28 @@ def load_data_tables(
         publication_doi TEXT,
         publication_pmid TEXT)"""
     )
+    loaded: list[str] = []
+    skipped: list[str] = []
     for table_config in table_configs:
+        if not table_config.in_path.exists():
+            if skip_missing:
+                click.echo(click.style(
+                    f"Warning: Skipping table '{table_config.table}': "
+                    f"file not found: {table_config.in_path}",
+                    fg="yellow", bold=True,
+                ))
+                skipped.append(table_config.table)
+                continue
+            else:
+                click.echo(click.style(
+                    f"Error: File not found for table '{table_config.table}': "
+                    f"{table_config.in_path}\n"
+                    "Hint: use --skip-missing-datasets to skip missing files.",
+                    fg="red", bold=True,
+                ), err=True)
+                sys.exit(1)
         data_and_meta = table_config.load_data_table()
+        loaded.append(table_config.table)
         data_and_meta.data.to_sql(
             table_config.table, conn, if_exists="replace", index=False
         )
@@ -222,6 +247,35 @@ def load_data_tables(
     )
     conn.commit()
 
+    # Print summary
+    all_tables = loaded + skipped
+    if all_tables:
+        name_width = max(len(t) for t in all_tables)
+        header_table = "Table"
+        header_status = "Status"
+        name_width = max(name_width, len(header_table))
+        status_width = max(len(header_status), len("Skipped (missing)"))
+        divider = f"+-{'-' * name_width}-+-{'-' * status_width}-+"
+        click.echo("")
+        click.echo(divider)
+        click.echo(f"| {header_table:<{name_width}} | {header_status:<{status_width}} |")
+        click.echo(divider)
+        skipped_set = set(skipped)
+        for table in all_tables:
+            if table in skipped_set:
+                status = click.style("Skipped (missing)", fg="yellow", bold=True)
+                # Pad manually since style adds invisible escape chars
+                pad = status_width - len("Skipped (missing)")
+            else:
+                status = click.style("Loaded", fg="green", bold=True)
+                pad = status_width - len("Loaded")
+            click.echo(f"| {table:<{name_width}} | {status}{' ' * pad} |")
+        click.echo(divider)
+        click.echo(
+            f"  {click.style(str(len(loaded)), bold=True)} loaded, "
+            f"{click.style(str(len(skipped)), bold=True)} skipped"
+        )
+
 
 def load_assay_types(
     conn: sqlite3.Connection, assay_types: dict[str, str]
@@ -244,6 +298,7 @@ def load_db(
     db_name: Path,
     table_configs: list[TableToProcessConfig],
     assay_types: dict[str, str] | None = None,
+    skip_missing: bool = False,
 ) -> None:
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
@@ -254,6 +309,6 @@ def load_db(
     db_name.unlink(missing_ok=True)
     with NewSqlite3(db_name, logger) as new_sqlite3:
         conn = new_sqlite3.conn
-        load_data_tables(conn, table_configs)
+        load_data_tables(conn, table_configs, skip_missing=skip_missing)
         load_gene_tables(conn)
         load_assay_types(conn, assay_types or {})

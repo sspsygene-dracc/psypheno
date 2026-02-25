@@ -4,7 +4,7 @@ import re
 from typing import Any, Literal
 
 import pandas as pd
-from processing.central_gene_table import CENTRAL_GENE_TABLE
+from processing.central_gene_table import get_central_gene_table
 from processing.my_logger import get_sspsygene_logger
 from processing.types.link_table import LinkTable
 
@@ -65,7 +65,7 @@ class GeneMapping:
         id_column: list[int] = data["id"].tolist()
         in_column: list[str] = data[self.column_name].tolist()
         data_id_to_central_gene_id: list[tuple[int, int | None]] = []
-        species_map = CENTRAL_GENE_TABLE.get_species_map(
+        species_map = get_central_gene_table().get_species_map(
             species=self.species,
         )
         for row_id, elem in zip(id_column, in_column):
@@ -93,7 +93,7 @@ class GeneMapping:
                         elem,
                         self.species,
                     )
-                new_entry = CENTRAL_GENE_TABLE.add_species_entry(
+                new_entry = get_central_gene_table().add_species_entry(
                     species=self.species,
                     symbol=elem,
                     dataset=primary_table_name,

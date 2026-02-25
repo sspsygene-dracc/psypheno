@@ -37,7 +37,13 @@ def cli(
     help="Load only this dataset directory (e.g. 'mouse-cortex-perturb-4tf'). "
     "If omitted, all datasets are loaded.",
 )
-def load_db(dataset: str | None) -> None:
+@click.option(
+    "--skip-missing-datasets",
+    is_flag=True,
+    default=False,
+    help="Skip tables whose input files are missing instead of failing.",
+)
+def load_db(dataset: str | None, skip_missing_datasets: bool) -> None:
     """Load the database"""
     try:
         from processing.sq_load import load_db
@@ -48,6 +54,7 @@ def load_db(dataset: str | None) -> None:
             config.out_db,
             config.tables_config.tables,
             assay_types=config.global_config.get("assayTypes", {}),
+            skip_missing=skip_missing_datasets,
         )
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
