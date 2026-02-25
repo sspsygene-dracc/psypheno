@@ -18,6 +18,21 @@ def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) 
         conn.execute(sql)
 
 
+# Columns that need case-insensitive indexes for autocomplete search
+_NOCASE_INDEXES: dict[str, list[str]] = {
+    "central_gene": ["human_symbol"],
+    "extra_mouse_symbols": ["symbol"],
+    "extra_gene_synonyms": ["synonym"],
+}
+
+
+def create_nocase_indexes(conn: sqlite3.Connection, table: str) -> None:
+    for field in _NOCASE_INDEXES.get(table, []):
+        idx_name = f"{table}_{field}_nocase_idx"
+        print(f"Creating NOCASE index {idx_name}")
+        conn.execute(f"CREATE INDEX {idx_name} ON {table} ({field} COLLATE NOCASE)")
+
+
 def load_gene_tables(
     conn: sqlite3.Connection,
 ) -> None:
@@ -120,16 +135,19 @@ def load_gene_tables(
             "manually_added",
         ],
     )
+    create_nocase_indexes(conn, "central_gene")
     create_indexes(
         conn,
         "extra_gene_synonyms",
         ["central_gene_id", "species", "synonym"],
     )
+    create_nocase_indexes(conn, "extra_gene_synonyms")
     create_indexes(
         conn,
         "extra_mouse_symbols",
         ["symbol", "central_gene_id"],
     )
+    create_nocase_indexes(conn, "extra_mouse_symbols")
     conn.commit()
 
 
