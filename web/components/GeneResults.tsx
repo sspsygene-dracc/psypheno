@@ -9,6 +9,13 @@ const formatTableName = (section: TableResult) =>
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
 
+const formatAuthors = (first: string | null | undefined, last: string | null | undefined) => {
+  if (!first && !last) return "";
+  if (first && last) return first === last ? first : `${first} & ${last}`;
+  if (first) return `${first} et al.`;
+  return last ?? "";
+};
+
 type AssayGroup = {
   assayKey: string;
   label: string;
@@ -266,6 +273,37 @@ export default function GeneResults({
                     }}
                   >
                     {section.description}
+                  </div>
+                )}
+                {(section.publicationFirstAuthor ||
+                  section.publicationLastAuthor ||
+                  section.publicationYear ||
+                  section.publicationJournal ||
+                  section.publicationDoi) && (
+                  <div
+                    style={{
+                      padding: "4px 14px 8px",
+                      fontSize: 13,
+                      color: "#6b7280",
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>Publication:</span>{" "}
+                    {formatAuthors(section.publicationFirstAuthor, section.publicationLastAuthor)}
+                    {section.publicationYear ? ` (${section.publicationYear})` : ""}
+                    {section.publicationJournal ? `, ${section.publicationJournal}` : ""}
+                    {section.publicationDoi && (
+                      <>
+                        {", "}
+                        <a
+                          href={`https://doi.org/${section.publicationDoi}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: "#2563eb", textDecoration: "underline" }}
+                        >
+                          DOI: {section.publicationDoi}
+                        </a>
+                      </>
+                    )}
                   </div>
                 )}
                 {expandedSections.has(section.tableName) &&
