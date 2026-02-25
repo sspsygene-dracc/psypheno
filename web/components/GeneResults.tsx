@@ -597,7 +597,7 @@ export default function GeneResults({
                         <div style={{ opacity: 0.8, fontSize: 13 }}>
                           {summaryText}
                         </div>
-                        {hasPagination && (
+                        {hasPagination && isExpanded && (
                           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                             <button
                               disabled={effectivePage <= 1 || isPageLoading}
