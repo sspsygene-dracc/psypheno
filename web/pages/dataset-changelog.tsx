@@ -15,6 +15,7 @@ type ChangelogEntry = {
   source: string | null;
   publication_first_author: string | null;
   publication_last_author: string | null;
+  publication_author_count: number | null;
   publication_year: number | null;
   publication_journal: string | null;
   publication_doi: string | null;
@@ -34,9 +35,10 @@ function formatAuthor(entry: ChangelogEntry): string {
   const first = entry.publication_first_author;
   const last = entry.publication_last_author;
   if (!first && !last) return "";
+  const count = entry.publication_author_count;
   if (first && last) {
     if (first === last) return first;
-    return `${first}, ..., ${last}`;
+    return count != null && count > 2 ? `${first}, ..., ${last}` : `${first} & ${last}`;
   }
   if (first) return `${first} et al.`;
   return last ?? "";

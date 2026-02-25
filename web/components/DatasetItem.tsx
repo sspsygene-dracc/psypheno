@@ -18,6 +18,7 @@ export type Dataset = {
   organism: string | null;
   publication_first_author: string | null;
   publication_last_author: string | null;
+  publication_author_count: number | null;
   publication_year: number | null;
   publication_journal: string | null;
   publication_doi: string | null;
