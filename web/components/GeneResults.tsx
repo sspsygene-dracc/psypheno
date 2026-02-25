@@ -72,7 +72,15 @@ export default function GeneResults({
     setTablePageOverrides({});
   }, [data]);
 
+  const scrollToTableTop = (tableName: string) => {
+    const tableEl = document.getElementById(`table-${tableName}`);
+    if (!tableEl) return;
+    tableEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const fetchTablePage = async (tableName: string, page: number) => {
+    scrollToTableTop(tableName);
+
     // Abort any in-flight request for this table
     abortControllers.current[tableName]?.abort();
     const controller = new AbortController();
