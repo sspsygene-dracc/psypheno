@@ -424,7 +424,8 @@ export default function AllDatasets() {
                             {(() => {
                               const total = datasetData.totalRows ?? datasetData.rows.length;
                               if (hasPagination) {
-                                const rangeStart = (currentPage - 1) * 50 + 1;
+                                const pageSize = Math.ceil(total / totalPages);
+                                const rangeStart = (currentPage - 1) * pageSize + 1;
                                 const rangeEnd = rangeStart + datasetData.rows.length - 1;
                                 return `Showing rows ${rangeStart.toLocaleString()}\u2013${rangeEnd.toLocaleString()} of ${total.toLocaleString()}`;
                               }
