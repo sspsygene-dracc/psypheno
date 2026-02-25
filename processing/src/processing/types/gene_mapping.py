@@ -8,6 +8,10 @@ from processing.central_gene_table import get_central_gene_table
 from processing.my_logger import get_sspsygene_logger
 from processing.types.link_table import LinkTable
 
+_CONTIG_REGEX = re.compile(
+    r"^(((C[RU]|F[OP]|AUXG|BX|A[CDFJLP])\d{6}\.\d{1,2})|([UZ]\d{5}\.\d))$"
+)
+
 
 @dataclass
 class GeneMapping:
@@ -91,11 +95,7 @@ class GeneMapping:
                         data_id_to_central_gene_id.append((row_id, None))
                         continue
 
-                    # write a regex for this format: AC118555.1 or AC118555.1 or AL512330.1; so A[CL]number.number:
-                    contig_regex = re.compile(
-                        r"^(((C[RU]|F[OP]|AUXG|BX|A[CDFJLP])\d{6}\.\d{1,2})|([UZ]\d{5}\.\d))$"
-                    )
-                    if not contig_regex.match(gene_val):
+                    if not _CONTIG_REGEX.match(gene_val):
                         get_sspsygene_logger().warning(
                             "Path %s, column %s, gene %s not in gene maps for species %s; adding manually",
                             in_path,

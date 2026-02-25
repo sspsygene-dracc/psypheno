@@ -1,3 +1,4 @@
+import sqlite3
 from dataclasses import dataclass
 
 import pandas as pd
@@ -14,6 +15,15 @@ class LinkTable:
     def get_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             self.central_gene_table_links, columns=["id", "central_gene_id"]
+        )
+
+    def write_to_sqlite(self, conn: sqlite3.Connection) -> None:
+        conn.execute(
+            f"CREATE TABLE [{self.link_table_name}] (id INTEGER, central_gene_id INTEGER)"
+        )
+        conn.executemany(
+            f"INSERT INTO [{self.link_table_name}] (id, central_gene_id) VALUES (?, ?)",
+            self.central_gene_table_links,
         )
 
     def get_meta_entry(self) -> str:

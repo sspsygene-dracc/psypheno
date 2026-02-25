@@ -190,9 +190,7 @@ def load_data_tables(
             table_config.table, conn, if_exists="replace", index=False
         )
         for link_table in data_and_meta.link_tables:
-            link_table.get_df().to_sql(
-                link_table.link_table_name, conn, if_exists="replace", index=False
-            )
+            link_table.write_to_sqlite(conn)
             create_indexes(conn, link_table.link_table_name, ["central_gene_id"])
         assert "id" in data_and_meta.data.columns, "id column not found in data"
         create_indexes(conn, table_config.table, ["id"])
