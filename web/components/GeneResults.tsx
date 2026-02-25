@@ -85,14 +85,22 @@ export default function GeneResults({
     abortControllers.current[tableName]?.abort();
     const controller = new AbortController();
     abortControllers.current[tableName] = controller;
+    const baseSection = data.find((section) => section.tableName === tableName);
+    const fallbackRows = baseSection?.rows ?? [];
+    const fallbackTotalRows =
+      baseSection?.totalRows ?? baseSection?.rows.length ?? 0;
+    const fallbackTotalPages = Math.max(
+      1,
+      Math.ceil(fallbackTotalRows / ROW_LIMIT)
+    );
 
     setTablePageOverrides((prev) => ({
       ...prev,
       [tableName]: {
         page,
-        rows: prev[tableName]?.rows ?? [],
-        totalRows: prev[tableName]?.totalRows ?? 0,
-        totalPages: prev[tableName]?.totalPages ?? 1,
+        rows: prev[tableName]?.rows ?? fallbackRows,
+        totalRows: prev[tableName]?.totalRows ?? fallbackTotalRows,
+        totalPages: prev[tableName]?.totalPages ?? fallbackTotalPages,
         loading: true,
         error: null,
       },
@@ -553,8 +561,12 @@ export default function GeneResults({
                         transform: "translate(-50%, -50%)",
                         fontSize: 14,
                         color: "#6b7280",
+                        background: "rgba(255, 255, 255, 0.92)",
+                        border: "1px solid #d1d5db",
+                        borderRadius: 9999,
+                        padding: "6px 12px",
                       }}>
-                        Loading...
+                        Loading page {effectivePage}...
                       </div>
                     )}
                   </div>
