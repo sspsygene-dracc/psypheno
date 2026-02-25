@@ -59,6 +59,7 @@ class TableToProcessConfig:
     organism: str | None = None
     publication_first_author: str | None = None
     publication_last_author: str | None = None
+    publication_author_count: int | None = None
     publication_year: int | None = None
     publication_journal: str | None = None
     publication_doi: str | None = None
@@ -102,6 +103,7 @@ class TableToProcessConfig:
         ) else []
         first_author = authors[0] if authors else None
         last_author = authors[-1] if authors else None
+        author_count = len(authors) if authors else None
         year_val = publication.get("year")
         year_int: int | None
         try:

@@ -2,16 +2,11 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { performance } from "perf_hooks";
+import { sanitizeIdentifier, parseDisplayColumns, buildGeneQuery, queryFirstPage } from "@/lib/gene-query";
 
 const bodySchema = z.object({
   centralGeneId: z.number().min(0),
 });
-
-function sanitizeIdentifier(id: string): string {
-  // Allow only alphanumeric and underscore to avoid SQL injection via identifiers
-  if (!/^\w+$/.test(id)) throw new Error(`Invalid identifier: ${id}`);
-  return id;
-}
 
 export default async function handler(
   req: NextApiRequest,
@@ -54,8 +49,6 @@ export default async function handler(
         publication_doi: string | null;
       }>;
 
-    const ROW_LIMIT = 200;
-
     const results: Array<{
       tableName: string;
       shortLabel: string | null;
@@ -76,75 +69,24 @@ export default async function handler(
 
     for (const t of tables) {
       const baseTable = sanitizeIdentifier(t.table_name);
-      const displayCols = (t.display_columns || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map(sanitizeIdentifier);
-
+      const displayCols = parseDisplayColumns(t.display_columns);
       if (displayCols.length === 0) continue;
 
-      // Parse link tables list which may contain entries like "alias:table_name" or "alias:table_name:isPerturbed:isTarget"
-      // We only need the actual link table names to join on base.id = link.id and filter link.central_gene_id
-      const linkTables = (t.link_tables || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map((entry) => {
-          const parts = entry.split(":");
-          const tableName = parts.length >= 2 ? parts[1] : parts[0];
-          return sanitizeIdentifier(tableName);
-        });
-
-      // Build SQL using subqueries so SQLite can drive from the indexed link tables
-      // instead of scanning the base table
-      const selectCols = displayCols.map((c) => `b.${c}`).join(", ");
-      const params: Array<string> = [];
-
-      if (linkTables.length === 0) {
-        // No way to filter for this table
-        continue;
-      }
-
-      // Build a UNION of subqueries on link tables, each using the central_gene_id index
-      const subqueries = linkTables.map((lt) => {
-        params.push(String(centralGeneId));
-        return `SELECT id FROM ${lt} WHERE central_gene_id = ?`;
+      const query = buildGeneQuery({
+        baseTable,
+        displayCols,
+        linkTablesRaw: t.link_tables || "",
+        centralGeneId,
       });
-      const idSubquery = subqueries.length === 1
-        ? subqueries[0]
-        : subqueries.join(" UNION ");
-      const fromAndWhere = `FROM ${baseTable} b WHERE b.id IN (${idSubquery})`;
+      if (!query) continue;
 
       try {
-        // Fetch one extra row to detect whether more rows exist beyond the limit
-        const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndWhere} LIMIT ${ROW_LIMIT + 1}`;
-
-        // Query plan
-        const plan = db.prepare(`EXPLAIN QUERY PLAN ${dataSql}`).all(...params);
-        console.log(`[gene-data] table=${baseTable} QUERY PLAN:`, JSON.stringify(plan));
-
         const tq = performance.now();
-        const allRows = db.prepare(dataSql).all(...params) as Record<string, unknown>[];
+        const result = queryFirstPage(db, query.selectCols, query.fromAndWhere, query.params);
         const queryMs = performance.now() - tq;
-        console.log(`[gene-data] table=${baseTable} SELECT rows=${allRows.length} time=${queryMs.toFixed(1)}ms`);
+        console.log(`[gene-data] table=${baseTable} time=${queryMs.toFixed(1)}ms`);
 
-        if (allRows.length === 0) continue;
-
-        const hasMore = allRows.length > ROW_LIMIT;
-        const rows = hasMore ? allRows.slice(0, ROW_LIMIT) : allRows;
-
-        // Only run the expensive COUNT query when there are more rows than the limit
-        let totalRows: number;
-        if (hasMore) {
-          const countSql = `SELECT COUNT(*) as cnt FROM (SELECT DISTINCT ${selectCols} ${fromAndWhere})`;
-          const tc = performance.now();
-          totalRows = (db.prepare(countSql).get(...params) as { cnt: number }).cnt;
-          const countMs = performance.now() - tc;
-          console.log(`[gene-data] table=${baseTable} COUNT=${totalRows} time=${countMs.toFixed(1)}ms`);
-        } else {
-          totalRows = rows.length;
-        }
+        if (!result) continue;
 
         let fieldLabels: Record<string, string> | null = null;
         if (t.field_labels) {
@@ -175,8 +117,8 @@ export default async function handler(
           publicationYear: t.publication_year ?? null,
           publicationJournal: t.publication_journal ?? null,
           publicationDoi: t.publication_doi ?? null,
-          rows,
-          totalRows,
+          rows: result.rows,
+          totalRows: result.totalRows,
         });
       } catch (innerErr) {
         // Skip tables that fail (e.g., column missing) to keep response robust

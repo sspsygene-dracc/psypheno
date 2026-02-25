@@ -2,8 +2,7 @@ import { TableResult } from "@/lib/table_result";
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import DataTable from "@/components/DataTable";
 import InfoTooltip from "@/components/InfoTooltip";
-
-const ROW_LIMIT = 200;
+import { ROW_LIMIT } from "@/lib/gene-query";
 
 const formatTableName = (section: TableResult) =>
   section.shortLabel ??
