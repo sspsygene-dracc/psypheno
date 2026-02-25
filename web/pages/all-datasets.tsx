@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DataTable from "@/components/DataTable";
@@ -31,7 +32,16 @@ type DatasetData = {
   totalRows?: number;
 };
 
+function slugFromLabel(label: string): string {
+  return label.replace(/\s+/g, "_");
+}
+
+function normalizeSlug(s: string): string {
+  return s.replace(/[\s_]+/g, "_").toLowerCase();
+}
+
 export default function AllDatasets() {
+  const router = useRouter();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +49,7 @@ export default function AllDatasets() {
   const [datasetData, setDatasetData] = useState<DatasetData | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
+  const hydratedFromQuery = useRef(false);
 
   useEffect(() => {
     const fetchDatasets = async () => {
@@ -67,6 +78,44 @@ export default function AllDatasets() {
     fetchDatasets();
     fetchAssayTypes();
   }, []);
+
+  // Hydrate selected dataset from ?select= URL param once datasets are loaded
+  useEffect(() => {
+    if (!router.isReady || hydratedFromQuery.current || loading) return;
+    hydratedFromQuery.current = true;
+    const selectParam = router.query.select;
+    if (typeof selectParam !== "string") return;
+    const normalized = normalizeSlug(selectParam);
+    const match = datasets.find(
+      (d) => d.short_label && normalizeSlug(d.short_label) === normalized
+    );
+    if (match) {
+      setSelectedDataset(match.table_name);
+    }
+  }, [router.isReady, loading, datasets]);
+
+  // Keep URL in sync when the user selects a dataset
+  useEffect(() => {
+    if (!router.isReady || !hydratedFromQuery.current) return;
+    const ds = datasets.find((d) => d.table_name === selectedDataset);
+    const slug = ds?.short_label ? slugFromLabel(ds.short_label) : null;
+    const currentSelect = router.query.select as string | undefined;
+    if (slug) {
+      if (currentSelect !== slug) {
+        router.replace(
+          { pathname: router.pathname, query: { select: slug } },
+          undefined,
+          { shallow: true }
+        );
+      }
+    } else if (currentSelect) {
+      router.replace(
+        { pathname: router.pathname, query: {} },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [selectedDataset, datasets, router.isReady]);
 
   useEffect(() => {
     if (!selectedDataset) {
