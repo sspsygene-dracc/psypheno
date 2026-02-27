@@ -1,53 +1,53 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import Head from "next/head";
-import { useRouter } from "next/router";
-import SearchBar from "@/components/SearchBar";
+import Link from "next/link";
 import DataTable from "@/components/DataTable";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { SearchSuggestion } from "@/state/SearchSuggestion";
 
-type CombinedPvalues = {
-  fisher: number | null;
-  stouffer: number | null;
-  cauchy: number | null;
-  hmp: number | null;
-  numTables: number;
-  numPvalues: number;
+const PAGE_SIZE = 10;
+
+type CombinedRow = {
+  human_symbol: string;
+  fisher_pvalue: number | null;
+  fisher_fdr: number | null;
+  stouffer_pvalue: number | null;
+  stouffer_fdr: number | null;
+  cauchy_pvalue: number | null;
+  cauchy_fdr: number | null;
+  hmp_pvalue: number | null;
+  hmp_fdr: number | null;
+  num_tables: number;
+  num_pvalues: number;
 };
 
-type ContributingTable = {
-  tableName: string;
-  shortLabel: string | null;
-  description: string | null;
-  pvalueColumn: string | null;
-  fdrColumn: string | null;
-  rowCount: number;
-};
-
-type SignificantTable = {
+type DatasetTableMeta = {
   tableName: string;
   shortLabel: string | null;
   pvalueColumn: string | null;
   fdrColumn: string | null;
-  fieldLabels: Record<string, string> | null;
+};
+
+type DatasetSigResult = {
+  rows: Record<string, unknown>[];
+  totalRows: number;
   displayColumns: string[];
   scalarColumns: string[];
-  rows: Record<string, unknown>[];
-  totalSignificantRows: number;
+  fieldLabels: Record<string, string> | null;
+  page: number;
 };
 
 const METHOD_DESCRIPTIONS: Record<string, string> = {
   fisher:
-    "Combines -2\u00B7\u03A3ln(p) across tables. P-values are pre-collapsed to one per table using Bonferroni-corrected minimum. Sensitive to any single strong signal.",
+    "Combines -2\u00B7\u03A3ln(p) across tables. Pre-collapsed to one p-value per table (Bonferroni-corrected minimum). Sensitive to any single strong signal.",
   stouffer:
-    "Converts p-values to Z-scores and sums them. Pre-collapsed to one per table. More balanced than Fisher\u2019s \u2014 doesn\u2019t let one extreme p-value dominate.",
+    "Converts p-values to Z-scores and sums. Pre-collapsed to one per table. More balanced than Fisher\u2019s.",
   cauchy:
-    "Cauchy combination test (CCT). Uses tan-transform of all individual p-values directly (no pre-collapsing). Robust to correlated p-values from the same dataset.",
-  hmp: "Harmonic mean p-value. Weighted harmonic mean of all individual p-values directly (no pre-collapsing). Robust to dependency structure between tests.",
+    "Cauchy combination test (CCT). Uses all individual p-values directly. Robust to correlated p-values.",
+  hmp: "Harmonic mean p-value. Uses all individual p-values directly. Robust to dependency structure.",
 };
 
-function formatPvalue(p: number | null): string {
+function formatPvalue(p: number | null | undefined): string {
   if (p === null || p === undefined) return "\u2014";
   if (p < 1e-300) return "< 1e-300";
   if (p < 0.001) return p.toExponential(3);
@@ -60,123 +60,180 @@ const formatTableName = (tableName: string, shortLabel: string | null) =>
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
 
-export default function CombinedPvaluesPage() {
-  const router = useRouter();
-  const [selected, setSelected] = useState<SearchSuggestion | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [combinedPvalues, setCombinedPvalues] =
-    useState<CombinedPvalues | null>(null);
-  const [contributingTables, setContributingTables] = useState<
-    ContributingTable[]
-  >([]);
-  const [significantTables, setSignificantTables] = useState<
-    SignificantTable[]
-  >([]);
-  const [filterBy, setFilterBy] = useState<"pvalue" | "fdr">("pvalue");
-  const [sortBy, setSortBy] = useState<"pvalue" | "fdr">("pvalue");
-  const [sigLoading, setSigLoading] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
-  const hydratedFromQuery = useRef(false);
+type SortColumn =
+  | "human_symbol"
+  | "fisher_pvalue"
+  | "fisher_fdr"
+  | "stouffer_pvalue"
+  | "stouffer_fdr"
+  | "cauchy_pvalue"
+  | "cauchy_fdr"
+  | "hmp_pvalue"
+  | "hmp_fdr"
+  | "num_tables"
+  | "num_pvalues";
 
-  // Resolve gene symbol from URL
-  const resolveSymbol = async (
-    symbol: string
-  ): Promise<SearchSuggestion | null> => {
-    try {
-      const res = await fetch("/api/search-text", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: symbol }),
-      });
-      if (!res.ok) return null;
-      const data = (await res.json()) as {
-        suggestions: SearchSuggestion[];
-      };
-      const suggestions = Array.isArray(data.suggestions)
-        ? data.suggestions
-        : [];
-      const exact = suggestions.find((s) => s.humanSymbol === symbol);
-      return exact || suggestions[0] || null;
-    } catch {
-      return null;
+const COMBINED_COLUMNS: {
+  key: SortColumn;
+  label: string;
+  mono?: boolean;
+  right?: boolean;
+}[] = [
+  { key: "human_symbol", label: "Gene" },
+  { key: "fisher_pvalue", label: "Fisher p", mono: true },
+  { key: "fisher_fdr", label: "Fisher FDR", mono: true },
+  { key: "stouffer_pvalue", label: "Stouffer p", mono: true },
+  { key: "stouffer_fdr", label: "Stouffer FDR", mono: true },
+  { key: "cauchy_pvalue", label: "Cauchy p", mono: true },
+  { key: "cauchy_fdr", label: "Cauchy FDR", mono: true },
+  { key: "hmp_pvalue", label: "HMP p", mono: true },
+  { key: "hmp_fdr", label: "HMP FDR", mono: true },
+  { key: "num_tables", label: "Tables", right: true },
+  { key: "num_pvalues", label: "P-values", right: true },
+];
+
+/* ─── Pagination component ─── */
+function Pagination({
+  page,
+  totalPages,
+  total,
+  loading,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  total: number;
+  loading: boolean;
+  onPageChange: (p: number) => void;
+}) {
+  const items: ReactNode[] = [];
+  if (totalPages > 1) {
+    const addBtn = (label: string | number, target: number, key: string) => {
+      const isActive = target === page;
+      const isDisabled = loading || target < 1 || target > totalPages;
+      items.push(
+        <button
+          key={key}
+          onClick={() => !isDisabled && onPageChange(target)}
+          disabled={isDisabled}
+          aria-current={isActive ? "page" : undefined}
+          style={{
+            padding: "6px 10px",
+            minWidth: 36,
+            background: isActive ? "#f3f4f6" : isDisabled ? "#f9fafb" : "#fff",
+            border: "1px solid #d1d5db",
+            color: "#1f2937",
+            borderRadius: 6,
+            cursor: isDisabled ? "not-allowed" : "pointer",
+            fontWeight: isActive ? 700 : 500,
+          }}
+        >
+          {label}
+        </button>
+      );
+    };
+    addBtn(1, 1, "pg-1");
+    if (totalPages >= 2) addBtn(2, 2, "pg-2");
+    const surround: number[] = [];
+    for (let p = page - 2; p <= page + 2; p++) {
+      if (p >= 1 && p <= totalPages && p !== 1 && p !== 2 && p !== totalPages)
+        surround.push(p);
     }
-  };
+    if (surround.length > 0 && Math.min(...surround) > 3)
+      items.push(
+        <span key="ell-1" style={{ color: "#6b7280", padding: "0 4px" }}>
+          ...
+        </span>
+      );
+    surround.forEach((pn) => addBtn(pn, pn, `pg-${pn}`));
+    if (surround.length > 0 && Math.max(...surround) < totalPages - 1)
+      items.push(
+        <span key="ell-2" style={{ color: "#6b7280", padding: "0 4px" }}>
+          ...
+        </span>
+      );
+    if (totalPages > 2) addBtn(totalPages, totalPages, "pg-last");
+  }
 
-  // Hydrate from URL
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 8,
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "8px 0",
+      }}
+    >
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page <= 1 || loading}
+          style={{
+            padding: "8px 12px",
+            background: page <= 1 || loading ? "#f9fafb" : "#fff",
+            border: "1px solid #d1d5db",
+            color: "#1f2937",
+            borderRadius: 8,
+            cursor: page <= 1 || loading ? "not-allowed" : "pointer",
+          }}
+        >
+          Prev
+        </button>
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages || loading}
+          style={{
+            padding: "8px 12px",
+            background: page >= totalPages || loading ? "#f9fafb" : "#fff",
+            border: "1px solid #d1d5db",
+            color: "#1f2937",
+            borderRadius: 8,
+            cursor:
+              page >= totalPages || loading ? "not-allowed" : "pointer",
+          }}
+        >
+          Next
+        </button>
+      </div>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        {items}
+      </div>
+      <div style={{ color: "#6b7280", fontSize: 13, whiteSpace: "nowrap" }}>
+        Page {page} of {totalPages} ({total} rows)
+      </div>
+    </div>
+  );
+}
+
+/* ─── Per-dataset significant rows section ─── */
+function DatasetSection({
+  meta,
+  filterBy,
+  sortBy,
+}: {
+  meta: DatasetTableMeta;
+  filterBy: "pvalue" | "fdr";
+  sortBy: "pvalue" | "fdr";
+}) {
+  const [result, setResult] = useState<DatasetSigResult | null>(null);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  // Reset page when filter/sort changes
   useEffect(() => {
-    if (!router.isReady || hydratedFromQuery.current) return;
-    const q = router.query || {};
-    const sel = typeof q.selected === "string" ? q.selected : undefined;
-    if (sel) {
-      (async () => {
-        const s = await resolveSymbol(sel);
-        if (s) setSelected(s);
-      })();
-    }
-    hydratedFromQuery.current = true;
-  }, [router.isReady, router.query]);
+    setPage(1);
+  }, [filterBy, sortBy]);
 
-  // Sync URL
   useEffect(() => {
-    if (!hydratedFromQuery.current) return;
-    const params: Record<string, string> = {};
-    if (selected?.humanSymbol) params.selected = selected.humanSymbol;
-    const qs = new URLSearchParams(params).toString();
-    const target = qs ? `?${qs}` : router.pathname;
-    if (target !== `${router.pathname}${window.location.search}`) {
-      router.replace(target, undefined, { shallow: true });
-    }
-  }, [selected]);
-
-  // Fetch combined p-values when gene changes
-  useEffect(() => {
-    if (!selected) {
-      setCombinedPvalues(null);
-      setContributingTables([]);
-      return;
-    }
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
     setLoading(true);
-    setError(null);
-
-    fetch("/api/combined-pvalues", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ centralGeneId: selected.centralGeneId }),
-      signal: controller.signal,
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        setCombinedPvalues(data.combinedPvalues);
-        setContributingTables(data.contributingTables);
-        setLoading(false);
-      })
-      .catch((e) => {
-        if (e.name === "AbortError") return;
-        setError(e.message || "Failed to load");
-        setLoading(false);
-      });
-  }, [selected]);
-
-  // Fetch significant rows when gene or filter/sort changes
-  useEffect(() => {
-    if (!selected) {
-      setSignificantTables([]);
-      return;
-    }
-    setSigLoading(true);
-
-    fetch("/api/significant-rows", {
+    fetch("/api/dataset-significant-rows", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        centralGeneId: selected.centralGeneId,
+        tableName: meta.tableName,
+        page,
+        pageSize: PAGE_SIZE,
         filterBy,
         sortBy,
       }),
@@ -186,30 +243,148 @@ export default function CombinedPvaluesPage() {
         return r.json();
       })
       .then((data) => {
-        setSignificantTables(data.tables);
-        setSigLoading(false);
+        setResult({
+          rows: data.rows,
+          totalRows: data.totalRows,
+          displayColumns: data.displayColumns,
+          scalarColumns: data.scalarColumns,
+          fieldLabels: data.fieldLabels,
+          page: data.page,
+        });
+        setLoading(false);
       })
-      .catch((e) => {
-        if (e.name === "AbortError") return;
-        setSigLoading(false);
+      .catch(() => {
+        setResult(null);
+        setLoading(false);
       });
-  }, [selected, filterBy, sortBy]);
+  }, [meta.tableName, page, filterBy, sortBy]);
 
-  const geneDisplay = selected?.humanSymbol || null;
+  if (!loading && (!result || result.totalRows === 0)) return null;
+
+  const totalPages = result
+    ? Math.max(1, Math.ceil(result.totalRows / PAGE_SIZE))
+    : 1;
+
+  return (
+    <div
+      style={{
+        marginBottom: 16,
+        background: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: 12,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "12px 14px",
+          borderBottom: "1px solid #e5e7eb",
+          fontWeight: 600,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span>{formatTableName(meta.tableName, meta.shortLabel)}</span>
+        {result && (
+          <span
+            style={{ fontSize: 13, fontWeight: 400, color: "#6b7280" }}
+          >
+            {result.totalRows} significant row
+            {result.totalRows !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+      {loading && (
+        <div style={{ padding: 16, color: "#6b7280", fontSize: 14 }}>
+          Loading...
+        </div>
+      )}
+      {!loading && result && result.rows.length > 0 && (
+        <>
+          <DataTable
+            columns={result.displayColumns}
+            rows={result.rows}
+            scalarColumns={result.scalarColumns}
+            fieldLabels={result.fieldLabels ?? undefined}
+            showSummary={false}
+          />
+          {totalPages > 1 && (
+            <div style={{ padding: "4px 14px 8px", borderTop: "1px solid #e5e7eb" }}>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={result.totalRows}
+                loading={loading}
+                onPageChange={setPage}
+              />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─── Main page ─── */
+export default function CombinedPvaluesPage() {
+  // Combined p-values table state
+  const [rows, setRows] = useState<CombinedRow[]>([]);
+  const [totalRows, setTotalRows] = useState(0);
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<SortColumn>("fisher_pvalue");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [loading, setLoading] = useState(true);
+
+  // Significant rows filter/sort
+  const [sigFilterBy, setSigFilterBy] = useState<"pvalue" | "fdr">("pvalue");
+  const [sigSortBy, setSigSortBy] = useState<"pvalue" | "fdr">("pvalue");
+
+  // Fetch combined p-values table
+  const fetchCombined = useCallback(() => {
+    setLoading(true);
+    fetch("/api/combined-pvalues-table", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ page, pageSize: PAGE_SIZE, sortBy, sortDir }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        setRows(data.rows);
+        setTotalRows(data.totalRows);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [page, sortBy, sortDir]);
+
+  useEffect(() => {
+    fetchCombined();
+  }, [fetchCombined]);
+
+  const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+
+  const handleSort = (col: SortColumn) => {
+    if (col === sortBy) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      setSortDir("asc");
+    }
+    setPage(1);
+  };
 
   return (
     <>
       <Head>
-        <title>
-          {geneDisplay
-            ? `${geneDisplay} Combined P-values — SSPsyGene`
-            : "Combined P-values — SSPsyGene"}
-        </title>
+        <title>Combined P-values — SSPsyGene</title>
       </Head>
       <Header />
       <main
         style={{
-          maxWidth: 1100,
+          maxWidth: 1200,
           margin: "0 auto",
           padding: "24px 16px",
           color: "#1f2937",
@@ -223,435 +398,310 @@ export default function CombinedPvaluesPage() {
             color: "#6b7280",
             fontSize: 14,
             marginBottom: 20,
-            maxWidth: 800,
+            maxWidth: 900,
           }}
         >
-          Aggregate statistical significance across all datasets for a gene.
-          Combines p-values using four complementary methods: Fisher and Stouffer
-          (pre-collapsed to one p-value per dataset), and Cauchy/HMP (using all
-          individual p-values, robust to correlation).
+          Aggregate statistical significance across all datasets. P-values are
+          combined using four methods: Fisher and Stouffer (pre-collapsed to one
+          p-value per dataset), Cauchy/HMP (using all individual p-values,
+          robust to correlation). FDR is Benjamini-Hochberg corrected across all
+          genes per method.
         </p>
 
-        <div style={{ maxWidth: 500, marginBottom: 24 }}>
-          <SearchBar
-            placeholder="Search for a gene..."
-            onSelect={(s) => setSelected(s)}
-            value={selected}
-          />
-        </div>
-
-        {loading && (
-          <div style={{ color: "#6b7280", padding: "20px 0" }}>
-            Loading combined p-values...
+        {/* Method descriptions */}
+        <details
+          style={{
+            marginBottom: 20,
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            padding: "0 14px",
+          }}
+        >
+          <summary
+            style={{
+              padding: "10px 0",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: 14,
+              color: "#374151",
+            }}
+          >
+            Method descriptions
+          </summary>
+          <div style={{ paddingBottom: 12, fontSize: 13, color: "#6b7280" }}>
+            {Object.entries(METHOD_DESCRIPTIONS).map(([key, desc]) => (
+              <div key={key} style={{ marginBottom: 6 }}>
+                <strong style={{ color: "#374151" }}>
+                  {key === "fisher"
+                    ? "Fisher\u2019s method"
+                    : key === "stouffer"
+                    ? "Stouffer\u2019s method"
+                    : key === "cauchy"
+                    ? "Cauchy (CCT)"
+                    : "Harmonic Mean (HMP)"}
+                  :
+                </strong>{" "}
+                {desc}
+              </div>
+            ))}
           </div>
-        )}
-        {error && (
-          <div style={{ color: "#dc2626", padding: "20px 0" }}>{error}</div>
-        )}
+        </details>
 
-        {!loading && geneDisplay && combinedPvalues && (
-          <>
-            <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 12 }}>
-              Results for {geneDisplay}
-            </h2>
-
-            {/* Combined p-values card */}
-            <div
+        {/* Combined p-values table */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: 12,
+            overflow: "hidden",
+            marginBottom: 24,
+          }}
+        >
+          <div style={{ overflowX: "auto" }}>
+            <table
               style={{
-                background: "#ffffff",
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                overflow: "hidden",
-                marginBottom: 20,
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 13,
               }}
             >
-              <div
-                style={{
-                  padding: "12px 14px",
-                  borderBottom: "1px solid #e5e7eb",
-                  fontWeight: 600,
-                }}
-              >
-                Combined P-values
-                <span
-                  style={{
-                    fontWeight: 400,
-                    color: "#6b7280",
-                    fontSize: 13,
-                    marginLeft: 12,
-                  }}
-                >
-                  {combinedPvalues.numPvalues} p-values from{" "}
-                  {combinedPvalues.numTables} table
-                  {combinedPvalues.numTables !== 1 ? "s" : ""}
-                </span>
-              </div>
-              <div style={{ overflowX: "auto" }}>
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    fontSize: 14,
-                  }}
-                >
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
+              <thead>
+                <tr style={{ background: "#f9fafb" }}>
+                  {COMBINED_COLUMNS.map((col) => {
+                    const isActive = col.key === sortBy;
+                    return (
                       <th
+                        key={col.key}
+                        onClick={() => handleSort(col.key)}
                         style={{
-                          textAlign: "left",
-                          padding: "10px 14px",
+                          padding: "10px 12px",
+                          textAlign: col.right ? "right" : "left",
                           fontWeight: 600,
-                          color: "#374151",
-                        }}
-                      >
-                        Method
-                      </th>
-                      <th
-                        style={{
-                          textAlign: "left",
-                          padding: "10px 14px",
-                          fontWeight: 600,
-                          color: "#374151",
+                          color: isActive ? "#1f2937" : "#6b7280",
                           whiteSpace: "nowrap",
+                          cursor: "pointer",
+                          userSelect: "none",
+                          borderBottom: "1px solid #e5e7eb",
                         }}
                       >
-                        Combined p-value
+                        {col.label}
+                        <span
+                          style={{
+                            fontSize: 12,
+                            marginLeft: 4,
+                            color: isActive ? "#1f2937" : "#9ca3af",
+                          }}
+                        >
+                          {isActive
+                            ? sortDir === "asc"
+                              ? " \u25B2"
+                              : " \u25BC"
+                            : " \u21C5"}
+                        </span>
                       </th>
-                      <th
-                        style={{
-                          textAlign: "left",
-                          padding: "10px 14px",
-                          fontWeight: 600,
-                          color: "#374151",
-                        }}
-                      >
-                        Description
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(
-                      [
-                        ["Fisher\u2019s method", combinedPvalues.fisher, "fisher"],
-                        ["Stouffer\u2019s method", combinedPvalues.stouffer, "stouffer"],
-                        ["Cauchy (CCT)", combinedPvalues.cauchy, "cauchy"],
-                        ["Harmonic Mean (HMP)", combinedPvalues.hmp, "hmp"],
-                      ] as [string, number | null, string][]
-                    ).map(([name, value, key]) => (
-                      <tr
-                        key={key}
-                        style={{ borderBottom: "1px solid #f3f4f6" }}
-                      >
-                        <td
-                          style={{
-                            padding: "10px 14px",
-                            fontWeight: 500,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {name}
-                        </td>
-                        <td
-                          style={{
-                            padding: "10px 14px",
-                            fontFamily: "monospace",
-                            color:
-                              value !== null && value < 0.05
-                                ? "#059669"
-                                : "#1f2937",
-                            fontWeight:
-                              value !== null && value < 0.05 ? 600 : 400,
-                          }}
-                        >
-                          {formatPvalue(value)}
-                        </td>
-                        <td
-                          style={{
-                            padding: "10px 14px",
-                            color: "#6b7280",
-                            fontSize: 13,
-                          }}
-                        >
-                          {METHOD_DESCRIPTIONS[key]}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Contributing tables */}
-            {contributingTables.length > 0 && (
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  marginBottom: 24,
-                }}
-              >
-                <div
-                  style={{
-                    padding: "12px 14px",
-                    borderBottom: "1px solid #e5e7eb",
-                    fontWeight: 600,
-                  }}
-                >
-                  Contributing Datasets
-                </div>
-                <div style={{ overflowX: "auto" }}>
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                      fontSize: 14,
-                    }}
-                  >
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "10px 14px",
-                            fontWeight: 600,
-                            color: "#374151",
-                          }}
-                        >
-                          Dataset
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "10px 14px",
-                            fontWeight: 600,
-                            color: "#374151",
-                          }}
-                        >
-                          P-value column
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "10px 14px",
-                            fontWeight: 600,
-                            color: "#374151",
-                          }}
-                        >
-                          FDR column
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "right",
-                            padding: "10px 14px",
-                            fontWeight: 600,
-                            color: "#374151",
-                          }}
-                        >
-                          Rows for gene
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {contributingTables.map((t) => (
-                        <tr
-                          key={t.tableName}
-                          style={{ borderBottom: "1px solid #f3f4f6" }}
-                        >
-                          <td style={{ padding: "10px 14px" }}>
-                            <div style={{ fontWeight: 500 }}>
-                              {formatTableName(t.tableName, t.shortLabel)}
-                            </div>
-                            {t.description && (
-                              <div
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {loading && (
+                  <tr>
+                    <td
+                      colSpan={COMBINED_COLUMNS.length}
+                      style={{
+                        padding: 24,
+                        textAlign: "center",
+                        color: "#6b7280",
+                      }}
+                    >
+                      Loading...
+                    </td>
+                  </tr>
+                )}
+                {!loading &&
+                  rows.map((row, idx) => (
+                    <tr
+                      key={`${row.human_symbol}-${idx}`}
+                      style={{ borderTop: "1px solid #e5e7eb" }}
+                    >
+                      {COMBINED_COLUMNS.map((col) => {
+                        const val = row[col.key as keyof CombinedRow];
+                        const isPval =
+                          col.mono &&
+                          typeof val === "number";
+                        const isSignificant =
+                          isPval && (val as number) < 0.05;
+                        return (
+                          <td
+                            key={col.key}
+                            style={{
+                              padding: "8px 12px",
+                              fontFamily: col.mono ? "monospace" : undefined,
+                              textAlign: col.right ? "right" : "left",
+                              color: isSignificant ? "#059669" : "#1f2937",
+                              fontWeight: isSignificant ? 600 : 400,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {col.key === "human_symbol" ? (
+                              <Link
+                                href={`/?searchMode=general&selected=${encodeURIComponent(String(val))}`}
                                 style={{
-                                  fontSize: 12,
-                                  color: "#6b7280",
-                                  marginTop: 2,
+                                  color: "#2563eb",
+                                  textDecoration: "none",
+                                  fontWeight: 500,
                                 }}
                               >
-                                {t.description.length > 120
-                                  ? t.description.slice(0, 120) + "..."
-                                  : t.description}
-                              </div>
+                                {String(val)}
+                              </Link>
+                            ) : col.mono ? (
+                              formatPvalue(val as number | null)
+                            ) : (
+                              String(val ?? "")
                             )}
                           </td>
-                          <td
-                            style={{
-                              padding: "10px 14px",
-                              fontFamily: "monospace",
-                              fontSize: 13,
-                            }}
-                          >
-                            {t.pvalueColumn || "\u2014"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "10px 14px",
-                              fontFamily: "monospace",
-                              fontSize: 13,
-                            }}
-                          >
-                            {t.fdrColumn || "\u2014"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "10px 14px",
-                              textAlign: "right",
-                            }}
-                          >
-                            {t.rowCount}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+                        );
+                      })}
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+          {totalPages > 1 && (
+            <div style={{ padding: "4px 14px 8px", borderTop: "1px solid #e5e7eb" }}>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={totalRows}
+                loading={loading}
+                onPageChange={setPage}
+              />
+            </div>
+          )}
+        </div>
 
-            {/* Significant rows section */}
-            <div
+        {/* Significant rows per dataset */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            marginBottom: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>
+            Significant Rows (&lt; 0.05) by Dataset
+          </h2>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 13,
+            }}
+          >
+            <span style={{ color: "#6b7280" }}>Filter by:</span>
+            <select
+              value={sigFilterBy}
+              onChange={(e) =>
+                setSigFilterBy(e.target.value as "pvalue" | "fdr")
+              }
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 16,
-                marginBottom: 12,
-                flexWrap: "wrap",
+                padding: "4px 8px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                fontSize: 13,
               }}
             >
-              <h2
-                style={{ fontSize: 20, fontWeight: 600, margin: 0 }}
-              >
-                Significant Rows (&lt; 0.05)
-              </h2>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: "#6b7280" }}>Filter by:</span>
-                <select
-                  value={filterBy}
-                  onChange={(e) =>
-                    setFilterBy(e.target.value as "pvalue" | "fdr")
-                  }
-                  style={{
-                    padding: "4px 8px",
-                    borderRadius: 6,
-                    border: "1px solid #d1d5db",
-                    fontSize: 13,
-                  }}
-                >
-                  <option value="pvalue">P-value</option>
-                  <option value="fdr">FDR</option>
-                </select>
-                <span style={{ color: "#6b7280", marginLeft: 8 }}>
-                  Sort by:
-                </span>
-                <select
-                  value={sortBy}
-                  onChange={(e) =>
-                    setSortBy(e.target.value as "pvalue" | "fdr")
-                  }
-                  style={{
-                    padding: "4px 8px",
-                    borderRadius: 6,
-                    border: "1px solid #d1d5db",
-                    fontSize: 13,
-                  }}
-                >
-                  <option value="pvalue">P-value ascending</option>
-                  <option value="fdr">FDR ascending</option>
-                </select>
-              </div>
-            </div>
-
-            {sigLoading && (
-              <div style={{ color: "#6b7280", padding: "12px 0" }}>
-                Loading significant rows...
-              </div>
-            )}
-
-            {!sigLoading && significantTables.length === 0 && (
-              <div style={{ color: "#6b7280", padding: "12px 0" }}>
-                No rows below 0.05 threshold found for {geneDisplay} with the
-                selected filter.
-              </div>
-            )}
-
-            {!sigLoading &&
-              significantTables.map((t) => (
-                <div
-                  key={t.tableName}
-                  style={{
-                    marginBottom: 16,
-                    background: "#ffffff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 12,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "12px 14px",
-                      borderBottom: "1px solid #e5e7eb",
-                      fontWeight: 600,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span>
-                      {formatTableName(t.tableName, t.shortLabel)}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 400,
-                        color: "#6b7280",
-                      }}
-                    >
-                      {t.totalSignificantRows} significant row
-                      {t.totalSignificantRows !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                  <DataTable
-                    columns={t.displayColumns}
-                    rows={t.rows}
-                    scalarColumns={t.scalarColumns}
-                    fieldLabels={t.fieldLabels ?? undefined}
-                  />
-                  {t.totalSignificantRows > t.rows.length && (
-                    <div
-                      style={{
-                        padding: "8px 14px",
-                        fontSize: 13,
-                        color: "#6b7280",
-                        borderTop: "1px solid #e5e7eb",
-                        background: "#f9fafb",
-                      }}
-                    >
-                      Showing {t.rows.length} of {t.totalSignificantRows}{" "}
-                      significant rows
-                    </div>
-                  )}
-                </div>
-              ))}
-          </>
-        )}
-
-        {!loading && geneDisplay && !combinedPvalues && (
-          <div style={{ color: "#6b7280", padding: "20px 0" }}>
-            No p-value data available for {geneDisplay} across any dataset.
+              <option value="pvalue">P-value</option>
+              <option value="fdr">FDR</option>
+            </select>
+            <span style={{ color: "#6b7280", marginLeft: 8 }}>Sort by:</span>
+            <select
+              value={sigSortBy}
+              onChange={(e) =>
+                setSigSortBy(e.target.value as "pvalue" | "fdr")
+              }
+              style={{
+                padding: "4px 8px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                fontSize: 13,
+              }}
+            >
+              <option value="pvalue">P-value ascending</option>
+              <option value="fdr">FDR ascending</option>
+            </select>
           </div>
-        )}
+        </div>
+
+        <DatasetSections
+          filterBy={sigFilterBy}
+          sortBy={sigSortBy}
+        />
       </main>
       <Footer />
+    </>
+  );
+}
+
+/* ─── Dataset sections loader ─── */
+function DatasetSections({
+  filterBy,
+  sortBy,
+}: {
+  filterBy: "pvalue" | "fdr";
+  sortBy: "pvalue" | "fdr";
+}) {
+  const [tables, setTables] = useState<DatasetTableMeta[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/dataset-tables-with-pvalues")
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        setTables(data.tables);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ color: "#6b7280", padding: "12px 0" }}>
+        Loading datasets...
+      </div>
+    );
+  }
+
+  // Filter to tables that have the selected filter column
+  const filtered = tables.filter((t) =>
+    filterBy === "pvalue" ? t.pvalueColumn : t.fdrColumn
+  );
+
+  if (filtered.length === 0) {
+    return (
+      <div style={{ color: "#6b7280", padding: "12px 0" }}>
+        No datasets have a {filterBy === "pvalue" ? "p-value" : "FDR"} column.
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {filtered.map((t) => (
+        <DatasetSection
+          key={t.tableName}
+          meta={t}
+          filterBy={filterBy}
+          sortBy={sortBy}
+        />
+      ))}
     </>
   );
 }

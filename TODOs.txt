@@ -1,3 +1,4 @@
 - make sure harmonic mean and CCT are well implemented for p-value combinations
 - make entries in p-value tables links to gene search page
 - verify p-value combinations also work for FDR values
+- verify Benjamini-Hochberg implementation is correct

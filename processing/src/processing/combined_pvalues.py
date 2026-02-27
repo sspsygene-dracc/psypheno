@@ -85,6 +85,43 @@ def _harmonic_mean_pvalue(pvalues: np.ndarray[float, Any]) -> float:
     return adjusted
 
 
+def _benjamini_hochberg(pvalues: list[float | None]) -> list[float | None]:
+    """Apply Benjamini-Hochberg FDR correction to a list of p-values.
+
+    None values are preserved as None in the output.
+    """
+    valid_indices = [i for i, p in enumerate(pvalues) if p is not None]
+    if not valid_indices:
+        return list(pvalues)
+
+    valid_pvals = np.array([pvalues[i] for i in valid_indices])
+    m = len(valid_pvals)
+
+    # Sort by p-value
+    sorted_idx = np.argsort(valid_pvals)
+    sorted_pvals = valid_pvals[sorted_idx]
+
+    # BH adjustment: q(i) = p(i) * m / rank(i)
+    ranks = np.arange(1, m + 1)
+    adjusted = sorted_pvals * m / ranks
+
+    # Enforce monotonicity (from largest to smallest)
+    adjusted = np.minimum.accumulate(adjusted[::-1])[::-1]
+
+    # Cap at 1.0
+    adjusted = np.minimum(adjusted, 1.0)
+
+    # Put back in original order
+    unsorted = np.empty(m)
+    unsorted[sorted_idx] = adjusted
+
+    result: list[float | None] = [None] * len(pvalues)
+    for i, orig_idx in enumerate(valid_indices):
+        result[orig_idx] = float(unsorted[i])
+
+    return result
+
+
 def compute_combined_pvalues(conn: sqlite3.Connection) -> None:
     """Compute and store combined p-values per gene across all datasets."""
     click.echo("\nComputing combined p-values...")
@@ -147,21 +184,11 @@ def compute_combined_pvalues(conn: sqlite3.Connection) -> None:
         click.echo("  No valid p-values found, skipping.")
         return
 
-    # 3. Create output table
-    conn.execute(
-        """CREATE TABLE gene_combined_pvalues (
-        central_gene_id INTEGER PRIMARY KEY,
-        fisher_pvalue REAL,
-        stouffer_pvalue REAL,
-        cauchy_pvalue REAL,
-        hmp_pvalue REAL,
-        num_tables INTEGER,
-        num_pvalues INTEGER
-        )"""
-    )
+    # 3. Compute combined p-values for each gene (collect before inserting)
+    gene_results: list[
+        tuple[int, float | None, float | None, float | None, float | None, int, int]
+    ] = []
 
-    # 4. Compute combined p-values for each gene
-    insert_count = 0
     for gene_id in sorted(all_pvalues.keys()):
         raw_pvals = np.array(all_pvalues[gene_id])
         table_dict = per_table_pvalues[gene_id]
@@ -211,14 +238,55 @@ def compute_combined_pvalues(conn: sqlite3.Connection) -> None:
         if math.isnan(hmp_p) or math.isinf(hmp_p):
             hmp_p = None
 
+        gene_results.append(
+            (gene_id, fisher_p, stouffer_p, cauchy_p, hmp_p, num_tables, num_pvalues)
+        )
+
+    # 4. Apply Benjamini-Hochberg FDR correction across all genes per method
+    fisher_fdrs = _benjamini_hochberg([r[1] for r in gene_results])
+    stouffer_fdrs = _benjamini_hochberg([r[2] for r in gene_results])
+    cauchy_fdrs = _benjamini_hochberg([r[3] for r in gene_results])
+    hmp_fdrs = _benjamini_hochberg([r[4] for r in gene_results])
+
+    # 5. Create output table and insert
+    conn.execute(
+        """CREATE TABLE gene_combined_pvalues (
+        central_gene_id INTEGER PRIMARY KEY,
+        fisher_pvalue REAL,
+        fisher_fdr REAL,
+        stouffer_pvalue REAL,
+        stouffer_fdr REAL,
+        cauchy_pvalue REAL,
+        cauchy_fdr REAL,
+        hmp_pvalue REAL,
+        hmp_fdr REAL,
+        num_tables INTEGER,
+        num_pvalues INTEGER
+        )"""
+    )
+
+    for i, (gene_id, fisher_p, stouffer_p, cauchy_p, hmp_p, n_tbl, n_pv) in enumerate(
+        gene_results
+    ):
         conn.execute(
             """INSERT INTO gene_combined_pvalues
-            (central_gene_id, fisher_pvalue, stouffer_pvalue, cauchy_pvalue, hmp_pvalue,
-             num_tables, num_pvalues)
-            VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (gene_id, fisher_p, stouffer_p, cauchy_p, hmp_p, num_tables, num_pvalues),
+            (central_gene_id, fisher_pvalue, fisher_fdr, stouffer_pvalue, stouffer_fdr,
+             cauchy_pvalue, cauchy_fdr, hmp_pvalue, hmp_fdr, num_tables, num_pvalues)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                gene_id,
+                fisher_p,
+                fisher_fdrs[i],
+                stouffer_p,
+                stouffer_fdrs[i],
+                cauchy_p,
+                cauchy_fdrs[i],
+                hmp_p,
+                hmp_fdrs[i],
+                n_tbl,
+                n_pv,
+            ),
         )
-        insert_count += 1
 
     conn.execute(
         "CREATE INDEX gene_combined_pvalues_gene_idx "
@@ -228,5 +296,5 @@ def compute_combined_pvalues(conn: sqlite3.Connection) -> None:
 
     click.echo(
         f"  Computed combined p-values for "
-        f"{click.style(str(insert_count), bold=True)} genes"
+        f"{click.style(str(len(gene_results)), bold=True)} genes"
     )
