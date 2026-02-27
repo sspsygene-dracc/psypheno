@@ -347,6 +347,7 @@ def load_db(
     table_configs: list[TableToProcessConfig],
     assay_types: dict[str, str] | None = None,
     skip_missing: bool = False,
+    hgnc_path: Path | None = None,
 ) -> None:
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
@@ -360,4 +361,4 @@ def load_db(
         load_data_tables(conn, table_configs, skip_missing=skip_missing)
         load_gene_tables(conn)
         load_assay_types(conn, assay_types or {})
-        compute_combined_pvalues(conn)
+        compute_combined_pvalues(conn, hgnc_path=hgnc_path)

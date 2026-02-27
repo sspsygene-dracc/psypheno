@@ -17,11 +17,20 @@ const VALID_SORT_COLUMNS: Record<string, string> = {
   human_symbol: "human_symbol",
 };
 
+const VALID_FLAGS = [
+  "heat_shock",
+  "ribosomal",
+  "ubiquitin",
+  "non_coding",
+  "mitochondrial_rna",
+] as const;
+
 const bodySchema = z.object({
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(100).default(25),
   sortBy: z.string().default("fisher_pvalue"),
   sortDir: z.enum(["asc", "desc"]).default("asc"),
+  hideFlags: z.array(z.enum(VALID_FLAGS)).default([]),
 });
 
 export default async function handler(
@@ -37,7 +46,7 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { page, pageSize, sortBy, sortDir } = parse.data;
+  const { page, pageSize, sortBy, sortDir, hideFlags } = parse.data;
 
   const sortColumn = VALID_SORT_COLUMNS[sortBy];
   if (!sortColumn) {
@@ -53,23 +62,39 @@ export default async function handler(
     const dir = sortDir === "desc" ? "DESC" : "ASC";
     const nullsLast = sortDir === "asc" ? "NULLS LAST" : "NULLS FIRST";
 
+    // Build WHERE clause to exclude genes with hidden flags
+    let flagWhere = "";
+    const flagParams: string[] = [];
+    if (hideFlags.length > 0) {
+      // Exclude genes where gene_flags contains any of the hidden flags
+      const conditions = hideFlags.map(() => "cp.gene_flags LIKE ?");
+      flagWhere = `WHERE (cp.gene_flags IS NULL OR NOT (${conditions.join(" OR ")}))`;
+      for (const flag of hideFlags) {
+        flagParams.push(`%${flag}%`);
+      }
+    }
+
     const rows = db
       .prepare(
         `SELECT cg.human_symbol, cp.fisher_pvalue, cp.fisher_fdr,
                 cp.stouffer_pvalue, cp.stouffer_fdr,
                 cp.cauchy_pvalue, cp.cauchy_fdr,
                 cp.hmp_pvalue, cp.hmp_fdr,
-                cp.num_tables, cp.num_pvalues
+                cp.num_tables, cp.num_pvalues,
+                cp.gene_flags
          FROM gene_combined_pvalues cp
          JOIN central_gene cg ON cg.id = cp.central_gene_id
+         ${flagWhere}
          ORDER BY ${sortTable}.${sanitizeIdentifier(sortColumn)} ${dir} ${nullsLast}
          LIMIT ? OFFSET ?`
       )
-      .all(pageSize, offset) as Array<Record<string, unknown>>;
+      .all(...flagParams, pageSize, offset) as Array<Record<string, unknown>>;
 
     const countResult = db
-      .prepare("SELECT COUNT(*) as cnt FROM gene_combined_pvalues")
-      .get() as { cnt: number };
+      .prepare(
+        `SELECT COUNT(*) as cnt FROM gene_combined_pvalues cp ${flagWhere}`
+      )
+      .get(...flagParams) as { cnt: number };
 
     return res.status(200).json({
       rows,

@@ -19,7 +19,16 @@ type CombinedRow = {
   hmp_fdr: number | null;
   num_tables: number;
   num_pvalues: number;
+  gene_flags: string | null;
 };
+
+const GENE_FLAG_OPTIONS: { key: string; label: string }[] = [
+  { key: "heat_shock", label: "Heat shock / chaperones" },
+  { key: "ribosomal", label: "Ribosomal proteins" },
+  { key: "ubiquitin", label: "Ubiquitin pathway" },
+  { key: "non_coding", label: "Non-coding RNA" },
+  { key: "mitochondrial_rna", label: "Mitochondrial RNA" },
+];
 
 type DatasetTableMeta = {
   tableName: string;
@@ -336,6 +345,11 @@ export default function CombinedPvaluesPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
 
+  // Gene flag filter state — all hidden by default
+  const [hideFlags, setHideFlags] = useState<string[]>(
+    GENE_FLAG_OPTIONS.map((o) => o.key)
+  );
+
   // Significant rows filter/sort
   const [sigFilterBy, setSigFilterBy] = useState<"pvalue" | "fdr">("pvalue");
   const [sigSortBy, setSigSortBy] = useState<"pvalue" | "fdr">("pvalue");
@@ -346,7 +360,7 @@ export default function CombinedPvaluesPage() {
     fetch("/api/combined-pvalues-table", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ page, pageSize: PAGE_SIZE, sortBy, sortDir }),
+      body: JSON.stringify({ page, pageSize: PAGE_SIZE, sortBy, sortDir, hideFlags }),
     })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -358,7 +372,14 @@ export default function CombinedPvaluesPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [page, sortBy, sortDir]);
+  }, [page, sortBy, sortDir, hideFlags]);
+
+  const toggleFlag = (flag: string) => {
+    setHideFlags((prev) =>
+      prev.includes(flag) ? prev.filter((f) => f !== flag) : [...prev, flag]
+    );
+    setPage(1);
+  };
 
   useEffect(() => {
     fetchCombined();
@@ -447,6 +468,78 @@ export default function CombinedPvaluesPage() {
             ))}
           </div>
         </details>
+
+        {/* Gene category filter */}
+        <div
+          style={{
+            marginBottom: 16,
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            padding: "10px 14px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            fontSize: 13,
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>
+            Hide gene categories:
+          </span>
+          {GENE_FLAG_OPTIONS.map((opt) => (
+            <label
+              key={opt.key}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                cursor: "pointer",
+                color: "#4b5563",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={hideFlags.includes(opt.key)}
+                onChange={() => toggleFlag(opt.key)}
+              />
+              {opt.label}
+            </label>
+          ))}
+          {hideFlags.length > 0 && (
+            <button
+              onClick={() => { setHideFlags([]); setPage(1); }}
+              style={{
+                padding: "2px 8px",
+                fontSize: 12,
+                background: "#fff",
+                border: "1px solid #d1d5db",
+                borderRadius: 4,
+                cursor: "pointer",
+                color: "#6b7280",
+              }}
+            >
+              Show all
+            </button>
+          )}
+          {hideFlags.length < GENE_FLAG_OPTIONS.length && hideFlags.length > 0 && (
+            <button
+              onClick={() => { setHideFlags(GENE_FLAG_OPTIONS.map((o) => o.key)); setPage(1); }}
+              style={{
+                padding: "2px 8px",
+                fontSize: 12,
+                background: "#fff",
+                border: "1px solid #d1d5db",
+                borderRadius: 4,
+                cursor: "pointer",
+                color: "#6b7280",
+              }}
+            >
+              Hide all
+            </button>
+          )}
+        </div>
 
         {/* Combined p-values table */}
         <div

@@ -55,6 +55,7 @@ def load_db(dataset: str | None, skip_missing_datasets: bool) -> None:
             config.tables_config.tables,
             assay_types=config.global_config.get("assayTypes", {}),
             skip_missing=skip_missing_datasets,
+            hgnc_path=config.gene_map_config.hgnc_file,
         )
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)

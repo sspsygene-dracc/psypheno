@@ -7,16 +7,107 @@ Methods:
 - Harmonic mean p-value (HMP): robust to dependency, uses all raw p-values
 """
 
+import csv
 import math
 import re
 import sqlite3
 from collections import defaultdict
+from pathlib import Path
 from typing import Any, cast
 
 import click
 import numpy as np
 from scipy.stats import cauchy as cauchy_dist
 from scipy.stats import combine_pvalues
+
+# HGNC gene_group names mapped to filter flag categories.
+# These represent broadly-responsive gene families whose high significance
+# in combined p-values typically reflects general perturbation response
+# rather than disease-specific signal.
+FLAG_GENE_GROUPS: dict[str, list[str]] = {
+    "heat_shock": [
+        "BAG cochaperones",
+        "Chaperonins",
+        "DNAJ (HSP40) heat shock proteins",
+        "Heat shock 70kDa proteins",
+        "Heat shock 90kDa proteins",
+        "Small heat shock proteins",
+    ],
+    "ribosomal": [
+        "L ribosomal proteins",
+        "S ribosomal proteins",
+        "Large subunit mitochondrial ribosomal proteins",
+        "Small subunit mitochondrial ribosomal proteins",
+        "Mitochondrial ribosomal proteins",
+    ],
+    "ubiquitin": [
+        "Ubiquitin C-terminal hydrolases",
+        "Ubiquitin conjugating enzymes E2",
+        "Ubiquitin like modifier activating enzymes",
+        "Ubiquitin protein ligase E3 component n-recognins",
+        "Ubiquitin specific peptidase like",
+        "Ubiquitin specific peptidases",
+        "Ubiquitins",
+    ],
+    "mitochondrial_rna": [
+        "Mitochondrially encoded long non-coding RNAs",
+        "Mitochondrially encoded protein coding genes",
+        "Mitochondrially encoded regions",
+        "Mitochondrially encoded ribosomal RNAs",
+        "Mitochondrially encoded transfer RNAs",
+    ],
+}
+
+# HGNC locus_group values mapped to filter flag categories.
+FLAG_LOCUS_GROUPS: dict[str, list[str]] = {
+    "non_coding": ["non-coding RNA"],
+}
+
+
+def _load_hgnc_gene_flags(hgnc_path: Path) -> dict[str, str]:
+    """Parse HGNC TSV and return {symbol: comma-separated flags} for flagged genes.
+
+    Uses gene_group to match protein family flags (heat_shock, ribosomal, etc.)
+    and locus_group for broader categories (non_coding).
+    """
+    # Build reverse lookups: group_name -> flag
+    group_to_flag: dict[str, str] = {}
+    for flag, group_names in FLAG_GENE_GROUPS.items():
+        for gn in group_names:
+            group_to_flag[gn] = flag
+
+    locus_to_flag: dict[str, str] = {}
+    for flag, locus_names in FLAG_LOCUS_GROUPS.items():
+        for ln in locus_names:
+            locus_to_flag[ln] = flag
+
+    symbol_flags: dict[str, str] = {}
+    with open(hgnc_path, "r") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            symbol = row.get("symbol", "").strip()
+            if not symbol:
+                continue
+
+            flags: set[str] = set()
+
+            # Check gene_group (pipe-separated)
+            gene_groups = row.get("gene_group", "")
+            if gene_groups:
+                for g in gene_groups.split("|"):
+                    g = g.strip().strip('"')
+                    if g in group_to_flag:
+                        flags.add(group_to_flag[g])
+
+            # Check locus_group
+            locus_group = row.get("locus_group", "").strip()
+            if locus_group in locus_to_flag:
+                flags.add(locus_to_flag[locus_group])
+
+            if flags:
+                symbol_flags[symbol] = ",".join(sorted(flags))
+
+    return symbol_flags
 
 
 def _sanitize_identifier(name: str) -> str:
@@ -122,7 +213,7 @@ def _benjamini_hochberg(pvalues: list[float | None]) -> list[float | None]:
     return result
 
 
-def compute_combined_pvalues(conn: sqlite3.Connection) -> None:
+def compute_combined_pvalues(conn: sqlite3.Connection, hgnc_path: Path | None = None) -> None:
     """Compute and store combined p-values per gene across all datasets."""
     click.echo("\nComputing combined p-values...")
 
@@ -135,6 +226,12 @@ def compute_combined_pvalues(conn: sqlite3.Connection) -> None:
     if not tables_with_pvalues:
         click.echo("  No tables with pvalue_column configured, skipping.")
         return
+
+    # Load HGNC gene flags for classification
+    hgnc_flags: dict[str, str] = {}
+    if hgnc_path and hgnc_path.exists():
+        hgnc_flags = _load_hgnc_gene_flags(hgnc_path)
+        click.echo(f"  Loaded HGNC gene flags for {len(hgnc_flags)} genes")
 
     click.echo(f"  Found {len(tables_with_pvalues)} tables with p-value columns")
 
@@ -248,7 +345,15 @@ def compute_combined_pvalues(conn: sqlite3.Connection) -> None:
     cauchy_fdrs = _benjamini_hochberg([r[3] for r in gene_results])
     hmp_fdrs = _benjamini_hochberg([r[4] for r in gene_results])
 
-    # 5. Create output table and insert
+    # 5. Build symbol lookup for gene flags
+    symbol_lookup: dict[int, str] = {}
+    if hgnc_flags:
+        rows_sym = conn.execute(
+            "SELECT id, human_symbol FROM central_gene WHERE human_symbol IS NOT NULL"
+        ).fetchall()
+        symbol_lookup = {row[0]: row[1] for row in rows_sym}
+
+    # 6. Create output table and insert
     conn.execute(
         """CREATE TABLE gene_combined_pvalues (
         central_gene_id INTEGER PRIMARY KEY,
@@ -261,18 +366,27 @@ def compute_combined_pvalues(conn: sqlite3.Connection) -> None:
         hmp_pvalue REAL,
         hmp_fdr REAL,
         num_tables INTEGER,
-        num_pvalues INTEGER
+        num_pvalues INTEGER,
+        gene_flags TEXT
         )"""
     )
 
     for i, (gene_id, fisher_p, stouffer_p, cauchy_p, hmp_p, n_tbl, n_pv) in enumerate(
         gene_results
     ):
+        # Look up gene flags from HGNC
+        gene_flag = None
+        if hgnc_flags:
+            symbol = symbol_lookup.get(gene_id)
+            if symbol:
+                gene_flag = hgnc_flags.get(symbol)
+
         conn.execute(
             """INSERT INTO gene_combined_pvalues
             (central_gene_id, fisher_pvalue, fisher_fdr, stouffer_pvalue, stouffer_fdr,
-             cauchy_pvalue, cauchy_fdr, hmp_pvalue, hmp_fdr, num_tables, num_pvalues)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             cauchy_pvalue, cauchy_fdr, hmp_pvalue, hmp_fdr, num_tables, num_pvalues,
+             gene_flags)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 gene_id,
                 fisher_p,
@@ -285,6 +399,7 @@ def compute_combined_pvalues(conn: sqlite3.Connection) -> None:
                 hmp_fdrs[i],
                 n_tbl,
                 n_pv,
+                gene_flag,
             ),
         )
 
