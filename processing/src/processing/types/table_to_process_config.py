@@ -57,6 +57,8 @@ class TableToProcessConfig:
     assay: list[str] = field(default_factory=list)
     field_labels: dict[str, str] = field(default_factory=dict)
     organism: str | None = None
+    pvalue_column: str | None = None
+    fdr_column: str | None = None
     publication_first_author: str | None = None
     publication_last_author: str | None = None
     publication_author_count: int | None = None
@@ -132,6 +134,12 @@ class TableToProcessConfig:
             )
         )
 
+        # P-value and FDR column names: normalize to match SQL column names
+        raw_pvalue_col = json_data.get("pvalue_column")
+        pvalue_column = normalize_column_name(raw_pvalue_col) if raw_pvalue_col else None
+        raw_fdr_col = json_data.get("fdr_column")
+        fdr_column = normalize_column_name(raw_fdr_col) if raw_fdr_col else None
+
         return cls(
             table=json_data["table"],
             description=json_data["description"],
@@ -153,6 +161,8 @@ class TableToProcessConfig:
             assay=assay,
             field_labels=merged_field_labels,
             organism=json_data.get("organism"),
+            pvalue_column=pvalue_column,
+            fdr_column=fdr_column,
             publication_first_author=first_author,
             publication_last_author=last_author,
             publication_author_count=author_count,
@@ -201,6 +211,18 @@ class TableToProcessConfig:
         ), "No or multiple species in the same table: " + str(species_list)
         species = species_set.pop()
         data.columns = get_sql_friendly_columns(data)
+        # Validate pvalue/fdr columns exist
+        col_set = set(data.columns)
+        if self.pvalue_column and self.pvalue_column not in col_set:
+            raise ValueError(
+                f"table {self.table}: pvalue_column '{self.pvalue_column}' "
+                f"not found in data columns: {sorted(col_set)}"
+            )
+        if self.fdr_column and self.fdr_column not in col_set:
+            raise ValueError(
+                f"table {self.table}: fdr_column '{self.fdr_column}' "
+                f"not found in data columns: {sorted(col_set)}"
+            )
         scalar_columns: list[str] = [
             x
             for x in display_columns

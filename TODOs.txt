@@ -1,34 +1,3 @@
-first database to add before mid-Nov 2025 is Psychencode differentially expressed genes, and then Mouse Phenotypes, then Bakken et al, in this order
-
-1) probably, and easy: SFARI genes, gene.sfari.org
-2) primary todo item for Johannes in 2025: add Psychencode https://pubmed.ncbi.nlm.nih.gov/38781369/
-- first step: the differentially expression genes: https://psychscreen.wenglab.org/psychscreen/single-cell/celltype/Oligodendrocyte%20Precursor%20Cells
-2) Then, add mouse phenotype data https://phenome.jax.org/projects/Kumar2
-3) Probably also add mouse phenotype text descriptions from https://www.informatics.jax.org/marker/MGI:1920635
-4
-Add data from Bakken 2021 https://pubmed.ncbi.nlm.nih.gov/34616062/ (I forgot how exactly)
-
-All data should use the BICAN taxonomy for cell types, whenever cell types are referenced:
-1) BICAN taxonomy for motor-cortex: published, will find the link
-2) BICAN taxonomy for PFC: published, see https://brainscope.gersteinlab.org/integrative_files.html
-3) BICAN has a basal ganglia package coming up, need to reach out to find when this is coming out
-
-
-The current list, to be added in this order is:
-
-0) the existing placeholder phenotype data from Hoffman, Xin Jing and Sami: https://hgwdev-max.gi.ucsc.edu/pheno/show.py
-1) first dataset: add Psychencode differentially expressed genes: https://psychscreen.wenglab.org/psychscreen/single-cell/celltype/Oligodendrocyte%20Precursor%20Cells
-2) second, very easy: SFARI genes, gene.sfari.org
-3) mouse phenotypes from Jax, data https://phenome.jax.org/
-4) add mouse phenotype short text descriptions from MGI https://www.informatics.jax.org/marker/MGI:1920635
-5) Bakken 2021 expression values across primates https://pubmed.ncbi.nlm.nih.gov/34616062/ (probably as a celltype + expression value barchart diagram?)
-
-
-David P:
-https://www.psychencode.org/resources.
-The AD Knowledge Portal includes data from many programs generating human multiomic data: https://adknowledgeportal.synapse.org/Explore/Programs.
-For cell/anatomy x gene, you’ll want to touch base with folks from ADGC #6 since part of their explicit experimental design is web visualization of image data across modalities/scales (MRI, 3D anatomy, spatial gene expression). Yongsoo Kim (yuk17@psu.edu) is leading this part and is drawing from his existing single cell & anatomy work as part of BICCN, the datasets from which I think will be valuable here. Yongsoo may have specific ideas of reference datasets they’ll want to use and/or needs for structuring a knowledge base with respect to their data modalities.
-
-
-
-Better errors when parsing yamls
+- make sure harmonic mean and CCT are well implemented for p-value combinations
+- make entries in p-value tables links to gene search page
+- verify p-value combinations also work for FDR values

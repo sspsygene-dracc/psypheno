@@ -122,3 +122,5 @@ tables:
           - GFP
         is_perturbed: false
         is_target: false
+    pvalue_column: P.Value
+    fdr_column: FDR

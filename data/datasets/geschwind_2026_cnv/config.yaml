@@ -76,3 +76,5 @@ tables:
         is_target: false
         ignore_empty: true
         multi_gene_separator: ","
+    pvalue_column: p
+    fdr_column: fdr

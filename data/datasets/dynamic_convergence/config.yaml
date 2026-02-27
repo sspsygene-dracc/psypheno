@@ -97,6 +97,7 @@ tables:
           SCO2.1: SCO2
           LINC01238.1: LINC01238
           POLR2J3.1: POLR2J3
+    pvalue_column: P-value
   - table: Perturbed_Baseline_behavior_pvalues
     changelog:
       - date: "2026-02-17"

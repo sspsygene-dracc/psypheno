@@ -126,3 +126,4 @@ tables:
         ignore_missing: []
         is_perturbed: false
         is_target: false
+    pvalue_column: Pvalue

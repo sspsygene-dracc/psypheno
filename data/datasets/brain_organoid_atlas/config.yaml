@@ -184,6 +184,8 @@ tables:
           HSPA14.1: HSPA14
           TMSB15B.1: TMSB15B
           ARMCX5-GPRASP2.1: ARMCX5-GPRASP2
+    pvalue_column: pvalue
+    fdr_column: FDR
   - table: brain_organoid_atlas_S11
     changelog:
       - date: "2025-11-05"
@@ -217,3 +219,5 @@ tables:
         ignore_missing: []
         is_perturbed: false
         is_target: false
+    pvalue_column: p
+    fdr_column: p_adjust

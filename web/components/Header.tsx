@@ -62,6 +62,9 @@ export default function Header() {
           <Link href="/all-genes" style={linkStyle("/all-genes")}>
             All Genes
           </Link>
+          <Link href="/combined-pvalues" style={linkStyle("/combined-pvalues")}>
+            Combined P-values
+          </Link>
           <Link href="/dataset-changelog" style={linkStyle("/dataset-changelog")}>
             Changelog
           </Link>

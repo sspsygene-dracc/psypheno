@@ -7,6 +7,7 @@ import sys
 import click
 
 from processing.central_gene_table import get_central_gene_table
+from processing.combined_pvalues import compute_combined_pvalues
 from processing.new_sqlite3 import NewSqlite3
 from processing.types.table_to_process_config import TableToProcessConfig
 
@@ -181,7 +182,9 @@ def load_data_tables(
         publication_year INTEGER,
         publication_journal TEXT,
         publication_doi TEXT,
-        publication_pmid TEXT)"""
+        publication_pmid TEXT,
+        pvalue_column TEXT,
+        fdr_column TEXT)"""
     )
     loaded: list[str] = []
     skipped: list[str] = []
@@ -228,8 +231,9 @@ def load_data_tables(
             scalar_columns, link_tables,
             links, categories, source, assay, field_labels, organism,
             publication_first_author, publication_last_author, publication_author_count, publication_year,
-            publication_journal, publication_doi, publication_pmid)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            publication_journal, publication_doi, publication_pmid,
+            pvalue_column, fdr_column)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -258,6 +262,8 @@ def load_data_tables(
                 table_config.publication_journal,
                 table_config.publication_doi,
                 table_config.publication_pmid,
+                table_config.pvalue_column,
+                table_config.fdr_column,
             ),
         )
     # Create changelog_entries table
@@ -354,3 +360,4 @@ def load_db(
         load_data_tables(conn, table_configs, skip_missing=skip_missing)
         load_gene_tables(conn)
         load_assay_types(conn, assay_types or {})
+        compute_combined_pvalues(conn)

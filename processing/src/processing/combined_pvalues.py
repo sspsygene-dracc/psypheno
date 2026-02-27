@@ -1,0 +1,232 @@
+"""Compute combined p-values per gene across all datasets.
+
+Methods:
+- Fisher's method: combines -2*sum(ln(p)) with pre-collapsed per-table p-values
+- Stouffer's method: converts to Z-scores with pre-collapsed per-table p-values
+- Cauchy combination test (CCT): robust to correlated p-values, uses all raw p-values
+- Harmonic mean p-value (HMP): robust to dependency, uses all raw p-values
+"""
+
+import math
+import re
+import sqlite3
+from collections import defaultdict
+from typing import Any, cast
+
+import click
+import numpy as np
+from scipy.stats import cauchy as cauchy_dist
+from scipy.stats import combine_pvalues
+
+
+def _sanitize_identifier(name: str) -> str:
+    if not re.match(r"^\w+$", name):
+        raise ValueError(f"Invalid SQL identifier: {name}")
+    return name
+
+
+def _parse_link_tables(link_tables_raw: str) -> list[str]:
+    """Extract non-perturbed link table names from data_tables.link_tables.
+
+    Format: "col_name:link_table_name:is_perturbed:is_target,..."
+
+    In tables with both perturbed and target gene mappings, we skip the
+    perturbed link table: the perturbed gene appears in every row it was
+    knocked down in, so its p-values reflect target effects, not evidence
+    about the perturbed gene itself.
+    """
+    entries = []
+    for entry in link_tables_raw.split(","):
+        entry = entry.strip()
+        if not entry:
+            continue
+        parts = entry.split(":")
+        link_table_name = parts[1] if len(parts) >= 2 else parts[0]
+        is_perturbed = parts[2] == "1" if len(parts) >= 3 else False
+        entries.append((_sanitize_identifier(link_table_name), is_perturbed))
+
+    has_perturbed = any(p for _, p in entries)
+    has_non_perturbed = any(not p for _, p in entries)
+
+    # If table has both perturbed and non-perturbed mappings, skip perturbed
+    if has_perturbed and has_non_perturbed:
+        return [name for name, is_perturbed in entries if not is_perturbed]
+
+    # Otherwise keep all (single-mapping tables, or all-perturbed tables)
+    return [name for name, _ in entries]
+
+
+def _cauchy_combination(pvalues: np.ndarray[float, Any]) -> float:
+    """Cauchy combination test (CCT).
+
+    Robust to correlated p-values. Uses equal weights.
+    Liu & Xie (2020), JASA.
+    """
+    weights = np.ones(len(pvalues)) / len(pvalues)
+    # Clamp extreme p-values to avoid numerical issues with tan
+    p_clamped = np.clip(pvalues, 1e-300, 1.0 - 1e-15)
+    t_stat = np.sum(weights * np.tan((0.5 - p_clamped) * np.pi))
+    combined_p = cauchy_dist.sf(t_stat)
+    return float(np.clip(combined_p, 0.0, 1.0))
+
+
+def _harmonic_mean_pvalue(pvalues: np.ndarray[float, Any]) -> float:
+    """Harmonic mean p-value (HMP).
+
+    Wilson (2019), PNAS. Robust to dependency structure.
+    Uses equal weights and Landau bound adjustment.
+    """
+    n = len(pvalues)
+    weights = np.ones(n) / n
+    # HMP = sum(w) / sum(w/p)
+    hmp = np.sum(weights) / np.sum(weights / pvalues)
+    # Landau adjustment: multiply by L (number of p-values)
+    adjusted = min(float(hmp) * n, 1.0)
+    return adjusted
+
+
+def compute_combined_pvalues(conn: sqlite3.Connection) -> None:
+    """Compute and store combined p-values per gene across all datasets."""
+    click.echo("\nComputing combined p-values...")
+
+    # 1. Find all tables with pvalue_column
+    tables_with_pvalues = conn.execute(
+        "SELECT table_name, pvalue_column, link_tables FROM data_tables "
+        "WHERE pvalue_column IS NOT NULL"
+    ).fetchall()
+
+    if not tables_with_pvalues:
+        click.echo("  No tables with pvalue_column configured, skipping.")
+        return
+
+    click.echo(f"  Found {len(tables_with_pvalues)} tables with p-value columns")
+
+    # 2. Collect p-values per gene: {gene_id: {table_name: [pvalues]}}
+    per_table_pvalues: dict[int, dict[str, list[float]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    # Also collect all raw p-values per gene for CCT/HMP
+    all_pvalues: dict[int, list[float]] = defaultdict(list)
+
+    for table_name, pvalue_col, link_tables_raw in tables_with_pvalues:
+        table_name = _sanitize_identifier(table_name)
+        pvalue_col = _sanitize_identifier(pvalue_col)
+        link_table_names = _parse_link_tables(link_tables_raw or "")
+
+        if not link_table_names:
+            continue
+
+        for lt_name in link_table_names:
+            query = (
+                f"SELECT lt.central_gene_id, t.{pvalue_col} "
+                f"FROM {table_name} t "
+                f"JOIN {lt_name} lt ON t.id = lt.id "
+                f"WHERE t.{pvalue_col} IS NOT NULL AND t.{pvalue_col} > 0 AND t.{pvalue_col} <= 1"
+            )
+            try:
+                rows = conn.execute(query).fetchall()
+            except sqlite3.OperationalError as e:
+                click.echo(
+                    click.style(
+                        f"  Warning: query failed for table {table_name}: {e}",
+                        fg="yellow",
+                    )
+                )
+                continue
+
+            for gene_id, pval in rows:
+                if gene_id is None:
+                    continue
+                pval_float = float(pval)
+                per_table_pvalues[gene_id][table_name].append(pval_float)
+                all_pvalues[gene_id].append(pval_float)
+
+        click.echo(f"  Processed {table_name}.{pvalue_col}")
+
+    if not all_pvalues:
+        click.echo("  No valid p-values found, skipping.")
+        return
+
+    # 3. Create output table
+    conn.execute(
+        """CREATE TABLE gene_combined_pvalues (
+        central_gene_id INTEGER PRIMARY KEY,
+        fisher_pvalue REAL,
+        stouffer_pvalue REAL,
+        cauchy_pvalue REAL,
+        hmp_pvalue REAL,
+        num_tables INTEGER,
+        num_pvalues INTEGER
+        )"""
+    )
+
+    # 4. Compute combined p-values for each gene
+    insert_count = 0
+    for gene_id in sorted(all_pvalues.keys()):
+        raw_pvals = np.array(all_pvalues[gene_id])
+        table_dict = per_table_pvalues[gene_id]
+        num_tables = len(table_dict)
+        num_pvalues = len(raw_pvals)
+
+        # Pre-collapse for Fisher/Stouffer: min(p)*n per table, capped at 1.0
+        collapsed_pvals = []
+        for _tbl, tbl_pvals in table_dict.items():
+            n = len(tbl_pvals)
+            collapsed = min(min(tbl_pvals) * n, 1.0)
+            collapsed_pvals.append(collapsed)
+
+        # Fisher and Stouffer need >= 2 tables
+        fisher_p = None
+        stouffer_p = None
+        if len(collapsed_pvals) >= 2:
+            collapsed_arr = np.array(collapsed_pvals)
+            # Filter out p-values of exactly 1.0 (they contribute no information)
+            # but keep them if all are 1.0
+            valid_collapsed = collapsed_arr[collapsed_arr < 1.0]
+            if len(valid_collapsed) >= 2:
+                _, fisher_p = cast(
+                    tuple[float, float],
+                    combine_pvalues(valid_collapsed, method="fisher"),
+                )
+                fisher_p = float(fisher_p)
+                _, stouffer_p = cast(
+                    tuple[float, float],
+                    combine_pvalues(valid_collapsed, method="stouffer"),
+                )
+                stouffer_p = float(stouffer_p)
+
+        # CCT and HMP work with any number of p-values >= 1
+        cauchy_p = _cauchy_combination(raw_pvals)
+        hmp_p = _harmonic_mean_pvalue(raw_pvals)
+
+        # Handle NaN/inf
+        if fisher_p is not None and (math.isnan(fisher_p) or math.isinf(fisher_p)):
+            fisher_p = None
+        if stouffer_p is not None and (
+            math.isnan(stouffer_p) or math.isinf(stouffer_p)
+        ):
+            stouffer_p = None
+        if math.isnan(cauchy_p) or math.isinf(cauchy_p):
+            cauchy_p = None
+        if math.isnan(hmp_p) or math.isinf(hmp_p):
+            hmp_p = None
+
+        conn.execute(
+            """INSERT INTO gene_combined_pvalues
+            (central_gene_id, fisher_pvalue, stouffer_pvalue, cauchy_pvalue, hmp_pvalue,
+             num_tables, num_pvalues)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (gene_id, fisher_p, stouffer_p, cauchy_p, hmp_p, num_tables, num_pvalues),
+        )
+        insert_count += 1
+
+    conn.execute(
+        "CREATE INDEX gene_combined_pvalues_gene_idx "
+        "ON gene_combined_pvalues (central_gene_id)"
+    )
+    conn.commit()
+
+    click.echo(
+        f"  Computed combined p-values for "
+        f"{click.style(str(insert_count), bold=True)} genes"
+    )

@@ -48,6 +48,8 @@ tables:
         ignore_missing: []
         is_perturbed: false
         is_target: false
+    pvalue_column: pvalue
+    fdr_column: padj
   - table: psychscreen_asd_deg
     changelog:
       - date: "2025-10-14"
@@ -77,6 +79,8 @@ tables:
         ignore_missing: []
         is_perturbed: false
         is_target: false
+    pvalue_column: pvalue
+    fdr_column: padj
   - table: psychscreen_bipolar_deg
     changelog:
       - date: "2025-10-14"
@@ -106,6 +110,8 @@ tables:
         ignore_missing: []
         is_perturbed: false
         is_target: false
+    pvalue_column: pvalue
+    fdr_column: padj
   - table: psychscreen_schizophrenia_deg
     changelog:
       - date: "2025-10-14"
@@ -135,3 +141,5 @@ tables:
         ignore_missing: []
         is_perturbed: false
         is_target: false
+    pvalue_column: pvalue
+    fdr_column: padj

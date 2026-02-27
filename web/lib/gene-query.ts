@@ -7,6 +7,34 @@ export function sanitizeIdentifier(id: string): string {
   return id;
 }
 
+/**
+ * Parse link table names from the data_tables.link_tables column,
+ * skipping perturbed link tables in tables that have both perturbed
+ * and target mappings (perturbed genes appear in every row they were
+ * knocked down in, so their p-values don't represent evidence about
+ * the perturbed gene itself).
+ */
+export function parseNonPerturbedLinkTables(linkTablesRaw: string): string[] {
+  const entries = (linkTablesRaw || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const parts = entry.split(":");
+      const name = sanitizeIdentifier(parts.length >= 2 ? parts[1] : parts[0]);
+      const isPerturbed = parts.length >= 3 && parts[2] === "1";
+      return { name, isPerturbed };
+    });
+
+  const hasPerturbed = entries.some((e) => e.isPerturbed);
+  const hasNonPerturbed = entries.some((e) => !e.isPerturbed);
+
+  if (hasPerturbed && hasNonPerturbed) {
+    return entries.filter((e) => !e.isPerturbed).map((e) => e.name);
+  }
+  return entries.map((e) => e.name);
+}
+
 export function parseDisplayColumns(raw: string): string[] {
   return (raw || "")
     .split(",")
