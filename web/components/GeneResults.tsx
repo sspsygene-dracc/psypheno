@@ -46,11 +46,17 @@ const formatTableName = (section: TableResult) =>
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
 
-const formatAuthors = (first: string | null | undefined, last: string | null | undefined, count: number | null | undefined) => {
+const formatAuthors = (
+  first: string | null | undefined,
+  last: string | null | undefined,
+  count: number | null | undefined,
+) => {
   if (!first && !last) return "";
   if (first && last) {
     if (first === last) return first;
-    return count != null && count > 2 ? `${first}, ..., ${last}` : `${first} & ${last}`;
+    return count != null && count > 2
+      ? `${first}, ..., ${last}`
+      : `${first} & ${last}`;
   }
   if (first) return `${first} et al.`;
   return last ?? "";
@@ -96,11 +102,15 @@ export default function GeneResults({
   llmResult?: LlmResult | null;
 }) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [showToc, setShowToc] = useState(false);
-  const [tablePageOverrides, setTablePageOverrides] = useState<Record<string, TablePageState>>({});
-  const [tableSortStates, setTableSortStates] = useState<Record<string, TableSortState>>({});
+  const [tablePageOverrides, setTablePageOverrides] = useState<
+    Record<string, TablePageState>
+  >({});
+  const [tableSortStates, setTableSortStates] = useState<
+    Record<string, TableSortState>
+  >({});
   const abortControllers = useRef<Record<string, AbortController>>({});
 
   useEffect(() => {
@@ -143,7 +153,7 @@ export default function GeneResults({
       baseSection?.totalRows ?? baseSection?.rows.length ?? 0;
     const fallbackTotalPages = Math.max(
       1,
-      Math.ceil(fallbackTotalRows / ROW_LIMIT)
+      Math.ceil(fallbackTotalRows / ROW_LIMIT),
     );
 
     setTablePageOverrides((prev) => ({
@@ -208,7 +218,11 @@ export default function GeneResults({
     }
   };
 
-  const handleTableSort = (tableName: string, column: string, mode: SortMode) => {
+  const handleTableSort = (
+    tableName: string,
+    column: string,
+    mode: SortMode,
+  ) => {
     const newSortState: TableSortState = {
       sortBy: mode === "none" ? null : column,
       sortMode: mode,
@@ -255,7 +269,7 @@ export default function GeneResults({
     // Sort sections within each group alphabetically by display name
     for (const group of ordered) {
       group.sections.sort((a, b) =>
-        formatTableName(a).localeCompare(formatTableName(b))
+        formatTableName(a).localeCompare(formatTableName(b)),
       );
     }
 
@@ -284,26 +298,43 @@ export default function GeneResults({
     currentPage: number,
     totalPages: number,
     tableName: string,
-    isLoading: boolean
+    isLoading: boolean,
   ): ReactNode => {
     const items: ReactNode[] = [];
     if (totalPages <= 1) return null;
 
     const currentSort = tableSortStates[tableName];
 
-    const addBtn = (label: string | number, targetPage: number, key: string) => {
+    const addBtn = (
+      label: string | number,
+      targetPage: number,
+      key: string,
+    ) => {
       const isActive = targetPage === currentPage;
       const isDisabled = isLoading || targetPage < 1 || targetPage > totalPages;
       items.push(
         <button
           key={key}
-          onClick={() => !isDisabled && !isActive && fetchTablePage(tableName, targetPage, currentSort?.sortBy, currentSort?.sortMode)}
+          onClick={() =>
+            !isDisabled &&
+            !isActive &&
+            fetchTablePage(
+              tableName,
+              targetPage,
+              currentSort?.sortBy,
+              currentSort?.sortMode,
+            )
+          }
           disabled={isDisabled}
           aria-current={isActive ? "page" : undefined}
           style={{
             padding: "4px 8px",
             minWidth: 30,
-            background: isActive ? "#e5e7eb" : isDisabled ? "#f9fafb" : "#ffffff",
+            background: isActive
+              ? "#e5e7eb"
+              : isDisabled
+                ? "#f9fafb"
+                : "#ffffff",
             border: "1px solid #d1d5db",
             color: "#1f2937",
             borderRadius: 6,
@@ -313,7 +344,7 @@ export default function GeneResults({
           }}
         >
           {label}
-        </button>
+        </button>,
       );
     };
 
@@ -329,9 +360,12 @@ export default function GeneResults({
 
     if (surround.length > 0 && Math.min(...surround) > 3) {
       items.push(
-        <span key="pg-ell-1" style={{ color: "#6b7280", padding: "0 2px", fontSize: 13 }}>
+        <span
+          key="pg-ell-1"
+          style={{ color: "#6b7280", padding: "0 2px", fontSize: 13 }}
+        >
           ...
-        </span>
+        </span>,
       );
     }
 
@@ -339,9 +373,12 @@ export default function GeneResults({
 
     if (surround.length > 0 && Math.max(...surround) < totalPages - 1) {
       items.push(
-        <span key="pg-ell-2" style={{ color: "#6b7280", padding: "0 2px", fontSize: 13 }}>
+        <span
+          key="pg-ell-2"
+          style={{ color: "#6b7280", padding: "0 2px", fontSize: 13 }}
+        >
           ...
-        </span>
+        </span>,
       );
     }
 
@@ -360,7 +397,7 @@ export default function GeneResults({
     border: "1px solid #d1d5db",
     color: disabled ? "#9ca3af" : "#1f2937",
     borderRadius: 6,
-    cursor: disabled ? "not-allowed" : "pointer" as const,
+    cursor: disabled ? "not-allowed" : ("pointer" as const),
     fontSize: 13,
     fontWeight: 500 as const,
   });
@@ -387,7 +424,13 @@ export default function GeneResults({
           style={{ marginTop: 50 }}
         />
       )}
-      <div style={{ flex: 1, minWidth: 0, marginLeft: showToc && data.length === 0 ? 244 : undefined }}>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          marginLeft: showToc && data.length === 0 ? 244 : undefined,
+        }}
+      >
         <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
         {(geneDescription || (llmResult && llmResult.status === "results")) && (
           <div
@@ -400,9 +443,22 @@ export default function GeneResults({
             }}
           >
             {geneDescription && (
-              <div style={{ marginBottom: llmResult && llmResult.status === "results" ? 12 : 0 }}>
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>Gene description (RefSeq)</div>
-                <p style={{ margin: "4px 0", color: "#374151", fontStyle: "italic" }}>
+              <div
+                style={{
+                  marginBottom:
+                    llmResult && llmResult.status === "results" ? 12 : 0,
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                  Gene description (RefSeq)
+                </div>
+                <p
+                  style={{
+                    margin: "4px 0",
+                    color: "#374151",
+                    fontStyle: "italic",
+                  }}
+                >
                   {geneDescription}
                 </p>
               </div>
@@ -433,8 +489,9 @@ export default function GeneResults({
                     {renderPubmedLinks(llmResult.pubmedLinks)}
                   </div>
                 )}
-                <p style={{ margin: "8px 0 0", color: "#991b1b", fontWeight: 700 }}>
-                  Warning: LLM-generated results may be unreliable and may include hallucinations. Always verify against primary sources.
+                <p style={{ margin: "8px 0 0" }}>
+                  LLM-generated results may be unreliable and may include
+                  hallucinations. Always verify against primary sources.
                 </p>
               </>
             )}
@@ -546,9 +603,17 @@ export default function GeneResults({
                       }}
                     >
                       <span style={{ fontWeight: 500 }}>Publication:</span>{" "}
-                      {formatAuthors(section.publicationFirstAuthor, section.publicationLastAuthor, section.publicationAuthorCount)}
-                      {section.publicationYear ? ` (${section.publicationYear})` : ""}
-                      {section.publicationJournal ? `, ${section.publicationJournal}` : ""}
+                      {formatAuthors(
+                        section.publicationFirstAuthor,
+                        section.publicationLastAuthor,
+                        section.publicationAuthorCount,
+                      )}
+                      {section.publicationYear
+                        ? ` (${section.publicationYear})`
+                        : ""}
+                      {section.publicationJournal
+                        ? `, ${section.publicationJournal}`
+                        : ""}
                       {section.publicationDoi && (
                         <>
                           {", "}
@@ -556,7 +621,10 @@ export default function GeneResults({
                             href={`https://doi.org/${section.publicationDoi}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ color: "#2563eb", textDecoration: "underline" }}
+                            style={{
+                              color: "#2563eb",
+                              textDecoration: "underline",
+                            }}
                           >
                             DOI: {section.publicationDoi}
                           </a>
@@ -593,12 +661,14 @@ export default function GeneResults({
                         </button>
                       </div>
                     )}
-                  <div style={{
-                    opacity: isPageLoading ? 0.5 : 1,
-                    pointerEvents: isPageLoading ? "none" : "auto",
-                    position: "relative",
-                    transition: "opacity 0.15s",
-                  }}>
+                  <div
+                    style={{
+                      opacity: isPageLoading ? 0.5 : 1,
+                      pointerEvents: isPageLoading ? "none" : "auto",
+                      position: "relative",
+                      transition: "opacity 0.15s",
+                    }}
+                  >
                     <DataTable
                       columns={section.displayColumns}
                       rows={effectiveRows}
@@ -611,38 +681,45 @@ export default function GeneResults({
                       showSummary={false}
                       sortColumn={currentSort?.sortBy ?? null}
                       sortMode={currentSort?.sortMode ?? "none"}
-                      onSort={(col, mode) => handleTableSort(section.tableName, col, mode)}
+                      onSort={(col, mode) =>
+                        handleTableSort(section.tableName, col, mode)
+                      }
                     />
                     {isPageLoading && (
-                      <div style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        fontSize: 14,
-                        color: "#6b7280",
-                        background: "rgba(255, 255, 255, 0.92)",
-                        border: "1px solid #d1d5db",
-                        borderRadius: 9999,
-                        padding: "6px 12px",
-                      }}>
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          transform: "translate(-50%, -50%)",
+                          fontSize: 14,
+                          color: "#6b7280",
+                          background: "rgba(255, 255, 255, 0.92)",
+                          border: "1px solid #d1d5db",
+                          borderRadius: 9999,
+                          padding: "6px 12px",
+                        }}
+                      >
                         Loading page {effectivePage}...
                       </div>
                     )}
                   </div>
                   {pageError && (
-                    <div style={{
-                      padding: "8px 14px",
-                      fontSize: 13,
-                      color: "#dc2626",
-                      borderTop: "1px solid #e5e7eb",
-                      background: "#fef2f2",
-                    }}>
+                    <div
+                      style={{
+                        padding: "8px 14px",
+                        fontSize: 13,
+                        color: "#dc2626",
+                        borderTop: "1px solid #e5e7eb",
+                        background: "#fef2f2",
+                      }}
+                    >
                       Failed to load page. {pageError}
                     </div>
                   )}
                   {(() => {
-                    const showFooter = effectiveRows.length > 5 || hasPagination;
+                    const showFooter =
+                      effectiveRows.length > 5 || hasPagination;
                     if (!showFooter) return null;
                     const isExpanded = expandedSections.has(section.tableName);
                     const visibleCount = isExpanded
@@ -678,19 +755,52 @@ export default function GeneResults({
                           {summaryText}
                         </div>
                         {hasPagination && isExpanded && (
-                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 6,
+                              alignItems: "center",
+                            }}
+                          >
                             <button
                               disabled={effectivePage <= 1 || isPageLoading}
-                              onClick={() => fetchTablePage(section.tableName, effectivePage - 1, currentSort?.sortBy, currentSort?.sortMode)}
-                              style={btnStyle(effectivePage <= 1 || isPageLoading)}
+                              onClick={() =>
+                                fetchTablePage(
+                                  section.tableName,
+                                  effectivePage - 1,
+                                  currentSort?.sortBy,
+                                  currentSort?.sortMode,
+                                )
+                              }
+                              style={btnStyle(
+                                effectivePage <= 1 || isPageLoading,
+                              )}
                             >
                               Prev
                             </button>
-                            {renderPageNumbers(effectivePage, effectiveTotalPages, section.tableName, isPageLoading)}
+                            {renderPageNumbers(
+                              effectivePage,
+                              effectiveTotalPages,
+                              section.tableName,
+                              isPageLoading,
+                            )}
                             <button
-                              disabled={effectivePage >= effectiveTotalPages || isPageLoading}
-                              onClick={() => fetchTablePage(section.tableName, effectivePage + 1, currentSort?.sortBy, currentSort?.sortMode)}
-                              style={btnStyle(effectivePage >= effectiveTotalPages || isPageLoading)}
+                              disabled={
+                                effectivePage >= effectiveTotalPages ||
+                                isPageLoading
+                              }
+                              onClick={() =>
+                                fetchTablePage(
+                                  section.tableName,
+                                  effectivePage + 1,
+                                  currentSort?.sortBy,
+                                  currentSort?.sortMode,
+                                )
+                              }
+                              style={btnStyle(
+                                effectivePage >= effectiveTotalPages ||
+                                  isPageLoading,
+                              )}
                             >
                               Next
                             </button>

@@ -1,4 +1,4 @@
-import {
+import React, {
   useEffect,
   useState,
   useCallback,
@@ -116,16 +116,13 @@ type SortColumn =
   | "cauchy_pvalue"
   | "hmp_pvalue"
   | "num_tables"
-  | "num_pvalues"
-  | "llm_search_date";
+  | "num_pvalues";
 
 type ColumnDef = {
-  key: SortColumn | "llm_pubmed_links" | "llm_summary";
+  key: SortColumn;
   label: string;
   mono?: boolean;
   right?: boolean;
-  sortable?: boolean;
-  wrap?: boolean;
 };
 
 const COMBINED_COLUMNS: ColumnDef[] = [
@@ -136,9 +133,6 @@ const COMBINED_COLUMNS: ColumnDef[] = [
   { key: "hmp_pvalue", label: "HMP p", mono: true },
   { key: "num_tables", label: "Tables", right: true },
   { key: "num_pvalues", label: "P-values", right: true },
-  { key: "llm_pubmed_links", label: "LLM PubMed links", sortable: false },
-  { key: "llm_summary", label: "LLM summary", sortable: false, wrap: true },
-  { key: "llm_search_date", label: "LLM search date" },
 ];
 
 function renderPubmedLinks(linksStr: string): ReactNode {
@@ -416,7 +410,16 @@ export default function CombinedPvaluesPage() {
   const [sortBy, setSortBy] = useState<SortColumn>("fisher_pvalue");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const tableRef = useRef<HTMLDivElement>(null);
+  const toggleLlmRow = useCallback((symbol: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(symbol)) next.delete(symbol);
+      else next.add(symbol);
+      return next;
+    });
+  }, []);
   const handlePageChange = useCallback((p: number) => {
     setPage(p);
     tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -520,7 +523,7 @@ export default function CombinedPvaluesPage() {
       <Header />
       <main
         style={{
-          maxWidth: showToc ? 1600 : 1400,
+          maxWidth: showToc ? 1200 : 1000,
           margin: "0 auto",
           padding: "24px 16px",
           color: "#1f2937",
@@ -537,9 +540,7 @@ export default function CombinedPvaluesPage() {
           }}
         >
           Aggregate statistical significance across all datasets. P-values are
-          combined using four methods: Fisher, Stouffer, Cauchy, and HMP. The
-          LLM-generated columns (links, summary) are produced by AI and should
-          be independently verified.
+          combined using four methods: Fisher, Stouffer, Cauchy, and HMP.
         </p>
 
         {/* Method descriptions */}
@@ -690,23 +691,6 @@ export default function CombinedPvaluesPage() {
           )}
         </div>
 
-        {/* LLM warning */}
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            padding: "10px 14px",
-            marginBottom: 12,
-            fontSize: 13,
-          }}
-        >
-          <span style={{ color: "#991b1b", fontWeight: 700 }}>
-            Warning: LLM-generated columns (summaries, PubMed links) may be
-            unreliable and may include hallucinations. Always verify against
-            primary sources.
-          </span>
-        </div>
-
         {/* Combined p-values table */}
         <div
           ref={tableRef}
@@ -730,54 +714,58 @@ export default function CombinedPvaluesPage() {
               <thead>
                 <tr style={{ background: "#f9fafb" }}>
                   {COMBINED_COLUMNS.map((col) => {
-                    const isSortable = col.sortable !== false;
-                    const isActive = isSortable && col.key === sortBy;
+                    const isActive = col.key === sortBy;
                     return (
                       <th
                         key={col.key}
-                        onClick={
-                          isSortable
-                            ? () => handleSort(col.key as SortColumn)
-                            : undefined
-                        }
+                        onClick={() => handleSort(col.key)}
                         style={{
                           padding: "10px 12px",
                           textAlign: col.right ? "right" : "left",
                           fontWeight: 600,
                           color: isActive ? "#1f2937" : "#6b7280",
-                          whiteSpace: col.wrap ? "normal" : "nowrap",
-                          cursor: isSortable ? "pointer" : "default",
+                          whiteSpace: "nowrap",
+                          cursor: "pointer",
                           userSelect: "none",
                           borderBottom: "1px solid #e5e7eb",
-                          minWidth: col.wrap ? 100 : undefined,
                         }}
                       >
                         {col.label}
-                        {isSortable && (
-                          <span
-                            style={{
-                              fontSize: 12,
-                              marginLeft: 4,
-                              color: isActive ? "#1f2937" : "#9ca3af",
-                            }}
-                          >
-                            {isActive
-                              ? sortDir === "asc"
-                                ? " \u25B2"
-                                : " \u25BC"
-                              : " \u21C5"}
-                          </span>
-                        )}
+                        <span
+                          style={{
+                            fontSize: 12,
+                            marginLeft: 4,
+                            color: isActive ? "#1f2937" : "#9ca3af",
+                          }}
+                        >
+                          {isActive
+                            ? sortDir === "asc"
+                              ? " \u25B2"
+                              : " \u25BC"
+                            : " \u21C5"}
+                        </span>
                       </th>
                     );
                   })}
+                  <th
+                    style={{
+                      padding: "10px 12px",
+                      fontWeight: 600,
+                      color: "#6b7280",
+                      whiteSpace: "nowrap",
+                      borderBottom: "1px solid #e5e7eb",
+                      textAlign: "center",
+                    }}
+                  >
+                    LLM Info
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
                   <tr>
                     <td
-                      colSpan={COMBINED_COLUMNS.length}
+                      colSpan={COMBINED_COLUMNS.length + 1}
                       style={{
                         padding: 24,
                         textAlign: "center",
@@ -789,93 +777,187 @@ export default function CombinedPvaluesPage() {
                   </tr>
                 )}
                 {!loading &&
-                  rows.map((row, idx) => (
-                    <tr
-                      key={`${row.human_symbol}-${idx}`}
-                      style={{ borderTop: "1px solid #e5e7eb" }}
-                    >
-                      {COMBINED_COLUMNS.map((col) => {
-                        const val = row[col.key as keyof CombinedRow];
-                        const isPval = col.mono && typeof val === "number";
-                        const isSignificant = isPval && (val as number) < 0.05;
+                  rows.map((row, idx) => {
+                    const isExpanded = expandedRows.has(row.human_symbol);
+                    const llmStatus = row.llm_status as string | null;
+                    const hasLlm =
+                      llmStatus && llmStatus !== "not_searched";
 
-                        // LLM columns: special rendering
-                        const isLlmCol =
-                          col.key === "llm_pubmed_links" ||
-                          col.key === "llm_summary" ||
-                          col.key === "llm_search_date";
-                        const llmStatus = row.llm_status as string | null;
-                        const notSearched =
-                          isLlmCol &&
-                          (!llmStatus || llmStatus === "not_searched");
-                        const noResults =
-                          isLlmCol && llmStatus === "no_results";
+                    return (
+                      <React.Fragment key={`${row.human_symbol}-${idx}`}>
+                        <tr style={{ borderTop: "1px solid #e5e7eb" }}>
+                          {COMBINED_COLUMNS.map((col) => {
+                            const val = row[col.key as keyof CombinedRow];
+                            const isPval =
+                              col.mono && typeof val === "number";
+                            const isSignificant =
+                              isPval && (val as number) < 0.05;
 
-                        let cellContent: ReactNode;
-                        if (col.key === "human_symbol") {
-                          cellContent = (
-                            <Link
-                              href={`/?searchMode=general&selected=${encodeURIComponent(String(val))}`}
-                              style={{
-                                color: "#2563eb",
-                                textDecoration: "none",
-                                fontWeight: 500,
-                              }}
-                            >
-                              {String(val)}
-                            </Link>
-                          );
-                        } else if (notSearched) {
-                          cellContent = (
-                            <span
-                              style={{ color: "#9ca3af", fontStyle: "italic" }}
-                            >
-                              not searched
-                            </span>
-                          );
-                        } else if (noResults) {
-                          cellContent = (
-                            <span
-                              style={{
-                                color: "#9ca3af",
-                                fontStyle: "italic",
-                                whiteSpace: "normal",
-                              }}
-                            >
-                              no results
-                            </span>
-                          );
-                        } else if (
-                          col.key === "llm_pubmed_links" &&
-                          typeof val === "string"
-                        ) {
-                          cellContent = renderPubmedLinks(val);
-                        } else if (col.mono) {
-                          cellContent = formatPvalue(val as number | null);
-                        } else {
-                          cellContent = String(val ?? "");
-                        }
+                            let cellContent: ReactNode;
+                            if (col.key === "human_symbol") {
+                              cellContent = (
+                                <Link
+                                  href={`/?searchMode=general&selected=${encodeURIComponent(String(val))}`}
+                                  style={{
+                                    color: "#2563eb",
+                                    textDecoration: "none",
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {String(val)}
+                                </Link>
+                              );
+                            } else if (col.mono) {
+                              cellContent = formatPvalue(
+                                val as number | null,
+                              );
+                            } else {
+                              cellContent = String(val ?? "");
+                            }
 
-                        return (
+                            return (
+                              <td
+                                key={col.key}
+                                style={{
+                                  padding: "8px 12px",
+                                  fontFamily: col.mono
+                                    ? "monospace"
+                                    : undefined,
+                                  textAlign: col.right ? "right" : "left",
+                                  color: isSignificant
+                                    ? "#059669"
+                                    : "#1f2937",
+                                  fontWeight: isSignificant ? 600 : 400,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {cellContent}
+                              </td>
+                            );
+                          })}
                           <td
-                            key={col.key}
                             style={{
                               padding: "8px 12px",
-                              fontFamily: col.mono ? "monospace" : undefined,
-                              textAlign: col.right ? "right" : "left",
-                              color: isSignificant ? "#059669" : "#1f2937",
-                              fontWeight: isSignificant ? 600 : 400,
-                              whiteSpace: col.wrap ? "normal" : "nowrap",
-                              fontSize: col.wrap ? 12 : undefined,
-                              maxWidth: col.wrap ? 300 : undefined,
+                              textAlign: "center",
                             }}
                           >
-                            {cellContent}
+                            {hasLlm && (
+                              <button
+                                onClick={() =>
+                                  toggleLlmRow(row.human_symbol)
+                                }
+                                title={
+                                  isExpanded
+                                    ? "Hide LLM info"
+                                    : "Show LLM info"
+                                }
+                                style={{
+                                  padding: "2px 8px",
+                                  fontSize: 12,
+                                  background: isExpanded
+                                    ? "#e5e7eb"
+                                    : "#fff",
+                                  border: "1px solid #d1d5db",
+                                  borderRadius: 4,
+                                  cursor: "pointer",
+                                  color: "#4b5563",
+                                }}
+                              >
+                                {isExpanded ? "\u25B4 Hide" : "\u25BE Show"}
+                              </button>
+                            )}
+                            {!hasLlm && (
+                              <span
+                                style={{
+                                  color: "#d1d5db",
+                                  fontSize: 12,
+                                }}
+                              >
+                                &mdash;
+                              </span>
+                            )}
                           </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
+                        </tr>
+                        {isExpanded && hasLlm && (
+                          <tr
+                            style={{
+                              background: "#f9fafb",
+                              borderTop: "1px solid #e5e7eb",
+                            }}
+                          >
+                            <td
+                              colSpan={COMBINED_COLUMNS.length + 1}
+                              style={{ padding: "10px 14px" }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 6,
+                                  fontSize: 13,
+                                }}
+                              >
+                                {llmStatus === "no_results" ? (
+                                  <span
+                                    style={{
+                                      color: "#9ca3af",
+                                      fontStyle: "italic",
+                                    }}
+                                  >
+                                    LLM search returned no results
+                                  </span>
+                                ) : (
+                                  <>
+                                    {row.llm_summary && (
+                                      <div>
+                                        <span
+                                          style={{
+                                            fontWeight: 600,
+                                            color: "#374151",
+                                          }}
+                                        >
+                                          Summary:
+                                        </span>{" "}
+                                        <span style={{ color: "#4b5563" }}>
+                                          {row.llm_summary}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {row.llm_pubmed_links && (
+                                      <div>
+                                        <span
+                                          style={{
+                                            fontWeight: 600,
+                                            color: "#374151",
+                                          }}
+                                        >
+                                          PubMed:
+                                        </span>{" "}
+                                        {renderPubmedLinks(
+                                          row.llm_pubmed_links,
+                                        )}
+                                      </div>
+                                    )}
+                                    {row.llm_search_date && (
+                                      <div
+                                        style={{
+                                          color: "#9ca3af",
+                                          fontSize: 12,
+                                        }}
+                                      >
+                                        Searched:{" "}
+                                        {row.llm_search_date}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
