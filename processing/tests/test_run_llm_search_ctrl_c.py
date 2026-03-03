@@ -70,6 +70,32 @@ class FakePopen:
         self.returncode = -9
 
 
+class ImmediateSuccessPopen:
+    spawn_count: ClassVar[int] = 0
+    spawn_count_lock: ClassVar[threading.Lock] = threading.Lock()
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        with self.spawn_count_lock:
+            type(self).spawn_count += 1
+        self.returncode: int | None = 0
+        self.pid = 99999
+
+    @classmethod
+    def reset(cls) -> None:
+        with cls.spawn_count_lock:
+            cls.spawn_count = 0
+
+    def communicate(self, timeout: float | None = None) -> tuple[str, str]:
+        _ = timeout
+        return ("ok", "")
+
+    def poll(self) -> int | None:
+        return self.returncode
+
+    def kill(self) -> None:
+        self.returncode = -9
+
+
 class CtrlCPipelineIntegrationTest(unittest.TestCase):
     def test_second_ctrl_c_aborts_and_kills_running_agents(self):
         FakePopen.reset()
@@ -164,6 +190,59 @@ class CtrlCPipelineIntegrationTest(unittest.TestCase):
             self.assertIn("symbol: GENE1", contents)
             self.assertIn("symbol: GENE2", contents)
             self.assertNotIn("central_gene_id:", contents)
+
+    def test_run_pipeline_resolves_ids_from_symbol_and_skips_unknown(self):
+        ImmediateSuccessPopen.reset()
+        jobs = [
+            {"symbol": "GENE1", "mode": "new"},
+            {"symbol": "MISSING", "mode": "new"},
+        ]
+
+        with TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            fake_settings = tmp / "settings.json"
+            fake_settings.write_text("{}")
+            fake_db = tmp / "sspsygene.db"
+            fake_db.write_text("")
+            logs_dir = tmp / "logs"
+            results_dir = tmp / "results"
+            fake_config = type("Cfg", (), {"out_db": fake_db})()
+
+            stdout_buffer = io.StringIO()
+            with (
+                patch.object(run_llm_search, "SETTINGS_FILE", fake_settings),
+                patch.object(run_llm_search, "LOGS_DIR", logs_dir),
+                patch.object(run_llm_search, "GENE_RESULTS_DIR", results_dir),
+                patch.object(run_llm_search, "load_jobs", return_value=jobs),
+                patch.object(
+                    run_llm_search,
+                    "get_sspsygene_config",
+                    return_value=fake_config,
+                ),
+                patch.object(
+                    run_llm_search,
+                    "_load_symbol_to_central_gene_id",
+                    return_value={"GENE1": 42},
+                ),
+                patch.object(
+                    run_llm_search.signal, "getsignal", return_value=object()
+                ),
+                patch.object(run_llm_search.signal, "signal", return_value=object()),
+                patch.object(run_llm_search.subprocess, "Popen", ImmediateSuccessPopen),
+                redirect_stdout(stdout_buffer),
+            ):
+                rc = run_llm_search.run_pipeline(
+                    yaml_file="unused.yaml",
+                    max_workers=1,
+                    timeout=5,
+                )
+
+            output = stdout_buffer.getvalue()
+            self.assertEqual(rc, 0)
+            self.assertIn("[QUEUE] GENE1", output)
+            self.assertIn("[SKIP] MISSING", output)
+            self.assertIn("symbol not found in central_gene table", output)
+            self.assertEqual(ImmediateSuccessPopen.spawn_count, 1)
 
 
 if __name__ == "__main__":
