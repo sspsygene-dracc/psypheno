@@ -69,7 +69,7 @@ const METHOD_DESCRIPTIONS: {
     label: "Cauchy Combination Test (CCT)",
     description:
       "Uses all individual p-values directly. Computes a test statistic as a weighted sum of Cauchy-transformed p-values. Robust to arbitrary dependency structures between p-values.",
-    citation: "Liu & Xie (2020), JASA",
+    citation: "Liu & Xie (2019), JASA",
     doi: "10.1080/01621459.2018.1554485",
   },
   {

@@ -351,7 +351,7 @@ export default function MethodsPage() {
             authors (<span style={codeStyle}>ACAT::ACAT</span>).
           </p>
           <p style={refStyle}>
-            Liu, Y. &amp; Xie, J. (2020). Cauchy combination test: a powerful test with
+            Liu, Y. &amp; Xie, J. (2019). Cauchy combination test: a powerful test with
             analytic p-value calculation under arbitrary dependency structures.{" "}
             <em>Journal of the American Statistical Association</em>, 115(529), 393&ndash;402.{" "}
             <a
@@ -475,6 +475,9 @@ export default function MethodsPage() {
             not HMP may be driven by a single very small p-value from one table.
           </p>
         </section>
+        <p style={{ marginTop: 36, textAlign: "right", fontFamily: "serif" }}>
+          Johannes Birgmeier, March 3rd, 2026
+        </p>
       </main>
       <Footer />
     </>

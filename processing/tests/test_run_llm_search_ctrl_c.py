@@ -57,7 +57,9 @@ class FakePopen:
             handler = FakePopen.handler
         if handler is None or not callable(handler):
             return
+        # pylint: disable=not-callable
         handler(2, None)
+        # pylint: disable=not-callable
         handler(2, None)
 
     def poll(self):
@@ -149,7 +151,9 @@ class CtrlCPipelineIntegrationTest(unittest.TestCase):
                     side_effect=fake_build_prompt_for_job,
                 ),
                 patch.object(run_llm_search.subprocess, "Popen", FakePopen),
-                patch.object(run_llm_search.signal, "getsignal", return_value=old_signal),
+                patch.object(
+                    run_llm_search.signal, "getsignal", return_value=old_signal
+                ),
                 patch.object(run_llm_search.signal, "signal", side_effect=fake_signal),
                 redirect_stdout(stdout_buffer),
             ):
@@ -179,7 +183,9 @@ class CtrlCPipelineIntegrationTest(unittest.TestCase):
             ]
 
             with (
-                patch.object(run_llm_search, "get_sspsygene_config", return_value=fake_config),
+                patch.object(
+                    run_llm_search, "get_sspsygene_config", return_value=fake_config
+                ),
                 patch.object(run_llm_search, "get_top_genes", return_value=fake_genes),
                 patch.object(run_llm_search, "GENE_RESULTS_DIR", tmp / "results"),
             ):
@@ -224,9 +230,7 @@ class CtrlCPipelineIntegrationTest(unittest.TestCase):
                     "_load_symbol_to_central_gene_id",
                     return_value={"GENE1": 42},
                 ),
-                patch.object(
-                    run_llm_search.signal, "getsignal", return_value=object()
-                ),
+                patch.object(run_llm_search.signal, "getsignal", return_value=object()),
                 patch.object(run_llm_search.signal, "signal", return_value=object()),
                 patch.object(run_llm_search.subprocess, "Popen", ImmediateSuccessPopen),
                 redirect_stdout(stdout_buffer),
