@@ -1,4 +1,10 @@
-import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import Head from "next/head";
 import Link from "next/link";
 import DataTable from "@/components/DataTable";
@@ -200,7 +206,7 @@ function Pagination({
           }}
         >
           {label}
-        </button>
+        </button>,
       );
     };
     addBtn(1, 1, "pg-1");
@@ -214,14 +220,14 @@ function Pagination({
       items.push(
         <span key="ell-1" style={{ color: "#6b7280", padding: "0 4px" }}>
           ...
-        </span>
+        </span>,
       );
     surround.forEach((pn) => addBtn(pn, pn, `pg-${pn}`));
     if (surround.length > 0 && Math.max(...surround) < totalPages - 1)
       items.push(
         <span key="ell-2" style={{ color: "#6b7280", padding: "0 4px" }}>
           ...
-        </span>
+        </span>,
       );
     if (totalPages > 2) addBtn(totalPages, totalPages, "pg-last");
   }
@@ -260,8 +266,7 @@ function Pagination({
             border: "1px solid #d1d5db",
             color: "#1f2937",
             borderRadius: 8,
-            cursor:
-              page >= totalPages || loading ? "not-allowed" : "pointer",
+            cursor: page >= totalPages || loading ? "not-allowed" : "pointer",
           }}
         >
           Next
@@ -359,9 +364,7 @@ function DatasetSection({
       >
         <span>{formatTableName(meta.tableName, meta.shortLabel)}</span>
         {result && (
-          <span
-            style={{ fontSize: 13, fontWeight: 400, color: "#6b7280" }}
-          >
+          <span style={{ fontSize: 13, fontWeight: 400, color: "#6b7280" }}>
             {result.totalRows} significant row
             {result.totalRows !== 1 ? "s" : ""}
           </span>
@@ -383,7 +386,12 @@ function DatasetSection({
             showSummary={false}
           />
           {totalPages > 1 && (
-            <div style={{ padding: "4px 14px 8px", borderTop: "1px solid #e5e7eb" }}>
+            <div
+              style={{
+                padding: "4px 14px 8px",
+                borderTop: "1px solid #e5e7eb",
+              }}
+            >
               <Pagination
                 page={page}
                 totalPages={totalPages}
@@ -416,7 +424,7 @@ export default function CombinedPvaluesPage() {
 
   // Gene flag filter state — all hidden by default
   const [hideFlags, setHideFlags] = useState<string[]>(
-    GENE_FLAG_OPTIONS.map((o) => o.key)
+    GENE_FLAG_OPTIONS.map((o) => o.key),
   );
 
   // Significant rows filter/sort
@@ -425,7 +433,9 @@ export default function CombinedPvaluesPage() {
 
   // Dataset tables for TOC and significant rows sections
   const [datasetTables, setDatasetTables] = useState<DatasetTableMeta[]>([]);
-  const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
+  const [assayTypeLabels, setAssayTypeLabels] = useState<
+    Record<string, string>
+  >({});
   const [datasetsLoading, setDatasetsLoading] = useState(true);
   const [showToc, setShowToc] = useState(false);
 
@@ -459,7 +469,13 @@ export default function CombinedPvaluesPage() {
     fetch("/api/combined-pvalues-table", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ page, pageSize: PAGE_SIZE, sortBy, sortDir, hideFlags }),
+      body: JSON.stringify({
+        page,
+        pageSize: PAGE_SIZE,
+        sortBy,
+        sortDir,
+        hideFlags,
+      }),
     })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -475,7 +491,7 @@ export default function CombinedPvaluesPage() {
 
   const toggleFlag = (flag: string) => {
     setHideFlags((prev) =>
-      prev.includes(flag) ? prev.filter((f) => f !== flag) : [...prev, flag]
+      prev.includes(flag) ? prev.filter((f) => f !== flag) : [...prev, flag],
     );
     setPage(1);
   };
@@ -518,14 +534,12 @@ export default function CombinedPvaluesPage() {
             color: "#6b7280",
             fontSize: 14,
             marginBottom: 20,
-            maxWidth: 900,
           }}
         >
           Aggregate statistical significance across all datasets. P-values are
-          combined using four methods: Fisher and Stouffer (pre-collapsed to one
-          p-value per dataset), Cauchy/HMP (using all individual p-values,
-          robust to correlation). The LLM-generated columns (links, summary)
-          are produced by AI and should be independently verified.
+          combined using four methods: Fisher, Stouffer, Cauchy, and HMP. The
+          LLM-generated columns (links, summary) are produced by AI and should
+          be independently verified.
         </p>
 
         {/* Method descriptions */}
@@ -553,9 +567,7 @@ export default function CombinedPvaluesPage() {
           <div style={{ paddingBottom: 12, fontSize: 13, color: "#6b7280" }}>
             {METHOD_DESCRIPTIONS.map((m) => (
               <div key={m.key} style={{ marginBottom: 6 }}>
-                <strong style={{ color: "#374151" }}>
-                  {m.label}:
-                </strong>{" "}
+                <strong style={{ color: "#374151" }}>{m.label}:</strong>{" "}
                 {m.description}
                 {m.citation && (
                   <span style={{ fontStyle: "italic" }}>
@@ -576,10 +588,20 @@ export default function CombinedPvaluesPage() {
                 )}
               </div>
             ))}
-            <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #e5e7eb" }}>
+            <div
+              style={{
+                marginTop: 8,
+                paddingTop: 8,
+                borderTop: "1px solid #e5e7eb",
+              }}
+            >
               <Link
                 href="/methods"
-                style={{ color: "#2563eb", textDecoration: "none", fontSize: 13 }}
+                style={{
+                  color: "#2563eb",
+                  textDecoration: "none",
+                  fontSize: 13,
+                }}
               >
                 Full methods documentation &rarr;
               </Link>
@@ -603,7 +625,9 @@ export default function CombinedPvaluesPage() {
             fontSize: 13,
           }}
         >
-          <span style={{ fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>
+          <span
+            style={{ fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}
+          >
             Hide gene categories:
           </span>
           {GENE_FLAG_OPTIONS.map((opt) => (
@@ -628,7 +652,10 @@ export default function CombinedPvaluesPage() {
           ))}
           {hideFlags.length > 0 && (
             <button
-              onClick={() => { setHideFlags([]); setPage(1); }}
+              onClick={() => {
+                setHideFlags([]);
+                setPage(1);
+              }}
               style={{
                 padding: "2px 8px",
                 fontSize: 12,
@@ -644,7 +671,10 @@ export default function CombinedPvaluesPage() {
           )}
           {hideFlags.length < GENE_FLAG_OPTIONS.length && (
             <button
-              onClick={() => { setHideFlags(GENE_FLAG_OPTIONS.map((o) => o.key)); setPage(1); }}
+              onClick={() => {
+                setHideFlags(GENE_FLAG_OPTIONS.map((o) => o.key));
+                setPage(1);
+              }}
               style={{
                 padding: "2px 8px",
                 fontSize: 12,
@@ -671,7 +701,9 @@ export default function CombinedPvaluesPage() {
           }}
         >
           <span style={{ color: "#991b1b", fontWeight: 700 }}>
-            Warning: LLM-generated columns (summaries, PubMed links) may be unreliable and may include hallucinations. Always verify against primary sources.
+            Warning: LLM-generated columns (summaries, PubMed links) may be
+            unreliable and may include hallucinations. Always verify against
+            primary sources.
           </span>
         </div>
 
@@ -703,7 +735,11 @@ export default function CombinedPvaluesPage() {
                     return (
                       <th
                         key={col.key}
-                        onClick={isSortable ? () => handleSort(col.key as SortColumn) : undefined}
+                        onClick={
+                          isSortable
+                            ? () => handleSort(col.key as SortColumn)
+                            : undefined
+                        }
                         style={{
                           padding: "10px 12px",
                           textAlign: col.right ? "right" : "left",
@@ -760,17 +796,20 @@ export default function CombinedPvaluesPage() {
                     >
                       {COMBINED_COLUMNS.map((col) => {
                         const val = row[col.key as keyof CombinedRow];
-                        const isPval =
-                          col.mono &&
-                          typeof val === "number";
-                        const isSignificant =
-                          isPval && (val as number) < 0.05;
+                        const isPval = col.mono && typeof val === "number";
+                        const isSignificant = isPval && (val as number) < 0.05;
 
                         // LLM columns: special rendering
-                        const isLlmCol = col.key === "llm_pubmed_links" || col.key === "llm_summary" || col.key === "llm_search_date";
+                        const isLlmCol =
+                          col.key === "llm_pubmed_links" ||
+                          col.key === "llm_summary" ||
+                          col.key === "llm_search_date";
                         const llmStatus = row.llm_status as string | null;
-                        const notSearched = isLlmCol && (!llmStatus || llmStatus === "not_searched");
-                        const noResults = isLlmCol && llmStatus === "no_results";
+                        const notSearched =
+                          isLlmCol &&
+                          (!llmStatus || llmStatus === "not_searched");
+                        const noResults =
+                          isLlmCol && llmStatus === "no_results";
 
                         let cellContent: ReactNode;
                         if (col.key === "human_symbol") {
@@ -787,10 +826,29 @@ export default function CombinedPvaluesPage() {
                             </Link>
                           );
                         } else if (notSearched) {
-                          cellContent = <span style={{ color: "#9ca3af", fontStyle: "italic" }}>not searched</span>;
+                          cellContent = (
+                            <span
+                              style={{ color: "#9ca3af", fontStyle: "italic" }}
+                            >
+                              not searched
+                            </span>
+                          );
                         } else if (noResults) {
-                          cellContent = <span style={{ color: "#9ca3af", fontStyle: "italic", whiteSpace: "normal" }}>no results</span>;
-                        } else if (col.key === "llm_pubmed_links" && typeof val === "string") {
+                          cellContent = (
+                            <span
+                              style={{
+                                color: "#9ca3af",
+                                fontStyle: "italic",
+                                whiteSpace: "normal",
+                              }}
+                            >
+                              no results
+                            </span>
+                          );
+                        } else if (
+                          col.key === "llm_pubmed_links" &&
+                          typeof val === "string"
+                        ) {
                           cellContent = renderPubmedLinks(val);
                         } else if (col.mono) {
                           cellContent = formatPvalue(val as number | null);
@@ -822,7 +880,12 @@ export default function CombinedPvaluesPage() {
             </table>
           </div>
           {totalPages > 1 && (
-            <div style={{ padding: "4px 14px 8px", borderTop: "1px solid #e5e7eb" }}>
+            <div
+              style={{
+                padding: "4px 14px 8px",
+                borderTop: "1px solid #e5e7eb",
+              }}
+            >
               <Pagination
                 page={page}
                 totalPages={totalPages}
@@ -875,9 +938,7 @@ export default function CombinedPvaluesPage() {
             <span style={{ color: "#6b7280" }}>&lt; 0.05, sorted by</span>
             <select
               value={sigSortBy}
-              onChange={(e) =>
-                setSigSortBy(e.target.value as "pvalue" | "fdr")
-              }
+              onChange={(e) => setSigSortBy(e.target.value as "pvalue" | "fdr")}
               style={{
                 padding: "4px 8px",
                 borderRadius: 6,
@@ -893,10 +954,7 @@ export default function CombinedPvaluesPage() {
 
         <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
           {showToc && tocGroups.length > 0 && (
-            <DatasetToc
-              groups={tocGroups}
-              anchorPrefix="sig-dataset-"
-            />
+            <DatasetToc groups={tocGroups} anchorPrefix="sig-dataset-" />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             {datasetsLoading ? (
@@ -907,7 +965,7 @@ export default function CombinedPvaluesPage() {
               tocGroups.map((group) => {
                 const items = group.items as DatasetTableMeta[];
                 const filtered = items.filter((t) =>
-                  sigFilterBy === "pvalue" ? t.pvalueColumn : t.fdrColumn
+                  sigFilterBy === "pvalue" ? t.pvalueColumn : t.fdrColumn,
                 );
                 if (filtered.length === 0) return null;
                 return (
@@ -939,12 +997,17 @@ export default function CombinedPvaluesPage() {
                           {group.label}
                         </span>
                         <span style={{ fontSize: 13, color: "#6b7280" }}>
-                          {filtered.length} dataset{filtered.length !== 1 ? "s" : ""}
+                          {filtered.length} dataset
+                          {filtered.length !== 1 ? "s" : ""}
                         </span>
                       </div>
                     )}
                     {filtered.map((t) => (
-                      <div key={t.tableName} id={`sig-dataset-${t.tableName}`} style={{ scrollMarginTop: 16 }}>
+                      <div
+                        key={t.tableName}
+                        id={`sig-dataset-${t.tableName}`}
+                        style={{ scrollMarginTop: 16 }}
+                      >
                         <DatasetSection
                           meta={t}
                           filterBy={sigFilterBy}
@@ -963,4 +1026,3 @@ export default function CombinedPvaluesPage() {
     </>
   );
 }
-

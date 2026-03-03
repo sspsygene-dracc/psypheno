@@ -18,5 +18,6 @@ disable=missing-docstring,
     import-error,
     unused-argument,
     unnecessary-pass,
-    subprocess-run-check
+    subprocess-run-check,
+    f-string-without-interpolation
 notes=FIXME,XXX

@@ -20,10 +20,22 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import yaml
 
+from processing.llm_search import (
+    VALID_MODES,
+    get_top_genes,
+    build_new_prompt,
+    build_update_prompt,
+    build_verify_prompt,
+    build_verify_update_prompt,
+    load_gene_result,
+)
+
 # Force unbuffered stdout so log lines appear immediately
+# pylint: disable=redefined-builtin
 print = functools.partial(print, flush=True)  # type: ignore[assignment]
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -40,20 +52,8 @@ DEFAULT_MAX_BUDGET = "2.00"
 DEFAULT_MODEL = "sonnet"
 VALID_MODELS = ("sonnet", "opus")
 
-# Add src to path so we can import llm_search
-sys.path.insert(0, str(SCRIPT_DIR / "src"))
-from processing.llm_search import (
-    VALID_MODES,
-    get_top_genes,
-    build_new_prompt,
-    build_update_prompt,
-    build_verify_prompt,
-    build_verify_update_prompt,
-    load_gene_result,
-)
 
-
-def load_jobs(yaml_path: str) -> list[dict]:
+def load_jobs(yaml_path: str) -> list[dict[str, Any]]:
     """Load and validate pipeline jobs from a YAML file."""
     with open(yaml_path) as f:
         data = yaml.safe_load(f)
@@ -80,7 +80,7 @@ def load_jobs(yaml_path: str) -> list[dict]:
     return jobs
 
 
-def build_prompt_for_job(job: dict) -> tuple[str, str | None]:
+def build_prompt_for_job(job: dict[str, Any]) -> tuple[str, str | None]:
     """Build the agent prompt for a job. Returns (prompt, skip_reason)."""
     symbol = job["symbol"]
     mode = str(job["mode"]).lower()
@@ -129,7 +129,7 @@ def run_agent(
     max_budget: str,
     timeout: int,
     semaphore: threading.Semaphore,
-) -> dict:
+) -> dict[str, Any]:
     """Run a single gene search agent via Claude CLI."""
     start_time = time.time()
     log_file = LOGS_DIR / f"{symbol}.log"
@@ -140,9 +140,12 @@ def run_agent(
                 [
                     "claude",
                     "-p",
-                    "--model", model,
-                    "--max-budget-usd", max_budget,
-                    "--settings", str(SETTINGS_FILE),
+                    "--model",
+                    model,
+                    "--max-budget-usd",
+                    max_budget,
+                    "--settings",
+                    str(SETTINGS_FILE),
                     prompt,
                 ],
                 cwd=str(PROJECT_ROOT),
@@ -257,7 +260,7 @@ def run_pipeline(
 
     print()
     start_time = time.time()
-    results = []
+    results: list[dict[str, Any]] = []
     semaphore = threading.Semaphore(max_workers)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -346,7 +349,7 @@ def generate_config(
         symbol = gene["human_symbol"]
         gene_file = GENE_RESULTS_DIR / f"{symbol}.json"
         mode = "verify" if gene_file.exists() else "new"
-        job: dict = {"symbol": symbol, "mode": mode}
+        job: dict[str, Any] = {"symbol": symbol, "mode": mode}
         if mode == "new":
             job["central_gene_id"] = gene["central_gene_id"]
         jobs.append(job)
@@ -404,14 +407,17 @@ Examples:
 """,
     )
     parser.add_argument(
-        "--generate-config", action="store_true",
+        "--generate-config",
+        action="store_true",
         help="Generate a YAML config from the database instead of running jobs",
     )
     parser.add_argument("--top-n", type=int, default=50)
     parser.add_argument("--output", type=str, default=None)
     parser.add_argument("yaml_file", nargs="?")
     parser.add_argument("--max-workers", type=int, default=DEFAULT_MAX_WORKERS)
-    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=VALID_MODELS)
+    parser.add_argument(
+        "--model", type=str, default=DEFAULT_MODEL, choices=VALID_MODELS
+    )
     parser.add_argument("--max-budget", type=str, default=DEFAULT_MAX_BUDGET)
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
     parser.add_argument("--dry-run", action="store_true")
@@ -423,11 +429,13 @@ Examples:
     elif not args.yaml_file:
         parser.error("yaml_file is required when not using --generate-config")
     else:
-        sys.exit(run_pipeline(
-            yaml_file=args.yaml_file,
-            model=args.model,
-            max_workers=args.max_workers,
-            max_budget=args.max_budget,
-            timeout=args.timeout,
-            dry_run=args.dry_run,
-        ))
+        sys.exit(
+            run_pipeline(
+                yaml_file=args.yaml_file,
+                model=args.model,
+                max_workers=args.max_workers,
+                max_budget=args.max_budget,
+                timeout=args.timeout,
+                dry_run=args.dry_run,
+            )
+        )
