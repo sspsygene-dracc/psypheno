@@ -9,6 +9,7 @@ import Head from "next/head";
 import Link from "next/link";
 import DataTable from "@/components/DataTable";
 import DatasetToc, { useAssayGroups } from "@/components/DatasetToc";
+import GeneInfoBox from "@/components/GeneInfoBox";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -27,6 +28,7 @@ type CombinedRow = {
   llm_summary: string | null;
   llm_search_date: string | null;
   llm_status: string | null;
+  gene_description: string | null;
 };
 
 const GENE_FLAG_OPTIONS: { key: string; label: string }[] = [
@@ -134,34 +136,6 @@ const COMBINED_COLUMNS: ColumnDef[] = [
   { key: "num_tables", label: "Tables", right: true },
   { key: "num_pvalues", label: "P-values", right: true },
 ];
-
-function renderPubmedLinks(linksStr: string): ReactNode {
-  const linkRegex =
-    /\[([^\]]+)\]\((https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/\d+\/?)\)/g;
-  const urls: string[] = [];
-  let match;
-  while ((match = linkRegex.exec(linksStr)) !== null) {
-    urls.push(match[2]);
-  }
-  if (urls.length === 0) return <>{linksStr}</>;
-  return (
-    <span>
-      {urls.map((url, i) => (
-        <span key={i}>
-          {i > 0 && " "}
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "#2563eb", textDecoration: "underline" }}
-          >
-            [{i + 1}]
-          </a>
-        </span>
-      ))}
-    </span>
-  );
-}
 
 /* ─── Pagination component ─── */
 function Pagination({
@@ -757,7 +731,7 @@ export default function CombinedPvaluesPage() {
                       textAlign: "center",
                     }}
                   >
-                    LLM Info
+                    Gene Info
                   </th>
                 </tr>
               </thead>
@@ -779,9 +753,6 @@ export default function CombinedPvaluesPage() {
                 {!loading &&
                   rows.map((row, idx) => {
                     const isExpanded = expandedRows.has(row.human_symbol);
-                    const llmStatus = row.llm_status as string | null;
-                    const hasLlm =
-                      llmStatus && llmStatus !== "not_searched";
 
                     return (
                       <React.Fragment key={`${row.human_symbol}-${idx}`}>
@@ -841,44 +812,32 @@ export default function CombinedPvaluesPage() {
                               textAlign: "center",
                             }}
                           >
-                            {hasLlm && (
-                              <button
-                                onClick={() =>
-                                  toggleLlmRow(row.human_symbol)
-                                }
-                                title={
-                                  isExpanded
-                                    ? "Hide LLM info"
-                                    : "Show LLM info"
-                                }
-                                style={{
-                                  padding: "2px 8px",
-                                  fontSize: 12,
-                                  background: isExpanded
-                                    ? "#e5e7eb"
-                                    : "#fff",
-                                  border: "1px solid #d1d5db",
-                                  borderRadius: 4,
-                                  cursor: "pointer",
-                                  color: "#4b5563",
-                                }}
-                              >
-                                {isExpanded ? "\u25B4 Hide" : "\u25BE Show"}
-                              </button>
-                            )}
-                            {!hasLlm && (
-                              <span
-                                style={{
-                                  color: "#d1d5db",
-                                  fontSize: 12,
-                                }}
-                              >
-                                &mdash;
-                              </span>
-                            )}
+                            <button
+                              onClick={() =>
+                                toggleLlmRow(row.human_symbol)
+                              }
+                              title={
+                                isExpanded
+                                  ? "Hide gene info"
+                                  : "Show gene info"
+                              }
+                              style={{
+                                padding: "2px 8px",
+                                fontSize: 12,
+                                background: isExpanded
+                                  ? "#e5e7eb"
+                                  : "#fff",
+                                border: "1px solid #d1d5db",
+                                borderRadius: 4,
+                                cursor: "pointer",
+                                color: "#4b5563",
+                              }}
+                            >
+                              {isExpanded ? "\u25B4 Hide" : "\u25BE Show"}
+                            </button>
                           </td>
                         </tr>
-                        {isExpanded && hasLlm && (
+                        {isExpanded && (
                           <tr
                             style={{
                               background: "#f9fafb",
@@ -889,69 +848,15 @@ export default function CombinedPvaluesPage() {
                               colSpan={COMBINED_COLUMNS.length + 1}
                               style={{ padding: "10px 14px" }}
                             >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 6,
-                                  fontSize: 13,
+                              <GeneInfoBox
+                                geneDescription={row.gene_description}
+                                llmResult={{
+                                  summary: row.llm_summary,
+                                  pubmedLinks: row.llm_pubmed_links,
+                                  status: row.llm_status ?? "not_searched",
+                                  searchDate: row.llm_search_date,
                                 }}
-                              >
-                                {llmStatus === "no_results" ? (
-                                  <span
-                                    style={{
-                                      color: "#9ca3af",
-                                      fontStyle: "italic",
-                                    }}
-                                  >
-                                    LLM search returned no results
-                                  </span>
-                                ) : (
-                                  <>
-                                    {row.llm_summary && (
-                                      <div>
-                                        <span
-                                          style={{
-                                            fontWeight: 600,
-                                            color: "#374151",
-                                          }}
-                                        >
-                                          Summary:
-                                        </span>{" "}
-                                        <span style={{ color: "#4b5563" }}>
-                                          {row.llm_summary}
-                                        </span>
-                                      </div>
-                                    )}
-                                    {row.llm_pubmed_links && (
-                                      <div>
-                                        <span
-                                          style={{
-                                            fontWeight: 600,
-                                            color: "#374151",
-                                          }}
-                                        >
-                                          PubMed:
-                                        </span>{" "}
-                                        {renderPubmedLinks(
-                                          row.llm_pubmed_links,
-                                        )}
-                                      </div>
-                                    )}
-                                    {row.llm_search_date && (
-                                      <div
-                                        style={{
-                                          color: "#9ca3af",
-                                          fontSize: 12,
-                                        }}
-                                      >
-                                        Searched:{" "}
-                                        {row.llm_search_date}
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-                              </div>
+                              />
                             </td>
                           </tr>
                         )}

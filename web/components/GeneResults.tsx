@@ -2,43 +2,9 @@ import { TableResult } from "@/lib/table_result";
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import DataTable, { type SortMode } from "@/components/DataTable";
 import DatasetToc from "@/components/DatasetToc";
+import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
 import InfoTooltip from "@/components/InfoTooltip";
 import { ROW_LIMIT } from "@/lib/gene-query";
-
-type LlmResult = {
-  pubmedLinks: string | null;
-  summary: string | null;
-  status: string;
-  searchDate: string;
-};
-
-function renderPubmedLinks(linksStr: string): ReactNode {
-  const linkRegex =
-    /\[([^\]]+)\]\((https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/\d+\/?)\)/g;
-  const urls: string[] = [];
-  let match;
-  while ((match = linkRegex.exec(linksStr)) !== null) {
-    urls.push(match[2]);
-  }
-  if (urls.length === 0) return <>{linksStr}</>;
-  return (
-    <span>
-      {urls.map((url, i) => (
-        <span key={i}>
-          {i > 0 && " "}
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "#2563eb", textDecoration: "underline" }}
-          >
-            [{i + 1}]
-          </a>
-        </span>
-      ))}
-    </span>
-  );
-}
 
 const formatTableName = (section: TableResult) =>
   section.shortLabel ??
@@ -432,69 +398,19 @@ export default function GeneResults({
         }}
       >
         <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
-        {(geneDescription || (llmResult && llmResult.status === "results")) && (
+        {(geneDescription || llmResult) && (
           <div
             style={{
               marginBottom: 16,
               padding: "12px 14px",
               border: "1px solid #e5e7eb",
               borderRadius: 8,
-              fontSize: 13,
             }}
           >
-            {geneDescription && (
-              <div
-                style={{
-                  marginBottom:
-                    llmResult && llmResult.status === "results" ? 12 : 0,
-                }}
-              >
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                  Gene description (RefSeq)
-                </div>
-                <p
-                  style={{
-                    margin: "4px 0",
-                    color: "#374151",
-                    fontStyle: "italic",
-                  }}
-                >
-                  {geneDescription}
-                </p>
-              </div>
-            )}
-            {llmResult && llmResult.status === "results" && (
-              <>
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                  LLM-generated summary
-                  <span
-                    style={{
-                      fontWeight: 400,
-                      color: "#6b7280",
-                      marginLeft: 8,
-                      fontSize: 12,
-                    }}
-                  >
-                    (generated {llmResult.searchDate})
-                  </span>
-                </div>
-                <p style={{ margin: "4px 0", color: "#374151" }}>
-                  {llmResult.summary}
-                </p>
-                {llmResult.pubmedLinks && (
-                  <div style={{ marginTop: 8 }}>
-                    <span style={{ fontWeight: 500, color: "#374151" }}>
-                      Relevant PubMed papers:{" "}
-                    </span>
-                    {renderPubmedLinks(llmResult.pubmedLinks)}
-                  </div>
-                )}
-                <p style={{ margin: "8px 0 0" }}>
-                  LLM-generated results may be unreliable and may include
-                  hallucinations. Always verify against primary sources.
-                </p>
-              </>
-            )}
+            <GeneInfoBox
+              geneDescription={geneDescription}
+              llmResult={llmResult}
+            />
           </div>
         )}
         {data.length === 0 && (

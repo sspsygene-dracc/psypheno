@@ -65,6 +65,7 @@ export default async function handler(
     const db = getDb();
     const offset = (page - 1) * pageSize;
     const hasLlm = tableExists(db, "llm_gene_results");
+    const hasDesc = tableExists(db, "gene_descriptions");
 
     // Sort column may be on cp, cg, or lr table
     // If LLM table doesn't exist, fall back to default sort
@@ -99,8 +100,16 @@ export default async function handler(
            NULL AS llm_search_date,
            NULL AS llm_status`;
 
+    const descSelect = hasDesc
+      ? `, gd.description AS gene_description`
+      : `, NULL AS gene_description`;
+
     const llmJoin = hasLlm
       ? "LEFT JOIN llm_gene_results lr ON lr.central_gene_id = cp.central_gene_id"
+      : "";
+
+    const descJoin = hasDesc
+      ? "LEFT JOIN gene_descriptions gd ON gd.central_gene_id = cp.central_gene_id"
       : "";
 
     const rows = db
@@ -112,9 +121,11 @@ export default async function handler(
                 cp.num_tables, cp.num_pvalues,
                 cp.gene_flags
                 ${llmSelect}
+                ${descSelect}
          FROM gene_combined_pvalues cp
          JOIN central_gene cg ON cg.id = cp.central_gene_id
          ${llmJoin}
+         ${descJoin}
          ${flagWhere}
          ORDER BY ${sortTable}.${sanitizeIdentifier(effectiveSortCol)} ${dir} ${nullsLast}
          LIMIT ? OFFSET ?`
