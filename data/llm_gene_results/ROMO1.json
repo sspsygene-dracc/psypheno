@@ -1,0 +1,9 @@
+{
+  "symbol": "ROMO1",
+  "central_gene_id": 26945,
+  "pubmed_links": "[Alex et al. (2025) GWAS for behavioral traits in golden retrievers identifies genes implicated in human temperament, mental health, and cognition](https://pubmed.ncbi.nlm.nih.gov/41284867/);[Yang et al. (2025) Machine learning-driven transcriptomic study reveals the key role of Romo1 in reversing central sensitization through stellate ganglion block in migraine](https://pubmed.ncbi.nlm.nih.gov/40747904/)",
+  "summary": "ROMO1 (Reactive Oxygen Species Modulator 1), a mitochondrial inner membrane protein involved in redox signaling and mitochondrial dynamics, has been identified within a genome-wide significant locus for cognitive trainability in dogs and associated with intelligence, depression, irritability, and emotional sensitivity in humans via cross-species GWAS; it has also been implicated in central sensitization mechanisms in migraine through transcriptomic analysis. Direct evidence in classic neuropsychiatric or neurodevelopmental disorders such as autism or schizophrenia remains absent. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

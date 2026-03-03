@@ -1,0 +1,9 @@
+{
+  "symbol": "RAPGEF6",
+  "central_gene_id": 22590,
+  "pubmed_links": "[Xu et al. (2012) De novo gene mutations highlight patterns of genetic and neural complexity in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/23042115/); [Levy et al. (2015) Deletion of Rapgef6 disrupts amygdala function in mice](https://pubmed.ncbi.nlm.nih.gov/26057047/); [Maeta et al. (2018) Comprehensive behavioral analysis of mice deficient in Rapgef2 and Rapgef6](https://pubmed.ncbi.nlm.nih.gov/29747665/)",
+  "summary": "RAPGEF6, a guanine nucleotide exchange factor for Rap1 GTPase, was identified as a schizophrenia susceptibility gene through de novo loss-of-function copy number variants (exon 2–11 deletion) in human patients; mouse knockout models show disrupted amygdala-dependent fear conditioning, hyperlocomotion, and working memory deficits consistent with schizophrenia-like endophenotypes. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

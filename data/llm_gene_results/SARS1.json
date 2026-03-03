@@ -1,0 +1,9 @@
+{
+  "symbol": "SARS1",
+  "central_gene_id": 29453,
+  "pubmed_links": "[Ravel et al. (2021) Bi-allelic SARS1 variant in children with neurodevelopmental delay, deafness, and cardiomyopathy](https://pubmed.ncbi.nlm.nih.gov/34570399/);[Bögershausen et al. (2022) WARS1 and SARS1: Two tRNA synthetases implicated in autosomal recessive microcephaly](https://pubmed.ncbi.nlm.nih.gov/35790048/);[Verdura et al. (2022) Loss of seryl-tRNA synthetase (SARS1) causes complex spastic paraplegia and cellular senescence](https://pubmed.ncbi.nlm.nih.gov/36041817/)",
+  "summary": "SARS1 encodes seryl-tRNA synthetase 1, and biallelic loss-of-function variants have been linked to autosomal recessive neurodevelopmental disorders including microcephaly, intellectual disability, developmental delay, deafness, and complex spastic paraplegia. These findings establish SARS1 as a cause of rare Mendelian neurodevelopmental disease, with aminoacyl-tRNA synthetase dysfunction emerging as a shared mechanism in neurological disorders. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

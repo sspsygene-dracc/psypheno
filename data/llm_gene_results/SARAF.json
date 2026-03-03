@@ -1,9 +1,9 @@
 {
   "symbol": "SARAF",
   "central_gene_id": 29449,
-  "pubmed_links": null,
-  "summary": null,
-  "status": "no_results",
+  "pubmed_links": "[Gataulin et al. (2023) SARAF alters murine metabolic state via hypothalamic pathways, modulating HPA axis and anxiety](https://pubmed.ncbi.nlm.nih.gov/37007714/); [Taha et al. (2025) Progressive elevation of SARAF and calcium pathway dysregulation in multiple sclerosis](https://pubmed.ncbi.nlm.nih.gov/40429665/); [Palty et al. (2012) SARAF inactivates the store-operated calcium entry machinery to prevent excess calcium refilling](https://pubmed.ncbi.nlm.nih.gov/22464749/)",
+  "summary": "SARAF (store-operated calcium entry-associated regulatory factor) is an ER-resident protein that negatively regulates SOCE; whole-body knockout mice exhibit reduced hippocampal proliferation, altered HPA axis activity, and anxiety-related behavioral changes, implicating SARAF in stress and mood-relevant circuitry. Elevated SARAF levels have also been reported in multiple sclerosis patients, pointing to broader roles in neurological disease. (emerging evidence)",
+  "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

@@ -1,0 +1,9 @@
+{
+  "symbol": "PSME4",
+  "central_gene_id": 21023,
+  "pubmed_links": "[Karaglani et al. (2024) Blood-based epigenetic biosignature in first-episode schizophrenia via automated machine learning](https://pubmed.ncbi.nlm.nih.gov/38886359/);[VerPlank et al. (2024) Knockout of PA200 improves proteasomal degradation and myelination in a proteotoxic neuropathy](https://pubmed.ncbi.nlm.nih.gov/38320810/);[Yazgili et al. (2022) The Proteasome Activator PA200/PSME4: An Emerging New Player in Health and Disease](https://pubmed.ncbi.nlm.nih.gov/36009043/)",
+  "summary": "PSME4 (encoding the proteasome activator PA200) shows reduced blood DNA methylation in first-episode schizophrenia patients compared to healthy controls, where it was identified as part of a five-feature epigenetic biosignature with diagnostic potential (AUC 0.755). PA200 is highly expressed in brain tissue and its knockout rescues myelination defects in a proteotoxic neuropathy model, suggesting a role in neural proteostasis that may be relevant to neuropsychiatric conditions. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

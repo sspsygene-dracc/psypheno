@@ -1,9 +1,9 @@
 {
   "symbol": "SMS",
   "central_gene_id": 31117,
-  "pubmed_links": "[Cason et al. (2003) X-linked spermine synthase gene (SMS) defect: the first polyamine deficiency syndrome](https://pubmed.ncbi.nlm.nih.gov/14508504/); [Becerra-Solano et al. (2011) Spermine synthase deficiency resulting in X-linked intellectual disability (Snyder-Robinson syndrome)](https://pubmed.ncbi.nlm.nih.gov/21318891/); [de Alencastro et al. (2013) Snyder-Robinson syndrome: novel nonsense mutation in spermine synthase and expansion of phenotype](https://pubmed.ncbi.nlm.nih.gov/23897707/)",
-  "summary": "Mutations in SMS, encoding spermine synthase, cause Snyder-Robinson syndrome, an X-linked syndromic intellectual disability disorder characterized by intellectual disability, seizures, hypotonia, kyphoscoliosis, and osteoporosis. (well-established)",
+  "pubmed_links": "[Cason et al. (2003) X-linked spermine synthase gene (SMS) defect: the first polyamine deficiency syndrome](https://pubmed.ncbi.nlm.nih.gov/14508504/); [Schwartz et al. (2011) Spermine synthase deficiency resulting in X-linked intellectual disability (Snyder-Robinson syndrome)](https://pubmed.ncbi.nlm.nih.gov/21318891/); [Peron et al. (2013) Snyder-Robinson syndrome: a novel nonsense mutation in spermine synthase and expansion of the phenotype](https://pubmed.ncbi.nlm.nih.gov/23897707/)",
+  "summary": "Mutations in SMS, encoding spermine synthase, cause Snyder-Robinson syndrome, an X-linked syndromic intellectual disability disorder characterized by intellectual disability, seizures, hypotonia, kyphoscoliosis, and osteoporosis. SMS deficiency represents the only known polyamine deficiency syndrome in humans, with spermine playing a critical role in neurological function via modulation of inward rectifier K+ channels. (well-established)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

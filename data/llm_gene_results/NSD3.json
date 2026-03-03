@@ -1,0 +1,9 @@
+{
+  "symbol": "NSD3",
+  "central_gene_id": 16960,
+  "pubmed_links": "[Shi et al. (2011) Common variants on 8p12 and 1q24.2 confer risk of schizophrenia](https://pubmed.ncbi.nlm.nih.gov/22037555/); [Ma et al. (2013) Evaluating risk loci for schizophrenia distilled from GWAS in Han Chinese from Central China](https://pubmed.ncbi.nlm.nih.gov/22584866/); [Sarnowski et al. (2022) Meta-analysis of GWAS identifies ancestry-specific associations underlying circulating total tau levels](https://pubmed.ncbi.nlm.nih.gov/35396452/)",
+  "summary": "NSD3 (WHSC1L1), a histone H3K36 methyltransferase at chromosome 8p12, was identified as a schizophrenia risk locus in genome-wide association studies in Han Chinese populations, with a common variant reaching genome-wide significance (rs16887244, P=1.27\u00d710\u207b\u00b9\u2070); a subsequent GWAS also identified NSD3 among genes with important brain function through its association with circulating total tau levels. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "RABEP1",
+  "central_gene_id": 22431,
+  "pubmed_links": "[Wang et al. (2024) Shared genetic basis and causality between schizophrenia and inflammatory bowel disease](https://pubmed.ncbi.nlm.nih.gov/38563283/);[Delacrétaz et al. (2017) Association of variants in SH2B1 and RABEP1 with worsening of low-density lipoprotein and glucose parameters in patients treated with psychotropic drugs](https://pubmed.ncbi.nlm.nih.gov/28694205/);[Novikova et al. (2021) Integration of Alzheimer's disease genetics and myeloid genomics identifies disease risk regulatory elements and genes](https://pubmed.ncbi.nlm.nih.gov/33712570/)",
+  "summary": "RABEP1 (rabaptin-5), a RAB GTPase effector involved in endosomal membrane trafficking, has been identified as a pleiotropic gene shared between schizophrenia and inflammatory bowel disease via cross-trait GWAS, and as a candidate causal gene in Alzheimer's disease risk loci through myeloid enhancer regulation; a variant in RABEP1 (rs1000940) has also been directly associated with altered fasting glucose in psychiatric patients receiving psychotropic medications. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

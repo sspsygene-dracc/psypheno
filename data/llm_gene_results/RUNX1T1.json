@@ -1,0 +1,9 @@
+{
+  "symbol": "RUNX1T1",
+  "central_gene_id": 29279,
+  "pubmed_links": "[Aref-Eshghi et al. (2024) Germline de novo alterations of RUNX1T1 in individuals with neurodevelopmental and congenital anomalies](https://pubmed.ncbi.nlm.nih.gov/39568205/);[Restaldi et al. (2019) Familial chromosomal rearrangement confirms RUNX1T1 as causative gene for intellectual disability](https://pubmed.ncbi.nlm.nih.gov/31223340/);[Huynh et al. (2012) RUNX1T1, a chromatin repression protein, is a candidate gene for autosomal dominant intellectual disability](https://pubmed.ncbi.nlm.nih.gov/22644616/)",
+  "summary": "RUNX1T1 (ETO/MTG8) encodes a transcriptional corepressor highly expressed in the brain, where it regulates neuronal differentiation; germline de novo and familial variants have been identified in individuals with intellectual disability, developmental delay, autism, and ADHD, with multiple studies confirming its causative role in neurodevelopmental syndromes. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

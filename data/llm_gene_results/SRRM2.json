@@ -1,0 +1,9 @@
+{
+  "symbol": "SRRM2",
+  "central_gene_id": 33340,
+  "pubmed_links": "[Cuinat et al. (2022) Loss-of-function variants in SRRM2 cause a neurodevelopmental disorder](https://pubmed.ncbi.nlm.nih.gov/35567594/); [Trujillano et al. (2023) Retrospective identification of patients with SRRM2-related neurodevelopmental disorder](https://pubmed.ncbi.nlm.nih.gov/37212523/); [Palmer et al. (2023) Schizophrenia risk conferred by rare protein-truncating variants is conserved across diverse human populations](https://pubmed.ncbi.nlm.nih.gov/36914870/)",
+  "summary": "SRRM2, encoding the splicing factor SRm300, is established as a neurodevelopmental disorder gene: loss-of-function variants cause a syndrome featuring developmental delay, speech delay, autism/ADHD features, hypotonia, and mild intellectual disability (OMIM #620439). Rare protein-truncating variants in SRRM2 have also been associated with substantially elevated schizophrenia risk (OR ~9) across diverse human populations. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

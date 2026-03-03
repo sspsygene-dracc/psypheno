@@ -1,9 +1,9 @@
 {
   "symbol": "BRD1",
   "central_gene_id": 21985,
-  "pubmed_links": "[Nyegaard et al. (2006) Evidence implicating BRD1 with brain development and susceptibility to both schizophrenia and bipolar affective disorder](https://pubmed.ncbi.nlm.nih.gov/16924267/); [Severinsen et al. (2009) Support of association between BRD1 and both schizophrenia and bipolar affective disorder](https://pubmed.ncbi.nlm.nih.gov/19693800/); [Stilling et al. (2016) Identification of the BRD1 interaction network and its impact on mental disorder risk](https://pubmed.ncbi.nlm.nih.gov/27142060/)",
-  "summary": "BRD1 encodes a bromodomain-containing epigenetic regulator that has been consistently associated with schizophrenia and bipolar affective disorder across multiple independent genetic studies, with mouse models showing cognitive deficits relevant to schizophrenia. (well-established)",
+  "pubmed_links": "[Severinsen et al. (2006) Evidence implicating BRD1 with brain development and susceptibility to both schizophrenia and bipolar affective disorder](https://pubmed.ncbi.nlm.nih.gov/16924267/); [Nyegaard et al. (2010) Support of association between BRD1 and both schizophrenia and bipolar affective disorder](https://pubmed.ncbi.nlm.nih.gov/19693800/); [Fryland et al. (2016) Identification of the BRD1 interaction network and its impact on mental disorder risk](https://pubmed.ncbi.nlm.nih.gov/27142060/)",
+  "summary": "BRD1 encodes a bromodomain-containing epigenetic regulator that has been consistently associated with schizophrenia and bipolar affective disorder across multiple independent genetic studies, with mouse models showing selective cognitive deficits relevant to schizophrenia. (well-established)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

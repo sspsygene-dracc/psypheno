@@ -1,0 +1,9 @@
+{
+  "symbol": "RNF150",
+  "central_gene_id": 24923,
+  "pubmed_links": "[Miao et al. (2019) Network analysis of depression-related transcriptomic profiles](https://pubmed.ncbi.nlm.nih.gov/30825116/)",
+  "summary": "RNF150 was identified as one of three genes significantly associated with depression symptoms via blood transcriptomic profiling in an aging cohort (P = 1.4×10⁻⁷), with depression-related genes enriched in the neurotrophin signaling pathway. Evidence linking RNF150 to core neuropsychiatric or neurodevelopmental disorders such as autism, schizophrenia, or intellectual disability is currently lacking. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

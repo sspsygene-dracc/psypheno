@@ -1,9 +1,9 @@
 {
   "symbol": "SDK1",
   "central_gene_id": 29708,
-  "pubmed_links": "[Grove et al. (2019) Identification of common genetic risk variants for autism spectrum disorder](https://pubmed.ncbi.nlm.nih.gov/30804558/)",
-  "summary": "SDK1 encodes a large immunoglobulin superfamily cell adhesion molecule involved in neural circuit formation; genome-wide association studies have implicated SDK1 polymorphisms in autism spectrum disorder and ADHD, and the gene is a transcriptionally active common fragile site in neural stem cells. (emerging evidence)",
+  "pubmed_links": "[Narita et al. (2020) Clustering by phenotype and genome-wide association study in autism](https://pubmed.ncbi.nlm.nih.gov/32807774/); [Yamagata (2020) Structure and Functions of Sidekicks](https://pubmed.ncbi.nlm.nih.gov/32982686/); [Grove et al. (2019) Identification of common genetic risk variants for autism spectrum disorder](https://pubmed.ncbi.nlm.nih.gov/30804558/)",
+  "summary": "SDK1 encodes Sidekick-1, a large immunoglobulin superfamily cell adhesion molecule that mediates synaptic specificity and neural circuit formation; phenotype-stratified GWAS in autism have identified SDK1 as a candidate risk gene, and genome-wide association evidence also implicates SDK1 polymorphisms in ADHD, with the gene's large genomic footprint rendering it susceptible to somatic rearrangements potentially contributing to neurodevelopmental vulnerability. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

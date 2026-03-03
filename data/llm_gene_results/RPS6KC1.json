@@ -1,9 +1,9 @@
 {
   "symbol": "RPS6KC1",
   "central_gene_id": 28551,
-  "pubmed_links": "[Scala et al. (2025) Bi-allelic variants in the ribosomal protein RPS6KC1 cause a complex neurodevelopmental disorder](https://pubmed.ncbi.nlm.nih.gov/41130203/)",
-  "summary": "Bi-allelic loss-of-function variants in RPS6KC1 were recently identified in 13 individuals across 8 families, causing a neurodevelopmental disorder with delay, hypotonia, spastic paraplegia, and white matter abnormalities through disruption of ribosomal protein synthesis and the mTOR/PI3K pathway. (novel candidate)",
+  "pubmed_links": "[Planas-Serra et al. (2025) Bi-allelic variants in the ribosomal protein RPS6KC1 cause a complex neurodevelopmental disorder](https://pubmed.ncbi.nlm.nih.gov/41130203/)",
+  "summary": "Bi-allelic variants in RPS6KC1 were identified in 13 individuals across 8 families, causing a neurodevelopmental disorder characterized by developmental delay, hypotonia, spastic paraplegia, and white matter abnormalities, with functional studies implicating disrupted mTOR/PI3K signaling and lipid metabolism. (novel candidate)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

@@ -1,0 +1,9 @@
+{
+  "symbol": "SRP54",
+  "central_gene_id": 33316,
+  "pubmed_links": "[Carapito et al. (2017) SRP54 mutations cause syndromic neutropenia with autism spectrum disorder](https://pubmed.ncbi.nlm.nih.gov/28972538/); [Bellanné-Chantelot et al. (2018) SRP54 mutations cause severe congenital neutropenia with neurodevelopmental delay](https://pubmed.ncbi.nlm.nih.gov/29914977/)",
+  "summary": "Heterozygous mutations in SRP54, encoding the signal recognition particle 54 GTPase, cause a syndromic congenital neutropenia that in a subset of patients includes neurodevelopmental delay, intellectual disability, severe speech delay, and autism spectrum disorder features, with genotype-phenotype correlations showing that mutations affecting the G2/G4/G5 elements are specifically associated with the neurodevelopmental phenotype. SRP54 is not primarily a neuropsychiatric gene but has documented neurodevelopmental manifestations as part of a broader multisystem disorder. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

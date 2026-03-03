@@ -1,6 +1,6 @@
 # Auto-generated LLM gene search config
-# Generated: 2026-03-03T16:01:10.735488
-# Top-N: 100 (171 unique genes)
+# Generated: 2026-03-03T21:14:29.954667
+# Remaining from interrupted run (108 of 171 original jobs)
 #
 # Usage:
 #   sspsygene run-llm-search llm_jobs.yaml
@@ -10,182 +10,27 @@
 # Modes: new, verify, update, verify_update
 
 jobs:
-- symbol: ACTG1
-  mode: verify
-- symbol: ADA2
-  mode: new
-  central_gene_id: 387
-- symbol: ADI1
-  mode: verify
-- symbol: AGTPBP1
-  mode: new
-  central_gene_id: 701
-- symbol: FAAH2
-  mode: new
-  central_gene_id: 1064
-- symbol: FAM13A
-  mode: new
-  central_gene_id: 1136
-- symbol: FAM107A
-  mode: verify
-- symbol: FAM120B
-  mode: verify
-- symbol: FCHSD2
-  mode: verify
-- symbol: FGF12
-  mode: verify
-- symbol: FIS1
-  mode: new
-  central_gene_id: 1883
-- symbol: FNBP4
-  mode: new
-  central_gene_id: 1990
-- symbol: FST
-  mode: verify
-- symbol: FUT8
-  mode: verify
-- symbol: GAP43
-  mode: verify
-- symbol: GPR158
-  mode: new
-  central_gene_id: 3393
-- symbol: GPR171
-  mode: new
-  central_gene_id: 3402
-- symbol: GRID2
-  mode: verify
-- symbol: GRIK1
-  mode: new
-  central_gene_id: 3492
-- symbol: H2AC6
-  mode: verify
-- symbol: HDAC8
-  mode: new
-  central_gene_id: 4120
-- symbol: HS6ST3
-  mode: verify
-- symbol: KIAA0319L
-  mode: new
-  central_gene_id: 6672
-- symbol: KIAA1958
-  mode: verify
-- symbol: KIRREL3
-  mode: verify
-- symbol: KLHL22
-  mode: verify
-- symbol: KMT5B
-  mode: new
-  central_gene_id: 6949
-- symbol: LAPTM4A
-  mode: new
-  central_gene_id: 7406
-- symbol: LCORL
-  mode: new
-  central_gene_id: 7506
-- symbol: LIN28B
-  mode: new
-  central_gene_id: 7694
-- symbol: LRBA
-  mode: verify
-- symbol: MAGI3
-  mode: new
-  central_gene_id: 10625
-- symbol: ANKRD11
-  mode: verify
-- symbol: ANKRD17
-  mode: new
-  central_gene_id: 10772
-- symbol: ANKUB1
-  mode: verify
-- symbol: APCDD1
-  mode: verify
-- symbol: APOLD1
-  mode: new
-  central_gene_id: 11058
-- symbol: ARF1
-  mode: new
-  central_gene_id: 11118
-- symbol: ARSJ
-  mode: new
-  central_gene_id: 11412
-- symbol: ASMTL
-  mode: verify
-- symbol: MAP6
-  mode: new
-  central_gene_id: 11722
-- symbol: MAPK8
-  mode: verify
-- symbol: MED15
-  mode: verify
-- symbol: MEIS1
-  mode: verify
-- symbol: MEIS2
-  mode: verify
-- symbol: MIF
-  mode: verify
-- symbol: MTOR
-  mode: new
-  central_gene_id: 15539
-- symbol: NAV3
-  mode: new
-  central_gene_id: 15958
-- symbol: NCOA6
-  mode: verify
-- symbol: NDUFB3
-  mode: verify
-- symbol: NDUFB5
-  mode: new
-  central_gene_id: 16182
-- symbol: NEXMIF
-  mode: new
-  central_gene_id: 16329
-- symbol: NFE2L3
-  mode: new
-  central_gene_id: 16359
 - symbol: NIT2
   mode: new
   central_gene_id: 16484
 - symbol: NKD1
   mode: new
   central_gene_id: 16495
-- symbol: NME7
-  mode: new
-  central_gene_id: 16570
-- symbol: NPAS4
-  mode: verify
-- symbol: NR4A1
-  mode: verify
-- symbol: NR4A3
-  mode: verify
 - symbol: NSD3
   mode: new
   central_gene_id: 16960
 - symbol: NSMCE2
   mode: new
   central_gene_id: 16972
-- symbol: OAZ1
-  mode: new
-  central_gene_id: 17216
 - symbol: PALS1
-  mode: verify
-- symbol: PAN3
-  mode: verify
-- symbol: PAX3
   mode: verify
 - symbol: PDSS2
   mode: new
   central_gene_id: 18987
 - symbol: PELI2
   mode: verify
-- symbol: PHF21B
-  mode: verify
-- symbol: PLCG2
-  mode: verify
 - symbol: PLEKHA5
   mode: verify
-- symbol: PMM2
-  mode: new
-  central_gene_id: 19869
 - symbol: PNKP
   mode: new
   central_gene_id: 19902

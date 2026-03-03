@@ -1,9 +1,9 @@
 {
   "symbol": "SCAI",
   "central_gene_id": 29497,
-  "pubmed_links": null,
-  "summary": null,
-  "status": "no_results",
+  "pubmed_links": "[Mizukoshi et al. (2020) SCAI splice variants localization and roles in neuronal cells](https://pubmed.ncbi.nlm.nih.gov/32736682/);[Ihara et al. (2024) BDNF downregulates SCAI mRNA in cortical neurons](https://pubmed.ncbi.nlm.nih.gov/38009531/)",
+  "summary": "SCAI (suppressor of cancer cell invasion) encodes a transcriptional repressor of SRF/MRTF-mediated gene expression whose neuronal splice variants differentially regulate neuronal morphology and dendritic complexity during brain development. BDNF downregulates SCAI mRNA via the ERK/MAPK pathway in cortical neurons, linking SCAI to neurotrophic signaling pathways implicated in neuropsychiatric disorders. (novel candidate)",
+  "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

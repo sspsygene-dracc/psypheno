@@ -1,0 +1,9 @@
+{
+  "symbol": "PSD3",
+  "central_gene_id": 20896,
+  "pubmed_links": "[Gonzalez DA et al. (2018) Arf6 activator Efa6/PSD3 modulates ethanol consumption in Drosophila and humans](https://pubmed.ncbi.nlm.nih.gov/28607459/);[Wilkerson MD et al. (2024) Protein-coding variants associated with suicide attempt in U.S. Army soldiers](https://pubmed.ncbi.nlm.nih.gov/38141912/)",
+  "summary": "PSD3 encodes a brain-enriched Arf6 guanine exchange factor preferentially expressed in the prefrontal cortex; variants in PSD3 have been associated with increased alcohol consumption and dependence in adolescents and adults, and more recently with suicide attempt risk in a large military cohort. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

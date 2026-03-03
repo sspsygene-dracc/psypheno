@@ -1,0 +1,9 @@
+{
+  "symbol": "BRAF",
+  "central_gene_id": 21976,
+  "pubmed_links": "[Kang et al. (2025) Aberrant ERK signaling in astrocytes impairs learning and memory in RASopathy-associated BRAF mutant mouse models](https://pubmed.ncbi.nlm.nih.gov/39964758/); [Pierpont et al. (2022) Neurologic and neurodevelopmental complications in cardiofaciocutaneous syndrome are associated with genotype](https://pubmed.ncbi.nlm.nih.gov/35524774/); [Kim & Baek (2019) Neurodevelopmental aspects of RASopathies](https://pubmed.ncbi.nlm.nih.gov/31250618/)",
+  "summary": "BRAF germline mutations cause cardiofaciocutaneous syndrome, which features intellectual disability (~82%) and seizures (~55%), and de novo BRAF variants have been identified in autism spectrum disorder sequencing cohorts; mechanistic mouse studies show that aberrant ERK signaling in BRAF-mutant astrocytes impairs learning and memory, providing a cellular basis for cognitive deficits. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

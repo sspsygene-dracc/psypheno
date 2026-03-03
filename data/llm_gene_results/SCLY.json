@@ -1,0 +1,9 @@
+{
+  "symbol": "SCLY",
+  "central_gene_id": 29589,
+  "pubmed_links": "[Pitts et al. (2015) Brain-testes selenium competition and sex differences in neurodevelopmental disease risk](https://pubmed.ncbi.nlm.nih.gov/26586820/);[Byrns et al. (2014) Mice lacking selenoprotein P and Scly show neurodegeneration and audiogenic seizures](https://pubmed.ncbi.nlm.nih.gov/24519931/);[Kremer et al. (2019) Disruption of selenium handling during puberty causes sex-specific neurological impairments](https://pubmed.ncbi.nlm.nih.gov/31022880/)",
+  "summary": "SCLY encodes selenocysteine lyase, which recycles selenium from selenocysteine for selenoprotein synthesis; Scly knockout mouse models exhibit neurodegeneration, audiogenic seizures, and reduced parvalbumin interneuron density—a hallmark of schizophrenia—with sex-specific effects linked to aberrant excitatory/inhibitory balance relevant to neurodevelopmental conditions. Evidence is currently confined to animal models with mechanistic implications for schizophrenia and epilepsy rather than direct human genetic association. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

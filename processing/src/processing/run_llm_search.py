@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from tqdm import tqdm
 
 from processing.config import get_sspsygene_config
 from processing.llm_search import (
@@ -208,15 +209,15 @@ def run_agent(
                 if stderr:
                     f.write(f"\n=== STDERR ===\n{stderr}\n")
 
-            status = (
+            result_status = (
                 "ABORTED"
                 if abort_event.is_set() and returncode != 0
                 else ("OK" if success else "FAILED")
             )
-            print(f"[{status}] {symbol} ({elapsed:.1f}s)")
 
             return {
                 "symbol": symbol,
+                "status": result_status,
                 "success": success,
                 "elapsed": elapsed,
                 "returncode": returncode,
@@ -359,6 +360,9 @@ def run_pipeline(
     previous_sigint_handler = signal.getsignal(signal.SIGINT)
     signal.signal(signal.SIGINT, _handle_sigint)
 
+    ok_count = 0
+    fail_count = 0
+
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {}
@@ -377,9 +381,30 @@ def run_pipeline(
                 )
                 futures[future] = job["symbol"]
 
-            for future in concurrent.futures.as_completed(futures):
-                result = future.result()
-                results.append(result)
+            with tqdm(
+                total=len(futures),
+                desc="Genes",
+                unit="gene",
+                bar_format=(
+                    "{l_bar}{bar}| {n_fmt}/{total_fmt} "
+                    "[{elapsed}<{remaining}, {rate_fmt}]"
+                    " OK:{postfix[ok]} FAIL:{postfix[fail]}"
+                ),
+                postfix={"ok": 0, "fail": 0},
+            ) as pbar:
+                for future in concurrent.futures.as_completed(futures):
+                    result = future.result()
+                    results.append(result)
+                    if result["success"]:
+                        ok_count += 1
+                    else:
+                        fail_count += 1
+                    pbar.postfix["ok"] = ok_count
+                    pbar.postfix["fail"] = fail_count
+                    pbar.set_description(
+                        f"[{result['status']}] {result['symbol']}"
+                    )
+                    pbar.update(1)
     finally:
         signal.signal(signal.SIGINT, previous_sigint_handler)
 

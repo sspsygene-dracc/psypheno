@@ -1,9 +1,9 @@
 {
   "symbol": "PPP4C",
   "central_gene_id": 20427,
-  "pubmed_links": "[Zufferey et al. (2012) A 600 kb deletion syndrome at 16p11.2 leads to energy imbalance and neuropsychiatric disorders](https://pubmed.ncbi.nlm.nih.gov/22614287/); [D'Angelo et al. (2016) Defining the effect of the 16p11.2 duplication on cognition, behavior, and medical comorbidities](https://pubmed.ncbi.nlm.nih.gov/27410714/)",
-  "summary": "PPP4C maps within the 16p11.2 chromosomal region, deletions of which are among the most frequent copy-number variant causes of autism spectrum disorder and intellectual disability; PPP4C encodes a serine/threonine phosphatase that regulates microtubule organization. (emerging evidence)",
+  "pubmed_links": "[Zufferey et al. (2012) A 600 kb deletion syndrome at 16p11.2 leads to energy imbalance and neuropsychiatric disorders](https://pubmed.ncbi.nlm.nih.gov/23054248/); [Kretz et al. (2023) Dissecting the autism-associated 16p11.2 locus identifies multiple drivers in neuroanatomical phenotypes and unveils a male-specific role for the major vault protein](https://pubmed.ncbi.nlm.nih.gov/37968726/); [Ferreccio et al. (2024) TAOK2 drives opposing cilia length deficits in 16p11.2 deletion and duplication carriers](https://pubmed.ncbi.nlm.nih.gov/39416068/)",
+  "summary": "PPP4C lies within the recurrent 16p11.2 chromosomal region, copy-number variants of which are among the most frequent genetic causes of autism spectrum disorder and intellectual disability; mouse studies have identified Ppp4c as one of 13 genes driving neuroanatomical phenotypes (predominantly reduced brain structure volumes in males), and PPP4C has been shown to regulate primary cilia length in neural progenitor cells from 16p11.2 CNV carriers. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

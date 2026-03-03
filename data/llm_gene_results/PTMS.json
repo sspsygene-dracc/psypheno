@@ -1,0 +1,9 @@
+{
+  "symbol": "PTMS",
+  "central_gene_id": 21134,
+  "pubmed_links": "[Yu et al. (2020) Brain is an endocrine organ through secretion and nuclear transfer of parathymosin](https://pubmed.ncbi.nlm.nih.gov/33087487/); [Jung et al. (2025) Control of aging-associated neurodegeneration via hypothalamic extracellular vesicles containing parathymosin](https://pubmed.ncbi.nlm.nih.gov/41241944/)",
+  "summary": "PTMS encodes parathymosin, a neuroprotective protein secreted by hypothalamic stem cells and brain neurons that remodels chromatin and inhibits cellular senescence; loss of PTMS causes severe age-dependent neurodegeneration and Alzheimer's-like phenotypes in mice, while hypothalamic gain of function counteracts brain aging and extends lifespan. No studies have directly examined PTMS variants or expression in classic neuropsychiatric or neurodevelopmental disorders such as autism, schizophrenia, or intellectual disability. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

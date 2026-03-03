@@ -1,0 +1,9 @@
+{
+  "symbol": "SOS1",
+  "central_gene_id": 32895,
+  "pubmed_links": "[Naylor et al. (2023) Neuropsychiatric phenotypes in children with Noonan syndrome](https://pubmed.ncbi.nlm.nih.gov/37130201/);[Rai et al. (2023) Novel effects of Ras-MAPK pathogenic variants on the developing human brain](https://pubmed.ncbi.nlm.nih.gov/37407569/);[Adviento et al. (2014) Autism traits in the RASopathies](https://pubmed.ncbi.nlm.nih.gov/24101678/)",
+  "summary": "SOS1 encodes a RAS guanine nucleotide exchange factor and is among the most common genetic causes of Noonan syndrome (a RASopathy); gain-of-function SOS1 variants are associated with elevated rates of ADHD, autism spectrum disorder, and oppositional defiant disorder, and neuroimaging studies have demonstrated structural brain differences including bilateral reductions in pallidum gray matter volume in affected children. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

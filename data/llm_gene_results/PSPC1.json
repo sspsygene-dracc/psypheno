@@ -1,0 +1,9 @@
+{
+  "symbol": "PSPC1",
+  "central_gene_id": 21035,
+  "pubmed_links": "[Hoekstra et al. (2013) LMX1B forms transcriptional complex with PSPC1 and PSF in developing dopaminergic neurons](https://pubmed.ncbi.nlm.nih.gov/23300262/);[Tyzack et al. (2020) Paraspeckle components NONO and PSPC1 are not mislocalized from motor neuron nuclei in sporadic ALS](https://pubmed.ncbi.nlm.nih.gov/32844195/);[Hao et al. (2025) Paraspeckle Component 1: a multifunctional RNA binding protein](https://pubmed.ncbi.nlm.nih.gov/40520856/)",
+  "summary": "PSPC1, a paraspeckle component and DBHS family RNA-binding protein, has been identified as part of a transcriptional complex with LMX1B and PSF expressed in developing mesodiencephalic dopaminergic neurons, linking it to dopaminergic differentiation pathways relevant to schizophrenia and mood disorders; additionally, PSPC1 expression is upregulated in fibroblasts from patients with NONO-related X-linked intellectual disability (MRXS34), suggesting compensatory or dysregulatory roles in neurodevelopmental disease. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

@@ -1,9 +1,9 @@
 {
   "symbol": "C22orf39",
   "central_gene_id": 32056,
-  "pubmed_links": "[Pfeiffenberger et al. (2020) Analysis of genes within the schizophrenia-linked 22q11.2 deletion identifies interaction of night owl/LZTR1 and NF1 in GABAergic sleep control](https://pubmed.ncbi.nlm.nih.gov/32339168/)",
-  "summary": "C22orf39 lies within the 22q11.2 chromosomal deletion, the strongest single genetic risk factor for schizophrenia; nervous-system-specific knockdown of its Drosophila ortholog increases sleep duration, implicating it in the neurobehavioral phenotypes associated with 22q11.2 deletion syndrome. (emerging evidence)",
-  "status": "results",
+  "pubmed_links": null,
+  "summary": null,
+  "status": "no_results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

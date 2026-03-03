@@ -1,9 +1,9 @@
 {
   "symbol": "PALS1",
   "central_gene_id": 18508,
-  "pubmed_links": "[Helbig et al. (2020) De novo variants in MPP5 cause global developmental delay and behavioral changes](https://pubmed.ncbi.nlm.nih.gov/33073849/); [Stodberg et al. (2023) A case of a childhood onset developmental encephalopathy with a novel de novo truncating variant in the MPP5 gene](https://pubmed.ncbi.nlm.nih.gov/36646320/)",
-  "summary": "PALS1 (also known as MPP5), a MAGUK family cell polarity protein critical for cortical neurogenesis, has been linked to a neurodevelopmental syndrome: de novo heterozygous variants cause global developmental delay, behavioral changes including autistic features, language regression, and microcephaly. (emerging evidence)",
+  "pubmed_links": "[Sterling et al. (2020) De novo variants in MPP5 cause global developmental delay and behavioral changes](https://pubmed.ncbi.nlm.nih.gov/33073849/); [Zanotta et al. (2023) A case of a childhood onset developmental encephalopathy with a novel de novo truncating variant in the MPP5 gene](https://pubmed.ncbi.nlm.nih.gov/36710240/)",
+  "summary": "PALS1 (also known as MPP5), a MAGUK family cell polarity protein critical for cortical neurogenesis, has been linked to a rare neurodevelopmental syndrome: de novo heterozygous variants cause global developmental delay, language delay or regression, behavioral changes, and variable microcephaly, with some patients also presenting with epilepsy and severe intellectual disability. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

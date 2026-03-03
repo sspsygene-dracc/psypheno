@@ -1,0 +1,9 @@
+{
+  "symbol": "RUNX1",
+  "central_gene_id": 29275,
+  "pubmed_links": "[van der Crabben et al. (2010) Constitutional RUNX1 deletion and mental retardation](https://pubmed.ncbi.nlm.nih.gov/19679353/);[Fukui et al. (2018) Runx1 is pro-neurogenic in adult hippocampal precursor cells](https://pubmed.ncbi.nlm.nih.gov/29324888/);[Wang & Stifani (2017) Roles of Runx genes in nervous system development](https://pubmed.ncbi.nlm.nih.gov/28299654/)",
+  "summary": "RUNX1, a transcription factor primarily known for hematopoietic development, has documented roles in nervous system development including motor neuron subtype specification and adult hippocampal neurogenesis; chromosomal deletions at 21q22 encompassing RUNX1 have been reported in patients with intellectual disability, though ITSN1 (not RUNX1 itself) is considered the primary candidate gene for the cognitive phenotype. No direct large-scale genetic studies have established RUNX1 as an independent risk gene for autism, schizophrenia, or other major psychiatric disorders. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

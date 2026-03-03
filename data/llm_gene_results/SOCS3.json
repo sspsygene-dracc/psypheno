@@ -1,9 +1,9 @@
 {
   "symbol": "SOCS3",
   "central_gene_id": 32855,
-  "pubmed_links": "[Ni et al. (2021) LncRNA-AC006129.1 reactivates a SOCS3-mediated anti-inflammatory response through DNA methylation-mediated CIC downregulation in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/32015466/)",
-  "summary": "SOCS3, a suppressor of cytokine signaling that negatively regulates JAK/STAT inflammatory pathways, is dysregulated in schizophrenia; a schizophrenia-associated lncRNA promotes SOCS3 expression as part of an anti-inflammatory response, linking neuroinflammatory signaling to psychiatric disease. (emerging evidence)",
+  "pubmed_links": "[Ni et al. (2021) LncRNA-AC006129.1 reactivates a SOCS3-mediated anti-inflammatory response through DNA methylation-mediated CIC downregulation in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/32015466/);[Luo et al. (2025) Association of Serum SOCS3 and Inflammatory Marker Levels With Cognitive Function in First-Episode Schizophrenia](https://pubmed.ncbi.nlm.nih.gov/40545471/);[Tsukada et al. (2015) The suppression of maternal-fetal leukemia inhibitory factor signal relay pathway by maternal immune activation impairs brain development in mice](https://pubmed.ncbi.nlm.nih.gov/26043040/)",
+  "summary": "SOCS3, a suppressor of cytokine signaling that negatively regulates JAK/STAT inflammatory pathways, is downregulated in first-episode schizophrenia and negatively correlates with cognitive impairment; a schizophrenia-associated lncRNA (AC006129.1) promotes SOCS3 expression via epigenetic CIC suppression, and maternal immune activation-induced placental SOCS3 upregulation disrupts fetal LIF signaling and neurogenesis, linking SOCS3-mediated neuroinflammatory signaling to both psychiatric disease and neurodevelopmental risk. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

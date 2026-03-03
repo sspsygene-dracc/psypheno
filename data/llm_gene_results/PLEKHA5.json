@@ -1,9 +1,9 @@
 {
   "symbol": "PLEKHA5",
   "central_gene_id": 19751,
-  "pubmed_links": null,
-  "summary": null,
-  "status": "no_results",
+  "pubmed_links": "[Yamada et al. (2012) Splicing variants of PLEKHA5 during brain development](https://pubmed.ncbi.nlm.nih.gov/22037487/);[Jamain et al. (2014) Common and rare variant analysis in early-onset bipolar disorder vulnerability](https://pubmed.ncbi.nlm.nih.gov/25111785/)",
+  "summary": "PLEKHA5 encodes a pleckstrin homology domain-containing protein with a brain-specific long isoform that participates in phosphoinositide signaling during neural development; variants in PLEKHA5 showed nominal association with early-onset bipolar disorder in a genome-wide study, implicating the phosphoinositide pathway in mood disorder susceptibility, though replication is needed. (novel candidate)",
+  "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

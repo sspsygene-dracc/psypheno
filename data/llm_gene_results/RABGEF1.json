@@ -1,9 +1,9 @@
 {
   "symbol": "RABGEF1",
   "central_gene_id": 22440,
-  "pubmed_links": null,
-  "summary": null,
-  "status": "no_results",
+  "pubmed_links": "[Shioda et al. (2017) Rabex-5/PDGFRβ signaling links dopamine D2R endocytosis to dendritic spine formation in striatopallidal neurons](https://pubmed.ncbi.nlm.nih.gov/27922607/); [Mori et al. (2013) Rabex-5 regulates dendritic localization of Rab17 and neurite morphogenesis in hippocampal neurons](https://pubmed.ncbi.nlm.nih.gov/23430262/); [Wu et al. (2014) Semaphorin 3A activates Rab5 via Rabex-5 to promote growth cone collapse and organize callosal axon projections](https://pubmed.ncbi.nlm.nih.gov/25161316/)",
+  "summary": "RABGEF1 encodes Rabex-5, a guanine nucleotide exchange factor for Rab5 that regulates endosomal trafficking in neurons, where it mediates dopamine D2 receptor endocytosis and downstream ERK/PDGFRβ signaling required for dendritic spine formation in striatopallidal neurons and is implicated in antipsychotic drug mechanisms. It also controls dendritic morphogenesis in hippocampal neurons and semaphorin-guided callosal axon guidance, placing it in key neurodevelopmental and dopaminergic pathways relevant to psychiatric disorders. (emerging evidence)",
+  "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

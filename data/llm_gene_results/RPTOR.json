@@ -1,0 +1,9 @@
+{
+  "symbol": "RPTOR",
+  "central_gene_id": 29130,
+  "pubmed_links": "[Karalis et al. (2022) Raptor downregulation rescues neuronal phenotypes in mouse models of Tuberous Sclerosis Complex](https://pubmed.ncbi.nlm.nih.gov/35945201/);[Kosillo et al. (2022) Dopamine neuron morphology and output are differentially controlled by mTORC1 and mTORC2](https://pubmed.ncbi.nlm.nih.gov/35881440/);[Chadha & Meador-Woodruff (2020) Downregulated AKT-mTOR signaling pathway proteins in dorsolateral prefrontal cortex in Schizophrenia](https://pubmed.ncbi.nlm.nih.gov/31952070/)",
+  "summary": "RPTOR encodes Raptor, the defining scaffold subunit of mTORC1, which regulates neuronal growth, synaptic transmission, and myelination; genetic reduction of Raptor rescues neuronal hypertrophy, network hyperactivity, and premature mortality in Tuberous Sclerosis Complex mouse models, a condition with high autism comorbidity, while dopamine-neuron-specific Rptor deletion reveals critical roles in dopaminergic morphology and output relevant to psychotic disorders. Dysregulation of mTOR pathway proteins including Raptor has also been observed in postmortem dorsolateral prefrontal cortex from schizophrenia subjects, suggesting broader psychiatric relevance. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

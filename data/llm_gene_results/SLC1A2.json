@@ -1,9 +1,9 @@
 {
   "symbol": "SLC1A2",
   "central_gene_id": 30342,
-  "pubmed_links": "[Peerbooms et al. (2014) Association of rare variation in SLC1A2 with bipolar disorder and schizophrenia](https://pubmed.ncbi.nlm.nih.gov/25406999/); [Deng et al. (2004) Association study of polymorphisms in SLC1A2 with schizophrenia](https://pubmed.ncbi.nlm.nih.gov/15296513/); [Xu et al. (2008) 11p14-p12 deletion in WAGR syndrome identifying genes contributing to autism](https://pubmed.ncbi.nlm.nih.gov/19096215/)",
+  "pubmed_links": "[Fiorentino et al. (2015) Rare variation in SLC1A2 associated with bipolar disorder and schizophrenia](https://pubmed.ncbi.nlm.nih.gov/25406999/); [Deng et al. (2004) Association study of polymorphisms in SLC1A2 with schizophrenia](https://pubmed.ncbi.nlm.nih.gov/15296513/); [Xu et al. (2008) 11p14-p12 deletion in WAGR syndrome identifying genes contributing to autism](https://pubmed.ncbi.nlm.nih.gov/19096215/)",
   "summary": "SLC1A2 encodes the glutamate transporter EAAT2, responsible for ~90% of synaptic glutamate clearance; rare coding variants have been associated with bipolar disorder and schizophrenia, and haploinsufficiency in WAGR syndrome correlates with autism. (well-established)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }
