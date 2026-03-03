@@ -385,12 +385,6 @@ def run_pipeline(
                 total=len(futures),
                 desc="Genes",
                 unit="gene",
-                bar_format=(
-                    "{l_bar}{bar}| {n_fmt}/{total_fmt} "
-                    "[{elapsed}<{remaining}, {rate_fmt}]"
-                    " OK:{postfix[ok]} FAIL:{postfix[fail]}"
-                ),
-                postfix={"ok": 0, "fail": 0},
             ) as pbar:
                 for future in concurrent.futures.as_completed(futures):
                     result = future.result()
@@ -399,11 +393,10 @@ def run_pipeline(
                         ok_count += 1
                     else:
                         fail_count += 1
-                    pbar.postfix["ok"] = ok_count
-                    pbar.postfix["fail"] = fail_count
                     pbar.set_description(
-                        f"[{result['status']}] {result['symbol']}"
+                        f"[{result['status']}] {result['symbol']:12s}"
                     )
+                    pbar.set_postfix_str(f"OK:{ok_count} FAIL:{fail_count}")
                     pbar.update(1)
     finally:
         signal.signal(signal.SIGINT, previous_sigint_handler)
