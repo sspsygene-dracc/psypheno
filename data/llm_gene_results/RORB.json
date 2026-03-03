@@ -1,0 +1,9 @@
+{
+  "symbol": "RORB",
+  "central_gene_id": 26958,
+  "pubmed_links": "[Kothur et al. (2014) RORB gene and 9q21.13 microdeletion: report on a patient with epilepsy and mild intellectual disability](https://pubmed.ncbi.nlm.nih.gov/24355400/); [Rudolf et al. (2016) Loss of function of the retinoid-related nuclear receptor (RORB) gene and epilepsy](https://pubmed.ncbi.nlm.nih.gov/27352968/); [Baglietto et al. (2009) Evidence for genetic association of RORB with bipolar disorder](https://pubmed.ncbi.nlm.nih.gov/19909500/)",
+  "summary": "RORB encodes a nuclear receptor transcription factor highly expressed in the brain; loss-of-function variants cause epilepsy with intellectual disability and autism spectrum features, and common variants have been associated with bipolar disorder and schizophrenia risk. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

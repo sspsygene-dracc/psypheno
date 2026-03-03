@@ -1,0 +1,9 @@
+{
+  "symbol": "CNTN6",
+  "central_gene_id": 41203,
+  "pubmed_links": "[Mercati et al. (2017) CNTN6 mutations are risk factors for abnormal auditory sensory perception in autism spectrum disorders](https://pubmed.ncbi.nlm.nih.gov/27166760/); [Yoshida et al. (2015) CNTN6 copy number variations in 14 patients: a possible candidate gene for neurodevelopmental and neuropsychiatric disorders](https://pubmed.ncbi.nlm.nih.gov/26257835/); [Pehlivan et al. (2018) Schizophrenia and epilepsy as a result of maternally inherited CNTN6 copy number variant](https://pubmed.ncbi.nlm.nih.gov/29983269/)",
+  "summary": "CNTN6, a neuronal cell adhesion molecule promoting neurite outgrowth, is significantly enriched for deletions and rare coding variants in autism spectrum disorder, with carriers exhibiting hyperacusis and auditory pathway abnormalities; CNTN6 CNVs have also been reported in schizophrenia, epilepsy, and intellectual disability. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

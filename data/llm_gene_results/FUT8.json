@@ -1,0 +1,9 @@
+{
+  "symbol": "FUT8",
+  "central_gene_id": 2395,
+  "pubmed_links": "[Ng et al. (2018) Biallelic mutations in FUT8 cause a congenital disorder of glycosylation with defective fucosylation](https://pubmed.ncbi.nlm.nih.gov/29304374/); [Ng et al. (2020) Expanding the molecular and clinical phenotypes of FUT8-CDG](https://pubmed.ncbi.nlm.nih.gov/32049367/)",
+  "summary": "Biallelic loss-of-function variants in FUT8, encoding the enzyme responsible for core fucosylation of N-linked glycoproteins, cause FUT8-CDG, a congenital disorder of glycosylation characterized by severe intellectual disability, developmental delay, microcephaly, and seizures. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

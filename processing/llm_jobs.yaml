@@ -1,0 +1,25 @@
+# LLM gene search job config
+#
+# Usage:
+#   python run_llm_search.py llm_jobs.yaml
+#   python run_llm_search.py llm_jobs.yaml --dry-run
+#   python run_llm_search.py llm_jobs.yaml --model opus
+#
+# Modes:
+#   new            — search from scratch (skips if file already exists)
+#   verify         — verify and correct existing data
+#   update         — amend with new info, trust existing
+#   verify_update  — verify existing data, then update
+
+jobs:
+  # ── Verify existing genes ──
+  - symbol: ACTG1
+    mode: verify
+  - symbol: SCN1A
+    mode: verify
+  - symbol: KIRREL3
+    mode: verify
+  - symbol: GAP43
+    mode: verify
+  - symbol: EBF3
+    mode: verify

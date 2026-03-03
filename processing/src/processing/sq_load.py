@@ -8,6 +8,7 @@ import click
 
 from processing.central_gene_table import get_central_gene_table
 from processing.combined_pvalues import compute_combined_pvalues
+from processing.gene_descriptions import copy_gene_descriptions
 from processing.new_sqlite3 import NewSqlite3
 from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import TableToProcessConfig
@@ -364,6 +365,64 @@ def load_assay_types(
     conn.commit()
 
 
+def load_llm_search_results(
+    conn: sqlite3.Connection,
+    data_dir: Path,
+    *,
+    no_index: bool = False,
+) -> None:
+    """Load LLM-generated search results from per-gene JSON files into SQLite."""
+    results_dir = data_dir / "llm_gene_results"
+    if not results_dir.exists():
+        click.echo("\n  No LLM gene results directory found, skipping.")
+        return
+
+    gene_files = sorted(results_dir.glob("*.json"))
+    if not gene_files:
+        click.echo("\n  No LLM gene result files found, skipping.")
+        return
+
+    click.echo("\nLoading LLM search results...")
+
+    conn.execute(
+        """CREATE TABLE llm_gene_results (
+        central_gene_id INTEGER PRIMARY KEY,
+        pubmed_links TEXT,
+        summary TEXT,
+        status TEXT,
+        search_date TEXT
+        )"""
+    )
+
+    count = 0
+    for gene_file in gene_files:
+        with open(gene_file, "r") as f:
+            info = json.load(f)
+        conn.execute(
+            "INSERT INTO llm_gene_results "
+            "(central_gene_id, pubmed_links, summary, status, search_date) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (
+                info["central_gene_id"],
+                info.get("pubmed_links"),
+                info.get("summary"),
+                info.get("status", "results"),
+                info.get("search_date", "unknown"),
+            ),
+        )
+        count += 1
+
+    if not no_index:
+        conn.execute(
+            "CREATE INDEX llm_gene_results_idx ON llm_gene_results (central_gene_id)"
+        )
+    conn.commit()
+    click.echo(
+        f"  Loaded LLM results for {click.style(str(count), bold=True)} genes "
+        f"from {click.style(str(len(gene_files)), bold=True)} files"
+    )
+
+
 def load_db(
     db_name: Path,
     table_configs: list[TableToProcessConfig],
@@ -371,6 +430,8 @@ def load_db(
     skip_missing: bool = False,
     hgnc_path: Path | None = None,
     no_index: bool = False,
+    data_dir: Path | None = None,
+    skip_gene_descriptions: bool = False,
 ) -> None:
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
@@ -384,4 +445,8 @@ def load_db(
         load_data_tables(conn, table_configs, skip_missing=skip_missing, no_index=no_index)
         load_gene_tables(conn, no_index=no_index)
         load_assay_types(conn, assay_types or {})
+        if data_dir and not skip_gene_descriptions:
+            copy_gene_descriptions(conn, data_dir, no_index=no_index)
         compute_combined_pvalues(conn, hgnc_path=hgnc_path, no_index=no_index)
+        if data_dir:
+            load_llm_search_results(conn, data_dir, no_index=no_index)

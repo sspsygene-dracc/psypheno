@@ -1,0 +1,9 @@
+{
+  "symbol": "CCN1",
+  "central_gene_id": 39792,
+  "pubmed_links": null,
+  "summary": "CCN1 (CYR61) encodes a matricellular signaling protein whose neocortical expression is markedly upregulated by schizophrenomimetic agents in adult rodents, paralleling the age-dependent onset of schizophrenia; direct genetic evidence in human patients is lacking. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

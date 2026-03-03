@@ -1,0 +1,9 @@
+{
+  "symbol": "FGF12",
+  "central_gene_id": 1803,
+  "pubmed_links": "[Siekierska et al. (2022) Modulating effects of FGF12 variants on NaV1.2 and NaV1.6 associated with developmental and epileptic encephalopathy and autism spectrum disorder](https://pubmed.ncbi.nlm.nih.gov/36029553/); [Pippucci et al. (2020) Epilepsy phenotype in individuals with chromosomal duplication encompassing FGF12](https://pubmed.ncbi.nlm.nih.gov/32431746/); [Guella et al. (2016) Phenytoin-responsive epileptic encephalopathy with a tandem duplication involving FGF12](https://pubmed.ncbi.nlm.nih.gov/27386478/)",
+  "summary": "Variants in FGF12, encoding a fibroblast homologous factor that modulates voltage-gated sodium channels NaV1.2 and NaV1.6, cause developmental and epileptic encephalopathy-47 and have been associated with autism spectrum disorder; the gene plays a critical role in neuronal excitability, differentiation, and maturation. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

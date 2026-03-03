@@ -1,0 +1,9 @@
+{
+  "symbol": "PTPRD",
+  "central_gene_id": 21188,
+  "pubmed_links": "[Uhl et al. (2019) PTPRD: neurobiology, genetics, and initial pharmacology of a pleiotropic contributor to brain phenotypes](https://pubmed.ncbi.nlm.nih.gov/30648269/); [Tello et al. (2015) Evidence that homozygous PTPRD gene microdeletion causes trigonocephaly, hearing loss, and intellectual disability](https://pubmed.ncbi.nlm.nih.gov/26082802/); [Montani et al. (2024) Loss of PTPRD increases the number of cortical neurons, impairs synaptic function and induces autistic-like behaviors in adult mice](https://pubmed.ncbi.nlm.nih.gov/38890753/)",
+  "summary": "PTPRD encodes a receptor-type protein tyrosine phosphatase that acts as a neuronal cell-adhesion molecule and synaptic organizer; de novo and inherited variants have been identified in autism spectrum disorder, intellectual disability, obsessive-compulsive disorder, and schizophrenia probands, with mouse models recapitulating autistic-like social and synaptic phenotypes. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

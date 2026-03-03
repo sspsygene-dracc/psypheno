@@ -1,0 +1,9 @@
+{
+  "symbol": "TTC19",
+  "central_gene_id": 36907,
+  "pubmed_links": "[Nogueira et al. (2013) Novel TTC19 mutation in a family with severe psychiatric manifestations and complex III deficiency](https://pubmed.ncbi.nlm.nih.gov/23532514/); [Ghezzi et al. (2015) Mutations in TTC19: expanding the molecular, clinical and biochemical phenotype](https://pubmed.ncbi.nlm.nih.gov/25887401/); [Ardissone et al. (2019) A Novel TTC19 Mutation in a Patient With Neurological, Psychological, and Gastrointestinal Impairment](https://pubmed.ncbi.nlm.nih.gov/31551910/)",
+  "summary": "Biallelic mutations in TTC19 cause mitochondrial complex III deficiency with prominent neuropsychiatric features including progressive psychosis, spinocerebellar ataxia, and developmental regression; psychiatric manifestations such as psychosis are frequent initial presentations. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

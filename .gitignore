@@ -9,3 +9,6 @@ __pycache__/
 tsconfig.tsbuildinfo
 CLAUDE.md
 processing/src/processing/r/lib/
+gene_info.gz
+.env
+processing/logs/

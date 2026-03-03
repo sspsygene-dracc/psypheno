@@ -1,0 +1,9 @@
+{
+  "symbol": "WDPCP",
+  "central_gene_id": 38267,
+  "pubmed_links": "[Barnett et al. (2014) Cognitive, sensory, and psychosocial characteristics in patients with Bardet-Biedl syndrome](https://pubmed.ncbi.nlm.nih.gov/24194441/)",
+  "summary": "WDPCP is the causal gene for Bardet-Biedl syndrome type 15 (BBS15), a ciliopathy associated with cognitive impairment; autism is reported as a notable comorbidity of Bardet-Biedl syndrome more broadly. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

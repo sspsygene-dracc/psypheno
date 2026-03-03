@@ -1,0 +1,9 @@
+{
+  "symbol": "FAM107A",
+  "central_gene_id": 1288,
+  "pubmed_links": "[Bhatt et al. (2014) The stress-inducible actin-interacting protein DRR1 shapes social behavior](https://pubmed.ncbi.nlm.nih.gov/24998413/); [Meier et al. (2018) The stress-inducible protein DRR1 exerts distinct effects on actin dynamics](https://pubmed.ncbi.nlm.nih.gov/30545002/); [Li et al. (2021) Downregulated in renal carcinoma 1 (DRR1) mediates differentiation of neural stem cells](https://pubmed.ncbi.nlm.nih.gov/33965500/)",
+  "summary": "FAM107A/DRR1 is a stress-inducible actin-binding protein highly expressed in the nervous system whose dysregulated expression has been reported in autism spectrum disorder, bipolar disorder, and schizophrenia; it regulates actin dynamics, spine formation, synaptic function, and social behavior in animal models. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

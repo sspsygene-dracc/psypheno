@@ -1,0 +1,9 @@
+{
+  "symbol": "SORCS1",
+  "central_gene_id": 32884,
+  "pubmed_links": "[Savas et al. (2015) The Sorting Receptor SorCS1 Regulates Trafficking of Neurexin and AMPA Receptors](https://pubmed.ncbi.nlm.nih.gov/26291160/); [Ribeiro et al. (2019) SorCS1-mediated sorting in dendrites maintains neurexin axonal surface polarization required for synaptic function](https://pubmed.ncbi.nlm.nih.gov/31658245/)",
+  "summary": "SORCS1 encodes a sorting receptor that regulates endosomal trafficking of neurexin and AMPA receptors at synapses; loss of SorCS1 impairs presynaptic function and glutamatergic transmission, and SORCS1 mutations have been associated with autism and Alzheimer's disease. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

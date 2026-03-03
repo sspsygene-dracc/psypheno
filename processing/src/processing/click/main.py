@@ -49,7 +49,18 @@ def cli(
     default=False,
     help="Skip creating SQLite indexes. Speeds up loading for test purposes.",
 )
-def load_db(dataset: str | None, skip_missing_datasets: bool, no_index: bool) -> None:
+@click.option(
+    "--skip-gene-descriptions",
+    is_flag=True,
+    default=False,
+    help="Skip copying gene descriptions into the database.",
+)
+def load_db(
+    dataset: str | None,
+    skip_missing_datasets: bool,
+    no_index: bool,
+    skip_gene_descriptions: bool,
+) -> None:
     """Load the database"""
     try:
         from processing.sq_load import load_db
@@ -63,7 +74,20 @@ def load_db(dataset: str | None, skip_missing_datasets: bool, no_index: bool) ->
             skip_missing=skip_missing_datasets,
             hgnc_path=config.gene_map_config.hgnc_file,
             no_index=no_index,
+            data_dir=config.base_dir,
+            skip_gene_descriptions=skip_gene_descriptions,
         )
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
+@cli.command()
+def load_gene_descriptions() -> None:
+    """Parse NCBI gene_info.gz into a standalone gene_descriptions.db."""
+    from processing.gene_descriptions import build_descriptions_db
+
+    config = get_sspsygene_config()
+    build_descriptions_db(config.base_dir)
+
+

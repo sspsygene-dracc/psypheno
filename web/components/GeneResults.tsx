@@ -5,6 +5,41 @@ import DatasetToc from "@/components/DatasetToc";
 import InfoTooltip from "@/components/InfoTooltip";
 import { ROW_LIMIT } from "@/lib/gene-query";
 
+type LlmResult = {
+  pubmedLinks: string | null;
+  summary: string | null;
+  status: string;
+  searchDate: string;
+};
+
+function renderPubmedLinks(linksStr: string): ReactNode {
+  const linkRegex =
+    /\[([^\]]+)\]\((https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/\d+\/?)\)/g;
+  const urls: string[] = [];
+  let match;
+  while ((match = linkRegex.exec(linksStr)) !== null) {
+    urls.push(match[2]);
+  }
+  if (urls.length === 0) return <>{linksStr}</>;
+  return (
+    <span>
+      {urls.map((url, i) => (
+        <span key={i}>
+          {i > 0 && " "}
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#2563eb", textDecoration: "underline" }}
+          >
+            [{i + 1}]
+          </a>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 const formatTableName = (section: TableResult) =>
   section.shortLabel ??
   section.tableName
@@ -48,6 +83,8 @@ export default function GeneResults({
   centralGeneId,
   perturbedCentralGeneId,
   targetCentralGeneId,
+  geneDescription,
+  llmResult,
 }: {
   geneDisplayName: string | null;
   data: TableResult[];
@@ -55,6 +92,8 @@ export default function GeneResults({
   centralGeneId?: number;
   perturbedCentralGeneId?: number | null;
   targetCentralGeneId?: number | null;
+  geneDescription?: string | null;
+  llmResult?: LlmResult | null;
 }) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set()
@@ -350,6 +389,57 @@ export default function GeneResults({
       )}
       <div style={{ flex: 1, minWidth: 0, marginLeft: showToc && data.length === 0 ? 244 : undefined }}>
         <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
+        {(geneDescription || (llmResult && llmResult.status === "results")) && (
+          <div
+            style={{
+              marginBottom: 16,
+              padding: "12px 14px",
+              border: "1px solid #e5e7eb",
+              borderRadius: 8,
+              fontSize: 13,
+            }}
+          >
+            {geneDescription && (
+              <div style={{ marginBottom: llmResult && llmResult.status === "results" ? 12 : 0 }}>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>Gene description (RefSeq)</div>
+                <p style={{ margin: "4px 0", color: "#374151", fontStyle: "italic" }}>
+                  {geneDescription}
+                </p>
+              </div>
+            )}
+            {llmResult && llmResult.status === "results" && (
+              <>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                  LLM-generated summary
+                  <span
+                    style={{
+                      fontWeight: 400,
+                      color: "#6b7280",
+                      marginLeft: 8,
+                      fontSize: 12,
+                    }}
+                  >
+                    (generated {llmResult.searchDate})
+                  </span>
+                </div>
+                <p style={{ margin: "4px 0", color: "#374151" }}>
+                  {llmResult.summary}
+                </p>
+                {llmResult.pubmedLinks && (
+                  <div style={{ marginTop: 8 }}>
+                    <span style={{ fontWeight: 500, color: "#374151" }}>
+                      Relevant PubMed papers:{" "}
+                    </span>
+                    {renderPubmedLinks(llmResult.pubmedLinks)}
+                  </div>
+                )}
+                <p style={{ margin: "8px 0 0", color: "#991b1b", fontWeight: 700 }}>
+                  Warning: LLM-generated results may be unreliable and may include hallucinations. Always verify against primary sources.
+                </p>
+              </>
+            )}
+          </div>
+        )}
         {data.length === 0 && (
           <div style={{ opacity: 0.8 }}>No results found in any dataset.</div>
         )}

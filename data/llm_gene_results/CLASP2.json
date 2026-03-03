@@ -1,0 +1,9 @@
+{
+  "symbol": "CLASP2",
+  "central_gene_id": 40900,
+  "pubmed_links": "[Marangi et al. (2013) Interstitial deletion of 3p22.3p22.2 encompassing ARPP21 and CLASP2 as a pathogenic factor for syndromic intellectual disability](https://pubmed.ncbi.nlm.nih.gov/24127197/)",
+  "summary": "CLASP2, a microtubule-associated protein critical for synapse formation and neuronal polarity, has been implicated as a candidate gene for syndromic intellectual disability through chromosomal deletions at 3p22.3p22.2. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

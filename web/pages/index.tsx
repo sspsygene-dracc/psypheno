@@ -19,6 +19,13 @@ export default function Home() {
   const [generalData, setGeneralData] = useState<TableResult[]>([]);
   const [pairData, setPairData] = useState<TableResult[]>([]);
   const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
+  const [geneDescription, setGeneDescription] = useState<string | null>(null);
+  const [llmResult, setLlmResult] = useState<{
+    pubmedLinks: string | null;
+    summary: string | null;
+    status: string;
+    searchDate: string;
+  } | null>(null);
   const hydratedFromQuery = useRef<boolean>(false);
 
   useEffect(() => {
@@ -121,10 +128,16 @@ export default function Home() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!selected) return;
+      if (!selected) {
+        setGeneDescription(null);
+        setLlmResult(null);
+        return;
+      }
       setLoading(true);
       setError(null);
       setGeneralData([]);
+      setGeneDescription(null);
+      setLlmResult(null);
       try {
         const res = await fetch("/api/gene-data", {
           method: "POST",
@@ -135,6 +148,8 @@ export default function Home() {
         const payload = await res.json();
         const results = Array.isArray(payload.results) ? payload.results : [];
         setGeneralData(results);
+        setGeneDescription(payload.geneDescription ?? null);
+        setLlmResult(payload.llmResult ?? null);
       } catch (e: any) {
         setError(e?.message || "Failed to load data");
       } finally {
@@ -389,6 +404,8 @@ export default function Home() {
                     centralGeneId={searchMode === "general" ? selected?.centralGeneId : undefined}
                     perturbedCentralGeneId={searchMode === "pair" ? (perturbed?.centralGeneId ?? null) : undefined}
                     targetCentralGeneId={searchMode === "pair" ? (target?.centralGeneId ?? null) : undefined}
+                    geneDescription={searchMode === "general" ? geneDescription : undefined}
+                    llmResult={searchMode === "general" ? llmResult : undefined}
                   />
                 )}
               </div>

@@ -1,0 +1,9 @@
+{
+  "symbol": "MEIS1",
+  "central_gene_id": 12083,
+  "pubmed_links": "[Spieler et al. (2014) Restless legs syndrome-associated intronic common variant in Meis1 alters enhancer function in the developing telencephalon](https://pubmed.ncbi.nlm.nih.gov/24642863/); [Schulte et al. (2019) Role of MEIS1 in restless legs syndrome: From GWAS to functional studies in mice](https://pubmed.ncbi.nlm.nih.gov/31229170/); [Catoire et al. (2018) RLS-associated MEIS transcription factors control distinct processes in human neural stem cells](https://pubmed.ncbi.nlm.nih.gov/30111810/)",
+  "summary": "MEIS1 harbors the strongest known GWAS risk locus for restless legs syndrome and functions as a homeodomain transcription factor highly expressed in dopaminergic neurons of the substantia nigra; intronic risk variants alter enhancer activity in the developing telencephalon/basal ganglia, linking early brain neurodevelopment to a neurological movement disorder with neuropsychiatric comorbidities. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

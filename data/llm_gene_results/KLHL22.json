@@ -1,0 +1,9 @@
+{
+  "symbol": "KLHL22",
+  "central_gene_id": 6881,
+  "pubmed_links": "[Forsyth et al. (2020) Synaptic and Gene Regulatory Mechanisms in Schizophrenia, Autism, and 22q11.2 CNV-Mediated Risk for Neuropsychiatric Disorders](https://pubmed.ncbi.nlm.nih.gov/31500805/)",
+  "summary": "KLHL22 is encoded within the 22q11.2 chromosomal region and its protein-protein interaction network is enriched for overlap with genes downregulated in autism spectrum disorder; the broader 22q11.2 deletion is one of the highest-penetrance genetic risk factors for schizophrenia and confers elevated risk for autism spectrum disorder and intellectual disability. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

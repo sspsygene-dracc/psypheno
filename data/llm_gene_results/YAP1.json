@@ -1,0 +1,9 @@
+{
+  "symbol": "YAP1",
+  "central_gene_id": 38541,
+  "pubmed_links": "[Williamson et al. (2014) Heterozygous loss-of-function mutations in YAP1 cause coloboma with or without intellectual disability](https://pubmed.ncbi.nlm.nih.gov/24462371/)",
+  "summary": "Heterozygous loss-of-function variants in YAP1 cause a syndrome including ocular coloboma, cleft lip/palate, and intellectual disability; the Hippo/YAP pathway is also implicated in cortical development and neural stem cell regulation. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

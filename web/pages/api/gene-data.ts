@@ -124,7 +124,52 @@ export default async function handler(
       }
     }
 
-    return res.status(200).json({ centralGeneId, results });
+    // Fetch gene description (graceful if table missing)
+    let geneDescription: string | null = null;
+    try {
+      const descRow = db
+        .prepare(
+          "SELECT description FROM gene_descriptions WHERE central_gene_id = ?"
+        )
+        .get(centralGeneId) as { description: string } | undefined;
+      geneDescription = descRow?.description ?? null;
+    } catch {
+      // gene_descriptions table may not exist yet
+    }
+
+    // Fetch LLM search results (graceful if table missing)
+    let llmResult: {
+      pubmedLinks: string | null;
+      summary: string | null;
+      status: string;
+      searchDate: string;
+    } | null = null;
+    try {
+      const llmRow = db
+        .prepare(
+          "SELECT pubmed_links, summary, status, search_date FROM llm_gene_results WHERE central_gene_id = ?"
+        )
+        .get(centralGeneId) as {
+        pubmed_links: string | null;
+        summary: string | null;
+        status: string;
+        search_date: string;
+      } | undefined;
+      if (llmRow) {
+        llmResult = {
+          pubmedLinks: llmRow.pubmed_links,
+          summary: llmRow.summary,
+          status: llmRow.status,
+          searchDate: llmRow.search_date,
+        };
+      }
+    } catch {
+      // llm_gene_results table may not exist yet
+    }
+
+    return res
+      .status(200)
+      .json({ centralGeneId, results, geneDescription, llmResult });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("gene-data handler error", err);

@@ -1,0 +1,9 @@
+{
+  "symbol": "SCN1A",
+  "central_gene_id": 29597,
+  "pubmed_links": "[Auvin et al. (2024) Autism and attention-deficit/hyperactivity disorder in children with Dravet syndrome: A population-based study](https://pubmed.ncbi.nlm.nih.gov/38676322/); [Oyrer et al. (2019) Epilepsy and neuropsychiatric comorbidities in mice carrying a recurrent Dravet syndrome SCN1A missense mutation](https://pubmed.ncbi.nlm.nih.gov/31578435/); [Takahashi et al. (2018) First report on the association of SCN1A mutation, childhood schizophrenia and autism spectrum disorder without epilepsy](https://pubmed.ncbi.nlm.nih.gov/30060894/)",
+  "summary": "SCN1A encodes the Nav1.1 voltage-gated sodium channel alpha subunit; loss-of-function variants are the primary cause of Dravet syndrome, which carries high rates of autism spectrum disorder (25-77%) and intellectual disability, with rare SCN1A variants also identified in autism probands and childhood schizophrenia without epilepsy. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-5-20250929 (local agents)"
+}

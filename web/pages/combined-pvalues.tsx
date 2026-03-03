@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import DataTable from "@/components/DataTable";
@@ -11,16 +11,16 @@ const PAGE_SIZE = 10;
 type CombinedRow = {
   human_symbol: string;
   fisher_pvalue: number | null;
-  fisher_fdr: number | null;
   stouffer_pvalue: number | null;
-  stouffer_fdr: number | null;
   cauchy_pvalue: number | null;
-  cauchy_fdr: number | null;
   hmp_pvalue: number | null;
-  hmp_fdr: number | null;
   num_tables: number;
   num_pvalues: number;
   gene_flags: string | null;
+  llm_pubmed_links: string | null;
+  llm_summary: string | null;
+  llm_search_date: string | null;
+  llm_status: string | null;
 };
 
 const GENE_FLAG_OPTIONS: { key: string; label: string }[] = [
@@ -106,34 +106,62 @@ const formatTableName = (tableName: string, shortLabel: string | null) =>
 type SortColumn =
   | "human_symbol"
   | "fisher_pvalue"
-  | "fisher_fdr"
   | "stouffer_pvalue"
-  | "stouffer_fdr"
   | "cauchy_pvalue"
-  | "cauchy_fdr"
   | "hmp_pvalue"
-  | "hmp_fdr"
   | "num_tables"
-  | "num_pvalues";
+  | "num_pvalues"
+  | "llm_search_date";
 
-const COMBINED_COLUMNS: {
-  key: SortColumn;
+type ColumnDef = {
+  key: SortColumn | "llm_pubmed_links" | "llm_summary";
   label: string;
   mono?: boolean;
   right?: boolean;
-}[] = [
+  sortable?: boolean;
+  wrap?: boolean;
+};
+
+const COMBINED_COLUMNS: ColumnDef[] = [
   { key: "human_symbol", label: "Gene" },
   { key: "fisher_pvalue", label: "Fisher p", mono: true },
-  { key: "fisher_fdr", label: "Fisher FDR", mono: true },
   { key: "stouffer_pvalue", label: "Stouffer p", mono: true },
-  { key: "stouffer_fdr", label: "Stouffer FDR", mono: true },
   { key: "cauchy_pvalue", label: "Cauchy p", mono: true },
-  { key: "cauchy_fdr", label: "Cauchy FDR", mono: true },
   { key: "hmp_pvalue", label: "HMP p", mono: true },
-  { key: "hmp_fdr", label: "HMP FDR", mono: true },
   { key: "num_tables", label: "Tables", right: true },
   { key: "num_pvalues", label: "P-values", right: true },
+  { key: "llm_pubmed_links", label: "LLM PubMed links", sortable: false },
+  { key: "llm_summary", label: "LLM summary", sortable: false, wrap: true },
+  { key: "llm_search_date", label: "LLM search date" },
 ];
+
+function renderPubmedLinks(linksStr: string): ReactNode {
+  const linkRegex =
+    /\[([^\]]+)\]\((https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/\d+\/?)\)/g;
+  const urls: string[] = [];
+  let match;
+  while ((match = linkRegex.exec(linksStr)) !== null) {
+    urls.push(match[2]);
+  }
+  if (urls.length === 0) return <>{linksStr}</>;
+  return (
+    <span>
+      {urls.map((url, i) => (
+        <span key={i}>
+          {i > 0 && " "}
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#2563eb", textDecoration: "underline" }}
+          >
+            [{i + 1}]
+          </a>
+        </span>
+      ))}
+    </span>
+  );
+}
 
 /* ─── Pagination component ─── */
 function Pagination({
@@ -380,6 +408,11 @@ export default function CombinedPvaluesPage() {
   const [sortBy, setSortBy] = useState<SortColumn>("fisher_pvalue");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const handlePageChange = useCallback((p: number) => {
+    setPage(p);
+    tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   // Gene flag filter state — all hidden by default
   const [hideFlags, setHideFlags] = useState<string[]>(
@@ -471,7 +504,7 @@ export default function CombinedPvaluesPage() {
       <Header />
       <main
         style={{
-          maxWidth: showToc ? 1400 : 1200,
+          maxWidth: showToc ? 1600 : 1400,
           margin: "0 auto",
           padding: "24px 16px",
           color: "#1f2937",
@@ -491,8 +524,8 @@ export default function CombinedPvaluesPage() {
           Aggregate statistical significance across all datasets. P-values are
           combined using four methods: Fisher and Stouffer (pre-collapsed to one
           p-value per dataset), Cauchy/HMP (using all individual p-values,
-          robust to correlation). FDR is Benjamini-Hochberg corrected across all
-          genes per method.
+          robust to correlation). The LLM-generated columns (links, summary)
+          are produced by AI and should be independently verified.
         </p>
 
         {/* Method descriptions */}
@@ -609,7 +642,7 @@ export default function CombinedPvaluesPage() {
               Show all
             </button>
           )}
-          {hideFlags.length < GENE_FLAG_OPTIONS.length && hideFlags.length > 0 && (
+          {hideFlags.length < GENE_FLAG_OPTIONS.length && (
             <button
               onClick={() => { setHideFlags(GENE_FLAG_OPTIONS.map((o) => o.key)); setPage(1); }}
               style={{
@@ -627,8 +660,24 @@ export default function CombinedPvaluesPage() {
           )}
         </div>
 
+        {/* LLM warning */}
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            padding: "10px 14px",
+            marginBottom: 12,
+            fontSize: 13,
+          }}
+        >
+          <span style={{ color: "#991b1b", fontWeight: 700 }}>
+            Warning: LLM-generated columns (summaries, PubMed links) may be unreliable and may include hallucinations. Always verify against primary sources.
+          </span>
+        </div>
+
         {/* Combined p-values table */}
         <div
+          ref={tableRef}
           id="combined-pvalues-table"
           style={{
             background: "#ffffff",
@@ -649,36 +698,40 @@ export default function CombinedPvaluesPage() {
               <thead>
                 <tr style={{ background: "#f9fafb" }}>
                   {COMBINED_COLUMNS.map((col) => {
-                    const isActive = col.key === sortBy;
+                    const isSortable = col.sortable !== false;
+                    const isActive = isSortable && col.key === sortBy;
                     return (
                       <th
                         key={col.key}
-                        onClick={() => handleSort(col.key)}
+                        onClick={isSortable ? () => handleSort(col.key as SortColumn) : undefined}
                         style={{
                           padding: "10px 12px",
                           textAlign: col.right ? "right" : "left",
                           fontWeight: 600,
                           color: isActive ? "#1f2937" : "#6b7280",
-                          whiteSpace: "nowrap",
-                          cursor: "pointer",
+                          whiteSpace: col.wrap ? "normal" : "nowrap",
+                          cursor: isSortable ? "pointer" : "default",
                           userSelect: "none",
                           borderBottom: "1px solid #e5e7eb",
+                          minWidth: col.wrap ? 100 : undefined,
                         }}
                       >
                         {col.label}
-                        <span
-                          style={{
-                            fontSize: 12,
-                            marginLeft: 4,
-                            color: isActive ? "#1f2937" : "#9ca3af",
-                          }}
-                        >
-                          {isActive
-                            ? sortDir === "asc"
-                              ? " \u25B2"
-                              : " \u25BC"
-                            : " \u21C5"}
-                        </span>
+                        {isSortable && (
+                          <span
+                            style={{
+                              fontSize: 12,
+                              marginLeft: 4,
+                              color: isActive ? "#1f2937" : "#9ca3af",
+                            }}
+                          >
+                            {isActive
+                              ? sortDir === "asc"
+                                ? " \u25B2"
+                                : " \u25BC"
+                              : " \u21C5"}
+                          </span>
+                        )}
                       </th>
                     );
                   })}
@@ -712,6 +765,39 @@ export default function CombinedPvaluesPage() {
                           typeof val === "number";
                         const isSignificant =
                           isPval && (val as number) < 0.05;
+
+                        // LLM columns: special rendering
+                        const isLlmCol = col.key === "llm_pubmed_links" || col.key === "llm_summary" || col.key === "llm_search_date";
+                        const llmStatus = row.llm_status as string | null;
+                        const notSearched = isLlmCol && (!llmStatus || llmStatus === "not_searched");
+                        const noResults = isLlmCol && llmStatus === "no_results";
+
+                        let cellContent: ReactNode;
+                        if (col.key === "human_symbol") {
+                          cellContent = (
+                            <Link
+                              href={`/?searchMode=general&selected=${encodeURIComponent(String(val))}`}
+                              style={{
+                                color: "#2563eb",
+                                textDecoration: "none",
+                                fontWeight: 500,
+                              }}
+                            >
+                              {String(val)}
+                            </Link>
+                          );
+                        } else if (notSearched) {
+                          cellContent = <span style={{ color: "#9ca3af", fontStyle: "italic" }}>not searched</span>;
+                        } else if (noResults) {
+                          cellContent = <span style={{ color: "#9ca3af", fontStyle: "italic", whiteSpace: "normal" }}>no results</span>;
+                        } else if (col.key === "llm_pubmed_links" && typeof val === "string") {
+                          cellContent = renderPubmedLinks(val);
+                        } else if (col.mono) {
+                          cellContent = formatPvalue(val as number | null);
+                        } else {
+                          cellContent = String(val ?? "");
+                        }
+
                         return (
                           <td
                             key={col.key}
@@ -721,25 +807,12 @@ export default function CombinedPvaluesPage() {
                               textAlign: col.right ? "right" : "left",
                               color: isSignificant ? "#059669" : "#1f2937",
                               fontWeight: isSignificant ? 600 : 400,
-                              whiteSpace: "nowrap",
+                              whiteSpace: col.wrap ? "normal" : "nowrap",
+                              fontSize: col.wrap ? 12 : undefined,
+                              maxWidth: col.wrap ? 300 : undefined,
                             }}
                           >
-                            {col.key === "human_symbol" ? (
-                              <Link
-                                href={`/?searchMode=general&selected=${encodeURIComponent(String(val))}`}
-                                style={{
-                                  color: "#2563eb",
-                                  textDecoration: "none",
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {String(val)}
-                              </Link>
-                            ) : col.mono ? (
-                              formatPvalue(val as number | null)
-                            ) : (
-                              String(val ?? "")
-                            )}
+                            {cellContent}
                           </td>
                         );
                       })}
@@ -755,7 +828,7 @@ export default function CombinedPvaluesPage() {
                 totalPages={totalPages}
                 total={totalRows}
                 loading={loading}
-                onPageChange={setPage}
+                onPageChange={handlePageChange}
               />
             </div>
           )}
