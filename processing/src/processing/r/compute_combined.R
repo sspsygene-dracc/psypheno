@@ -23,6 +23,17 @@
 #   results.csv — gene_id, fisher_p, stouffer_p, cauchy_p, hmp_p,
 #                 fisher_fdr, stouffer_fdr, cauchy_fdr, hmp_fdr
 
+# --- Add project-local R library (for non-writable system library) ---
+script_args <- commandArgs(trailingOnly = FALSE)
+file_arg <- script_args[grep("^--file=", script_args)]
+if (length(file_arg) > 0) {
+  script_dir <- dirname(normalizePath(sub("^--file=", "", file_arg[1])))
+  local_lib <- file.path(script_dir, "lib")
+  if (dir.exists(local_lib)) {
+    .libPaths(c(local_lib, .libPaths()))
+  }
+}
+
 # --- Load required packages ---
 required_packages <- c("poolr", "ACAT", "harmonicmeanp")
 for (pkg in required_packages) {

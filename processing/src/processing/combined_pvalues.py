@@ -165,19 +165,33 @@ def _precollapse(pvalues: list[float]) -> float:
 
 _REQUIRED_R_PACKAGES = ["poolr", "ACAT", "harmonicmeanp"]
 
+# User-local R library, used when the system library is not writable
+_R_USER_LIB = Path(__file__).parent / "r" / "lib"
+
+
+def _r_lib_setup_code() -> str:
+    """R code to prepend our user library to .libPaths()."""
+    lib_path = str(_R_USER_LIB).replace("\\", "/")
+    return f'dir.create("{lib_path}", recursive=TRUE, showWarnings=FALSE); .libPaths(c("{lib_path}", .libPaths()))'
+
 
 def _ensure_r_packages(rscript: str) -> bool:
     """Check for required R packages; attempt to install if missing.
 
     Returns True if all packages are available, False otherwise.
+    Uses a project-local R library to avoid requiring write access
+    to the system R library.
     """
-    check_code = "; ".join(f"library({pkg})" for pkg in _REQUIRED_R_PACKAGES)
+    setup = _r_lib_setup_code()
+    check_code = setup + "; " + "; ".join(f"library({pkg})" for pkg in _REQUIRED_R_PACKAGES)
     check = subprocess.run(
         [rscript, "-e", check_code],
         capture_output=True, text=True, timeout=30,
     )
     if check.returncode == 0:
         return True
+
+    lib_path = str(_R_USER_LIB).replace("\\", "/")
 
     # Try to install missing CRAN packages
     cran_pkgs = [p for p in _REQUIRED_R_PACKAGES if p != "ACAT"]
@@ -186,7 +200,8 @@ def _ensure_r_packages(rscript: str) -> bool:
         click.echo(f"  Attempting to install missing R packages ({', '.join(cran_pkgs)})...")
         install = subprocess.run(
             [rscript, "-e",
-             f'install.packages(c({pkg_list}), repos="https://cloud.r-project.org", quiet=TRUE)'],
+             f'{setup}; install.packages(c({pkg_list}), lib="{lib_path}", '
+             f'repos="https://cloud.r-project.org", quiet=TRUE)'],
             capture_output=True, text=True, timeout=300,
         )
         if install.returncode != 0:
@@ -197,16 +212,18 @@ def _ensure_r_packages(rscript: str) -> bool:
 
     # ACAT is not on CRAN; install from GitHub via remotes
     acat_check = subprocess.run(
-        [rscript, "-e", 'library(ACAT)'],
+        [rscript, "-e", f'{setup}; library(ACAT)'],
         capture_output=True, text=True, timeout=30,
     )
     if acat_check.returncode != 0:
         click.echo("  Attempting to install ACAT from GitHub...")
         acat_install = subprocess.run(
             [rscript, "-e",
-             'if (!requireNamespace("remotes", quietly=TRUE)) '
-             'install.packages("remotes", repos="https://cloud.r-project.org", quiet=TRUE); '
-             'remotes::install_github("yaowuliu/ACAT", quiet=TRUE)'],
+             f'{setup}; '
+             f'if (!requireNamespace("remotes", quietly=TRUE)) '
+             f'install.packages("remotes", lib="{lib_path}", '
+             f'repos="https://cloud.r-project.org", quiet=TRUE); '
+             f'remotes::install_github("yaowuliu/ACAT", lib="{lib_path}", quiet=TRUE)'],
             capture_output=True, text=True, timeout=300,
         )
         if acat_install.returncode != 0:
