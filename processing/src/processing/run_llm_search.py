@@ -46,7 +46,7 @@ SETTINGS_FILE = PROCESSING_DIR / ".claude" / "settings.json"
 
 # Defaults
 DEFAULT_MAX_WORKERS = 20
-DEFAULT_TIMEOUT = 1800  # 30 minutes per gene
+DEFAULT_TIMEOUT = 360  # 6 minutes per gene
 DEFAULT_MAX_BUDGET = "2.00"
 DEFAULT_MODEL = "sonnet"
 VALID_MODELS = ("sonnet", "opus")

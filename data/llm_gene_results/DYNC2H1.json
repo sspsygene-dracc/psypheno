@@ -1,0 +1,9 @@
+{
+  "symbol": "DYNC2H1",
+  "central_gene_id": 43470,
+  "pubmed_links": "[Fujita et al. (2019) DYNC2H1 variants associated with hypothalamic hamartoma](https://pubmed.ncbi.nlm.nih.gov/31197031/);[Green et al. (2022) Sporadic hypothalamic hamartoma is a ciliopathy with somatic and bi-allelic DYNC2H1 contributions](https://pubmed.ncbi.nlm.nih.gov/35137044/)",
+  "summary": "DYNC2H1 encodes the heavy chain of cytoplasmic dynein-2, essential for retrograde intraflagellar transport in primary cilia and Sonic Hedgehog signaling during brain development. Bi-allelic pathogenic variants (germline plus somatic) in DYNC2H1 cause sporadic hypothalamic hamartoma, a congenital brain lesion associated with high rates of autism (~19%), drug-resistant epilepsy, and intellectual disability, implicating ciliary dysfunction as a mechanism in neurodevelopmental conditions. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

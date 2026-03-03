@@ -1,9 +1,9 @@
 {
   "symbol": "EBF3",
   "central_gene_id": 43534,
-  "pubmed_links": "[Harms et al. (2017) A Syndromic Neurodevelopmental Disorder Caused by De Novo Variants in EBF3](https://pubmed.ncbi.nlm.nih.gov/28017372/); [Chao et al. (2017) De novo variants in EBF3 are associated with hypotonia, developmental delay, intellectual disability, and autism](https://pubmed.ncbi.nlm.nih.gov/29162653/); [Sleven et al. (2021) EBF3 Neurodevelopmental Disorder](https://pubmed.ncbi.nlm.nih.gov/33956416/)",
+  "pubmed_links": "[Chao et al. (2017) A Syndromic Neurodevelopmental Disorder Caused by De Novo Variants in EBF3](https://pubmed.ncbi.nlm.nih.gov/28017372/); [Tanaka et al. (2017) De novo variants in EBF3 are associated with hypotonia, developmental delay, intellectual disability, and autism](https://pubmed.ncbi.nlm.nih.gov/29162653/); [Narayanan et al. (2021) EBF3 Neurodevelopmental Disorder](https://pubmed.ncbi.nlm.nih.gov/33956416/)",
   "summary": "De novo loss-of-function variants in EBF3, a transcription factor essential for CNS neuronal specification, migration, and dendritogenesis, cause a well-defined autosomal dominant neurodevelopmental syndrome characterized by intellectual disability, hypotonia, ataxia, speech delay, and autism spectrum features. (well-established)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }
