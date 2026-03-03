@@ -186,9 +186,11 @@ export default function Home() {
 
   const simpleGeneString = (gene: SearchSuggestion | null) => {
     if (!gene) return "Any";
-    return `${gene.humanSymbol} (human) / ${gene.mouseSymbols?.join(
-      ", "
-    )} (mouse)`;
+    const mouseStr = gene.mouseSymbols?.join(", ");
+    if (mouseStr) {
+      return `${gene.humanSymbol} (human) / ${mouseStr} (mouse)`;
+    }
+    return `${gene.humanSymbol} (human)`;
   };
 
   const displayGeneString = () => {

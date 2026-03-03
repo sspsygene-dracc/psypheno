@@ -14,7 +14,7 @@ export default async function handler(
 
     const rows = db
       .prepare(
-        `SELECT table_name, short_label, pvalue_column, fdr_column
+        `SELECT table_name, short_label, pvalue_column, fdr_column, assay
          FROM data_tables
          WHERE pvalue_column IS NOT NULL OR fdr_column IS NOT NULL
          ORDER BY id ASC`
@@ -24,7 +24,21 @@ export default async function handler(
         short_label: string | null;
         pvalue_column: string | null;
         fdr_column: string | null;
+        assay: string | null;
       }>;
+
+    // Also fetch assay type labels
+    let assayTypeLabels: Record<string, string> = {};
+    try {
+      const assayRows = db
+        .prepare("SELECT key, label FROM assay_types")
+        .all() as Array<{ key: string; label: string }>;
+      assayTypeLabels = Object.fromEntries(
+        assayRows.map((r) => [r.key, r.label])
+      );
+    } catch {
+      // assay_types table may not exist
+    }
 
     return res.status(200).json({
       tables: rows.map((r) => ({
@@ -32,7 +46,9 @@ export default async function handler(
         shortLabel: r.short_label,
         pvalueColumn: r.pvalue_column,
         fdrColumn: r.fdr_column,
+        assay: r.assay ? r.assay.split(",").map((s) => s.trim()).filter(Boolean) : null,
       })),
+      assayTypeLabels,
     });
   } catch (err) {
     console.error("dataset-tables-with-pvalues handler error", err);

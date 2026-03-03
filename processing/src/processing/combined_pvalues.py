@@ -14,10 +14,11 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, cast
 
-import click
 import numpy as np
+import click
 from scipy.stats import cauchy as cauchy_dist
 from scipy.stats import combine_pvalues
+from statsmodels.stats.multitest import multipletests
 
 from processing.sql_utils import sanitize_identifier
 
@@ -177,6 +178,7 @@ def _harmonic_mean_pvalue(pvalues: np.ndarray[float, Any]) -> float:
 def _benjamini_hochberg(pvalues: list[float | None]) -> list[float | None]:
     """Apply Benjamini-Hochberg FDR correction to a list of p-values.
 
+    Uses statsmodels.stats.multitest.multipletests (method='fdr_bh').
     None values are preserved as None in the output.
     """
     valid_indices = [i for i, p in enumerate(pvalues) if p is not None]
@@ -184,29 +186,11 @@ def _benjamini_hochberg(pvalues: list[float | None]) -> list[float | None]:
         return list(pvalues)
 
     valid_pvals = np.array([pvalues[i] for i in valid_indices])
-    m = len(valid_pvals)
-
-    # Sort by p-value
-    sorted_idx = np.argsort(valid_pvals)
-    sorted_pvals = valid_pvals[sorted_idx]
-
-    # BH adjustment: q(i) = p(i) * m / rank(i)
-    ranks = np.arange(1, m + 1)
-    adjusted = sorted_pvals * m / ranks
-
-    # Enforce monotonicity (from largest to smallest)
-    adjusted = np.minimum.accumulate(adjusted[::-1])[::-1]
-
-    # Cap at 1.0
-    adjusted = np.minimum(adjusted, 1.0)
-
-    # Put back in original order
-    unsorted = np.empty(m)
-    unsorted[sorted_idx] = adjusted
+    _, adjusted, _, _ = multipletests(valid_pvals, method="fdr_bh")
 
     result: list[float | None] = [None] * len(pvalues)
     for i, orig_idx in enumerate(valid_indices):
-        result[orig_idx] = float(unsorted[i])
+        result[orig_idx] = float(adjusted[i])
 
     return result
 

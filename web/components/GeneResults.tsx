@@ -1,6 +1,7 @@
 import { TableResult } from "@/lib/table_result";
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import DataTable, { type SortMode } from "@/components/DataTable";
+import DatasetToc from "@/components/DatasetToc";
 import InfoTooltip from "@/components/InfoTooltip";
 import { ROW_LIMIT } from "@/lib/gene-query";
 
@@ -238,12 +239,6 @@ export default function GeneResults({
     return null;
   }
 
-  const scrollTo = (id: string) => {
-    document
-      .getElementById(id)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   const hasMultipleGroups = groups.length > 1;
 
   const renderPageNumbers = (
@@ -343,82 +338,15 @@ export default function GeneResults({
       }}
     >
       {showToc && data.length > 0 && (
-        <nav
-          style={{
-            width: 220,
-            flexShrink: 0,
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            borderRadius: 12,
-            padding: "14px 0",
-            marginTop: 50,
-            position: "sticky",
-            top: 16,
-            maxHeight: "calc(100vh - 48px)",
-            overflowY: "auto",
-          }}
-        >
-          <div
-            style={{
-              padding: "0 14px 10px",
-              fontWeight: 600,
-              fontSize: 13,
-              color: "#6b7280",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
-          >
-            Datasets
-          </div>
-          {groups.map((group) => (
-            <div key={group.assayKey}>
-              {hasMultipleGroups && (
-                <div
-                  style={{
-                    padding: "8px 14px 4px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#1e40af",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                    borderTop: "1px solid #e5e7eb",
-                    marginTop: 4,
-                  }}
-                >
-                  {group.label}
-                </div>
-              )}
-              {group.sections.map((section) => (
-                <button
-                  key={section.tableName}
-                  onClick={() => scrollTo(`table-${section.tableName}`)}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    textAlign: "left",
-                    padding: hasMultipleGroups
-                      ? "6px 14px 6px 22px"
-                      : "8px 14px",
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    color: "#2563eb",
-                    lineHeight: 1.4,
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#e5e7eb")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "transparent")
-                  }
-                >
-                  {formatTableName(section)}
-                </button>
-              ))}
-            </div>
-          ))}
-        </nav>
+        <DatasetToc
+          groups={groups.map((g) => ({
+            assayKey: g.assayKey,
+            label: g.label,
+            items: g.sections,
+          }))}
+          anchorPrefix="table-"
+          style={{ marginTop: 50 }}
+        />
       )}
       <div style={{ flex: 1, minWidth: 0, marginLeft: showToc && data.length === 0 ? 244 : undefined }}>
         <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>

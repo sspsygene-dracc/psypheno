@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, type ReactNode } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import DataTable from "@/components/DataTable";
+import DatasetToc, { useAssayGroups } from "@/components/DatasetToc";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -37,6 +38,7 @@ type DatasetTableMeta = {
   shortLabel: string | null;
   pvalueColumn: string | null;
   fdrColumn: string | null;
+  assay: string[] | null;
 };
 
 type DatasetSigResult = {
@@ -68,7 +70,7 @@ const METHOD_DESCRIPTIONS: {
     key: "fisher",
     label: "Fisher\u2019s Method",
     description:
-      "Combines -2\u00B7\u03A3ln(p) across tables. Pre-collapsed to one p-value per table using a Bonferroni-corrected minimum. Particularly sensitive to any single strong signal. Under H\u2080, the test statistic follows a \u03C7\u00B2 distribution with 2k degrees of freedom.",
+      "Combines -2\u00B7\u03A3ln(p) across tables. Pre-collapsed to one p-value per table using a Bonferroni-corrected minimum. Particularly sensitive to any single strong signal. Under H\u2080, the test statistic follows a \u03C7\u00B2 distribution with 2k degrees of freedom (k = number of tables).",
     citation: "Fisher (1925), Statistical Methods for Research Workers",
   },
   {
@@ -388,6 +390,36 @@ export default function CombinedPvaluesPage() {
   const [sigFilterBy, setSigFilterBy] = useState<"pvalue" | "fdr">("pvalue");
   const [sigSortBy, setSigSortBy] = useState<"pvalue" | "fdr">("pvalue");
 
+  // Dataset tables for TOC and significant rows sections
+  const [datasetTables, setDatasetTables] = useState<DatasetTableMeta[]>([]);
+  const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
+  const [datasetsLoading, setDatasetsLoading] = useState(true);
+  const [showToc, setShowToc] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 900px)");
+    setShowToc(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setShowToc(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/dataset-tables-with-pvalues")
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        setDatasetTables(data.tables);
+        setAssayTypeLabels(data.assayTypeLabels ?? {});
+        setDatasetsLoading(false);
+      })
+      .catch(() => setDatasetsLoading(false));
+  }, []);
+
+  const tocGroups = useAssayGroups(datasetTables, assayTypeLabels);
+
   // Fetch combined p-values table
   const fetchCombined = useCallback(() => {
     setLoading(true);
@@ -439,7 +471,7 @@ export default function CombinedPvaluesPage() {
       <Header />
       <main
         style={{
-          maxWidth: 1200,
+          maxWidth: showToc ? 1400 : 1200,
           margin: "0 auto",
           padding: "24px 16px",
           color: "#1f2937",
@@ -462,21 +494,6 @@ export default function CombinedPvaluesPage() {
           robust to correlation). FDR is Benjamini-Hochberg corrected across all
           genes per method.
         </p>
-
-        {/* Table of contents */}
-        <nav
-          style={{
-            marginBottom: 20,
-            fontSize: 13,
-            color: "#6b7280",
-          }}
-        >
-          <span style={{ fontWeight: 600, color: "#374151" }}>On this page: </span>
-          <a href="#method-descriptions" style={{ color: "#2563eb", textDecoration: "none", marginRight: 12 }}>Method Descriptions</a>
-          <a href="#gene-filters" style={{ color: "#2563eb", textDecoration: "none", marginRight: 12 }}>Gene Filters</a>
-          <a href="#combined-pvalues-table" style={{ color: "#2563eb", textDecoration: "none", marginRight: 12 }}>Combined P-values Table</a>
-          <a href="#significant-rows" style={{ color: "#2563eb", textDecoration: "none" }}>Significant Rows by Dataset</a>
-        </nav>
 
         {/* Method descriptions */}
         <details
@@ -758,7 +775,7 @@ export default function CombinedPvaluesPage() {
               fontSize: 13,
             }}
           >
-            <span style={{ color: "#6b7280" }}>Filter by:</span>
+            <span style={{ color: "#6b7280" }}>Rows where</span>
             <select
               value={sigFilterBy}
               onChange={(e) =>
@@ -771,10 +788,10 @@ export default function CombinedPvaluesPage() {
                 fontSize: 13,
               }}
             >
-              <option value="pvalue">P-value</option>
+              <option value="pvalue">p-value</option>
               <option value="fdr">FDR</option>
             </select>
-            <span style={{ color: "#6b7280", marginLeft: 8 }}>Sort by:</span>
+            <span style={{ color: "#6b7280" }}>&lt; 0.05, sorted by</span>
             <select
               value={sigSortBy}
               onChange={(e) =>
@@ -787,77 +804,82 @@ export default function CombinedPvaluesPage() {
                 fontSize: 13,
               }}
             >
-              <option value="pvalue">P-value ascending</option>
-              <option value="fdr">FDR ascending</option>
+              <option value="pvalue">p-value</option>
+              <option value="fdr">FDR</option>
             </select>
           </div>
         </div>
 
-        <DatasetSections
-          filterBy={sigFilterBy}
-          sortBy={sigSortBy}
-        />
+        <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+          {showToc && tocGroups.length > 0 && (
+            <DatasetToc
+              groups={tocGroups}
+              anchorPrefix="sig-dataset-"
+            />
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {datasetsLoading ? (
+              <div style={{ color: "#6b7280", padding: "12px 0" }}>
+                Loading datasets...
+              </div>
+            ) : (
+              tocGroups.map((group) => {
+                const items = group.items as DatasetTableMeta[];
+                const filtered = items.filter((t) =>
+                  sigFilterBy === "pvalue" ? t.pvalueColumn : t.fdrColumn
+                );
+                if (filtered.length === 0) return null;
+                return (
+                  <div key={group.assayKey}>
+                    {tocGroups.length > 1 && (
+                      <div
+                        style={{
+                          marginTop: 24,
+                          marginBottom: 6,
+                          padding: "8px 0",
+                          borderBottom: "2px solid #dbeafe",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "#1e40af",
+                            backgroundColor: "#dbeafe",
+                            borderRadius: 9999,
+                            padding: "3px 10px",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.03em",
+                          }}
+                        >
+                          {group.label}
+                        </span>
+                        <span style={{ fontSize: 13, color: "#6b7280" }}>
+                          {filtered.length} dataset{filtered.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    )}
+                    {filtered.map((t) => (
+                      <div key={t.tableName} id={`sig-dataset-${t.tableName}`} style={{ scrollMarginTop: 16 }}>
+                        <DatasetSection
+                          meta={t}
+                          filterBy={sigFilterBy}
+                          sortBy={sigSortBy}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       </main>
       <Footer />
     </>
   );
 }
 
-/* ─── Dataset sections loader ─── */
-function DatasetSections({
-  filterBy,
-  sortBy,
-}: {
-  filterBy: "pvalue" | "fdr";
-  sortBy: "pvalue" | "fdr";
-}) {
-  const [tables, setTables] = useState<DatasetTableMeta[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/dataset-tables-with-pvalues")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        setTables(data.tables);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <div style={{ color: "#6b7280", padding: "12px 0" }}>
-        Loading datasets...
-      </div>
-    );
-  }
-
-  // Filter to tables that have the selected filter column
-  const filtered = tables.filter((t) =>
-    filterBy === "pvalue" ? t.pvalueColumn : t.fdrColumn
-  );
-
-  if (filtered.length === 0) {
-    return (
-      <div style={{ color: "#6b7280", padding: "12px 0" }}>
-        No datasets have a {filterBy === "pvalue" ? "p-value" : "FDR"} column.
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {filtered.map((t) => (
-        <DatasetSection
-          key={t.tableName}
-          meta={t}
-          filterBy={filterBy}
-          sortBy={sortBy}
-        />
-      ))}
-    </>
-  );
-}

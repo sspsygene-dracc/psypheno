@@ -1,0 +1,531 @@
+{
+  "cct_results": [
+    {
+      "name": "Single p-value (0.05)",
+      "n": 1,
+      "our": 0.05000000000000002,
+      "ref_staar": 0.05000000000000002,
+      "ref_acat": 0.05000000000000002,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "Single p-value (0.5)",
+      "n": 1,
+      "our": 0.5,
+      "ref_staar": 0.5,
+      "ref_acat": 0.5,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "Single p-value (1e-10)",
+      "n": 1,
+      "our": 1.0000005126773235e-10,
+      "ref_staar": 1.0000005126773235e-10,
+      "ref_acat": 1.0000005126773235e-10,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "2 small p-values",
+      "n": 2,
+      "our": 0.0016666788516922113,
+      "ref_staar": 0.0016666788516922113,
+      "ref_acat": 0.0016666788516922113,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "2 mixed p-values",
+      "n": 2,
+      "our": 0.002008665593628527,
+      "ref_staar": 0.002008665593628527,
+      "ref_acat": 0.002008665593628527,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "3 mixed p-values",
+      "n": 3,
+      "our": 0.024989780184423185,
+      "ref_staar": 0.024989780184423185,
+      "ref_acat": 0.024989780184423185,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "3 small p-values",
+      "n": 3,
+      "our": 0.0001764705974761635,
+      "ref_staar": 0.0001764705974761635,
+      "ref_acat": 0.00017647059747616354,
+      "rd_staar": 0.0,
+      "rd_acat": 1.5359529972577317e-16
+    },
+    {
+      "name": "5 typical p-values",
+      "n": 5,
+      "our": 0.0019534044057701767,
+      "ref_staar": 0.0019534044057701767,
+      "ref_acat": 0.0019534044057701767,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "5 all significant",
+      "n": 5,
+      "our": 0.0028436699065615455,
+      "ref_staar": 0.0028436699065615455,
+      "ref_acat": 0.0028436699065615455,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "10 uniform random",
+      "n": 10,
+      "our": 0.5436736146144139,
+      "ref_staar": 0.5436736146144139,
+      "ref_acat": 0.5436736146144139,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "10 all small (<0.01)",
+      "n": 10,
+      "our": 0.0012957412283028011,
+      "ref_staar": 0.0012957412283028011,
+      "ref_acat": 0.0012957412283028011,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "10 all large (>0.5)",
+      "n": 10,
+      "our": 0.7312581592197304,
+      "ref_staar": 0.7312581592197304,
+      "ref_acat": 0.7312581592197304,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "10 mixed (5 small, 5 large)",
+      "n": 10,
+      "our": 0.004076435358363187,
+      "ref_staar": 0.004076435358363187,
+      "ref_acat": 0.004076435358363188,
+      "rd_staar": 0.0,
+      "rd_acat": 2.1277455956928887e-16
+    },
+    {
+      "name": "50 uniform random",
+      "n": 50,
+      "our": 0.28291610588944993,
+      "ref_staar": 0.28291610588944993,
+      "ref_acat": 0.28291610588944993,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "50 mostly non-significant",
+      "n": 50,
+      "our": 0.05638472447687548,
+      "ref_staar": 0.05638472447687548,
+      "ref_acat": 0.05638472447687549,
+      "rd_staar": 0.0,
+      "rd_acat": 1.230633645598997e-16
+    },
+    {
+      "name": "100 uniform random",
+      "n": 100,
+      "our": 0.2432212609104876,
+      "ref_staar": 0.2432212609104876,
+      "ref_acat": 0.2432212609104876,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "100 all small",
+      "n": 100,
+      "our": 0.0017431748816945508,
+      "ref_staar": 0.0017431748816945508,
+      "ref_acat": 0.0017431748816945506,
+      "rd_staar": 0.0,
+      "rd_acat": 1.2439396458392573e-16
+    },
+    {
+      "name": "Extreme: very small",
+      "n": 4,
+      "our": 7.648593767304389e-17,
+      "ref_staar": 3.9999603566545025e-20,
+      "ref_acat": 3.9999603566545025e-20,
+      "rd_staar": 0.9994770332327293,
+      "rd_acat": 0.9994770332327293
+    },
+    {
+      "name": "Extreme: near zero",
+      "n": 5,
+      "our": 2.4363572766079293e-17,
+      "ref_staar": 5e-100,
+      "ref_acat": 5e-100,
+      "rd_staar": 1.0,
+      "rd_acat": 1.0
+    },
+    {
+      "name": "Extreme: near one",
+      "n": 4,
+      "our": 0.9996402814116085,
+      "ref_staar": 0.9996402814116085,
+      "ref_acat": 0.9996402814116085,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "Extreme: mixed extremes",
+      "n": 2,
+      "our": 3.8981718325201354e-17,
+      "ref_staar": 2.0000000000000002e-20,
+      "ref_acat": 2.0000000000000002e-20,
+      "rd_staar": 0.99948693898424,
+      "rd_acat": 0.99948693898424
+    },
+    {
+      "name": "Extreme: single very small",
+      "n": 4,
+      "our": 7.796343665038755e-17,
+      "ref_staar": 4.000000000000001e-300,
+      "ref_acat": 4.000000000000001e-300,
+      "rd_staar": 1.0,
+      "rd_acat": 1.0
+    },
+    {
+      "name": "All identical (0.05)",
+      "n": 5,
+      "our": 0.05000000000000002,
+      "ref_staar": 0.05000000000000002,
+      "ref_acat": 0.05000000000000002,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "All identical (0.5)",
+      "n": 4,
+      "our": 0.5,
+      "ref_staar": 0.5,
+      "ref_acat": 0.5,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    },
+    {
+      "name": "Descending powers of 10",
+      "n": 5,
+      "our": 4.500059863684208e-05,
+      "ref_staar": 4.500059863684208e-05,
+      "ref_acat": 4.500059863684208e-05,
+      "rd_staar": 0.0,
+      "rd_acat": 0.0
+    }
+  ],
+  "hmp_results": [
+    {
+      "name": "Single p-value (0.05)",
+      "n": 1,
+      "our": 0.05,
+      "hmp_stat": 0.05,
+      "hmp_simple": 0.05,
+      "p_hmp_multilevel": 0.05928831359747189,
+      "p_hmp_no_multilevel": 0.05928831359747189,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": 0.15666348111253997,
+      "rd_p_hmp_noml": 0.15666348111253997
+    },
+    {
+      "name": "Single p-value (0.5)",
+      "n": 1,
+      "our": 0.5,
+      "hmp_stat": 0.5,
+      "hmp_simple": 0.5,
+      "p_hmp_multilevel": 0.5310735099064656,
+      "p_hmp_no_multilevel": 0.5310735099064656,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": 0.05851075101060565,
+      "rd_p_hmp_noml": 0.05851075101060565
+    },
+    {
+      "name": "Single p-value (1e-10)",
+      "n": 1,
+      "our": 1e-10,
+      "hmp_stat": 1e-10,
+      "hmp_simple": 1e-10,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "2 small p-values",
+      "n": 2,
+      "our": 0.0016666666666666668,
+      "hmp_stat": 0.0016666666666666668,
+      "hmp_simple": 0.0016666666666666668,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "2 mixed p-values",
+      "n": 2,
+      "our": 0.0019975031210986267,
+      "hmp_stat": 0.0019975031210986267,
+      "hmp_simple": 0.0019975031210986267,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "3 mixed p-values",
+      "n": 3,
+      "our": 0.024590163934426236,
+      "hmp_stat": 0.024590163934426233,
+      "hmp_simple": 0.024590163934426233,
+      "p_hmp_multilevel": 0.028078229619577955,
+      "p_hmp_no_multilevel": 0.028078229619577955,
+      "rd_stat": 1.4109084271278028e-16,
+      "rd_p_hmp_ml": 0.12422669564321868,
+      "rd_p_hmp_noml": 0.12422669564321868
+    },
+    {
+      "name": "3 small p-values",
+      "n": 3,
+      "our": 0.0001764705882352941,
+      "hmp_stat": 0.0001764705882352941,
+      "hmp_simple": 0.0001764705882352941,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "5 typical p-values",
+      "n": 5,
+      "our": 0.001948368241597662,
+      "hmp_stat": 0.001948368241597662,
+      "hmp_simple": 0.001948368241597662,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "5 all significant",
+      "n": 5,
+      "our": 0.002843601895734597,
+      "hmp_stat": 0.0028436018957345975,
+      "hmp_simple": 0.0028436018957345975,
+      "p_hmp_multilevel": 0.0029088935638428293,
+      "p_hmp_no_multilevel": 0.0029088935638428293,
+      "rd_stat": 1.5251110559629427e-16,
+      "rd_p_hmp_ml": 0.02244553355949466,
+      "rd_p_hmp_noml": 0.02244553355949466
+    },
+    {
+      "name": "10 uniform random",
+      "n": 10,
+      "our": 0.24396431942207705,
+      "hmp_stat": 0.24396431942207705,
+      "hmp_simple": 0.24396431942207705,
+      "p_hmp_multilevel": 0.560435196522715,
+      "p_hmp_no_multilevel": 0.560435196522715,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": 0.5646877267241923,
+      "rd_p_hmp_noml": 0.5646877267241923
+    },
+    {
+      "name": "10 all small (<0.01)",
+      "n": 10,
+      "our": 0.0012957265488704813,
+      "hmp_stat": 0.0012957265488704813,
+      "hmp_simple": 0.0012957265488704813,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "10 all large (>0.5)",
+      "n": 10,
+      "our": 0.6789068724369031,
+      "hmp_stat": 0.6789068724369032,
+      "hmp_simple": 0.6789068724369032,
+      "p_hmp_multilevel": 0.9682273019518973,
+      "p_hmp_no_multilevel": 0.9682273019518973,
+      "rd_stat": 1.6353097452675136e-16,
+      "rd_p_hmp_ml": 0.298814574771584,
+      "rd_p_hmp_noml": 0.298814574771584
+    },
+    {
+      "name": "10 mixed (5 small, 5 large)",
+      "n": 10,
+      "our": 0.004032986256499213,
+      "hmp_stat": 0.004032986256499215,
+      "hmp_simple": 0.004032986256499215,
+      "p_hmp_multilevel": 0.0041713161622387585,
+      "p_hmp_no_multilevel": 0.0041713161622387585,
+      "rd_stat": 4.3013374349621834e-16,
+      "rd_p_hmp_ml": 0.03316217240778587,
+      "rd_p_hmp_noml": 0.03316217240778587
+    },
+    {
+      "name": "50 uniform random",
+      "n": 50,
+      "our": 0.1270207682519266,
+      "hmp_stat": 0.12702076825192662,
+      "hmp_simple": 0.12702076825192662,
+      "p_hmp_multilevel": 0.3294771646163067,
+      "p_hmp_no_multilevel": 0.3294771646163067,
+      "rd_stat": 2.1851210630831562e-16,
+      "rd_p_hmp_ml": 0.6144777790598966,
+      "rd_p_hmp_noml": 0.6144777790598966
+    },
+    {
+      "name": "50 mostly non-significant",
+      "n": 50,
+      "our": 0.04542159776136782,
+      "hmp_stat": 0.045421597761367824,
+      "hmp_simple": 0.045421597761367824,
+      "p_hmp_multilevel": 0.06623870499689177,
+      "p_hmp_no_multilevel": 0.06623870499689177,
+      "rd_stat": 1.5276639849531948e-16,
+      "rd_p_hmp_ml": 0.31427406735232505,
+      "rd_p_hmp_noml": 0.31427406735232505
+    },
+    {
+      "name": "100 uniform random",
+      "n": 100,
+      "our": 0.13328706186674538,
+      "hmp_stat": 0.13328706186674538,
+      "hmp_simple": 0.13328706186674538,
+      "p_hmp_multilevel": 0.42206168395961413,
+      "p_hmp_no_multilevel": 0.4220616839596142,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": 0.6842000424764945,
+      "rd_p_hmp_noml": 0.6842000424764945
+    },
+    {
+      "name": "100 all small",
+      "n": 100,
+      "our": 0.0017431404442521763,
+      "hmp_stat": 0.001743140444252176,
+      "hmp_simple": 0.001743140444252176,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 1.243964221082183e-16,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "Extreme: very small",
+      "n": 4,
+      "our": 3.99996e-20,
+      "hmp_stat": 3.99996e-20,
+      "hmp_simple": 3.99996e-20,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "Extreme: near zero",
+      "n": 5,
+      "our": 4.999999999999999e-100,
+      "hmp_stat": 5e-100,
+      "hmp_simple": 5e-100,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 2.0303534698525193e-16,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "Extreme: near one",
+      "n": 4,
+      "our": 0.9842922702224846,
+      "hmp_stat": 0.9842922702224846,
+      "hmp_simple": 0.9842922702224846,
+      "p_hmp_multilevel": 0.9208025778251214,
+      "p_hmp_no_multilevel": 0.9208025778251214,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": 0.06450288630531685,
+      "rd_p_hmp_noml": 0.06450288630531685
+    },
+    {
+      "name": "Extreme: mixed extremes",
+      "n": 2,
+      "our": 2e-20,
+      "hmp_stat": 2e-20,
+      "hmp_simple": 2e-20,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "Extreme: single very small",
+      "n": 4,
+      "our": 4e-300,
+      "hmp_stat": 4e-300,
+      "hmp_simple": 4e-300,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    },
+    {
+      "name": "All identical (0.05)",
+      "n": 5,
+      "our": 0.05,
+      "hmp_stat": 0.05,
+      "hmp_simple": 0.05,
+      "p_hmp_multilevel": 0.06508930441589389,
+      "p_hmp_no_multilevel": 0.06508930441589389,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": 0.23182463772357184,
+      "rd_p_hmp_noml": 0.23182463772357184
+    },
+    {
+      "name": "All identical (0.5)",
+      "n": 4,
+      "our": 0.5,
+      "hmp_stat": 0.5,
+      "hmp_simple": 0.5,
+      "p_hmp_multilevel": 0.7601196640918103,
+      "p_hmp_no_multilevel": 0.7601196640918103,
+      "rd_stat": 0.0,
+      "rd_p_hmp_ml": 0.34220883418744447,
+      "rd_p_hmp_noml": 0.34220883418744447
+    },
+    {
+      "name": "Descending powers of 10",
+      "n": 5,
+      "our": 4.500045000450004e-05,
+      "hmp_stat": 4.500045000450005e-05,
+      "hmp_simple": 4.500045000450005e-05,
+      "p_hmp_multilevel": 0.0,
+      "p_hmp_no_multilevel": 0.0,
+      "rd_stat": 1.5058212923108047e-16,
+      "rd_p_hmp_ml": Infinity,
+      "rd_p_hmp_noml": Infinity
+    }
+  ]
+}
