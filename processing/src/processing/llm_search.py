@@ -7,7 +7,8 @@ a brief summary with novelty classification.
 Results are stored as individual JSON files in data/llm_gene_results/{SYMBOL}.json
 and loaded into the llm_gene_results SQLite table during load-db.
 
-Orchestration is handled by processing/run_llm_search.py, which launches
+Orchestration is handled by processing.run_llm_search (CLI:
+`sspsygene run-llm-search`), which launches
 parallel Claude CLI agents based on a YAML job config. Each agent researches
 one gene and writes its result file directly.
 

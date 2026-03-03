@@ -3,9 +3,9 @@
 # Top-N: 100 (171 unique genes)
 #
 # Usage:
-#   python run_llm_search.py llm_jobs.yaml
-#   python run_llm_search.py llm_jobs.yaml --dry-run
-#   python run_llm_search.py llm_jobs.yaml --model opus
+#   sspsygene run-llm-search llm_jobs.yaml
+#   sspsygene run-llm-search llm_jobs.yaml --dry-run
+#   sspsygene run-llm-search llm_jobs.yaml --model opus
 #
 # Modes: new, verify, update, verify_update
 
