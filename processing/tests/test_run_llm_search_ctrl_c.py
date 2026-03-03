@@ -5,7 +5,7 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, cast
 from unittest.mock import patch
 
 from processing import run_llm_search
@@ -89,7 +89,7 @@ class CtrlCPipelineIntegrationTest(unittest.TestCase):
 
             def fake_signal(_sig: int, handler: Any):
                 if callable(handler):
-                    FakePopen.set_handler(handler)
+                    FakePopen.set_handler(cast(Callable[[int, Any], None], handler))
                 else:
                     FakePopen.set_handler(None)
                 return old_signal
