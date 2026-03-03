@@ -163,37 +163,71 @@ def _precollapse(pvalues: list[float]) -> float:
     return float(min(collapsed, mpmath.mpf(1)))
 
 
+_REQUIRED_R_PACKAGES = ["poolr", "ACAT", "harmonicmeanp"]
+
+
 def _ensure_r_packages(rscript: str) -> bool:
     """Check for required R packages; attempt to install if missing.
 
     Returns True if all packages are available, False otherwise.
     """
+    check_code = "; ".join(f"library({pkg})" for pkg in _REQUIRED_R_PACKAGES)
     check = subprocess.run(
-        [rscript, "-e", 'library(harmonicmeanp)'],
+        [rscript, "-e", check_code],
         capture_output=True, text=True, timeout=30,
     )
     if check.returncode == 0:
         return True
 
-    click.echo("  Attempting to install missing R packages (harmonicmeanp)...")
-    install = subprocess.run(
-        [rscript, "-e",
-         'install.packages("harmonicmeanp", repos="https://cloud.r-project.org", quiet=TRUE)'],
-        capture_output=True, text=True, timeout=300,
+    # Try to install missing CRAN packages
+    cran_pkgs = [p for p in _REQUIRED_R_PACKAGES if p != "ACAT"]
+    if cran_pkgs:
+        pkg_list = ", ".join(f'"{p}"' for p in cran_pkgs)
+        click.echo(f"  Attempting to install missing R packages ({', '.join(cran_pkgs)})...")
+        install = subprocess.run(
+            [rscript, "-e",
+             f'install.packages(c({pkg_list}), repos="https://cloud.r-project.org", quiet=TRUE)'],
+            capture_output=True, text=True, timeout=300,
+        )
+        if install.returncode != 0:
+            click.echo(click.style(
+                f"  Failed to install CRAN packages:\n{install.stderr.strip()}",
+                fg="yellow", bold=True,
+            ))
+
+    # ACAT is not on CRAN; install from GitHub via remotes
+    acat_check = subprocess.run(
+        [rscript, "-e", 'library(ACAT)'],
+        capture_output=True, text=True, timeout=30,
     )
-    if install.returncode != 0:
+    if acat_check.returncode != 0:
+        click.echo("  Attempting to install ACAT from GitHub...")
+        acat_install = subprocess.run(
+            [rscript, "-e",
+             'if (!requireNamespace("remotes", quietly=TRUE)) '
+             'install.packages("remotes", repos="https://cloud.r-project.org", quiet=TRUE); '
+             'remotes::install_github("yaowuliu/ACAT", quiet=TRUE)'],
+            capture_output=True, text=True, timeout=300,
+        )
+        if acat_install.returncode != 0:
+            click.echo(click.style(
+                f"  Failed to install ACAT:\n{acat_install.stderr.strip()}",
+                fg="yellow", bold=True,
+            ))
+
+    # Verify all packages
+    verify = subprocess.run(
+        [rscript, "-e", check_code],
+        capture_output=True, text=True, timeout=30,
+    )
+    if verify.returncode != 0:
         click.echo(click.style(
-            f"  Failed to install R packages:\n{install.stderr.strip()}",
+            "\n  WARNING: Required R packages could not be installed. "
+            "Combined p-values will not be computed.\n",
             fg="yellow", bold=True,
         ))
         return False
-
-    # Verify after install
-    verify = subprocess.run(
-        [rscript, "-e", 'library(harmonicmeanp)'],
-        capture_output=True, text=True, timeout=30,
-    )
-    return verify.returncode == 0
+    return True
 
 
 def _call_r_combine(

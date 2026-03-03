@@ -6,6 +6,13 @@
 # computes Fisher, Stouffer, CCT, and HMP combined p-values per gene,
 # applies BH FDR correction, and writes results CSV.
 #
+# All statistical methods use reviewed R package implementations:
+#   - Fisher's method:    poolr::fisher()
+#   - Stouffer's method:  poolr::stouffer()
+#   - CCT:                ACAT::ACAT()
+#   - HMP:                harmonicmeanp::p.hmp()
+#   - BH FDR:             stats::p.adjust(method="BH")
+#
 # Usage: Rscript compute_combined.R <temp_dir>
 #
 # Input files in temp_dir:
@@ -16,8 +23,9 @@
 #   results.csv — gene_id, fisher_p, stouffer_p, cauchy_p, hmp_p,
 #                 fisher_fdr, stouffer_fdr, cauchy_fdr, hmp_fdr
 
-# --- Check required packages ---
-check_package <- function(pkg) {
+# --- Load required packages ---
+required_packages <- c("poolr", "ACAT", "harmonicmeanp")
+for (pkg in required_packages) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
     stop(paste0(
       "R package '", pkg, "' is not installed.\n",
@@ -25,66 +33,20 @@ check_package <- function(pkg) {
     ), call. = FALSE)
   }
 }
-check_package("harmonicmeanp")
 
-# --- CCT implementation (faithful to STAAR::CCT by Xihao Li) ---
-# Source: https://github.com/xihaoli/STAAR/blob/master/R/CCT.R
-# We include this directly to avoid depending on the STAAR Bioconductor package
-# or the ACAT package (removed from CRAN for R >= 4.5).
-cct <- function(pvals, weights = NULL) {
-  if (any(is.na(pvals))) stop("Cannot have NAs in p-values")
-  if (any(pvals < 0) || any(pvals > 1)) stop("P-values must be in [0, 1]")
+# --- Wrappers that match our pipeline conventions ---
 
-  is_zero <- any(pvals == 0)
-  is_one  <- any(pvals == 1)
-  if (is_zero && is_one) stop("Cannot have both 0 and 1 p-values")
-  if (is_zero) return(0)
-  if (is_one)  return(1)
-
-  if (is.null(weights)) {
-    weights <- rep(1 / length(pvals), length(pvals))
-  } else {
-    weights <- weights / sum(weights)
-  }
-
-  # For very small p-values, use Taylor approximation:
-  # tan((0.5 - p) * pi) ~ 1/(p * pi)  when p -> 0
-  is_small <- (pvals < 1e-16)
-  if (!any(is_small)) {
-    cct_stat <- sum(weights * tan((0.5 - pvals) * pi))
-  } else {
-    cct_stat <- sum((weights[is_small] / pvals[is_small]) / pi)
-    if (any(!is_small)) {
-      cct_stat <- cct_stat + sum(weights[!is_small] * tan((0.5 - pvals[!is_small]) * pi))
-    }
-  }
-
-  # For very large test statistics, use Cauchy tail approximation
-  if (cct_stat > 1e+15) {
-    pval <- (1 / cct_stat) / pi
-  } else {
-    pval <- pcauchy(cct_stat, lower.tail = FALSE)
-  }
-
-  return(pval)
-}
-
-# --- Fisher's method (base R) ---
 fisher_combine <- function(pvals) {
-  # pvals: vector of collapsed per-table p-values
   # Filter out 1.0 (contribute no information: ln(1) = 0)
   valid <- pvals[pvals < 1.0]
   if (length(valid) < 2) return(NA_real_)
-  stat <- -2 * sum(log(valid))
-  pchisq(stat, df = 2 * length(valid), lower.tail = FALSE)
+  poolr::fisher(valid)$p
 }
 
-# --- Stouffer's method (base R) ---
 stouffer_combine <- function(pvals) {
   valid <- pvals[pvals < 1.0]
   if (length(valid) < 2) return(NA_real_)
-  z <- sum(qnorm(1 - valid)) / sqrt(length(valid))
-  pnorm(z, lower.tail = FALSE)
+  poolr::stouffer(valid)$p
 }
 
 # --- Main ---
@@ -127,14 +89,14 @@ for (i in seq_along(gene_ids)) {
   # Collapsed p-values for Fisher/Stouffer
   cp <- collapsed_by_gene[[gid_str]]
   if (!is.null(cp) && length(cp) > 0) {
-    fisher_p[i]   <- fisher_combine(cp)
-    stouffer_p[i] <- stouffer_combine(cp)
+    fisher_p[i]   <- tryCatch(fisher_combine(cp), error = function(e) NA_real_)
+    stouffer_p[i] <- tryCatch(stouffer_combine(cp), error = function(e) NA_real_)
   }
 
   # Raw p-values for CCT/HMP
   rp <- raw_by_gene[[gid_str]]
   if (!is.null(rp) && length(rp) > 0) {
-    cauchy_p[i] <- tryCatch(cct(rp), error = function(e) NA_real_)
+    cauchy_p[i] <- tryCatch(ACAT::ACAT(rp), error = function(e) NA_real_)
     hmp_p[i]    <- tryCatch(
       harmonicmeanp::p.hmp(rp, L = length(rp)),
       error = function(e) NA_real_

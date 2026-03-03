@@ -1,3 +1,0 @@
-- copy missing datasets from /hive/groups/SSPsyGene/sspsygene_website/data/datasets or /hive/groups/SSPsyGene/sspsygene_website_int/data/datasets to local machine so sspsygene load-db runs through without the --skip-missing-datasets flag
-
-- This might already be fixed, but please verify post-R move: The Cauchy FDR is always the same value. Is this intentional? Seems like it's 1.032e-13 across the board. Seems implausible. Is this due to errors with floating point processing or very small numbers? Have a hard look at the implementation, identify the errors, fix them, and make sure similar errors don't apply to other p-value computations as well, and run an extensive appropriate test suite

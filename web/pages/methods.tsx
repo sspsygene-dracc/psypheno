@@ -266,6 +266,9 @@ export default function MethodsPage() {
             When p-values are positively correlated, Fisher&apos;s method tends to be anti-conservative.
             This is why we use the pre-collapse step to reduce inputs to one per table.
           </p>
+          <p>
+            Computed using <span style={codeStyle}>poolr::fisher()</span>.
+          </p>
           <p style={refStyle}>
             Fisher, R.A. (1932). <em>Statistical Methods for Research Workers</em>, 4th ed.
           </p>
@@ -293,6 +296,9 @@ export default function MethodsPage() {
           <p>
             <strong>Comparison with Fisher:</strong> Fisher is more sensitive to one very small
             p-value; Stouffer responds more evenly to moderate signals across many studies.
+          </p>
+          <p>
+            Computed using <span style={codeStyle}>poolr::stouffer()</span>.
           </p>
           <p style={refStyle}>
             Stouffer, S.A. et al. (1949). <em>The American Soldier</em>, Vol. 1.
@@ -343,9 +349,11 @@ export default function MethodsPage() {
             <Frac num="1" den="2" /> &minus; <Frac num={<>arctan(<V>T</V>)</>} den={<>&pi;</>} />
           </div>
           <p>
-            For very small p-values (&lt; 10<sup>&minus;16</sup>), a Taylor approximation
-            is used for numerical stability, matching the R reference implementation
-            (STAAR::CCT).
+            For very small p-values (&lt; 10<sup>&minus;15</sup>), the transform
+            tan((0.5&thinsp;&minus;&thinsp;<V>p</V>)&thinsp;&middot;&thinsp;&pi;) is replaced
+            by its asymptotic equivalent 1/(<V>p</V>&thinsp;&middot;&thinsp;&pi;) for numerical
+            stability. Computed using the reference implementation from the method&apos;s
+            authors (<span style={codeStyle}>ACAT::ACAT</span>).
           </p>
           <p style={refStyle}>
             Liu, Y. &amp; Xie, J. (2020). Cauchy combination test: a powerful test with
