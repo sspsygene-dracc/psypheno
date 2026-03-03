@@ -82,6 +82,8 @@ class CtrlCPipelineIntegrationTest(unittest.TestCase):
             tmp = Path(tmpdir)
             fake_settings = tmp / "settings.json"
             fake_settings.write_text("{}")
+            fake_db = tmp / "sspsygene.db"
+            fake_db.write_text("")
             logs_dir = tmp / "logs"
             results_dir = tmp / "results"
 
@@ -94,7 +96,9 @@ class CtrlCPipelineIntegrationTest(unittest.TestCase):
                     FakePopen.set_handler(None)
                 return old_signal
 
-            def fake_build_prompt_for_job(_job: dict[str, Any]) -> tuple[str, None]:
+            def fake_build_prompt_for_job(
+                _job: dict[str, Any], _symbol_to_id: dict[str, int] | None = None
+            ) -> tuple[str, None]:
                 return ("fake prompt", None)
 
             stdout_buffer = io.StringIO()
@@ -103,6 +107,16 @@ class CtrlCPipelineIntegrationTest(unittest.TestCase):
                 patch.object(run_llm_search, "LOGS_DIR", logs_dir),
                 patch.object(run_llm_search, "GENE_RESULTS_DIR", results_dir),
                 patch.object(run_llm_search, "load_jobs", return_value=jobs),
+                patch.object(
+                    run_llm_search,
+                    "get_sspsygene_config",
+                    return_value=type("Cfg", (), {"out_db": fake_db})(),
+                ),
+                patch.object(
+                    run_llm_search,
+                    "_load_symbol_to_central_gene_id",
+                    return_value={"GENE1": 1, "GENE2": 2},
+                ),
                 patch.object(
                     run_llm_search,
                     "build_prompt_for_job",
@@ -124,6 +138,32 @@ class CtrlCPipelineIntegrationTest(unittest.TestCase):
             self.assertIn("Ctrl-C received. Press Ctrl-C again", output)
             self.assertIn("Second Ctrl-C received. Aborting run", output)
             self.assertGreaterEqual(FakePopen.kill_count, 1)
+
+    def test_generate_config_uses_symbol_only_jobs(self):
+        with TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            fake_db = tmp / "sspsygene.db"
+            fake_db.write_text("")
+            output_yaml = tmp / "llm_jobs.yaml"
+
+            fake_config = type("Cfg", (), {"out_db": fake_db})()
+            fake_genes = [
+                {"central_gene_id": 123, "human_symbol": "GENE1"},
+                {"central_gene_id": 456, "human_symbol": "GENE2"},
+            ]
+
+            with (
+                patch.object(run_llm_search, "get_sspsygene_config", return_value=fake_config),
+                patch.object(run_llm_search, "get_top_genes", return_value=fake_genes),
+                patch.object(run_llm_search, "GENE_RESULTS_DIR", tmp / "results"),
+            ):
+                rc = run_llm_search.generate_config(top_n=2, output=str(output_yaml))
+
+            self.assertEqual(rc, 0)
+            contents = output_yaml.read_text()
+            self.assertIn("symbol: GENE1", contents)
+            self.assertIn("symbol: GENE2", contents)
+            self.assertNotIn("central_gene_id:", contents)
 
 
 if __name__ == "__main__":

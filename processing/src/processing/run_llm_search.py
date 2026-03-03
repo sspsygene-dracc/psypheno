@@ -10,6 +10,7 @@ import functools
 import json
 import os
 import signal
+import sqlite3
 import subprocess
 import threading
 import time
@@ -19,6 +20,7 @@ from typing import Any
 
 import yaml
 
+from processing.config import get_sspsygene_config
 from processing.llm_search import (
     VALID_MODES,
     build_new_prompt,
@@ -76,7 +78,10 @@ def load_jobs(yaml_path: str) -> list[dict[str, Any]]:
     return jobs
 
 
-def build_prompt_for_job(job: dict[str, Any]) -> tuple[str, str | None]:
+def build_prompt_for_job(
+    job: dict[str, Any],
+    symbol_to_central_gene_id: dict[str, int] | None = None,
+) -> tuple[str, str | None]:
     """Build the agent prompt for a job. Returns (prompt, skip_reason)."""
     symbol = job["symbol"]
     mode = str(job["mode"]).lower()
@@ -87,7 +92,13 @@ def build_prompt_for_job(job: dict[str, Any]) -> tuple[str, str | None]:
     if mode == "new":
         if gene_file.exists():
             return "", "file already exists (mode=new skips existing)"
-        central_gene_id = job.get("central_gene_id", 0)
+        central_gene_id = None
+        if symbol_to_central_gene_id is not None:
+            central_gene_id = symbol_to_central_gene_id.get(symbol)
+        if central_gene_id is None:
+            central_gene_id = job.get("central_gene_id")
+        if central_gene_id is None:
+            return "", "symbol not found in central_gene table"
         return build_new_prompt(symbol, central_gene_id, gene_file_path), None
 
     # For verify/update/verify_update, file must exist
@@ -116,6 +127,18 @@ def build_prompt_for_job(job: dict[str, Any]) -> tuple[str, str | None]:
         )
 
     return "", f"unknown mode '{mode}'"
+
+
+def _load_symbol_to_central_gene_id(db_path: Path) -> dict[str, int]:
+    """Load stable symbol->central_gene_id mapping from the database."""
+    conn = sqlite3.connect(str(db_path))
+    try:
+        rows = conn.execute(
+            "SELECT human_symbol, id FROM central_gene WHERE human_symbol IS NOT NULL"
+        ).fetchall()
+    finally:
+        conn.close()
+    return {str(symbol): int(gene_id) for symbol, gene_id in rows}
 
 
 def run_agent(
@@ -252,6 +275,13 @@ def run_pipeline(
         return 1
 
     jobs = load_jobs(yaml_file)
+    config = get_sspsygene_config()
+    db_path = config.out_db
+    if not db_path.exists():
+        print(f"ERROR: Database not found at {db_path}")
+        print("Run 'sspsygene load-db' first.")
+        return 1
+    symbol_to_central_gene_id = _load_symbol_to_central_gene_id(db_path)
 
     print("=== LLM Gene Search Pipeline ===")
     print(f"Jobs: {len(jobs)}")
@@ -267,7 +297,7 @@ def run_pipeline(
     for job in jobs:
         symbol = job["symbol"]
         mode = str(job["mode"]).lower()
-        prompt, skip_reason = build_prompt_for_job(job)
+        prompt, skip_reason = build_prompt_for_job(job, symbol_to_central_gene_id)
         if skip_reason:
             print(f"  [SKIP] {symbol:20s} ({mode}) - {skip_reason}")
             skipped.append({"symbol": symbol, "mode": mode, "reason": skip_reason})
@@ -406,8 +436,6 @@ def generate_config(
 
     Returns 0 on success, 1 on error.
     """
-    from processing.config import get_sspsygene_config
-
     GENE_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     config = get_sspsygene_config()
@@ -428,8 +456,6 @@ def generate_config(
         gene_file = GENE_RESULTS_DIR / f"{symbol}.json"
         mode = "verify" if gene_file.exists() else "new"
         job: dict[str, Any] = {"symbol": symbol, "mode": mode}
-        if mode == "new":
-            job["central_gene_id"] = gene["central_gene_id"]
         jobs.append(job)
 
     new_count = sum(1 for j in jobs if j["mode"] == "new")
