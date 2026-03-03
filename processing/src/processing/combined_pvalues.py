@@ -339,40 +339,43 @@ def compute_combined_pvalues(
     # Also collect all raw p-values per gene for CCT/HMP
     all_pvalues: dict[int, list[float]] = defaultdict(list)
 
-    for table_name, pvalue_col, link_tables_raw in tables_with_pvalues:
+    for table_name, pvalue_cols_raw, link_tables_raw in tables_with_pvalues:
         table_name = sanitize_identifier(table_name)
-        pvalue_col = sanitize_identifier(pvalue_col)
+        # pvalue_column may be comma-separated for tables with multiple p-value columns
+        pvalue_cols = [sanitize_identifier(c) for c in pvalue_cols_raw.split(",")]
         link_table_names = _parse_link_tables(link_tables_raw or "")
 
         if not link_table_names:
             continue
 
-        for lt_name in link_table_names:
-            query = (
-                f"SELECT lt.central_gene_id, t.{pvalue_col} "
-                f"FROM {table_name} t "
-                f"JOIN {lt_name} lt ON t.id = lt.id "
-                f"WHERE t.{pvalue_col} IS NOT NULL AND t.{pvalue_col} > 0 AND t.{pvalue_col} <= 1"
-            )
-            try:
-                rows = conn.execute(query).fetchall()
-            except sqlite3.OperationalError as e:
-                click.echo(
-                    click.style(
-                        f"  Warning: query failed for table {table_name}: {e}",
-                        fg="yellow",
-                    )
+        for pvalue_col in pvalue_cols:
+            for lt_name in link_table_names:
+                query = (
+                    f"SELECT lt.central_gene_id, t.{pvalue_col} "
+                    f"FROM {table_name} t "
+                    f"JOIN {lt_name} lt ON t.id = lt.id "
+                    f"WHERE t.{pvalue_col} IS NOT NULL AND t.{pvalue_col} > 0 AND t.{pvalue_col} <= 1"
                 )
-                continue
-
-            for gene_id, pval in rows:
-                if gene_id is None:
+                try:
+                    rows = conn.execute(query).fetchall()
+                except sqlite3.OperationalError as e:
+                    click.echo(
+                        click.style(
+                            f"  Warning: query failed for table {table_name}.{pvalue_col}: {e}",
+                            fg="yellow",
+                        )
+                    )
                     continue
-                pval_float = float(pval)
-                per_table_pvalues[gene_id][table_name].append(pval_float)
-                all_pvalues[gene_id].append(pval_float)
 
-        click.echo(f"  Processed {table_name}.{pvalue_col}")
+                for gene_id, pval in rows:
+                    if gene_id is None:
+                        continue
+                    pval_float = float(pval)
+                    per_table_pvalues[gene_id][table_name].append(pval_float)
+                    all_pvalues[gene_id].append(pval_float)
+
+        col_label = ", ".join(pvalue_cols) if len(pvalue_cols) > 1 else pvalue_cols[0]
+        click.echo(f"  Processed {table_name}.{col_label}")
 
     if not all_pvalues:
         click.echo("  No valid p-values found, skipping.")

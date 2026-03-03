@@ -53,27 +53,38 @@ export default async function handler(
       return res.status(404).json({ error: "Table not found" });
     }
 
-    const filterCol =
+    // pvalue_column/fdr_column may be comma-separated for multi-column tables
+    const filterColsRaw =
       filterBy === "pvalue" ? tableMeta.pvalue_column : tableMeta.fdr_column;
-    if (!filterCol) {
+    if (!filterColsRaw) {
       return res.status(400).json({ error: `Table has no ${filterBy} column` });
     }
 
-    const sortCol =
+    const sortColsRaw =
       sortBy === "pvalue"
         ? tableMeta.pvalue_column || tableMeta.fdr_column
         : tableMeta.fdr_column || tableMeta.pvalue_column;
-    if (!sortCol) {
+    if (!sortColsRaw) {
       return res.status(400).json({ error: "No sortable column" });
     }
 
     const baseTable = sanitizeIdentifier(tableMeta.table_name);
-    const safeFilterCol = sanitizeIdentifier(filterCol);
-    const safeSortCol = sanitizeIdentifier(sortCol);
+    const filterCols = filterColsRaw.split(",").map((c) => sanitizeIdentifier(c.trim()));
+    const sortCols = sortColsRaw.split(",").map((c) => sanitizeIdentifier(c.trim()));
     const displayCols = parseDisplayColumns(tableMeta.display_columns);
     if (displayCols.length === 0) {
       return res.status(400).json({ error: "No display columns" });
     }
+
+    // Build WHERE: any p-value column < 0.05
+    const filterWhere = filterCols
+      .map((c) => `(${c} IS NOT NULL AND ${c} < 0.05)`)
+      .join(" OR ");
+    // Build ORDER BY: minimum across all sort columns
+    const sortExpr =
+      sortCols.length === 1
+        ? sortCols[0]
+        : `MIN(${sortCols.map((c) => `COALESCE(${c}, 1)`).join(", ")})`;
 
     const selectCols = displayCols.map((c) => sanitizeIdentifier(c)).join(", ");
     const offset = (page - 1) * pageSize;
@@ -81,9 +92,8 @@ export default async function handler(
     const rows = db
       .prepare(
         `SELECT ${selectCols} FROM ${baseTable}
-         WHERE ${safeFilterCol} IS NOT NULL
-         AND ${safeFilterCol} < 0.05
-         ORDER BY ${safeSortCol} ${sortDir === "desc" ? "DESC" : "ASC"} ${sortDir === "asc" ? "NULLS LAST" : "NULLS FIRST"}
+         WHERE ${filterWhere}
+         ORDER BY ${sortExpr} ${sortDir === "desc" ? "DESC" : "ASC"} ${sortDir === "asc" ? "NULLS LAST" : "NULLS FIRST"}
          LIMIT ? OFFSET ?`
       )
       .all(pageSize, offset) as Record<string, unknown>[];
@@ -91,8 +101,7 @@ export default async function handler(
     const countResult = db
       .prepare(
         `SELECT COUNT(*) as cnt FROM ${baseTable}
-         WHERE ${safeFilterCol} IS NOT NULL
-         AND ${safeFilterCol} < 0.05`
+         WHERE ${filterWhere}`
       )
       .get() as { cnt: number };
 

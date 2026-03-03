@@ -60,21 +60,21 @@ export default async function handler(
     }> = [];
 
     for (const t of allTables) {
-      // Determine which column to filter on
-      const filterCol =
+      // Determine which columns to filter on (may be comma-separated)
+      const filterColsRaw =
         filterBy === "pvalue" ? t.pvalue_column : t.fdr_column;
-      if (!filterCol) continue; // Table doesn't have the requested column
+      if (!filterColsRaw) continue; // Table doesn't have the requested column
 
-      // Determine which column to sort by (fall back to filter column)
-      const sortCol =
+      // Determine which columns to sort by (fall back to filter columns)
+      const sortColsRaw =
         sortBy === "pvalue"
           ? t.pvalue_column || t.fdr_column
           : t.fdr_column || t.pvalue_column;
-      if (!sortCol) continue;
+      if (!sortColsRaw) continue;
 
       const baseTable = sanitizeIdentifier(t.table_name);
-      const safeFilterCol = sanitizeIdentifier(filterCol);
-      const safeSortCol = sanitizeIdentifier(sortCol);
+      const filterCols = filterColsRaw.split(",").map((c) => sanitizeIdentifier(c.trim()));
+      const sortCols = sortColsRaw.split(",").map((c) => sanitizeIdentifier(c.trim()));
       const displayCols = parseDisplayColumns(t.display_columns);
       if (displayCols.length === 0) continue;
 
@@ -91,12 +91,21 @@ export default async function handler(
 
       const selectCols = displayCols.map((c) => `b.${c}`).join(", ");
 
+      // Build WHERE: any p-value column < 0.05
+      const filterWhere = filterCols
+        .map((c) => `(b.${c} IS NOT NULL AND b.${c} < 0.05)`)
+        .join(" OR ");
+      // Build ORDER BY: minimum across all sort columns
+      const sortExpr =
+        sortCols.length === 1
+          ? `b.${sortCols[0]}`
+          : `MIN(${sortCols.map((c) => `COALESCE(b.${c}, 1)`).join(", ")})`;
+
       try {
         const query = `SELECT DISTINCT ${selectCols} FROM ${baseTable} b
           WHERE b.id IN (${idSubquery})
-          AND b.${safeFilterCol} IS NOT NULL
-          AND b.${safeFilterCol} < 0.05
-          ORDER BY b.${safeSortCol} ASC
+          AND (${filterWhere})
+          ORDER BY ${sortExpr} ASC
           LIMIT 500`;
 
         const rows = db.prepare(query).all(...params) as Record<
@@ -110,8 +119,7 @@ export default async function handler(
         const countQuery = `SELECT COUNT(*) as cnt FROM (
           SELECT DISTINCT ${selectCols} FROM ${baseTable} b
           WHERE b.id IN (${idSubquery})
-          AND b.${safeFilterCol} IS NOT NULL
-          AND b.${safeFilterCol} < 0.05
+          AND (${filterWhere})
         )`;
         const countResult = db.prepare(countQuery).get(...params) as {
           cnt: number;

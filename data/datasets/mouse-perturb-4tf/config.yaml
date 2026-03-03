@@ -78,6 +78,8 @@ tables:
           - SafeTarget
         is_perturbed: true
         is_target: false
+    pvalue_column: PValue
+    fdr_column: padj
   - table: mouse_perturb_clusterprop
     changelog:
       - date: "2025-10-06"

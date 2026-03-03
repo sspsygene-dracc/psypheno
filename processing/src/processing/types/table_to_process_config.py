@@ -134,11 +134,24 @@ class TableToProcessConfig:
             )
         )
 
-        # P-value and FDR column names: normalize to match SQL column names
+        # P-value and FDR column names: normalize to match SQL column names.
+        # Accepts a single string or a list of strings in config YAML.
+        # Stored as comma-separated string internally.
         raw_pvalue_col = json_data.get("pvalue_column")
-        pvalue_column = normalize_column_name(raw_pvalue_col) if raw_pvalue_col else None
+        if isinstance(raw_pvalue_col, list):
+            pvalue_column = ",".join(normalize_column_name(c) for c in raw_pvalue_col) or None
+        elif raw_pvalue_col:
+            pvalue_column = normalize_column_name(raw_pvalue_col)
+        else:
+            pvalue_column = None
+
         raw_fdr_col = json_data.get("fdr_column")
-        fdr_column = normalize_column_name(raw_fdr_col) if raw_fdr_col else None
+        if isinstance(raw_fdr_col, list):
+            fdr_column = ",".join(normalize_column_name(c) for c in raw_fdr_col) or None
+        elif raw_fdr_col:
+            fdr_column = normalize_column_name(raw_fdr_col)
+        else:
+            fdr_column = None
 
         return cls(
             table=json_data["table"],
@@ -211,18 +224,22 @@ class TableToProcessConfig:
         ), "No or multiple species in the same table: " + str(species_list)
         species = species_set.pop()
         data.columns = get_sql_friendly_columns(data)
-        # Validate pvalue/fdr columns exist
+        # Validate pvalue/fdr columns exist (may be comma-separated list)
         col_set = set(data.columns)
-        if self.pvalue_column and self.pvalue_column not in col_set:
-            raise ValueError(
-                f"table {self.table}: pvalue_column '{self.pvalue_column}' "
-                f"not found in data columns: {sorted(col_set)}"
-            )
-        if self.fdr_column and self.fdr_column not in col_set:
-            raise ValueError(
-                f"table {self.table}: fdr_column '{self.fdr_column}' "
-                f"not found in data columns: {sorted(col_set)}"
-            )
+        if self.pvalue_column:
+            for pc in self.pvalue_column.split(","):
+                if pc not in col_set:
+                    raise ValueError(
+                        f"table {self.table}: pvalue_column '{pc}' "
+                        f"not found in data columns: {sorted(col_set)}"
+                    )
+        if self.fdr_column:
+            for fc in self.fdr_column.split(","):
+                if fc not in col_set:
+                    raise ValueError(
+                        f"table {self.table}: fdr_column '{fc}' "
+                        f"not found in data columns: {sorted(col_set)}"
+                    )
         scalar_columns: list[str] = [
             x
             for x in display_columns
