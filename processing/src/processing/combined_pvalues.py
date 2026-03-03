@@ -1,26 +1,33 @@
 """Compute combined p-values per gene across all datasets.
 
+Statistical computation is delegated to R via subprocess, using reference
+implementations from the STAAR, harmonicmeanp, and base R packages.
+Python handles data collection from SQLite, pre-collapse, HGNC gene flags,
+and writing results back to SQLite.
+
 Methods:
 - Fisher's method: combines -2*sum(ln(p)) with pre-collapsed per-table p-values
 - Stouffer's method: converts to Z-scores with pre-collapsed per-table p-values
 - Cauchy combination test (CCT): robust to correlated p-values, uses all raw p-values
-- Harmonic mean p-value (HMP): robust to dependency, uses all raw p-values
+- Harmonic mean p-value (HMP): Landau-calibrated, robust to dependency, all raw p-values
 """
 
 import csv
 import math
+import shutil
 import sqlite3
+import subprocess
+import tempfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, cast
 
-import numpy as np
 import click
-from scipy.stats import cauchy as cauchy_dist
-from scipy.stats import combine_pvalues
-from statsmodels.stats.multitest import multipletests
+import mpmath
 
 from processing.sql_utils import sanitize_identifier
+
+# Path to the R script that computes combined p-values
+_R_SCRIPT = Path(__file__).parent / "r" / "compute_combined.R"
 
 # HGNC gene_group names mapped to filter flag categories.
 # These represent broadly-responsive gene families whose high significance
@@ -144,55 +151,159 @@ def _parse_link_tables(link_tables_raw: str) -> list[str]:
     return [name for name, _ in entries]
 
 
-def _cauchy_combination(pvalues: np.ndarray[float, Any]) -> float:
-    """Cauchy combination test (CCT).
+def _precollapse(pvalues: list[float]) -> float:
+    """Bonferroni pre-collapse: min(p) * n, capped at 1.0.
 
-    Robust to correlated p-values. Uses equal weights.
-    Liu & Xie (2020), JASA.
-    """
-    weights = np.ones(len(pvalues)) / len(pvalues)
-    # Clamp extreme p-values to avoid numerical issues with tan
-    p_clamped = np.clip(pvalues, 1e-300, 1.0 - 1e-15)
-    t_stat = np.sum(weights * np.tan((0.5 - p_clamped) * np.pi))
-    combined_p = cauchy_dist.sf(t_stat)
-    return float(np.clip(combined_p, 0.0, 1.0))
-
-
-def _harmonic_mean_pvalue(pvalues: np.ndarray[float, Any]) -> float:
-    """Harmonic mean p-value (HMP).
-
-    Wilson (2019), PNAS. Robust to dependency structure.
-    Uses equal weights w_i = 1/L where L = number of p-values.
-
-    With normalized weights summing to 1, the HMP statistic is
-    asymptotically a valid p-value for small values (Wilson 2019,
-    Theorem 1). No additional multiplicative adjustment is needed.
+    Uses mpmath for arbitrary-precision arithmetic to avoid precision loss
+    when p-values are very small (e.g., min(p) = 1e-300 with n = 5).
     """
     n = len(pvalues)
-    weights = np.ones(n) / n
-    # HMP = sum(w) / sum(w/p) = L / sum(1/p) (the harmonic mean)
-    hmp = np.sum(weights) / np.sum(weights / pvalues)
-    return min(float(hmp), 1.0)
+    min_p = mpmath.mpf(min(pvalues))
+    collapsed = min_p * n
+    return float(min(collapsed, mpmath.mpf(1)))
 
 
-def _benjamini_hochberg(pvalues: list[float | None]) -> list[float | None]:
-    """Apply Benjamini-Hochberg FDR correction to a list of p-values.
+def _ensure_r_packages(rscript: str) -> bool:
+    """Check for required R packages; attempt to install if missing.
 
-    Uses statsmodels.stats.multitest.multipletests (method='fdr_bh').
-    None values are preserved as None in the output.
+    Returns True if all packages are available, False otherwise.
     """
-    valid_indices = [i for i, p in enumerate(pvalues) if p is not None]
-    if not valid_indices:
-        return list(pvalues)
+    check = subprocess.run(
+        [rscript, "-e", 'library(harmonicmeanp)'],
+        capture_output=True, text=True, timeout=30,
+    )
+    if check.returncode == 0:
+        return True
 
-    valid_pvals = np.array([pvalues[i] for i in valid_indices])
-    _, adjusted, _, _ = multipletests(valid_pvals, method="fdr_bh")
+    click.echo("  Attempting to install missing R packages (harmonicmeanp)...")
+    install = subprocess.run(
+        [rscript, "-e",
+         'install.packages("harmonicmeanp", repos="https://cloud.r-project.org", quiet=TRUE)'],
+        capture_output=True, text=True, timeout=300,
+    )
+    if install.returncode != 0:
+        click.echo(click.style(
+            f"  Failed to install R packages:\n{install.stderr.strip()}",
+            fg="yellow", bold=True,
+        ))
+        return False
 
-    result: list[float | None] = [None] * len(pvalues)
-    for i, orig_idx in enumerate(valid_indices):
-        result[orig_idx] = float(adjusted[i])
+    # Verify after install
+    verify = subprocess.run(
+        [rscript, "-e", 'library(harmonicmeanp)'],
+        capture_output=True, text=True, timeout=30,
+    )
+    return verify.returncode == 0
 
-    return result
+
+def _call_r_combine(
+    per_table_pvalues: dict[int, dict[str, list[float]]],
+    all_pvalues: dict[int, list[float]],
+) -> dict[int, dict[str, float | None]] | None:
+    """Call R to compute combined p-values and FDR corrections.
+
+    Writes input CSVs, invokes Rscript, reads result CSV.
+    Returns {gene_id: {fisher_p, stouffer_p, cauchy_p, hmp_p,
+                       fisher_fdr, stouffer_fdr, cauchy_fdr, hmp_fdr}},
+    or None if R is unavailable.
+    """
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        click.echo(click.style(
+            "\n  WARNING: Rscript not found on PATH. "
+            "Combined p-values will not be computed.\n"
+            "  Install R to enable this feature: brew install r (macOS) "
+            "or apt install r-base (Ubuntu)\n",
+            fg="yellow", bold=True,
+        ))
+        return None
+
+    if not _ensure_r_packages(rscript):
+        click.echo(click.style(
+            "\n  WARNING: Required R packages could not be installed. "
+            "Combined p-values will not be computed.\n",
+            fg="yellow", bold=True,
+        ))
+        return None
+
+    if not _R_SCRIPT.exists():
+        click.echo(click.style(
+            f"\n  WARNING: R script not found: {_R_SCRIPT}. "
+            "Combined p-values will not be computed.\n",
+            fg="yellow", bold=True,
+        ))
+        return None
+
+    tmp_dir = tempfile.mkdtemp(prefix="sspsygene_combine_")
+    try:
+        # Write collapsed p-values (one row per gene-table pair)
+        collapsed_path = Path(tmp_dir) / "collapsed_pvalues.csv"
+        with open(collapsed_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["gene_id", "pvalue"])
+            for gene_id in sorted(per_table_pvalues.keys()):
+                table_dict = per_table_pvalues[gene_id]
+                for tbl_pvals in table_dict.values():
+                    collapsed = _precollapse(tbl_pvals)
+                    writer.writerow([gene_id, f"{collapsed:.17e}"])
+
+        # Write raw p-values (one row per raw p-value)
+        raw_path = Path(tmp_dir) / "raw_pvalues.csv"
+        with open(raw_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["gene_id", "pvalue"])
+            for gene_id in sorted(all_pvalues.keys()):
+                for pval in all_pvalues[gene_id]:
+                    writer.writerow([gene_id, f"{pval:.17e}"])
+
+        # Call R
+        result = subprocess.run(
+            [rscript, str(_R_SCRIPT), tmp_dir],
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+
+        # Print R's stdout (progress messages)
+        if result.stdout:
+            for line in result.stdout.strip().splitlines():
+                click.echo(line)
+
+        if result.returncode != 0:
+            stderr = result.stderr.strip()
+            raise RuntimeError(
+                f"R script failed (exit code {result.returncode}):\n{stderr}"
+            )
+
+        # Read results
+        results_path = Path(tmp_dir) / "results.csv"
+        if not results_path.exists():
+            raise RuntimeError(f"R script did not produce {results_path}")
+
+        gene_results: dict[int, dict[str, float | None]] = {}
+        with open(results_path, "r") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                gene_id = int(row["gene_id"])
+                gene_results[gene_id] = {}
+                for key in [
+                    "fisher_p", "stouffer_p", "cauchy_p", "hmp_p",
+                    "fisher_fdr", "stouffer_fdr", "cauchy_fdr", "hmp_fdr",
+                ]:
+                    val_str = row[key]
+                    if val_str in ("NA", "", "NaN", "Inf", "-Inf"):
+                        gene_results[gene_id][key] = None
+                    else:
+                        val = float(val_str)
+                        if math.isnan(val) or math.isinf(val):
+                            gene_results[gene_id][key] = None
+                        else:
+                            gene_results[gene_id][key] = val
+
+        return gene_results
+
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def compute_combined_pvalues(
@@ -267,71 +378,14 @@ def compute_combined_pvalues(
         click.echo("  No valid p-values found, skipping.")
         return
 
-    # 3. Compute combined p-values for each gene (collect before inserting)
-    gene_results: list[
-        tuple[int, float | None, float | None, float | None, float | None, int, int]
-    ] = []
+    # 3. Call R for statistical computation
+    click.echo("  Calling R for p-value combination and FDR correction...")
+    r_results = _call_r_combine(per_table_pvalues, all_pvalues)
+    if r_results is None:
+        # R unavailable — create empty table so the rest of the page still works
+        r_results = {}
 
-    for gene_id in sorted(all_pvalues.keys()):
-        raw_pvals = np.array(all_pvalues[gene_id])
-        table_dict = per_table_pvalues[gene_id]
-        num_tables = len(table_dict)
-        num_pvalues = len(raw_pvals)
-
-        # Pre-collapse for Fisher/Stouffer: min(p)*n per table, capped at 1.0
-        collapsed_pvals = []
-        for _tbl, tbl_pvals in table_dict.items():
-            n = len(tbl_pvals)
-            collapsed = min(min(tbl_pvals) * n, 1.0)
-            collapsed_pvals.append(collapsed)
-
-        # Fisher and Stouffer need >= 2 tables
-        fisher_p = None
-        stouffer_p = None
-        if len(collapsed_pvals) >= 2:
-            collapsed_arr = np.array(collapsed_pvals)
-            # Filter out p-values of exactly 1.0 (they contribute no information)
-            # but keep them if all are 1.0
-            valid_collapsed = collapsed_arr[collapsed_arr < 1.0]
-            if len(valid_collapsed) >= 2:
-                _, fisher_p = cast(
-                    tuple[float, float],
-                    combine_pvalues(valid_collapsed, method="fisher"),
-                )
-                fisher_p = float(fisher_p)
-                _, stouffer_p = cast(
-                    tuple[float, float],
-                    combine_pvalues(valid_collapsed, method="stouffer"),
-                )
-                stouffer_p = float(stouffer_p)
-
-        # CCT and HMP work with any number of p-values >= 1
-        cauchy_p = _cauchy_combination(raw_pvals)
-        hmp_p = _harmonic_mean_pvalue(raw_pvals)
-
-        # Handle NaN/inf
-        if fisher_p is not None and (math.isnan(fisher_p) or math.isinf(fisher_p)):
-            fisher_p = None
-        if stouffer_p is not None and (
-            math.isnan(stouffer_p) or math.isinf(stouffer_p)
-        ):
-            stouffer_p = None
-        if math.isnan(cauchy_p) or math.isinf(cauchy_p):
-            cauchy_p = None
-        if math.isnan(hmp_p) or math.isinf(hmp_p):
-            hmp_p = None
-
-        gene_results.append(
-            (gene_id, fisher_p, stouffer_p, cauchy_p, hmp_p, num_tables, num_pvalues)
-        )
-
-    # 4. Apply Benjamini-Hochberg FDR correction across all genes per method
-    fisher_fdrs = _benjamini_hochberg([r[1] for r in gene_results])
-    stouffer_fdrs = _benjamini_hochberg([r[2] for r in gene_results])
-    cauchy_fdrs = _benjamini_hochberg([r[3] for r in gene_results])
-    hmp_fdrs = _benjamini_hochberg([r[4] for r in gene_results])
-
-    # 5. Build symbol lookup for gene flags and HGNC annotation status
+    # 4. Build symbol lookup for gene flags and HGNC annotation status
     symbol_lookup: dict[int, str] = {}
     hgnc_id_lookup: dict[int, str | None] = {}
     rows_gene = conn.execute(
@@ -341,7 +395,7 @@ def compute_combined_pvalues(
         symbol_lookup[row[0]] = row[1]
         hgnc_id_lookup[row[0]] = row[2]
 
-    # 6. Create output table and insert
+    # 5. Create output table and insert
     conn.execute(
         """CREATE TABLE gene_combined_pvalues (
         central_gene_id INTEGER PRIMARY KEY,
@@ -359,9 +413,13 @@ def compute_combined_pvalues(
         )"""
     )
 
-    for i, (gene_id, fisher_p, stouffer_p, cauchy_p, hmp_p, n_tbl, n_pv) in enumerate(
-        gene_results
-    ):
+    for gene_id in sorted(all_pvalues.keys()):
+        num_tables = len(per_table_pvalues[gene_id])
+        num_pvalues = len(all_pvalues[gene_id])
+
+        # Get R results for this gene
+        r = r_results.get(gene_id, {})
+
         # Look up gene flags from HGNC
         flags: set[str] = set()
         symbol = symbol_lookup.get(gene_id)
@@ -385,16 +443,16 @@ def compute_combined_pvalues(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 gene_id,
-                fisher_p,
-                fisher_fdrs[i],
-                stouffer_p,
-                stouffer_fdrs[i],
-                cauchy_p,
-                cauchy_fdrs[i],
-                hmp_p,
-                hmp_fdrs[i],
-                n_tbl,
-                n_pv,
+                r.get("fisher_p"),
+                r.get("fisher_fdr"),
+                r.get("stouffer_p"),
+                r.get("stouffer_fdr"),
+                r.get("cauchy_p"),
+                r.get("cauchy_fdr"),
+                r.get("hmp_p"),
+                r.get("hmp_fdr"),
+                num_tables,
+                num_pvalues,
                 gene_flag,
             ),
         )
@@ -406,7 +464,11 @@ def compute_combined_pvalues(
         )
     conn.commit()
 
-    click.echo(
-        f"  Computed combined p-values for "
-        f"{click.style(str(len(gene_results)), bold=True)} genes"
-    )
+    n_with_results = sum(1 for r in r_results.values() if r)
+    if n_with_results > 0:
+        click.echo(
+            f"  Computed combined p-values for "
+            f"{click.style(str(n_with_results), bold=True)} genes"
+        )
+    else:
+        click.echo("  No combined p-value results (R may be unavailable)")

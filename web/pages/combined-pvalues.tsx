@@ -77,7 +77,7 @@ const METHOD_DESCRIPTIONS: {
     key: "hmp",
     label: "Harmonic Mean P-value (HMP)",
     description:
-      "Computes the weighted harmonic mean of p-values with a Landau-bound adjustment for multiple comparisons. Uses all individual p-values directly. Robust to dependency structure between tests.",
+      "Computes the weighted harmonic mean of p-values with Landau distribution calibration via R\u2019s harmonicmeanp package. Uses all individual p-values directly. Robust to dependency structure between tests.",
     citation: "Wilson (2019), PNAS",
     doi: "10.1073/pnas.1814092116",
   },
@@ -543,6 +543,14 @@ export default function CombinedPvaluesPage() {
                 )}
               </div>
             ))}
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #e5e7eb" }}>
+              <Link
+                href="/methods"
+                style={{ color: "#2563eb", textDecoration: "none", fontSize: 13 }}
+              >
+                Full methods documentation &rarr;
+              </Link>
+            </div>
           </div>
         </details>
 

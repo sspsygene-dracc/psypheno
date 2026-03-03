@@ -17,5 +17,6 @@ disable=missing-docstring,
     redefined-outer-name,
     import-error,
     unused-argument,
-    unnecessary-pass
+    unnecessary-pass,
+    subprocess-run-check
 notes=FIXME,XXX

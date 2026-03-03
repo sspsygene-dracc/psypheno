@@ -16,14 +16,13 @@ class LinkTable:
 
     def get_df(self) -> pd.DataFrame:
         return pd.DataFrame(
-            self.central_gene_table_links, columns=["id", "central_gene_id"]
+            self.central_gene_table_links,
+            columns=pd.Index(["id", "central_gene_id"]),
         )
 
     def write_to_sqlite(self, conn: sqlite3.Connection) -> None:
         name = sanitize_identifier(self.link_table_name)
-        conn.execute(
-            f"CREATE TABLE [{name}] (id INTEGER, central_gene_id INTEGER)"
-        )
+        conn.execute(f"CREATE TABLE [{name}] (id INTEGER, central_gene_id INTEGER)")
         conn.executemany(
             f"INSERT INTO [{name}] (id, central_gene_id) VALUES (?, ?)",
             self.central_gene_table_links,

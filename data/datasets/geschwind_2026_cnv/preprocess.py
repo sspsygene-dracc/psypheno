@@ -10,10 +10,16 @@ Usage:
 
 import json
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 
-EXCEL_PATH = Path.home() / "Downloads" / "41586_2025_10047_MOESM3_ESM" / "Supp_table_3_-_DE_results.xlsx"
+EXCEL_PATH = (
+    Path.home()
+    / "Downloads"
+    / "41586_2025_10047_MOESM3_ESM"
+    / "Supp_table_3_-_DE_results.xlsx"
+)
 GENE_LISTS_PATH = Path(__file__).parent / "cnv_gene_lists.json"
 OUTPUT_PATH = Path(__file__).parent / "de_results.tsv"
 
@@ -60,7 +66,7 @@ def main() -> None:
 
         # Drop rows where hgnc_symbol is missing
         df = df.dropna(subset=["hgnc_symbol"])
-        df = df[df["hgnc_symbol"].astype(str).str.strip() != ""]
+        df = cast(pd.DataFrame, df[df["hgnc_symbol"].astype(str).str.strip() != ""])
 
         # Add sheet and region_genes columns
         df.insert(0, "sheet", sheet_name)
@@ -77,7 +83,11 @@ def main() -> None:
     for sheet_name in all_sheets:
         deletion_type = get_deletion_type(sheet_name)
         n = len(combined[combined["sheet"] == sheet_name])
-        n_genes = len(region_genes_map[deletion_type].split(",")) if region_genes_map[deletion_type] else 0
+        n_genes = (
+            len(region_genes_map[deletion_type].split(","))
+            if region_genes_map[deletion_type]
+            else 0
+        )
         print(f"  {sheet_name}: {n} rows, {n_genes} region genes")
 
 
