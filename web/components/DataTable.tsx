@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import InfoTooltip from "@/components/InfoTooltip";
 
 function formatColumnHeader(col: string): string {
@@ -42,6 +43,7 @@ export default function DataTable({
   showSummary = true,
   scalarColumns,
   fieldLabels,
+  geneColumns,
   sortColumn: controlledSortColumn,
   sortMode: controlledSortMode,
   onSort,
@@ -53,6 +55,7 @@ export default function DataTable({
   showSummary?: boolean;
   scalarColumns?: string[];
   fieldLabels?: Record<string, string> | null;
+  geneColumns?: string[];
   sortColumn?: string | null;
   sortMode?: SortMode;
   onSort?: (column: string, mode: SortMode) => void;
@@ -178,17 +181,35 @@ export default function DataTable({
         <tbody>
           {rowsToDisplay.map((row, idx) => (
             <tr key={idx} style={{ borderTop: "1px solid #e5e7eb" }}>
-              {columns.map((col) => (
-                <td
-                  key={col}
-                  style={{
-                    padding: "12px 16px",
-                    color: "#1f2937",
-                  }}
-                >
-                  {String(row[col] ?? "")}
-                </td>
-              ))}
+              {columns.map((col) => {
+                const val = row[col];
+                const isGeneCol = geneColumns?.includes(col);
+                const text = String(val ?? "");
+                return (
+                  <td
+                    key={col}
+                    style={{
+                      padding: "12px 16px",
+                      color: "#1f2937",
+                    }}
+                  >
+                    {isGeneCol && text ? (
+                      <Link
+                        href={`/?searchMode=general&selected=${encodeURIComponent(text)}`}
+                        style={{
+                          color: "#2563eb",
+                          textDecoration: "none",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {text}
+                      </Link>
+                    ) : (
+                      text
+                    )}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

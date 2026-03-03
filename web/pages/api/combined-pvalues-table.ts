@@ -19,10 +19,12 @@ const VALID_SORT_COLUMNS: Record<string, string> = {
 
 const VALID_FLAGS = [
   "heat_shock",
+  "mitochondrial_rna",
+  "no_hgnc",
+  "non_coding",
+  "pseudogene",
   "ribosomal",
   "ubiquitin",
-  "non_coding",
-  "mitochondrial_rna",
 ] as const;
 
 const bodySchema = z.object({

@@ -13,7 +13,11 @@ from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import TableToProcessConfig
 
 
-def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) -> None:
+def create_indexes(
+    conn: sqlite3.Connection, table: str, idx_fields: list[str], *, skip: bool = False
+) -> None:
+    if skip:
+        return
     table = sanitize_identifier(table)
     for field in idx_fields:
         field = sanitize_identifier(field)
@@ -30,7 +34,11 @@ _NOCASE_INDEXES: dict[str, list[str]] = {
 }
 
 
-def create_nocase_indexes(conn: sqlite3.Connection, table: str) -> None:
+def create_nocase_indexes(
+    conn: sqlite3.Connection, table: str, *, skip: bool = False
+) -> None:
+    if skip:
+        return
     table = sanitize_identifier(table)
     for field in _NOCASE_INDEXES.get(table, []):
         field = sanitize_identifier(field)
@@ -41,6 +49,8 @@ def create_nocase_indexes(conn: sqlite3.Connection, table: str) -> None:
 
 def load_gene_tables(
     conn: sqlite3.Connection,
+    *,
+    no_index: bool = False,
 ) -> None:
     cur = conn.cursor()
     cur.execute(
@@ -140,20 +150,23 @@ def load_gene_tables(
             "dataset_names",
             "manually_added",
         ],
+        skip=no_index,
     )
-    create_nocase_indexes(conn, "central_gene")
+    create_nocase_indexes(conn, "central_gene", skip=no_index)
     create_indexes(
         conn,
         "extra_gene_synonyms",
         ["central_gene_id", "species", "synonym"],
+        skip=no_index,
     )
-    create_nocase_indexes(conn, "extra_gene_synonyms")
+    create_nocase_indexes(conn, "extra_gene_synonyms", skip=no_index)
     create_indexes(
         conn,
         "extra_mouse_symbols",
         ["symbol", "central_gene_id"],
+        skip=no_index,
     )
-    create_nocase_indexes(conn, "extra_mouse_symbols")
+    create_nocase_indexes(conn, "extra_mouse_symbols", skip=no_index)
     conn.commit()
 
 
@@ -161,6 +174,8 @@ def load_data_tables(
     conn: sqlite3.Connection,
     table_configs: list[TableToProcessConfig],
     skip_missing: bool = False,
+    *,
+    no_index: bool = False,
 ) -> None:
     cur = conn.cursor()
     cur.execute(
@@ -218,9 +233,9 @@ def load_data_tables(
         )
         for link_table in data_and_meta.link_tables:
             link_table.write_to_sqlite(conn)
-            create_indexes(conn, link_table.link_table_name, ["central_gene_id"])
+            create_indexes(conn, link_table.link_table_name, ["central_gene_id"], skip=no_index)
         assert "id" in data_and_meta.data.columns, "id column not found in data"
-        create_indexes(conn, table_config.table, ["id"])
+        create_indexes(conn, table_config.table, ["id"], skip=no_index)
 
         # Only store field labels for columns that actually exist in the table
         display_col_set = set(data_and_meta.display_columns)
@@ -292,11 +307,13 @@ def load_data_tables(
         conn,
         "data_tables",
         ["table_name", "gene_species", "link_tables"],
+        skip=no_index,
     )
     create_indexes(
         conn,
         "changelog_entries",
         ["table_name", "date"],
+        skip=no_index,
     )
     conn.commit()
 
@@ -353,6 +370,7 @@ def load_db(
     assay_types: dict[str, str] | None = None,
     skip_missing: bool = False,
     hgnc_path: Path | None = None,
+    no_index: bool = False,
 ) -> None:
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
@@ -363,7 +381,7 @@ def load_db(
     db_name.unlink(missing_ok=True)
     with NewSqlite3(db_name, logger) as new_sqlite3:
         conn = new_sqlite3.conn
-        load_data_tables(conn, table_configs, skip_missing=skip_missing)
-        load_gene_tables(conn)
+        load_data_tables(conn, table_configs, skip_missing=skip_missing, no_index=no_index)
+        load_gene_tables(conn, no_index=no_index)
         load_assay_types(conn, assay_types or {})
-        compute_combined_pvalues(conn, hgnc_path=hgnc_path)
+        compute_combined_pvalues(conn, hgnc_path=hgnc_path, no_index=no_index)

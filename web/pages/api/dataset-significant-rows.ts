@@ -105,6 +105,15 @@ export default async function handler(
       }
     }
 
+    // Get gene_columns for linking
+    const geneColsMeta = db
+      .prepare("SELECT gene_columns FROM data_tables WHERE table_name = ?")
+      .get(tableName) as { gene_columns: string | null } | undefined;
+    const geneColumns = (geneColsMeta?.gene_columns || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     return res.status(200).json({
       tableName: tableMeta.table_name,
       shortLabel: tableMeta.short_label,
@@ -116,6 +125,7 @@ export default async function handler(
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
+      geneColumns,
       rows,
       totalRows: countResult.cnt,
       page,

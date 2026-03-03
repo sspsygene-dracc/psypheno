@@ -24,10 +24,12 @@ type CombinedRow = {
 
 const GENE_FLAG_OPTIONS: { key: string; label: string }[] = [
   { key: "heat_shock", label: "Heat shock / chaperones" },
+  { key: "mitochondrial_rna", label: "Mitochondrial RNA" },
+  { key: "no_hgnc", label: "No HGNC annotation" },
+  { key: "non_coding", label: "Non-coding RNA" },
+  { key: "pseudogene", label: "Pseudogenes" },
   { key: "ribosomal", label: "Ribosomal proteins" },
   { key: "ubiquitin", label: "Ubiquitin pathway" },
-  { key: "non_coding", label: "Non-coding RNA" },
-  { key: "mitochondrial_rna", label: "Mitochondrial RNA" },
 ];
 
 type DatasetTableMeta = {
@@ -42,19 +44,49 @@ type DatasetSigResult = {
   totalRows: number;
   displayColumns: string[];
   scalarColumns: string[];
+  geneColumns: string[];
   fieldLabels: Record<string, string> | null;
   page: number;
 };
 
-const METHOD_DESCRIPTIONS: Record<string, string> = {
-  fisher:
-    "Combines -2\u00B7\u03A3ln(p) across tables. Pre-collapsed to one p-value per table (Bonferroni-corrected minimum). Sensitive to any single strong signal.",
-  stouffer:
-    "Converts p-values to Z-scores and sums. Pre-collapsed to one per table. More balanced than Fisher\u2019s.",
-  cauchy:
-    "Cauchy combination test (CCT). Uses all individual p-values directly. Robust to correlated p-values.",
-  hmp: "Harmonic mean p-value. Uses all individual p-values directly. Robust to dependency structure.",
-};
+const METHOD_DESCRIPTIONS: {
+  key: string;
+  label: string;
+  description: string;
+  citation?: string;
+  doi?: string;
+}[] = [
+  {
+    key: "cauchy",
+    label: "Cauchy Combination Test (CCT)",
+    description:
+      "Uses all individual p-values directly. Computes a test statistic as a weighted sum of Cauchy-transformed p-values. Robust to arbitrary dependency structures between p-values.",
+    citation: "Liu & Xie (2020), JASA",
+    doi: "10.1080/01621459.2018.1554485",
+  },
+  {
+    key: "fisher",
+    label: "Fisher\u2019s Method",
+    description:
+      "Combines -2\u00B7\u03A3ln(p) across tables. Pre-collapsed to one p-value per table using a Bonferroni-corrected minimum. Particularly sensitive to any single strong signal. Under H\u2080, the test statistic follows a \u03C7\u00B2 distribution with 2k degrees of freedom.",
+    citation: "Fisher (1925), Statistical Methods for Research Workers",
+  },
+  {
+    key: "hmp",
+    label: "Harmonic Mean P-value (HMP)",
+    description:
+      "Computes the weighted harmonic mean of p-values with a Landau-bound adjustment for multiple comparisons. Uses all individual p-values directly. Robust to dependency structure between tests.",
+    citation: "Wilson (2019), PNAS",
+    doi: "10.1073/pnas.1814092116",
+  },
+  {
+    key: "stouffer",
+    label: "Stouffer\u2019s Method",
+    description:
+      "Converts p-values to Z-scores via the inverse normal CDF and sums them. Pre-collapsed to one p-value per table. More balanced than Fisher\u2019s method, giving less weight to single extreme values.",
+    citation: "Stouffer et al. (1949), The American Soldier",
+  },
+];
 
 function formatPvalue(p: number | null | undefined): string {
   if (p === null || p === undefined) return "\u2014";
@@ -257,6 +289,7 @@ function DatasetSection({
           totalRows: data.totalRows,
           displayColumns: data.displayColumns,
           scalarColumns: data.scalarColumns,
+          geneColumns: data.geneColumns ?? [],
           fieldLabels: data.fieldLabels,
           page: data.page,
         });
@@ -315,6 +348,7 @@ function DatasetSection({
             columns={result.displayColumns}
             rows={result.rows}
             scalarColumns={result.scalarColumns}
+            geneColumns={result.geneColumns}
             fieldLabels={result.fieldLabels ?? undefined}
             showSummary={false}
           />
@@ -429,8 +463,24 @@ export default function CombinedPvaluesPage() {
           genes per method.
         </p>
 
+        {/* Table of contents */}
+        <nav
+          style={{
+            marginBottom: 20,
+            fontSize: 13,
+            color: "#6b7280",
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "#374151" }}>On this page: </span>
+          <a href="#method-descriptions" style={{ color: "#2563eb", textDecoration: "none", marginRight: 12 }}>Method Descriptions</a>
+          <a href="#gene-filters" style={{ color: "#2563eb", textDecoration: "none", marginRight: 12 }}>Gene Filters</a>
+          <a href="#combined-pvalues-table" style={{ color: "#2563eb", textDecoration: "none", marginRight: 12 }}>Combined P-values Table</a>
+          <a href="#significant-rows" style={{ color: "#2563eb", textDecoration: "none" }}>Significant Rows by Dataset</a>
+        </nav>
+
         {/* Method descriptions */}
         <details
+          id="method-descriptions"
           style={{
             marginBottom: 20,
             background: "#f9fafb",
@@ -451,19 +501,29 @@ export default function CombinedPvaluesPage() {
             Method descriptions
           </summary>
           <div style={{ paddingBottom: 12, fontSize: 13, color: "#6b7280" }}>
-            {Object.entries(METHOD_DESCRIPTIONS).map(([key, desc]) => (
-              <div key={key} style={{ marginBottom: 6 }}>
+            {METHOD_DESCRIPTIONS.map((m) => (
+              <div key={m.key} style={{ marginBottom: 6 }}>
                 <strong style={{ color: "#374151" }}>
-                  {key === "fisher"
-                    ? "Fisher\u2019s method"
-                    : key === "stouffer"
-                    ? "Stouffer\u2019s method"
-                    : key === "cauchy"
-                    ? "Cauchy (CCT)"
-                    : "Harmonic Mean (HMP)"}
-                  :
+                  {m.label}:
                 </strong>{" "}
-                {desc}
+                {m.description}
+                {m.citation && (
+                  <span style={{ fontStyle: "italic" }}>
+                    {" \u2014 "}
+                    {m.doi ? (
+                      <a
+                        href={`https://doi.org/${m.doi}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#2563eb", textDecoration: "none" }}
+                      >
+                        {m.citation}
+                      </a>
+                    ) : (
+                      m.citation
+                    )}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -471,6 +531,7 @@ export default function CombinedPvaluesPage() {
 
         {/* Gene category filter */}
         <div
+          id="gene-filters"
           style={{
             marginBottom: 16,
             background: "#f9fafb",
@@ -543,6 +604,7 @@ export default function CombinedPvaluesPage() {
 
         {/* Combined p-values table */}
         <div
+          id="combined-pvalues-table"
           style={{
             background: "#ffffff",
             border: "1px solid #e5e7eb",
@@ -676,6 +738,7 @@ export default function CombinedPvaluesPage() {
 
         {/* Significant rows per dataset */}
         <div
+          id="significant-rows"
           style={{
             display: "flex",
             alignItems: "center",

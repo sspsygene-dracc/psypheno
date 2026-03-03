@@ -17,9 +17,9 @@ from typing import Any, cast
 import click
 import numpy as np
 from scipy.stats import cauchy as cauchy_dist
+from scipy.stats import combine_pvalues
 
 from processing.sql_utils import sanitize_identifier
-from scipy.stats import combine_pvalues
 
 # HGNC gene_group names mapped to filter flag categories.
 # These represent broadly-responsive gene families whose high significance
@@ -62,6 +62,7 @@ FLAG_GENE_GROUPS: dict[str, list[str]] = {
 # HGNC locus_group values mapped to filter flag categories.
 FLAG_LOCUS_GROUPS: dict[str, list[str]] = {
     "non_coding": ["non-coding RNA"],
+    "pseudogene": ["pseudogene"],
 }
 
 
@@ -109,8 +110,6 @@ def _load_hgnc_gene_flags(hgnc_path: Path) -> dict[str, str]:
                 symbol_flags[symbol] = ",".join(sorted(flags))
 
     return symbol_flags
-
-
 
 
 def _parse_link_tables(link_tables_raw: str) -> list[str]:
@@ -162,15 +161,17 @@ def _harmonic_mean_pvalue(pvalues: np.ndarray[float, Any]) -> float:
     """Harmonic mean p-value (HMP).
 
     Wilson (2019), PNAS. Robust to dependency structure.
-    Uses equal weights and Landau bound adjustment.
+    Uses equal weights w_i = 1/L where L = number of p-values.
+
+    With normalized weights summing to 1, the HMP statistic is
+    asymptotically a valid p-value for small values (Wilson 2019,
+    Theorem 1). No additional multiplicative adjustment is needed.
     """
     n = len(pvalues)
     weights = np.ones(n) / n
-    # HMP = sum(w) / sum(w/p)
+    # HMP = sum(w) / sum(w/p) = L / sum(1/p) (the harmonic mean)
     hmp = np.sum(weights) / np.sum(weights / pvalues)
-    # Landau adjustment: multiply by L (number of p-values)
-    adjusted = min(float(hmp) * n, 1.0)
-    return adjusted
+    return min(float(hmp), 1.0)
 
 
 def _benjamini_hochberg(pvalues: list[float | None]) -> list[float | None]:
@@ -210,7 +211,11 @@ def _benjamini_hochberg(pvalues: list[float | None]) -> list[float | None]:
     return result
 
 
-def compute_combined_pvalues(conn: sqlite3.Connection, hgnc_path: Path | None = None) -> None:
+def compute_combined_pvalues(
+    conn: sqlite3.Connection,
+    hgnc_path: Path | None = None,
+    no_index: bool = False,
+) -> None:
     """Compute and store combined p-values per gene across all datasets."""
     click.echo("\nComputing combined p-values...")
 
@@ -342,13 +347,15 @@ def compute_combined_pvalues(conn: sqlite3.Connection, hgnc_path: Path | None = 
     cauchy_fdrs = _benjamini_hochberg([r[3] for r in gene_results])
     hmp_fdrs = _benjamini_hochberg([r[4] for r in gene_results])
 
-    # 5. Build symbol lookup for gene flags
+    # 5. Build symbol lookup for gene flags and HGNC annotation status
     symbol_lookup: dict[int, str] = {}
-    if hgnc_flags:
-        rows_sym = conn.execute(
-            "SELECT id, human_symbol FROM central_gene WHERE human_symbol IS NOT NULL"
-        ).fetchall()
-        symbol_lookup = {row[0]: row[1] for row in rows_sym}
+    hgnc_id_lookup: dict[int, str | None] = {}
+    rows_gene = conn.execute(
+        "SELECT id, human_symbol, hgnc_id FROM central_gene WHERE human_symbol IS NOT NULL"
+    ).fetchall()
+    for row in rows_gene:
+        symbol_lookup[row[0]] = row[1]
+        hgnc_id_lookup[row[0]] = row[2]
 
     # 6. Create output table and insert
     conn.execute(
@@ -372,11 +379,19 @@ def compute_combined_pvalues(conn: sqlite3.Connection, hgnc_path: Path | None = 
         gene_results
     ):
         # Look up gene flags from HGNC
-        gene_flag = None
-        if hgnc_flags:
-            symbol = symbol_lookup.get(gene_id)
-            if symbol:
-                gene_flag = hgnc_flags.get(symbol)
+        flags: set[str] = set()
+        symbol = symbol_lookup.get(gene_id)
+        if symbol and hgnc_flags:
+            flag_str = hgnc_flags.get(symbol)
+            if flag_str:
+                flags.update(flag_str.split(","))
+
+        # Flag genes without HGNC annotation
+        hgnc_id = hgnc_id_lookup.get(gene_id)
+        if not hgnc_id:
+            flags.add("no_hgnc")
+
+        gene_flag = ",".join(sorted(flags)) if flags else None
 
         conn.execute(
             """INSERT INTO gene_combined_pvalues
@@ -400,10 +415,11 @@ def compute_combined_pvalues(conn: sqlite3.Connection, hgnc_path: Path | None = 
             ),
         )
 
-    conn.execute(
-        "CREATE INDEX gene_combined_pvalues_gene_idx "
-        "ON gene_combined_pvalues (central_gene_id)"
-    )
+    if not no_index:
+        conn.execute(
+            "CREATE INDEX gene_combined_pvalues_gene_idx "
+            "ON gene_combined_pvalues (central_gene_id)"
+        )
     conn.commit()
 
     click.echo(
