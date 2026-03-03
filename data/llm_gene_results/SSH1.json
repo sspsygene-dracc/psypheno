@@ -1,0 +1,9 @@
+{
+  "symbol": "SSH1",
+  "central_gene_id": 33407,
+  "pubmed_links": "[Nahas et al. (2024) SSH1 identified as candidate ASD biomarker via machine learning genomics](https://pubmed.ncbi.nlm.nih.gov/38153584/); [Yuen et al. (2010) SSH1/Slingshot regulates AMPA receptor channels and synaptic plasticity in cortical neurons](https://pubmed.ncbi.nlm.nih.gov/20442266/); [Zhou et al. (2012) EphA signaling promotes dendritic spine remodeling through SSH1/Slingshot phosphatase](https://pubmed.ncbi.nlm.nih.gov/22282498/)",
+  "summary": "SSH1 encodes a cofilin phosphatase that controls actin dynamics at synapses and regulates AMPA receptor trafficking and cortical synaptic plasticity; it was identified as a candidate biomarker for autism spectrum disorder in a machine learning genomic meta-analysis, though direct genetic or functional evidence in patient cohorts remains limited. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

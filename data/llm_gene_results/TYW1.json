@@ -1,0 +1,9 @@
+{
+  "symbol": "TYW1",
+  "central_gene_id": 37188,
+  "pubmed_links": "[Li et al. (2022) In-depth analysis reveals complex molecular aetiology in a cohort of idiopathic cerebral palsy](https://pubmed.ncbi.nlm.nih.gov/34077496/); [Sun et al. (2024) Wybutosine hypomodification of tRNAphe activates HERVK and impairs neuronal differentiation](https://pubmed.ncbi.nlm.nih.gov/38706838/)",
+  "summary": "TYW1 encodes a tRNA wybutosine-synthesizing enzyme whose loss causes primary microcephaly, intellectual disability, and motor deficits by impairing neuronal proliferation and migration; additionally, TYW1 deficiency activates endogenous retrovirus HERVK and disrupts neuronal differentiation in human stem cell models. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "CHD7",
+  "central_gene_id": 40642,
+  "pubmed_links": "[Jongmans et al. (2006) CHARGE syndrome: the phenotypic spectrum of mutations in the CHD7 gene](https://pubmed.ncbi.nlm.nih.gov/16155193/);[Kasah et al. (2018) Autism-linked CHD gene expression patterns during development predict multi-organ disease phenotypes](https://pubmed.ncbi.nlm.nih.gov/30277262/);[Feng et al. (2017) Chd7 is indispensable for mammalian brain development through activation of a neuronal differentiation programme](https://pubmed.ncbi.nlm.nih.gov/28317875/)",
+  "summary": "CHD7 encodes an ATP-dependent chromatin remodeling protein whose haploinsufficiency causes CHARGE syndrome, a condition characterized by coloboma, heart defects, choanal atresia, growth retardation, and ear anomalies, with autism spectrum disorder diagnosed in 9–68% of affected individuals and intellectual disability and executive dysfunction commonly observed. CHD7 is essential for mammalian brain development and is recognized as a major neurodevelopmental gene linking chromatin regulation to autism, intellectual disability, and broader neuropsychiatric risk. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

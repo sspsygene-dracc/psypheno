@@ -1,0 +1,9 @@
+{
+  "symbol": "STXBP5L",
+  "central_gene_id": 33727,
+  "pubmed_links": "[Kumar et al. (2015) Homozygous mutation of STXBP5L explains an autosomal recessive infantile-onset neurodegenerative disorder](https://pubmed.ncbi.nlm.nih.gov/25504045/)",
+  "summary": "STXBP5L (tomosyn-2) encodes a syntaxin-binding protein that inhibits SNARE complex formation and negatively regulates neurotransmitter release at synapses; a homozygous missense mutation (p.Val1043Ile) in this gene was identified as causing an autosomal recessive infantile-onset neurodegenerative disorder characterized by sensorimotor neuropathy, optic atrophy, and cognitive deficit. No direct associations with common neuropsychiatric conditions such as autism spectrum disorder or schizophrenia have been reported, but its synaptic regulatory function and broad brain expression make it a candidate for neurodevelopmental relevance. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

@@ -5,5 +5,5 @@
   "summary": "VPS54 was identified as one of seven previously unrecognized autism spectrum disorder risk genes in a large whole-genome sequencing study of 1,004 multiplex families, supported by rare inherited protein-truncating variants. (novel candidate)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

@@ -1,9 +1,9 @@
 {
   "symbol": "TARS1",
   "central_gene_id": 34109,
-  "pubmed_links": null,
-  "summary": "TARS1 encodes cytoplasmic threonyl-tRNA synthetase, and biallelic mutations cause trichothiodystrophy type 7 (nonphotosensitive), a disorder with neurological involvement including intellectual disability in ~86% of cases, dysmyelination, microcephaly, and seizures. (emerging evidence)",
+  "pubmed_links": "[Theil et al. (2019) Bi-allelic TARS mutations cause trichothiodystrophy 7](https://pubmed.ncbi.nlm.nih.gov/31374204/);[Faghri et al. (2008) TTD systematic review: intellectual disability in 86% of 112 cases](https://pubmed.ncbi.nlm.nih.gov/18603627/);[Meyer-Schuman et al. (2024) TARS1 loss-of-function mutations and clinical heterogeneity](https://pubmed.ncbi.nlm.nih.gov/38585737/)",
+  "summary": "TARS1 encodes cytoplasmic threonyl-tRNA synthetase, and biallelic mutations cause trichothiodystrophy type 7 (nonphotosensitive; TTD7), a rare recessive disorder first described in 2019; the broader TTD phenotypic spectrum includes intellectual disability (~86% of cases), dysmyelination, microcephaly, and seizures alongside the hallmark brittle sulfur-deficient hair. Recent animal modeling suggests TARS1-related disease may have broader clinical heterogeneity than initially recognized from the handful of reported patients. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

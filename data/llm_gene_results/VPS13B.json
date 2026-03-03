@@ -1,0 +1,9 @@
+{
+  "symbol": "VPS13B",
+  "central_gene_id": 38070,
+  "pubmed_links": "[Kolbe et al. (2022) Disease relevance of rare VPS13B missense variants for neurodevelopmental Cohen syndrome](https://pubmed.ncbi.nlm.nih.gov/35690661/); [Ligtenberg et al. (2023) A Novel Variant in VPS13B Underlying Cohen Syndrome](https://pubmed.ncbi.nlm.nih.gov/37090188/); [Ionita-Laza et al. (2014) Identification of rare causal variants in sequence-based studies: methods and applications to VPS13B, a gene involved in Cohen syndrome and autism](https://pubmed.ncbi.nlm.nih.gov/25502226/)",
+  "summary": "VPS13B encodes a vacuolar protein sorting-associated protein causally linked to Cohen syndrome, a neurodevelopmental disorder characterized by intellectual disability, postnatal microcephaly, and autistic features; pathogenic VPS13B variants also appear in individuals with autism spectrum disorder independent of full Cohen syndrome. The gene is among the most robustly validated single-gene causes of syndromic intellectual disability and autism. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

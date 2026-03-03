@@ -1,9 +1,9 @@
 {
   "symbol": "TRAPPC9",
   "central_gene_id": 35743,
-  "pubmed_links": "[Uctepe et al. (2023) TRAPPC9-Related Intellectual Disability: Report of Two New Cases and Review of the Literature](https://pubmed.ncbi.nlm.nih.gov/38058760/); [Al-Mubarak et al. (2021) Two Novel Compound Heterozygous Mutations in TRAPPC9 Reveal a Connection of Non-syndromic Intellectual Disability and ASD](https://pubmed.ncbi.nlm.nih.gov/33719327/); [Marangi et al. (2019) Novel Compound Heterozygous Mutations in TRAPPC9 in Two Siblings With Autism and Intellectual Disability](https://pubmed.ncbi.nlm.nih.gov/30853973/)",
-  "summary": "TRAPPC9 mutations cause autosomal recessive intellectual disability (MRT13) with postnatal microcephaly and brain white matter abnormalities; among reported cases, all show intellectual disability and approximately 26% also meet criteria for autism spectrum disorder. (well-established)",
+  "pubmed_links": "[Uctepe et al. (2023) TRAPPC9-Related Intellectual Disability: Report of Two New Cases and Review of the Literature](https://pubmed.ncbi.nlm.nih.gov/38058760/); [Krämer et al. (2021) Two Novel Compound Heterozygous Mutations in TRAPPC9 Reveal a Connection of Non-syndromic Intellectual Disability and ASD](https://pubmed.ncbi.nlm.nih.gov/33719327/); [Hnoonual et al. (2019) Novel Compound Heterozygous Mutations in TRAPPC9 in Two Siblings With Autism and Intellectual Disability](https://pubmed.ncbi.nlm.nih.gov/30853973/)",
+  "summary": "TRAPPC9 mutations cause autosomal recessive intellectual disability (MRT13) with postnatal microcephaly and brain white matter abnormalities; a subset of affected individuals also meet criteria for autism spectrum disorder, which may have been underrecognized in earlier case reports. (well-established)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

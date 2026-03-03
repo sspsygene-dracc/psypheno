@@ -1,9 +1,9 @@
 {
   "symbol": "VPS53",
   "central_gene_id": 38125,
-  "pubmed_links": "[Feinstein et al. (2014) VPS53 mutations cause progressive cerebello-cerebral atrophy type 2 (PCCA2)](https://pubmed.ncbi.nlm.nih.gov/24577744/); [Kaminsky et al. (2019) VPS53 gene is associated with a new phenotype of complicated hereditary spastic paraparesis](https://pubmed.ncbi.nlm.nih.gov/31418091/)",
-  "summary": "Biallelic mutations in VPS53, a subunit of the Golgi-associated retrograde protein (GARP) complex, cause progressive cerebello-cerebral atrophy type 2 (PCCA2) and pontocerebellar hypoplasia, characterized by severe intellectual disability, progressive microcephaly, spasticity, and early-onset epilepsy. (emerging evidence)",
+  "pubmed_links": "[Feinstein et al. (2014) VPS53 mutations cause progressive cerebello-cerebral atrophy type 2 (PCCA2)](https://pubmed.ncbi.nlm.nih.gov/24577744/); [Hausman-Kedem et al. (2019) VPS53 gene is associated with a new phenotype of complicated hereditary spastic paraparesis](https://pubmed.ncbi.nlm.nih.gov/31418091/)",
+  "summary": "Biallelic mutations in VPS53, a subunit of the Golgi-associated retrograde protein (GARP) complex, cause progressive cerebello-cerebral atrophy type 2 (PCCA2), characterized by severe intellectual disability, progressive microcephaly, spasticity, and early-onset epilepsy; additional variants have been associated with a milder phenotype of complicated hereditary spastic paraparesis with mild-to-moderate intellectual disability. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

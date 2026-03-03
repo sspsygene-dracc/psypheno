@@ -1,0 +1,9 @@
+{
+  "symbol": "TBL1X",
+  "central_gene_id": 34249,
+  "pubmed_links": "[Chung et al. (2011) X chromosome-wide association study identifies TBL1X as autism candidate gene in males](https://pubmed.ncbi.nlm.nih.gov/22050706/)",
+  "summary": "TBL1X (transducin beta-like 1 X-linked), located at Xp22.2-Xp22.3, was identified as a novel autism spectrum disorder candidate gene in males through an X chromosome-wide association study, with a SNP (rs17321050) reaching chromosome-wide significance; TBL1X participates in the Wnt signaling pathway previously implicated in ASD, and deletions of the Xp22.2-Xp22.3 region encompassing TBL1X are associated with syndromes featuring intellectual disability and autistic features. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

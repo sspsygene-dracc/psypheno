@@ -1,0 +1,9 @@
+{
+  "symbol": "TUBB4A",
+  "central_gene_id": 37051,
+  "pubmed_links": "[Curiel et al. (2017) TUBB4A mutations result in specific neuronal and oligodendrocytic defects matching distinct phenotypes](https://pubmed.ncbi.nlm.nih.gov/28973395/); [Tonduti et al. (2016) TUBB4A-related hypomyelinating leukodystrophy: new insights from 12 patients](https://pubmed.ncbi.nlm.nih.gov/26643067/); [Gavazzi et al. (2025) Natural history of variable subtypes in pediatric-onset TUBB4A-related leukodystrophy](https://pubmed.ncbi.nlm.nih.gov/39951964/)",
+  "summary": "TUBB4A encodes beta-tubulin 4A, essential for microtubule formation during brain development; pathogenic variants cause H-ABC leukodystrophy characterized by intellectual disability, developmental delay, and motor deficits, with autism spectrum features reported in ~39% of affected individuals. TUBB4A is a well-established cause of severe pediatric neurodevelopmental disease with prominent cognitive and neurodevelopmental impairment. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

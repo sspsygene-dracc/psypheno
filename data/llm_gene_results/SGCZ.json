@@ -1,9 +1,9 @@
 {
   "symbol": "SGCZ",
   "central_gene_id": 30084,
-  "pubmed_links": null,
-  "summary": null,
-  "status": "no_results",
+  "pubmed_links": "[Piovani et al. (2014) De novo 1Mb interstitial deletion of 8p22 causing mild intellectual disability and speech delay](https://pubmed.ncbi.nlm.nih.gov/24735523/); [Peall et al. (2014) SGCZ mutations are unlikely to be associated with myoclonus dystonia](https://pubmed.ncbi.nlm.nih.gov/24792710/)",
+  "summary": "SGCZ encodes zeta-sarcoglycan, a component of the dystrophin-associated glycoprotein complex at chromosome 8p22; a de novo deletion encompassing SGCZ was reported in a patient with mild intellectual disability and speech delay, implicating the region in neurodevelopmental phenotypes. Dedicated sequencing of SGCZ in myoclonus dystonia patients found no pathogenic mutations, leaving its specific contribution to neuropsychiatric disorders unresolved. (novel candidate)",
+  "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

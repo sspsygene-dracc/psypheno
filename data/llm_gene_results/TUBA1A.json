@@ -1,9 +1,9 @@
 {
   "symbol": "TUBA1A",
   "central_gene_id": 37012,
-  "pubmed_links": "[Bahi-Buisson et al. (2010) TUBA1A mutations cause wide spectrum lissencephaly and suggest that multiple neuronal migration pathways converge on alpha tubulins](https://pubmed.ncbi.nlm.nih.gov/20466733/); [Kumar et al. (2010) Refinement of cortical dysgeneses spectrum associated with TUBA1A mutations](https://pubmed.ncbi.nlm.nih.gov/18728072/); [Aiken et al. (2019) TUBA1A mutations identified in lissencephaly patients dominantly disrupt neuronal migration and impair dynein activity](https://pubmed.ncbi.nlm.nih.gov/30517687/)",
+  "pubmed_links": "[Kumar et al. (2010) TUBA1A mutations cause wide spectrum lissencephaly and suggest that multiple neuronal migration pathways converge on alpha tubulins](https://pubmed.ncbi.nlm.nih.gov/20466733/); [Bahi-Buisson et al. (2008) Refinement of cortical dysgeneses spectrum associated with TUBA1A mutations](https://pubmed.ncbi.nlm.nih.gov/18728072/); [Aiken et al. (2019) TUBA1A mutations identified in lissencephaly patients dominantly disrupt neuronal migration and impair dynein activity](https://pubmed.ncbi.nlm.nih.gov/30517687/)",
   "summary": "Pathogenic variants in TUBA1A cause lissencephaly, cortical dysgenesis, and cerebellar hypoplasia with universal severe intellectual disability and early-onset epilepsy, accounting for approximately 4-5% of all lissencephaly cases. (well-established)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

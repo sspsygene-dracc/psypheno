@@ -1,9 +1,9 @@
 {
   "symbol": "SULF1",
   "central_gene_id": 33767,
-  "pubmed_links": "[Bhatt et al. (2015) Sulf1 and Sulf2 Differentially Modulate Heparan Sulfate Proteoglycan Sulfation during Postnatal Cerebellum Development](https://pubmed.ncbi.nlm.nih.gov/26448642/); [Packer et al. (2022) Autism, heparan sulfate and potential interventions](https://pubmed.ncbi.nlm.nih.gov/35307405/)",
-  "summary": "SULF1 is a heparan sulfate 6-O-endosulfatase expressed in the brain; Sulf1 knockout mice show deficits in neurite outgrowth, synaptic plasticity, and cerebellar development, and heparan sulfate dysregulation is increasingly implicated as causative in autism spectrum disorder. (emerging evidence)",
+  "pubmed_links": "[Kalus et al. (2015) Sulf1 and Sulf2 Differentially Modulate Heparan Sulfate Proteoglycan Sulfation during Postnatal Cerebellum Development](https://pubmed.ncbi.nlm.nih.gov/26448642/); [Joy et al. (2015) Sulf1 and Sulf2 expression in the nervous system and its role in limiting neurite outgrowth in vitro](https://pubmed.ncbi.nlm.nih.gov/25448158/); [Miya et al. (2026) Altered Excitability and Glutamatergic Synaptic Transmission in the Medium Spiny Neurons of the Nucleus Accumbens in Mice Deficient in the Heparan Sulfate Endosulfatase Sulf1](https://pubmed.ncbi.nlm.nih.gov/41381361/)",
+  "summary": "SULF1 encodes a heparan sulfate 6-O-endosulfatase widely expressed in the nervous system; Sulf1 knockout mice exhibit impaired neurite outgrowth, deficits in cerebellar development, and altered neuronal excitability and glutamatergic synaptic transmission in the nucleus accumbens, implicating SULF1 in reward-aversion circuitry and psychiatric conditions including schizophrenia. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

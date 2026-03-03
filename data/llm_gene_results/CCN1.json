@@ -1,9 +1,9 @@
 {
   "symbol": "CCN1",
   "central_gene_id": 39792,
-  "pubmed_links": null,
-  "summary": "CCN1 (CYR61) encodes a matricellular signaling protein whose neocortical expression is markedly upregulated by schizophrenomimetic agents in adult rodents, paralleling the age-dependent onset of schizophrenia; direct genetic evidence in human patients is lacking. (novel candidate)",
+  "pubmed_links": "[Ito et al. (2007) Schizophrenomimetics upregulate CCN1 in adult neocortex](https://pubmed.ncbi.nlm.nih.gov/17608974/); [Malik et al. (2015) CCN family matricellular proteins and the nervous system](https://pubmed.ncbi.nlm.nih.gov/26157362/)",
+  "summary": "CCN1 (CYR61) encodes a matricellular signaling protein whose neocortical expression is markedly upregulated by schizophrenomimetic agents (phencyclidine, dizocilpine, methamphetamine) in adult but not infant rodents, paralleling the age-dependent onset of schizophrenia; direct genetic evidence in human patients is lacking. (novel candidate)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

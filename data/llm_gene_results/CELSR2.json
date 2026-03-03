@@ -1,0 +1,9 @@
+{
+  "symbol": "CELSR2",
+  "central_gene_id": 40353,
+  "pubmed_links": "[Chen et al. (2022) Celsr2 regulates NMDA receptors and dendritic homeostasis in dorsal CA1 to enable social memory](https://pubmed.ncbi.nlm.nih.gov/35789199/);[Li et al. (2022) Planar cell polarity protein Celsr2 maintains structural and functional integrity of adult cortical synapses](https://pubmed.ncbi.nlm.nih.gov/36089108/);[Vilboux et al. (2017) CELSR2 is a putative gene in Joubert syndrome with cortical heterotopia, microophthalmia, and growth hormone deficiency](https://pubmed.ncbi.nlm.nih.gov/28052552/)",
+  "summary": "CELSR2 encodes a planar cell polarity (PCP) receptor involved in synaptic maintenance and hippocampal function; Celsr2-deficient mice show impaired NMDA receptor signaling, dendritic abnormalities, and social memory deficits reminiscent of autism-related phenotypes, while rare human variants have been implicated in Joubert syndrome with cortical malformations. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}
