@@ -1,9 +1,9 @@
 {
   "symbol": "PLCG2",
   "central_gene_id": 19721,
-  "pubmed_links": "[Magno et al. (2019) Alzheimer's disease phospholipase C-gamma-2 (PLCG2) protective variant is a functional hypermorph](https://pubmed.ncbi.nlm.nih.gov/30711010/); [Moutinho et al. (2023) Genetic variants of phospholipase C-gamma-2 alter the phenotype and function of microglia and confer differential risk for Alzheimer's disease](https://pubmed.ncbi.nlm.nih.gov/37714148/)",
-  "summary": "PLCG2, expressed in brain microglia, harbors variants with opposing effects on Alzheimer's disease risk and modulates microglial TREM2 signaling and neuroinflammation; while its primary neurological associations are with neurodegeneration rather than classic neuropsychiatric disorders, its role in microglial immune signaling is relevant to broader neuropathology. (emerging evidence)",
+  "pubmed_links": "[Magno et al. (2019) Alzheimer's disease phospholipase C-gamma-2 (PLCG2) protective variant is a functional hypermorph](https://pubmed.ncbi.nlm.nih.gov/30711010/); [Tsai et al. (2023) Genetic variants of phospholipase C-gamma-2 alter the phenotype and function of microglia and confer differential risk for Alzheimer's disease](https://pubmed.ncbi.nlm.nih.gov/37659412/)",
+  "summary": "PLCG2, expressed selectively in brain microglia, harbors variants with opposing effects on Alzheimer's disease risk: the protective P522R hypermorph enhances microglial phagocytosis and immune function, while the loss-of-function M28L variant exacerbates amyloid burden through impaired microglial clearance; though primarily linked to neurodegeneration rather than classic neuropsychiatric disorders, its central role in microglial signaling and neuroinflammation is relevant to broader neuropathology. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

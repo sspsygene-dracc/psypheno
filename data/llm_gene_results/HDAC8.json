@@ -1,0 +1,9 @@
+{
+  "symbol": "HDAC8",
+  "central_gene_id": 4120,
+  "pubmed_links": "[Kaiser et al. (2014) Loss-of-function HDAC8 mutations cause Cornelia de Lange syndrome-like features with X-linked inheritance](https://pubmed.ncbi.nlm.nih.gov/24403048/);[Deardorff et al. (2016) Structural aspects of HDAC8 mechanism and dysfunction in Cornelia de Lange syndrome spectrum disorders](https://pubmed.ncbi.nlm.nih.gov/27576763/);[Chen et al. (2022) iPSC line from an autism spectrum disorder patient carrying a heterozygous HDAC8 mutation (p.P359S)](https://pubmed.ncbi.nlm.nih.gov/35358829/)",
+  "summary": "HDAC8, an X-linked histone deacetylase that deacetylates the cohesin subunit SMC3, is an established causal gene for Cornelia de Lange syndrome 5 (CdLS5), a neurodevelopmental disorder featuring intellectual disability, growth retardation, and autistic behaviors. Recent reports of HDAC8 mutations in autism spectrum disorder patients further support its role in neurodevelopmental psychiatry. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

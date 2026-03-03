@@ -1,9 +1,9 @@
 {
   "symbol": "MED15",
   "central_gene_id": 12025,
-  "pubmed_links": null,
-  "summary": null,
-  "status": "no_results",
+  "pubmed_links": "[Huang et al. (2019) TWAS and mRNA expression identifies ASD candidate genes including MED15](https://pubmed.ncbi.nlm.nih.gov/30561910/);[De Luca et al. (2003) CAG repeats in PCQAP/MED15 associated with schizophrenia](https://pubmed.ncbi.nlm.nih.gov/12497610/);[Woodward et al. (2019) 22q11.2 duplications with enriched MED15 brain expression linked to ASD](https://pubmed.ncbi.nlm.nih.gov/30614210/)",
+  "summary": "MED15 (also known as PCQAP), a Mediator transcriptional coactivator subunit located in the 22q11.2 DiGeorge syndrome region, has been implicated in both autism spectrum disorder and schizophrenia; it was identified as one of five validated candidate genes in an integrative transcriptome-wide association and mRNA expression study of ASD, and CAG repeat variations in the gene showed initial association with schizophrenia susceptibility. (emerging evidence)",
+  "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

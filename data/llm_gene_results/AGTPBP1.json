@@ -1,0 +1,9 @@
+{
+  "symbol": "AGTPBP1",
+  "central_gene_id": 701,
+  "pubmed_links": "[Karakaya et al. (2019) Biallelic variant in AGTPBP1 causes infantile lower motor neuron degeneration and cerebellar atrophy](https://pubmed.ncbi.nlm.nih.gov/31102495/);[Baltanás et al. (2021) CONDCA disease caused by AGTPBP1 gene mutations: the pcd mouse as an animal model](https://pubmed.ncbi.nlm.nih.gov/34572343/);[Türay et al. (2021) Novel pathogenic variant in the 3' end of AGTPBP1 gives rise to neurodegeneration without cerebellar atrophy](https://pubmed.ncbi.nlm.nih.gov/33909173/)",
+  "summary": "AGTPBP1 encodes cytosolic carboxypeptidase 1 (CCP1), and biallelic loss-of-function variants cause childhood-onset neurodegeneration with cerebellar atrophy (CONDCA), a rare autosomal recessive neurodevelopmental disorder characterized by global developmental delay, intellectual disability, absent or poor speech, and progressive motor decline. It has not been broadly implicated in common neuropsychiatric conditions such as autism or schizophrenia, but represents an established monogenic cause of a severe neurodevelopmental syndrome. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

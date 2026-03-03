@@ -1,0 +1,9 @@
+{
+  "symbol": "GPR158",
+  "central_gene_id": 3393,
+  "pubmed_links": "[Sutton et al. (2018) Orphan receptor GPR158 controls stress-induced depression](https://pubmed.ncbi.nlm.nih.gov/29419376/); [Laboute et al. (2023) Orphan receptor GPR158 serves as a metabotropic glycine receptor: mGlyR](https://pubmed.ncbi.nlm.nih.gov/36996198/); [Wei et al. (2024) GPR158 in pyramidal neurons mediates social novelty behavior via modulating synaptic transmission in male mice](https://pubmed.ncbi.nlm.nih.gov/39383040/)",
+  "summary": "GPR158 is a class C GPCR expressed in prefrontal cortex, hippocampus, and nucleus accumbens that functions as a metabotropic glycine receptor; it is upregulated in post-mortem PFC of humans with major depressive disorder, and its loss in mice confers stress resilience, while conditional deletion in mPFC pyramidal neurons impairs social novelty behavior relevant to ASD. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

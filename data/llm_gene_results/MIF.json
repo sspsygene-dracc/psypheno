@@ -1,9 +1,9 @@
 {
   "symbol": "MIF",
   "central_gene_id": 12277,
-  "pubmed_links": "[Miura et al. (2018) Increased serum levels and promoter polymorphisms of macrophage migration inhibitory factor in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/29305329/); [Jarboui et al. (2022) Polymorphisms in the hypoxia inducible factor binding site of the MIF gene promoter in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/35324982/); [Feng et al. (2021) Multifaceted interconnections between macrophage migration inhibitory factor and psychiatric disorders](https://pubmed.ncbi.nlm.nih.gov/34358623/)",
+  "pubmed_links": "[Okazaki et al. (2018) Increased serum levels and promoter polymorphisms of macrophage migration inhibitory factor in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/29305329/); [Okazaki et al. (2022) Polymorphisms in the hypoxia inducible factor binding site of the MIF gene promoter in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/35324982/); [Chen et al. (2022) Multifaceted interconnections between macrophage migration inhibitory factor and psychiatric disorders](https://pubmed.ncbi.nlm.nih.gov/34358623/)",
   "summary": "MIF (macrophage migration inhibitory factor) is a pro-inflammatory cytokine whose serum levels are elevated in schizophrenia and depression; promoter polymorphisms in the MIF gene are associated with schizophrenia risk, positioning it as both a biomarker and pathophysiological contributor to psychiatric disorders. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

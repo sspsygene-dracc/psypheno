@@ -1,0 +1,9 @@
+{
+  "symbol": "PNKP",
+  "central_gene_id": 19902,
+  "pubmed_links": "[Shen et al. (2010) Mutations in PNKP cause microcephaly, seizures and defects in DNA repair](https://pubmed.ncbi.nlm.nih.gov/20118936/); [Aceytuno et al. (2012) Impact of PNKP mutations on enzyme activity and DNA strand break repair in microcephaly/seizures/developmental delay](https://pubmed.ncbi.nlm.nih.gov/22508754/); [Thuresson et al. (2024) Novel PNKP mutations with reduced DNA single-strand break repair and severe microcephaly, seizures, and developmental delay](https://pubmed.ncbi.nlm.nih.gov/37916443/)",
+  "summary": "PNKP encodes a DNA repair enzyme (polynucleotide kinase-phosphatase) whose loss-of-function mutations cause microcephaly with early-onset seizures and developmental delay (MCSZ), a severe neurodevelopmental syndrome, as well as ataxia-oculomotor apraxia type 4 and Charcot\u2013Marie\u2013Tooth disease type 2B2. Impaired DNA strand break repair in neurons underlies the progressive neurological deficits, with intellectual disability and refractory epilepsy as core features. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

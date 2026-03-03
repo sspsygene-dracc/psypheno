@@ -1,0 +1,9 @@
+{
+  "symbol": "NAV3",
+  "central_gene_id": 15958,
+  "pubmed_links": "[Ghaffar et al. (2024) Variants of NAV3 cause intellectual disability, developmental delay, and microcephaly](https://pubmed.ncbi.nlm.nih.gov/38977784/);[Umair et al. (2024) Mutated neuron navigator 3 as a candidate gene for a rare neurodevelopmental disorder](https://pubmed.ncbi.nlm.nih.gov/39038237/);[Kakar et al. (2025) Further evidence of biallelic NAV3 variants associated with recessive neurodevelopmental disorder](https://pubmed.ncbi.nlm.nih.gov/39708122/)",
+  "summary": "NAV3 encodes a cytoskeletal-associated neuron navigator protein critical for neuronal morphogenesis that is highly expressed in excitatory neurons, inhibitory neurons, and microglia. Biallelic and monoallelic loss-of-function variants in NAV3 have been identified in individuals with intellectual disability, microcephaly, developmental delay, and behavioral abnormalities, and NAV3 has also been implicated as a moderate-risk gene for autism spectrum disorder. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

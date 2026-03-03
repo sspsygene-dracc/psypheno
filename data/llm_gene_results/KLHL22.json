@@ -1,9 +1,9 @@
 {
   "symbol": "KLHL22",
   "central_gene_id": 6881,
-  "pubmed_links": "[Forsyth et al. (2020) Synaptic and Gene Regulatory Mechanisms in Schizophrenia, Autism, and 22q11.2 CNV-Mediated Risk for Neuropsychiatric Disorders](https://pubmed.ncbi.nlm.nih.gov/31500805/)",
-  "summary": "KLHL22 is encoded within the 22q11.2 chromosomal region and its protein-protein interaction network is enriched for overlap with genes downregulated in autism spectrum disorder; the broader 22q11.2 deletion is one of the highest-penetrance genetic risk factors for schizophrenia and confers elevated risk for autism spectrum disorder and intellectual disability. (emerging evidence)",
+  "pubmed_links": "[Kong et al. (2022) Fine-tuning of mTOR signaling by the UBE4B-KLHL22 E3 ubiquitin ligase cascade in brain development](https://pubmed.ncbi.nlm.nih.gov/36440598/); [Woodward et al. (2019) Atypical nested 22q11.2 duplications between LCR22B and LCR22D are associated with neurodevelopmental phenotypes including autism spectrum disorder with incomplete penetrance](https://pubmed.ncbi.nlm.nih.gov/30614210/)",
+  "summary": "KLHL22 encodes a Kelch-like E3 ubiquitin ligase adaptor located within the 22q11.2 chromosomal region — one of the highest-penetrance genetic risk loci for schizophrenia and autism spectrum disorder — and directly regulates mTOR signaling during brain development; mouse models with dysregulated UBE4B-KLHL22-mTOR activity exhibit severe neurodevelopmental defects including impaired neurogenesis and spontaneous seizures. Its enriched expression in fetal and adult nervous system tissue and its position within the 22q11.2 deletion region make it a candidate contributor to the neuropsychiatric consequences of 22q11.2 copy number variants. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

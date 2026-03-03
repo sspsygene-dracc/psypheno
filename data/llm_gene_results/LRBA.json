@@ -1,9 +1,9 @@
 {
   "symbol": "LRBA",
   "central_gene_id": 10199,
-  "pubmed_links": "[Gai et al. (2011) Rare structural variation of synapse and neurotransmission genes in autism](https://pubmed.ncbi.nlm.nih.gov/21358714/); [Gonzalez-Mantilla et al. (2016) A Cross-Disorder Method to Identify Novel Candidate Genes for Developmental Brain Disorders](https://pubmed.ncbi.nlm.nih.gov/26817790/)",
-  "summary": "LRBA holds a SFARI Gene Score of 2 (Strong Candidate) for autism, with copy-number loss variants identified in ASD probands from multiple large cohorts and loss-of-function variants flagged across cross-disorder brain developmental disorder analyses; LRBA deficiency is also known to cause primary immunodeficiency with neurological manifestations. (emerging evidence)",
+  "pubmed_links": "[Gai et al. (2011) Rare structural variation of synapse and neurotransmission genes in autism](https://pubmed.ncbi.nlm.nih.gov/21358714/); [Gonzalez-Mantilla et al. (2016) A Cross-Disorder Method to Identify Novel Candidate Genes for Developmental Brain Disorders](https://pubmed.ncbi.nlm.nih.gov/26817790/); [Mangodt et al. (2023) Central nervous system manifestations of LRBA deficiency: case report of two siblings and literature review](https://pubmed.ncbi.nlm.nih.gov/37443020/)",
+  "summary": "LRBA holds a SFARI Gene Score of 2 (Strong Candidate) for autism, with copy-number loss variants identified in ASD probands from the AGRE and Simons Simplex Collection cohorts and loss-of-function variants flagged in cross-disorder analyses of developmental brain disorders; biallelic mutations cause LRBA deficiency, a primary immunodeficiency syndrome with CNS manifestations (seizures, inflammatory brain lesions) documented in approximately 25% of patients. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

@@ -1,0 +1,9 @@
+{
+  "symbol": "FAAH2",
+  "central_gene_id": 1064,
+  "pubmed_links": "[Sirrs et al. (2015) Defects in fatty acid amide hydrolase 2 in a male with neurologic and psychiatric symptoms](https://pubmed.ncbi.nlm.nih.gov/25885783/);[Whibley et al. (2010) Fine-scale survey of X chromosome copy number variants and indels underlying intellectual disability](https://pubmed.ncbi.nlm.nih.gov/20655035/);[Lim et al. (2013) Using whole-exome sequencing to identify inherited causes of autism](https://pubmed.ncbi.nlm.nih.gov/23352163/)",
+  "summary": "FAAH2 encodes an X-linked endocannabinoid-degrading enzyme, and rare loss-of-function variants have been identified in males with autism spectrum disorder, X-linked intellectual disability, anxiety, and other neuropsychiatric symptoms, with biochemical studies confirming altered endocannabinoid metabolism in affected individuals. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

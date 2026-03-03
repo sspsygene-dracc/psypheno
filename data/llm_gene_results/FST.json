@@ -2,8 +2,8 @@
   "symbol": "FST",
   "central_gene_id": 2306,
   "pubmed_links": "[Chen et al. (2021) Follistatin mediates learning and synaptic plasticity via regulation of Asic4 expression in the hippocampus](https://pubmed.ncbi.nlm.nih.gov/34544873/)",
-  "summary": "Follistatin (FST) plays a role in hippocampal neurogenesis, synaptic plasticity, spatial learning, and working memory, with brain-specific knockout mice showing LTP deficits; FSTL1, a closely related follistatin-like protein, has been implicated in schizophrenia and autism, though direct neuropsychiatric genetic evidence for FST itself remains limited. (novel candidate)",
+  "summary": "Follistatin (FST), an activin/BMP antagonist, is required for adult hippocampal neurogenesis, synaptic plasticity, spatial learning, and working memory, with brain-specific knockout mice showing LTP deficits; however, direct neuropsychiatric genetic evidence (e.g., GWAS or rare variant studies) for FST itself is absent, making it a biologically plausible but unvalidated psychiatric candidate. (novel candidate)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

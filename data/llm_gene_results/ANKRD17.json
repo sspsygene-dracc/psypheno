@@ -1,0 +1,9 @@
+{
+  "symbol": "ANKRD17",
+  "central_gene_id": 10772,
+  "pubmed_links": "[Chopra et al. (2021) ANKRD17 loss-of-function variants cause intellectual disability syndrome](https://pubmed.ncbi.nlm.nih.gov/33909992/);[Sveden et al. (2022) ANKRD17-Related Neurodevelopmental Syndrome](https://pubmed.ncbi.nlm.nih.gov/36548456/);[Xia et al. (2025) Novel ANKRD17 variants implicate synaptic and mitochondrial disruptions in intellectual disability and autism](https://pubmed.ncbi.nlm.nih.gov/40604385/)",
+  "summary": "Heterozygous loss-of-function variants in ANKRD17 cause Chopra-Amiel-Gordon syndrome, an autosomal dominant neurodevelopmental disorder characterized by intellectual disability, prominent speech delay, autism spectrum disorder, ADHD, and seizures — typically arising from de novo mutations. Mouse models and patient studies show that ANKRD17 disruption impairs synaptic protein expression and mitochondrial function, providing a mechanistic basis for the cognitive and behavioral phenotypes. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

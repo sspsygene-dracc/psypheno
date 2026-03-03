@@ -1,0 +1,9 @@
+{
+  "symbol": "GPR171",
+  "central_gene_id": 3402,
+  "pubmed_links": "[Bobeck et al. (2017) BigLEN-GPR171 system in basolateral amygdala regulates anxiety and fear conditioning](https://pubmed.ncbi.nlm.nih.gov/28425495/); [Raddatz et al. (2025) GPR171 necessary for mood-related behaviors in males](https://pubmed.ncbi.nlm.nih.gov/40318809/); [Fricker et al. (2025) ProSAAS neuropeptides and GPR171/GPR83 as therapeutic targets for anxiety](https://pubmed.ncbi.nlm.nih.gov/40450835/)",
+  "summary": "GPR171 is a brain-expressed G protein-coupled receptor activated by the neuropeptide BigLEN; preclinical studies show it regulates anxiety-like behavior and contextual fear via the basolateral amygdala, and male knockout mice display altered mood-related phenotypes, positioning it as a candidate therapeutic target for anxiety and mood disorders. There is currently no direct genetic evidence linking GPR171 to autism, schizophrenia, bipolar disorder, or intellectual disability in humans. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "LIN28B",
+  "central_gene_id": 7694,
+  "pubmed_links": "[Oh et al. (2018) Lin28B and miR-142-3p regulate neuronal differentiation by modulating Staufen1 expression](https://pubmed.ncbi.nlm.nih.gov/29099484/);[Herrlinger et al. (2019) Lin28-mediated temporal promotion of protein synthesis is crucial for neural progenitor cell maintenance and brain development in mice](https://pubmed.ncbi.nlm.nih.gov/31064784/);[Yang et al. (2015) Lin28 promotes the proliferative capacity of neural progenitor cells in brain development](https://pubmed.ncbi.nlm.nih.gov/25922525/)",
+  "summary": "LIN28B is an RNA-binding protein that suppresses let-7 miRNA biogenesis and regulates neural progenitor cell proliferation and neuronal differentiation; combined loss of Lin28a/b in mice causes microcephaly and neural tube defects, implicating this gene in early cortical development. No direct genetic associations with specific neuropsychiatric disorders such as autism or schizophrenia have been reported, but its essential role in brain development makes it a candidate for neurodevelopmental conditions. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

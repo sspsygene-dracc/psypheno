@@ -1,9 +1,9 @@
 {
   "symbol": "NR4A1",
   "central_gene_id": 16881,
-  "pubmed_links": "[Bhatt et al. (2017) Transcriptomic analysis shows decreased cortical expression of NR4A1, NR4A2 and RXRB in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/27992436/); [Novak et al. (2010) Association of the orphan nuclear receptor NR4A1 with tardive dyskinesia](https://pubmed.ncbi.nlm.nih.gov/20010315/); [Bhatt et al. (2018) Nuclear receptors and neuroinflammation in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/29888229/)",
-  "summary": "NR4A1 (Nur77/NGFI-B) is an orphan nuclear receptor expressed in dopaminergic neurons whose cortical mRNA expression is significantly downregulated in schizophrenia; genetic variants in NR4A1 are associated with tardive dyskinesia risk in antipsychotic-treated patients. (emerging evidence)",
+  "pubmed_links": "[Corley et al. (2016) Transcriptomic analysis shows decreased cortical expression of NR4A1, NR4A2 and RXRB in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/27992436/); [Novak et al. (2010) Association of the orphan nuclear receptor NR4A1 with tardive dyskinesia](https://pubmed.ncbi.nlm.nih.gov/20010315/); [Tsai et al. (2018) Nuclear receptors and neuroinflammation in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/29888229/)",
+  "summary": "NR4A1 (Nur77/NGFI-B) is an orphan nuclear receptor whose cortical mRNA expression is significantly downregulated in schizophrenia, with further reductions observed in cases with high neuroinflammation; genetic variants in NR4A1 are also associated with tardive dyskinesia risk in antipsychotic-treated patients. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

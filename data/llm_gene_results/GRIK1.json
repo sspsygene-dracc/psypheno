@@ -1,0 +1,9 @@
+{
+  "symbol": "GRIK1",
+  "central_gene_id": 3492,
+  "pubmed_links": "[Bassiony et al. (2025) GRIK1 variants and autism spectrum disorders in Egyptian children](https://pubmed.ncbi.nlm.nih.gov/41327126/); [Chatterjee et al. (2022) GRIK1 risk variants and deficiency in Indian ADHD probands](https://pubmed.ncbi.nlm.nih.gov/36323684/); [Hu et al. (2022) Ultrarare loss-of-function mutations in kainate receptor genes associated with schizophrenia](https://pubmed.ncbi.nlm.nih.gov/35629206/)",
+  "summary": "GRIK1 encodes a kainate-type ionotropic glutamate receptor subunit and has been associated with multiple neurodevelopmental and neuropsychiatric conditions, with risk variants and loss-of-function mutations implicated in autism spectrum disorder, ADHD, and schizophrenia. Evidence from case-control and family-based studies supports a role for disrupted kainate receptor signaling in these disorders, though effect sizes remain modest. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

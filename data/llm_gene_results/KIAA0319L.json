@@ -1,0 +1,9 @@
+{
+  "symbol": "KIAA0319L",
+  "central_gene_id": 6672,
+  "pubmed_links": "[Couto et al. (2008) The KIAA0319L gene on chromosome 1p34 as a candidate for reading disabilities](https://pubmed.ncbi.nlm.nih.gov/19085271/);[Wang et al. (2013) New insights into the genetic mechanism of IQ in autism spectrum disorders](https://pubmed.ncbi.nlm.nih.gov/24151499/);[Guidi et al. (2017) Knockout mice for KIAA0319 and KIAA0319L show abnormal auditory processing](https://pubmed.ncbi.nlm.nih.gov/29045729/)",
+  "summary": "KIAA0319L, a paralog of the dyslexia susceptibility gene KIAA0319, has been identified as a candidate for reading disabilities via genetic association on chromosome 1p34, and has also been found significantly associated with IQ variability in autism spectrum disorder patients. Functional studies in rodents and chick models implicate it in neuronal migration and auditory processing during brain development, positioning it as a pleiotropic neurodevelopmental risk gene. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

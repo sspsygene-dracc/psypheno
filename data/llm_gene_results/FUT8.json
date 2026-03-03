@@ -5,5 +5,5 @@
   "summary": "Biallelic loss-of-function variants in FUT8, encoding the enzyme responsible for core fucosylation of N-linked glycoproteins, cause FUT8-CDG, a congenital disorder of glycosylation characterized by severe intellectual disability, developmental delay, microcephaly, and seizures. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

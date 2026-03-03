@@ -1,0 +1,9 @@
+{
+  "symbol": "NIT2",
+  "central_gene_id": 16484,
+  "pubmed_links": "[Myung et al. (2003) Deranged hypothetical proteins Rik protein, Nit protein 2 and mitochondrial inner membrane protein, Mitofilin, in fetal Down syndrome brain](https://pubmed.ncbi.nlm.nih.gov/14528910/)",
+  "summary": "NIT2 (omega-amidase) was found to be ~2-fold reduced at the protein level in fetal Down syndrome cortical brain tissue compared to controls in a proteomics study, representing the only direct link of NIT2 to a neurodevelopmental condition; no genetic association studies connect NIT2 to autism, schizophrenia, bipolar disorder, or intellectual disability. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

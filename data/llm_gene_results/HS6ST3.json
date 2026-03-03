@@ -1,9 +1,9 @@
 {
   "symbol": "HS6ST3",
   "central_gene_id": 4900,
-  "pubmed_links": "[Moon et al. (2024) Knockout of intellectual disability-linked Hs6st2 decreases 6-O-sulfation, impairs dendritic spines and memory](https://pubmed.ncbi.nlm.nih.gov/38015989/)",
-  "summary": "HS6ST3 encodes one of three heparan sulfate 6-O-sulfotransferases expressed in the brain; while HS6ST3 itself lacks direct published disease associations, closely related family members HS6ST1 and HS6ST2 are linked to brain malformations and intellectual disability, and heparan sulfate deficiency broadly has been implicated in autism spectrum disorder pathology. (novel candidate)",
+  "pubmed_links": "[Moon et al. (2024) Knockout of intellectual disability-linked Hs6st2 decreases 6-O-sulfation, impairs dendritic spines and memory](https://pubmed.ncbi.nlm.nih.gov/38015989/); [Yabe et al. (2005) Developmental and regional expression of heparan sulfate sulfotransferase genes in the mouse brain](https://pubmed.ncbi.nlm.nih.gov/15944372/); [Alexander et al. (2022) Autism, heparan sulfate and potential interventions](https://pubmed.ncbi.nlm.nih.gov/35307405/)",
+  "summary": "HS6ST3 encodes one of three heparan sulfate 6-O-sulfotransferases with temporally regulated expression in developing cerebellar Purkinje cells and cortical pyramidal neurons; while HS6ST3 itself lacks direct published disease associations, the paralog HS6ST2 is linked to intellectual disability, HS6ST3's chromosomal locus 13q32-q33 falls within a region showing linkage to bipolar disorder and schizophrenia, and heparan sulfate deficiency broadly has been implicated in autism spectrum disorder pathology. (novel candidate)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

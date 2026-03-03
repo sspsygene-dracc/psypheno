@@ -1,0 +1,9 @@
+{
+  "symbol": "ARF1",
+  "central_gene_id": 11118,
+  "pubmed_links": "[de Sainte Agathe et al. (2023) ARF1-related disorder: phenotypic and molecular spectrum](https://pubmed.ncbi.nlm.nih.gov/37185208/); [Ishida et al. (2023) A neurodevelopmental disorder associated with an activating de novo missense variant in ARF1](https://pubmed.ncbi.nlm.nih.gov/36345169/); [Ramos-Miguel et al. (2019) The SNAP25 interactome in ventromedial caudate in schizophrenia includes ARF1](https://pubmed.ncbi.nlm.nih.gov/30610939/)",
+  "summary": "De novo missense variants in ARF1, a small GTPase regulating Golgi vesicle trafficking, cause a recognizable neurodevelopmental syndrome characterized by intellectual disability, cortical malformations (periventricular nodular heterotopia, polymicrogyria), epilepsy, and hypotonia, with autism and ADHD features reported in a subset of cases. A proteomic study of post-mortem schizophrenia brain also found ARF1 aberrantly enriched in the SNAP25 synaptic interactome, implicating disrupted vesicle trafficking at the synapse. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

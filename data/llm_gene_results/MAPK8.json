@@ -1,9 +1,9 @@
 {
   "symbol": "MAPK8",
   "central_gene_id": 11747,
-  "pubmed_links": "[Shoichet et al. (2017) Mapping autosomal recessive intellectual disability: combined microarray and exome sequencing identifies 26 novel candidate genes](https://pubmed.ncbi.nlm.nih.gov/28397838/); [Coffey et al. (2014) Nuclear and cytosolic JNK signalling in neurons](https://pubmed.ncbi.nlm.nih.gov/25309320/); [Bhatt et al. (2018) JIP1-mediated JNK activation negatively regulates synaptic plasticity and spatial memory](https://pmc.ncbi.nlm.nih.gov/articles/PMC5895995/)",
+  "pubmed_links": "[Harripaul et al. (2017) Mapping autosomal recessive intellectual disability: combined microarray and exome sequencing identifies 26 novel candidate genes](https://pubmed.ncbi.nlm.nih.gov/28397838/); [Komulainen et al. (2014) JNK1 controls dendritic field size in L2/3 and L5 of the motor cortex, constrains soma size, and influences fine motor coordination](https://pubmed.ncbi.nlm.nih.gov/25309320/); [Morel et al. (2018) JIP1-mediated JNK activation negatively regulates synaptic plasticity and spatial memory](https://pubmed.ncbi.nlm.nih.gov/29540552/)",
   "summary": "MAPK8 (JNK1) encodes a kinase whose signaling pathway has been genetically implicated in autism spectrum disorder, schizophrenia, and intellectual disability; loss-of-function variants in MAPK8 were identified in consanguineous families with autosomal recessive intellectual disability, and JNK1 dysregulation disrupts synaptic plasticity and dendritic architecture relevant to neurodevelopmental phenotypes. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

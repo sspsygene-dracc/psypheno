@@ -1,0 +1,9 @@
+{
+  "symbol": "MTOR",
+  "central_gene_id": 15539,
+  "pubmed_links": "[Cole et al. (2023) Autism spectrum disorder and brain volume link through a set of mTOR-related genes](https://pubmed.ncbi.nlm.nih.gov/36922714/); [Fernandes & Bhambhvani (2023) mTOR Signaling Disruption and Its Association with the Development of Autism Spectrum Disorder](https://pubmed.ncbi.nlm.nih.gov/36840739/); [Karalis & Bhambhvani (2021) Translating the Role of mTOR- and RAS-Associated Signalopathies in Autism Spectrum Disorder: Models, Mechanisms and Treatment](https://pubmed.ncbi.nlm.nih.gov/34828352/)",
+  "summary": "MTOR encodes the mechanistic target of rapamycin kinase, a master regulator of cell growth and protein synthesis; gain-of-function variants cause Smith-Kingsmore syndrome (megalencephaly, intellectual disability, autism spectrum disorder, epilepsy), and broader mTOR pathway dysregulation is implicated across autism, tuberous sclerosis, and schizophrenia. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

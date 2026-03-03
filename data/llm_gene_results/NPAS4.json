@@ -1,9 +1,9 @@
 {
   "symbol": "NPAS4",
   "central_gene_id": 16722,
-  "pubmed_links": "[Bhatt et al. (2013) Npas4: A neuronal transcription factor with a key role in social and cognitive functions relevant to developmental disorders](https://pubmed.ncbi.nlm.nih.gov/23029555/); [Bhatt et al. (2021) Molecular characterisation of rare loss-of-function NPAS3 and NPAS4 variants identified in individuals with neurodevelopmental disorders](https://pubmed.ncbi.nlm.nih.gov/33758288/); [Jaramillo et al. (2019) Downregulation of Npas4 in parvalbumin interneurons and cognitive deficits after neonatal NMDA receptor blockade: relevance for schizophrenia](https://pubmed.ncbi.nlm.nih.gov/30792384/)",
+  "pubmed_links": "[Coutellier et al. (2012) Npas4: a neuronal transcription factor with a key role in social and cognitive functions relevant to developmental disorders](https://pubmed.ncbi.nlm.nih.gov/23029555/); [Rossi et al. (2021) Molecular characterisation of rare loss-of-function NPAS3 and NPAS4 variants identified in individuals with neurodevelopmental disorders](https://pubmed.ncbi.nlm.nih.gov/33758288/); [Shepard et al. (2019) Downregulation of Npas4 in parvalbumin interneurons and cognitive deficits after neonatal NMDA receptor blockade: relevance for schizophrenia](https://pubmed.ncbi.nlm.nih.gov/30792384/)",
   "summary": "NPAS4 is an activity-dependent neuronal transcription factor that regulates excitatory-inhibitory synaptic balance, and its deficiency in mice produces social, cognitive, and sensorimotor gating deficits mirroring autism and schizophrenia symptomatology; rare loss-of-function NPAS4 variants have been identified in individuals with developmental delay and intellectual disability. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

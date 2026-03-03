@@ -1,9 +1,9 @@
 {
   "symbol": "PAX3",
   "central_gene_id": 18618,
-  "pubmed_links": "[Baldwin et al. (1992) Mutations in PAX3 associated with Waardenburg syndrome type I](https://pubmed.ncbi.nlm.nih.gov/8019556/); [Hoth et al. (1993) Mutations in the paired domain of the human PAX3 gene cause Klein-Waardenburg syndrome as well as Waardenburg syndrome type I](https://pubmed.ncbi.nlm.nih.gov/8490648/)",
-  "summary": "PAX3 encodes a paired-box transcription factor causally implicated in Waardenburg syndrome types 1 and 3, a congenital disorder that can include neurological features; PAX3 plays a broad role in neural crest and neural tube development but has limited direct evidence for classic neuropsychiatric conditions. (novel candidate)",
+  "pubmed_links": "[Baldwin et al. (1994) Mutations in PAX3 associated with Waardenburg syndrome type I](https://pubmed.ncbi.nlm.nih.gov/8019556/); [Hoth et al. (1993) Mutations in the paired domain of the human PAX3 gene cause Klein-Waardenburg syndrome (WS-III) as well as Waardenburg syndrome type I (WS-I)](https://pubmed.ncbi.nlm.nih.gov/8447316/)",
+  "summary": "PAX3 encodes a paired-box transcription factor causally implicated in Waardenburg syndrome types 1 and 3, a congenital disorder that can include sensorineural hearing loss and neurological features; PAX3 plays a broad role in neural crest and neural tube development but has limited direct evidence for classic neuropsychiatric conditions. (novel candidate)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

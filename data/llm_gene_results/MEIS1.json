@@ -1,9 +1,9 @@
 {
   "symbol": "MEIS1",
   "central_gene_id": 12083,
-  "pubmed_links": "[Spieler et al. (2014) Restless legs syndrome-associated intronic common variant in Meis1 alters enhancer function in the developing telencephalon](https://pubmed.ncbi.nlm.nih.gov/24642863/); [Schulte et al. (2019) Role of MEIS1 in restless legs syndrome: From GWAS to functional studies in mice](https://pubmed.ncbi.nlm.nih.gov/31229170/); [Catoire et al. (2018) RLS-associated MEIS transcription factors control distinct processes in human neural stem cells](https://pubmed.ncbi.nlm.nih.gov/30111810/)",
-  "summary": "MEIS1 harbors the strongest known GWAS risk locus for restless legs syndrome and functions as a homeodomain transcription factor highly expressed in dopaminergic neurons of the substantia nigra; intronic risk variants alter enhancer activity in the developing telencephalon/basal ganglia, linking early brain neurodevelopment to a neurological movement disorder with neuropsychiatric comorbidities. (emerging evidence)",
+  "pubmed_links": "[Spieler et al. (2014) Restless legs syndrome-associated intronic common variant in Meis1 alters enhancer function in the developing telencephalon](https://pubmed.ncbi.nlm.nih.gov/24642863/); [Salminen et al. (2019) Role of MEIS1 in restless legs syndrome: From GWAS to functional studies in mice](https://pubmed.ncbi.nlm.nih.gov/31229170/); [Kittke et al. (2024) RLS-associated MEIS transcription factors control distinct processes in human neural stem cells](https://pubmed.ncbi.nlm.nih.gov/39578497/)",
+  "summary": "MEIS1 harbors the strongest known GWAS risk locus for restless legs syndrome (RLS) and encodes a homeodomain transcription factor expressed in the developing telencephalon and basal ganglia; intronic risk variants reduce enhancer activity in the ganglionic eminences and affect the dopaminergic system, linking early neurodevelopment to a neurological movement disorder with neuropsychiatric comorbidities. Functional studies in human neural stem cells show that MEIS1 and its paralog MEIS2 control distinct transcriptional programs, with MEIS1 directly regulating additional RLS-associated genes including NTNG1, MDGA1, and DACH1. (well-established)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

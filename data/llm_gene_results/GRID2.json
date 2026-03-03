@@ -1,9 +1,9 @@
 {
   "symbol": "GRID2",
   "central_gene_id": 3489,
-  "pubmed_links": "[Davies et al. (2023) Clinical features, functional consequences, and rescue pharmacology of missense GRID1 and GRID2 human variants](https://pubmed.ncbi.nlm.nih.gov/37944084/); [Rinaldi et al. (2022) GRID2 Mutation-Related Spinocerebellar Ataxia Type 18: A new report and literature review](https://pubmed.ncbi.nlm.nih.gov/35769960/); [Trujillano et al. (2020) A case of severe autosomal recessive spinocerebellar ataxia type 18 with a novel nonsense variant in GRID2](https://pubmed.ncbi.nlm.nih.gov/32622959/)",
+  "pubmed_links": "[Allen et al. (2024) Clinical features, functional consequences, and rescue pharmacology of missense GRID1 and GRID2 human variants](https://pubmed.ncbi.nlm.nih.gov/37944084/); [Panda et al. (2022) GRID2 Mutation-Related Spinocerebellar Ataxia Type 18: A new report and literature review](https://pubmed.ncbi.nlm.nih.gov/35769960/); [Hetzelt et al. (2020) A case of severe autosomal recessive spinocerebellar ataxia type 18 with a novel nonsense variant in GRID2](https://pubmed.ncbi.nlm.nih.gov/32622959/)",
   "summary": "GRID2 encodes the glutamate receptor delta-2 subunit (GluD2), which is critical for synapse organization and development in the cerebellum; pathogenic variants cause spinocerebellar ataxia type 18 with intellectual disability and developmental delay, and rare GRID2 variants have also been identified in autism spectrum disorder individuals and listed in the SFARI autism gene database. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

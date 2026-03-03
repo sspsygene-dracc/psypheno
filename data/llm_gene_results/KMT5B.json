@@ -1,0 +1,9 @@
+{
+  "symbol": "KMT5B",
+  "central_gene_id": 6949,
+  "pubmed_links": "[Politano et al. (2025) Bridging genotype to phenotype in KMT5B-related syndrome](https://pubmed.ncbi.nlm.nih.gov/41153391/);[Chen et al. (2022) Loss-of-function of KMT5B leads to neurodevelopmental disorder and impairs neuronal development and neurogenesis](https://pubmed.ncbi.nlm.nih.gov/35331928/);[Wang et al. (2021) Autism risk gene KMT5B deficiency in prefrontal cortex induces synaptic dysfunction and social deficits](https://pubmed.ncbi.nlm.nih.gov/34007043/)",
+  "summary": "KMT5B (SUV420H1), a histone H4K20 methyltransferase highly expressed in the prefrontal cortex, is a high-confidence autism risk gene whose loss-of-function variants cause autosomal dominant intellectual disability with features including ASD, language impairment, and ADHD. Functional studies show KMT5B is essential for neural progenitor proliferation and neurogenesis, and its deficiency in mouse prefrontal cortex disrupts synaptic function and produces social behavioral deficits. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "ADA2",
+  "central_gene_id": 387,
+  "pubmed_links": "[Verschoof et al. (2024) Neurological phenotype of adenosine deaminase 2 deficient patients: a cohort study](https://pubmed.ncbi.nlm.nih.gov/37584090/)",
+  "summary": "ADA2 (CECR1) encodes adenosine deaminase 2, whose deficiency (DADA2) causes a systemic autoinflammatory vasculopathy with neurological complications including stroke, ataxia, and rare incidental cases of ADHD and autism; ADA2 has not been identified as a primary risk gene in GWAS or exome-sequencing studies of classic neuropsychiatric or neurodevelopmental disorders. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

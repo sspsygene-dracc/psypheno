@@ -139,7 +139,6 @@ export default function MethodsPage() {
               ["stouffer", "Stouffer\u2019s Method"],
               ["cauchy", "Cauchy Combination Test (CCT)"],
               ["hmp", "Harmonic Mean P-Value (HMP)"],
-              ["bh", "Benjamini\u2013Hochberg FDR Correction"],
               ["rationale", "Why All Four Methods?"],
             ].map(([id, label]) => (
               <li key={id} style={{ marginBottom: 2 }}>
@@ -182,10 +181,6 @@ export default function MethodsPage() {
             <li>
               <strong>Combine</strong> using four methods: Fisher and Stouffer operate on the
               collapsed per-table p-values; CCT and HMP operate directly on all raw p-values.
-            </li>
-            <li>
-              <strong>FDR correction</strong>: apply Benjamini&ndash;Hochberg across all genes,
-              separately for each method.
             </li>
           </ol>
           <p>
@@ -425,52 +420,6 @@ export default function MethodsPage() {
             >
               doi:10.1073/pnas.1814092116
             </a>
-          </p>
-        </section>
-
-        {/* 6. BH FDR */}
-        <section id="sec-bh" style={{ ...sectionStyle, scrollMarginTop: 16 }}>
-          <h2 style={h2Style}>Benjamini&ndash;Hochberg FDR Correction</h2>
-          <p>
-            After computing a combined p-value for each gene by each method, we apply the
-            Benjamini&ndash;Hochberg (BH) procedure to control the{" "}
-            <strong>false discovery rate</strong> (FDR): the expected proportion of false
-            positives among discoveries.
-          </p>
-          <p>
-            <strong>Algorithm:</strong> Given <V>m</V> combined p-values (one per gene):
-          </p>
-          <ol>
-            <li>
-              <strong>Rank</strong> in ascending order:{" "}
-              <V>p</V><sub>(1)</sub> &le; <V>p</V><sub>(2)</sub> &le; &hellip; &le;{" "}
-              <V>p</V><sub>(<V>m</V>)</sub>.
-            </li>
-            <li>
-              <strong>Adjust:</strong>
-              <div style={mathBlock}>
-                <V>p</V><sub>adj</sub>(<V>i</V>) = min(
-                <V>p</V><sub>(<V>i</V>)</sub> &middot;{" "}
-                <Frac num={<V>m</V>} den={<V>i</V>} />, 1)
-              </div>
-            </li>
-            <li>
-              <strong>Enforce monotonicity</strong> (step down from rank <V>m</V> to 1):
-              ensure <V>p</V><sub>adj</sub>(<V>i</V>) &le;{" "}
-              <V>p</V><sub>adj</sub>(<V>i</V>+1).
-            </li>
-          </ol>
-          <p>
-            The BH procedure controls E[FDP] &le; <V>q</V> under independence and also under
-            positive regression dependency (PRDS). With ~20,000 genes, Bonferroni would require
-            individual p-values below 2.5&times;10<sup>&minus;6</sup>; BH is more powerful while
-            still providing meaningful error control. FDR correction is applied independently for
-            each of the four methods via R&apos;s <span style={codeStyle}>p.adjust(method=&quot;BH&quot;)</span>.
-          </p>
-          <p style={refStyle}>
-            Benjamini, Y. &amp; Hochberg, Y. (1995). Controlling the false discovery rate: a
-            practical and powerful approach to multiple testing. <em>Journal of the Royal
-            Statistical Society B</em>, 57(1), 289&ndash;300.
           </p>
         </section>
 

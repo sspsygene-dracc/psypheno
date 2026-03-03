@@ -1,9 +1,9 @@
 {
   "symbol": "MEIS2",
   "central_gene_id": 12086,
-  "pubmed_links": "[Douglas et al. (2018) De novo missense variants in MEIS2 recapitulate the microdeletion phenotype of cardiac and palate abnormalities, developmental delay, intellectual disability and dysmorphic features](https://pubmed.ncbi.nlm.nih.gov/30055086/); [Louw et al. (2019) Heterozygous loss-of-function variants of MEIS2 cause a triad of palatal defects, congenital heart defects, and intellectual disability](https://pubmed.ncbi.nlm.nih.gov/30291340/); [Fabretto et al. (2018) MEIS2 gene is responsible for intellectual disability, cardiac defects and a distinct facial phenotype](https://pubmed.ncbi.nlm.nih.gov/30735726/)",
-  "summary": "Heterozygous loss-of-function variants and 15q14 microdeletions affecting MEIS2 cause a syndromic neurodevelopmental disorder featuring intellectual disability, cleft palate, congenital heart defects, and autism spectrum disorder in a subset of patients; MEIS2 haploinsufficiency produces ASD-like behavioral abnormalities in animal models. (well-established)",
+  "pubmed_links": "[Douglas et al. (2018) De novo missense variants in MEIS2 recapitulate the microdeletion phenotype of cardiac and palate abnormalities, developmental delay, intellectual disability and dysmorphic features](https://pubmed.ncbi.nlm.nih.gov/30055086/); [Verheije et al. (2019) Heterozygous loss-of-function variants of MEIS2 cause a triad of palatal defects, congenital heart defects, and intellectual disability](https://pubmed.ncbi.nlm.nih.gov/30291340/); [Giliberti et al. (2020) MEIS2 gene is responsible for intellectual disability, cardiac defects and a distinct facial phenotype](https://pubmed.ncbi.nlm.nih.gov/30735726/)",
+  "summary": "Heterozygous loss-of-function variants and 15q14 microdeletions affecting MEIS2 cause a syndromic neurodevelopmental disorder featuring intellectual disability, cleft palate, and congenital heart defects, with autism spectrum disorder reported in a subset of patients. (well-established)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

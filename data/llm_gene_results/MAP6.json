@@ -1,0 +1,9 @@
+{
+  "symbol": "MAP6",
+  "central_gene_id": 11722,
+  "pubmed_links": "[Shimizu et al. (2006) Genetic and expression analyses of the STOP (MAP6) gene in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/16624526/); [Fournet et al. (2012) Deletion of STOP/MAP6 protein in mice triggers highly altered mood and impaired cognitive performances](https://pubmed.ncbi.nlm.nih.gov/22146001/); [Volle et al. (2013) Reduced expression of STOP/MAP6 in mice leads to cognitive deficits](https://pubmed.ncbi.nlm.nih.gov/23002183/)",
+  "summary": "MAP6 (STOP, Stable Tubule-Only Polypeptide) is a microtubule-stabilizing protein with well-established links to schizophrenia; MAP6 knockout mice display neuroleptic-responsive behavioral deficits, synaptic plasticity anomalies, and cognitive impairments that model schizophrenia symptoms, and human genetic studies have found associations between MAP6 variants/expression changes and schizophrenia. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

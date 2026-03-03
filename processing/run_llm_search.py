@@ -5,17 +5,11 @@ Reads a YAML job file and launches parallel Claude CLI agents, each
 researching one gene for neuropsychiatric associations. Each agent writes
 its result directly to data/llm_gene_results/{SYMBOL}.json.
 
-Usage:
-    python run_llm_search.py llm_jobs.yaml
-    python run_llm_search.py llm_jobs.yaml --dry-run
-    python run_llm_search.py llm_jobs.yaml --model opus
-    python run_llm_search.py llm_jobs.yaml --max-workers 10
-
-    # Auto-generate a job config from the database:
-    python run_llm_search.py --generate-config --top-n 100 --output llm_jobs.yaml
+Can be run standalone or via the sspsygene CLI:
+    sspsygene run-llm-search llm_jobs.yaml
+    sspsygene generate-llm-config --top-n 100 --output llm_jobs.yaml
 """
 
-import argparse
 import concurrent.futures
 import functools
 import json
@@ -50,7 +44,7 @@ VALID_MODELS = ("sonnet", "opus")
 sys.path.insert(0, str(SCRIPT_DIR / "src"))
 from processing.llm_search import (
     VALID_MODES,
-    _get_top_genes,
+    get_top_genes,
     build_new_prompt,
     build_update_prompt,
     build_verify_prompt,
@@ -84,15 +78,6 @@ def load_jobs(yaml_path: str) -> list[dict]:
             )
 
     return jobs
-
-
-def resolve_central_gene_id(symbol: str) -> int | None:
-    """Look up central_gene_id from an existing result file, if any."""
-    path = GENE_RESULTS_DIR / f"{symbol}.json"
-    if path.exists():
-        data = load_gene_result(path)
-        return data.get("central_gene_id")
-    return None
 
 
 def build_prompt_for_job(job: dict) -> tuple[str, str | None]:
@@ -218,16 +203,34 @@ def run_agent(
             }
 
 
-def run_pipeline(args: argparse.Namespace) -> int:
-    """Run the LLM search pipeline from a YAML job file."""
-    jobs = load_jobs(args.yaml_file)
+def run_pipeline(
+    yaml_file: str,
+    model: str = DEFAULT_MODEL,
+    max_workers: int = DEFAULT_MAX_WORKERS,
+    max_budget: str = DEFAULT_MAX_BUDGET,
+    timeout: int = DEFAULT_TIMEOUT,
+    dry_run: bool = False,
+) -> int:
+    """Run the LLM search pipeline from a YAML job file.
+
+    Returns 0 on success, 1 if any jobs failed.
+    """
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    GENE_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    if not SETTINGS_FILE.exists():
+        print(f"ERROR: Settings file not found at {SETTINGS_FILE}")
+        print("Create processing/.claude/settings.json with agent permissions.")
+        return 1
+
+    jobs = load_jobs(yaml_file)
 
     print(f"=== LLM Gene Search Pipeline ===")
     print(f"Jobs: {len(jobs)}")
-    print(f"Model: {args.model}")
-    print(f"Max workers: {args.max_workers}")
-    print(f"Budget per agent: ${args.max_budget}")
-    print(f"Timeout: {args.timeout}s")
+    print(f"Model: {model}")
+    print(f"Max workers: {max_workers}")
+    print(f"Budget per agent: ${max_budget}")
+    print(f"Timeout: {timeout}s")
     print()
 
     # Resolve prompts and check prerequisites
@@ -244,7 +247,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
             print(f"  [QUEUE] {symbol:20s} ({mode})")
             resolved.append({"symbol": symbol, "mode": mode, "prompt": prompt})
 
-    if args.dry_run:
+    if dry_run:
         print(f"\nDry run — {len(resolved)} jobs queued, {len(skipped)} skipped.")
         return 0
 
@@ -255,18 +258,18 @@ def run_pipeline(args: argparse.Namespace) -> int:
     print()
     start_time = time.time()
     results = []
-    semaphore = threading.Semaphore(args.max_workers)
+    semaphore = threading.Semaphore(max_workers)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=args.max_workers) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {}
         for job in resolved:
             future = executor.submit(
                 run_agent,
                 job["symbol"],
                 job["prompt"],
-                args.model,
-                args.max_budget,
-                args.timeout,
+                model,
+                max_budget,
+                timeout,
                 semaphore,
             )
             futures[future] = job["symbol"]
@@ -298,7 +301,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
         json.dump(
             {
                 "timestamp": datetime.now().isoformat(),
-                "model": args.model,
+                "model": model,
                 "total_elapsed": total_elapsed,
                 "succeeded": len(succeeded),
                 "failed": len(failed),
@@ -314,9 +317,17 @@ def run_pipeline(args: argparse.Namespace) -> int:
     return 0 if not failed else 1
 
 
-def generate_config(args: argparse.Namespace) -> int:
-    """Generate a YAML config from the database."""
+def generate_config(
+    top_n: int = 50,
+    output: str | None = None,
+) -> int:
+    """Generate a YAML config from the database.
+
+    Returns 0 on success, 1 on error.
+    """
     from processing.config import get_sspsygene_config
+
+    GENE_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     config = get_sspsygene_config()
     db_path = config.out_db
@@ -325,8 +336,8 @@ def generate_config(args: argparse.Namespace) -> int:
         print("Run 'sspsygene load-db' first.")
         return 1
 
-    print(f"Querying top {args.top_n} genes from {db_path}...")
-    genes = _get_top_genes(db_path, args.top_n)
+    print(f"Querying top {top_n} genes from {db_path}...")
+    genes = get_top_genes(db_path, top_n)
     print(f"Found {len(genes)} unique genes across 4 ranking methods.")
 
     # Determine mode for each gene
@@ -349,22 +360,22 @@ def generate_config(args: argparse.Namespace) -> int:
     yaml_str = (
         "# Auto-generated LLM gene search config\n"
         f"# Generated: {datetime.now().isoformat()}\n"
-        f"# Top-N: {args.top_n} ({len(genes)} unique genes)\n"
+        f"# Top-N: {top_n} ({len(genes)} unique genes)\n"
         "#\n"
         "# Usage:\n"
-        "#   python run_llm_search.py llm_jobs.yaml\n"
-        "#   python run_llm_search.py llm_jobs.yaml --dry-run\n"
-        "#   python run_llm_search.py llm_jobs.yaml --model opus\n"
+        "#   sspsygene run-llm-search llm_jobs.yaml\n"
+        "#   sspsygene run-llm-search llm_jobs.yaml --dry-run\n"
+        "#   sspsygene run-llm-search llm_jobs.yaml --model opus\n"
         "#\n"
         "# Modes: new, verify, update, verify_update\n"
         "\n"
     )
     yaml_str += yaml.dump(yaml_data, default_flow_style=False, sort_keys=False)
 
-    if args.output:
-        with open(args.output, "w") as f:
+    if output:
+        with open(output, "w") as f:
             f.write(yaml_str)
-        print(f"Config written to {args.output}")
+        print(f"Config written to {output}")
     else:
         print()
         print(yaml_str)
@@ -372,7 +383,9 @@ def generate_config(args: argparse.Namespace) -> int:
     return 0
 
 
-def main() -> int:
+if __name__ == "__main__":
+    import argparse
+
     parser = argparse.ArgumentParser(
         description="Parallel LLM gene search orchestrator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -390,83 +403,31 @@ Examples:
   python run_llm_search.py --generate-config --top-n 100 --output llm_jobs.yaml
 """,
     )
-
-    # Config generation mode
     parser.add_argument(
-        "--generate-config",
-        action="store_true",
+        "--generate-config", action="store_true",
         help="Generate a YAML config from the database instead of running jobs",
     )
-    parser.add_argument(
-        "--top-n",
-        type=int,
-        default=50,
-        help="Number of top genes per ranking method (default: 50)",
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        default=None,
-        help="Output file for generated config (default: stdout)",
-    )
-
-    # Pipeline mode
-    parser.add_argument(
-        "yaml_file",
-        nargs="?",
-        help="YAML file with pipeline jobs",
-    )
-    parser.add_argument(
-        "--max-workers",
-        type=int,
-        default=DEFAULT_MAX_WORKERS,
-        help=f"Max concurrent agents (default: {DEFAULT_MAX_WORKERS})",
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        default=DEFAULT_MODEL,
-        choices=VALID_MODELS,
-        help=f"Claude model to use (default: {DEFAULT_MODEL})",
-    )
-    parser.add_argument(
-        "--max-budget",
-        type=str,
-        default=DEFAULT_MAX_BUDGET,
-        help=f"Max budget per agent in USD (default: {DEFAULT_MAX_BUDGET})",
-    )
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=DEFAULT_TIMEOUT,
-        help=f"Timeout per agent in seconds (default: {DEFAULT_TIMEOUT})",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Print what would be done without executing",
-    )
+    parser.add_argument("--top-n", type=int, default=50)
+    parser.add_argument("--output", type=str, default=None)
+    parser.add_argument("yaml_file", nargs="?")
+    parser.add_argument("--max-workers", type=int, default=DEFAULT_MAX_WORKERS)
+    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=VALID_MODELS)
+    parser.add_argument("--max-budget", type=str, default=DEFAULT_MAX_BUDGET)
+    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
+    parser.add_argument("--dry-run", action="store_true")
 
     args = parser.parse_args()
 
-    # Ensure logs directory exists
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    GENE_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-
     if args.generate_config:
-        return generate_config(args)
-
-    if not args.yaml_file:
+        sys.exit(generate_config(top_n=args.top_n, output=args.output))
+    elif not args.yaml_file:
         parser.error("yaml_file is required when not using --generate-config")
-
-    # Verify settings file exists
-    if not SETTINGS_FILE.exists():
-        print(f"ERROR: Settings file not found at {SETTINGS_FILE}")
-        print("Create processing/.claude/settings.json with agent permissions.")
-        return 1
-
-    return run_pipeline(args)
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+    else:
+        sys.exit(run_pipeline(
+            yaml_file=args.yaml_file,
+            model=args.model,
+            max_workers=args.max_workers,
+            max_budget=args.max_budget,
+            timeout=args.timeout,
+            dry_run=args.dry_run,
+        ))

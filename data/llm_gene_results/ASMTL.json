@@ -2,8 +2,8 @@
   "symbol": "ASMTL",
   "central_gene_id": 11502,
   "pubmed_links": "[Melke et al. (2008) Abnormal melatonin synthesis in autism spectrum disorders](https://pubmed.ncbi.nlm.nih.gov/17505466/)",
-  "summary": "ASMTL is a pseudoautosomal region 1 gene structurally related to ASMT (the final enzyme in melatonin biosynthesis); the closely related ASMT gene has been directly implicated in autism spectrum disorder through promoter variants causing dramatically reduced ASMT expression and enzyme activity. ASMTL itself has not been independently studied in neuropsychiatric populations. (novel candidate)",
+  "summary": "ASMTL is a pseudoautosomal region 1 (PAR1) gene structurally related to ASMT (the final enzyme in melatonin biosynthesis), arising from an ancient gene fusion event; the closely related ASMT gene has been directly implicated in autism spectrum disorder through a splice site mutation and promoter polymorphisms causing reduced ASMT activity and melatonin levels. ASMTL itself has not been independently studied in neuropsychiatric populations. (novel candidate)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

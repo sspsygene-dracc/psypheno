@@ -1,0 +1,9 @@
+{
+  "symbol": "APOLD1",
+  "central_gene_id": 11058,
+  "pubmed_links": "[Koshimizu et al. (2021) BDNF predominantly regulates synapse-related genes in striatum; APOLD1 identified as top BDNF target gene](https://pubmed.ncbi.nlm.nih.gov/34529365/)",
+  "summary": "APOLD1, a vascular early response gene regulating endothelial function and blood-brain barrier permeability, was identified as the most significantly upregulated gene in striatal neurons following BDNF stimulation, implicating it in BDNF-mediated neurodevelopmental signaling pathways; however, no direct genetic associations with autism, schizophrenia, or other neuropsychiatric disorders have been established. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "LCORL",
+  "central_gene_id": 7506,
+  "pubmed_links": "[Watanabe et al. (2016) Rare truncating variations and risk of schizophrenia](https://pubmed.ncbi.nlm.nih.gov/26706132/); [Scelsi et al. (2018) Genetic study of multimodal imaging Alzheimer's disease progression score implicates novel loci](https://pubmed.ncbi.nlm.nih.gov/29860282/); [Wainberg et al. (2023) Shared genetic risk loci between Alzheimer's disease and related dementias, Parkinson's disease, and ALS](https://pubmed.ncbi.nlm.nih.gov/37328865/)",
+  "summary": "LCORL has been implicated as a candidate gene in schizophrenia via a rare truncating variant (R7fsX53) identified in whole-exome sequencing of multiplex families, and an LCORL eQTL on chromosome 4 has been associated with Alzheimer's disease progression and identified as a shared risk locus across neurodegenerative conditions. Evidence linking LCORL to neurodevelopmental disorders such as autism or intellectual disability is currently absent from the literature. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

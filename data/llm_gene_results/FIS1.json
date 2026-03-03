@@ -1,0 +1,9 @@
+{
+  "symbol": "FIS1",
+  "central_gene_id": 1883,
+  "pubmed_links": "[Tang et al. (2013) Mitochondrial abnormalities in temporal lobe of autistic brain](https://pubmed.ncbi.nlm.nih.gov/23333625/); [Rose et al. (2018) Butyrate enhances mitochondrial function during oxidative stress in cell lines from boys with autism](https://pubmed.ncbi.nlm.nih.gov/29391397/); [Carrasco et al. (2019) Alterations of mitochondrial biology in oral mucosa of Chilean children with autism spectrum disorder](https://pubmed.ncbi.nlm.nih.gov/31018497/)",
+  "summary": "FIS1 is upregulated in autistic brain tissue, autism-derived lymphoblastoid cells, and peripheral tissue from ASD children, reflecting a shift toward excessive mitochondrial fission that impairs neuronal energy metabolism during critical neurodevelopmental windows. No direct genetic association with ASD risk has been established; evidence rests on mitochondrial dysfunction studies rather than variant-level analyses. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

@@ -279,7 +279,6 @@
     <li><a href="#sec-stouffer">Stouffer's Method</a></li>
     <li><a href="#sec-cauchy">Cauchy Combination Test (CCT)</a></li>
     <li><a href="#sec-hmp">Harmonic Mean P-Value (HMP)</a></li>
-    <li><a href="#sec-bh">Benjamini&ndash;Hochberg FDR Correction</a></li>
     <li><a href="#sec-rationale">Why All Four Methods?</a></li>
   </ol>
 </nav>
@@ -313,10 +312,6 @@
       <strong>Combine</strong> using four methods:
       Fisher and Stouffer operate on the collapsed per-table p-values;
       CCT and HMP operate directly on all raw p-values.
-    </li>
-    <li>
-      <strong>FDR correction</strong>: apply Benjamini&ndash;Hochberg across all genes,
-      separately for each method.
     </li>
   </ol>
 
@@ -846,87 +841,6 @@ for _tbl, tbl_pvals in table_dict.items():
   <span class="ref">Wilson, D.J. (2019). The harmonic mean <em>p</em>-value for combining
     dependent tests. <em>Proceedings of the National Academy of Sciences</em>,
     116(4), 1195&ndash;1200.</span>
-</section>
-
-<!-- =========================================================== -->
-<!-- 6. Benjamini-Hochberg FDR -->
-<!-- =========================================================== -->
-<section class="method sec-bh" id="sec-bh">
-  <h2><span class="num">6.</span> Benjamini&ndash;Hochberg FDR Correction</h2>
-
-  <p>
-    After computing a combined p-value for each gene by each method, we apply the
-    Benjamini&ndash;Hochberg (BH) procedure to control the <strong>false discovery rate</strong>
-    (FDR): the expected proportion of false positives among the discoveries.
-  </p>
-
-  <dl class="steps">
-    <dt>Algorithm</dt>
-    <dd>
-      <p>Given <var>m</var> combined p-values (one per gene):</p>
-      <ol>
-        <li>
-          <strong>Rank</strong> the p-values in ascending order:
-          <var>p</var><sub>(1)</sub> &le; <var>p</var><sub>(2)</sub> &le; &hellip; &le; <var>p</var><sub>(<var>m</var>)</sub>.
-        </li>
-        <li>
-          <strong>Adjust</strong> each p-value:
-          <div class="math-block">
-            <var>p</var><sub>adj</sub>(<var>i</var>) = min
-            <span style="font-size: 1.3em;">(</span>
-            <var>p</var><sub>(<var>i</var>)</sub> &middot;
-            <span class="frac">
-              <span class="num"><var>m</var></span>
-              <span class="den"><var>i</var></span>
-            </span>
-            , &ensp; 1
-            <span style="font-size: 1.3em;">)</span>
-          </div>
-        </li>
-        <li>
-          <strong>Enforce monotonicity</strong> (stepping down from rank <var>m</var> to 1):
-          ensure that <var>p</var><sub>adj</sub>(<var>i</var>) &le; <var>p</var><sub>adj</sub>(<var>i</var>+1).
-          That is, process from the largest rank downward and take running minimums.
-        </li>
-      </ol>
-    </dd>
-
-    <dt>Guarantee</dt>
-    <dd>
-      <p>The BH procedure controls the FDR at level <var>q</var>:
-        if we reject all hypotheses with <var>p</var><sub>adj</sub> &le; <var>q</var>,
-        then E[FDP] &le; <var>q</var>, where FDP is the false discovery proportion.
-        This holds under independence and also under positive regression dependency
-        (PRDS), a condition satisfied by many practical settings.
-      </p>
-    </dd>
-
-    <dt>Why not Bonferroni?</dt>
-    <dd>
-      Bonferroni controls the family-wise error rate (FWER), which is far more stringent.
-      With ~20,000 genes, Bonferroni would require individual p-values below
-      2.5 &times; 10<sup>&minus;6</sup>. BH is more powerful (makes more discoveries)
-      while still providing meaningful error control.
-    </dd>
-
-    <dt>Implementation</dt>
-    <dd>
-<pre>from statsmodels.stats.multitest import multipletests
-
-valid_pvals = np.array([p for p in pvalues if p is not None])
-_, adjusted, _, _ = multipletests(valid_pvals, method="fdr_bh")</pre>
-      <p>
-        FDR correction is applied independently for each of the four methods (Fisher,
-        Stouffer, CCT, HMP), producing four separate FDR-adjusted columns.
-        <code>None</code> values (genes with insufficient data for a method) are
-        preserved as <code>None</code> in the output.
-      </p>
-    </dd>
-  </dl>
-
-  <span class="ref">Benjamini, Y. &amp; Hochberg, Y. (1995). Controlling the false discovery rate:
-    a practical and powerful approach to multiple testing.
-    <em>Journal of the Royal Statistical Society B</em>, 57(1), 289&ndash;300.</span>
 </section>
 
 <!-- =========================================================== -->

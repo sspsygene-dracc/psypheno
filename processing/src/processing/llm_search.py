@@ -49,7 +49,7 @@ def load_gene_result(path: Path) -> dict[str, Any]:
         return json.load(f)
 
 
-def _get_top_genes(db_path: Path, top_n: int) -> list[dict[str, Any]]:
+def get_top_genes(db_path: Path, top_n: int) -> list[dict[str, Any]]:
     """Query DB for top genes across all 4 ranking methods.
 
     Returns list of {central_gene_id, human_symbol} dicts.

@@ -1,9 +1,9 @@
 {
   "symbol": "NDUFB3",
   "central_gene_id": 16163,
-  "pubmed_links": null,
-  "summary": null,
-  "status": "no_results",
+  "pubmed_links": "[Calvo et al. (2012) Molecular diagnosis of infantile mitochondrial disease with targeted next-generation sequencing](https://pubmed.ncbi.nlm.nih.gov/22277967/);[Haack et al. (2012) Molecular diagnosis in mitochondrial complex I deficiency using exome sequencing](https://pubmed.ncbi.nlm.nih.gov/22499348/);[Alston et al. (2016) A recurrent mitochondrial p.Trp22Arg NDUFB3 variant causes a distinctive facial appearance, short stature and a mild biochemical and clinical phenotype](https://pubmed.ncbi.nlm.nih.gov/27091925/)",
+  "summary": "NDUFB3 encodes a structural subunit of mitochondrial Complex I (NADH:ubiquinone oxidoreductase), and pathogenic variants cause Mitochondrial Complex I Deficiency, Nuclear Type 25 (MC1DN25), presenting with encephalopathy, hypotonia, developmental delay, myopathy, and lactic acidosis. The neurodevelopmental manifestations reflect impaired mitochondrial energy metabolism in the developing brain, placing NDUFB3 among the mitochondrial genes linked to neurodevelopmental disease through metabolic dysfunction. (emerging evidence)",
+  "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

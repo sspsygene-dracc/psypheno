@@ -2,8 +2,8 @@
   "symbol": "KIRREL3",
   "central_gene_id": 6789,
   "pubmed_links": "[Bhalla et al. (2008) Alterations in CDH15 and KIRREL3 in patients with mild to severe intellectual disability](https://pubmed.ncbi.nlm.nih.gov/19012874/); [Martin et al. (2015) The intellectual disability gene Kirrel3 regulates target-specific mossy fiber synapse development in the hippocampus](https://pubmed.ncbi.nlm.nih.gov/26575286/); [Taylor et al. (2020) Kirrel3-Mediated Synapse Formation Is Attenuated by Disease-Associated Missense Variants](https://pubmed.ncbi.nlm.nih.gov/32503885/)",
-  "summary": "KIRREL3, a synaptic cell-adhesion molecule of the immunoglobulin superfamily, is a well-documented risk gene for intellectual disability and autism spectrum disorder, with rare missense variants identified repeatedly in patient cohorts and de novo variants found in large ASD sequencing studies; knockout mouse models display autism-relevant behavioral deficits including social and communicative impairments. (well-established)",
+  "summary": "KIRREL3, a synaptic cell-adhesion molecule of the immunoglobulin superfamily, is a well-documented risk gene for intellectual disability and autism spectrum disorder, with rare missense variants identified in patient cohorts; functional studies show it regulates target-specific mossy fiber synapse development in the hippocampus, and disease-associated missense variants attenuate its synaptogenic activity. (well-established)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

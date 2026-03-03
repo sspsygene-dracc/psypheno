@@ -1,0 +1,9 @@
+{
+  "symbol": "MAGI3",
+  "central_gene_id": 10625,
+  "pubmed_links": "[Hammad et al. (2018) MAGI proteins regulate 5-HT2A receptor trafficking and signaling](https://pubmed.ncbi.nlm.nih.gov/29625175/); [Hammad et al. (2016) MAGI proteins regulate CRF receptor 1 trafficking via a compensatory mechanism](https://pubmed.ncbi.nlm.nih.gov/31051013/); [Iacono et al. (2024) MAGI3 upregulation in hippocampus after repeated blast-induced TBI](https://pubmed.ncbi.nlm.nih.gov/38096401/)",
+  "summary": "MAGI3 is a PDZ domain-containing scaffolding protein that regulates the trafficking and downstream signaling of psychiatrically relevant G protein-coupled receptors, including the serotonin 5-HT2A receptor (implicated in schizophrenia and depression) and the corticotropin-releasing factor receptor 1 (CRFR1, implicated in stress, anxiety, and depression). No direct genetic association with autism spectrum disorder, schizophrenia, bipolar disorder, or intellectual disability has been reported, though hippocampal MAGI3 upregulation after blast-induced traumatic brain injury suggests a role in neurological stress responses. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

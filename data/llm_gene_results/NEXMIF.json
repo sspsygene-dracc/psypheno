@@ -1,0 +1,9 @@
+{
+  "symbol": "NEXMIF",
+  "central_gene_id": 16329,
+  "pubmed_links": "[Stamberger et al. (2021) NEXMIF encephalopathy: an X-linked disorder with male and female phenotypic patterns](https://pubmed.ncbi.nlm.nih.gov/33144681/); [Mooneyham et al. (2019) NEXMIF/KIDLIA knock-out mouse demonstrates autism-like behaviors, memory deficits, and impairments in synapse formation and function](https://pubmed.ncbi.nlm.nih.gov/31704787/); [Campos-Sanchez et al. (2018) Novel NEXMIF pathogenic variant in a boy with severe autistic features, intellectual disability, and epilepsy, and his mildly affected mother](https://pubmed.ncbi.nlm.nih.gov/29717186/)",
+  "summary": "NEXMIF is an X-linked gene whose loss-of-function variants cause a well-defined neurodevelopmental syndrome characterized by intellectual disability, autism spectrum disorder, and epilepsy, with sex-differential severity (severe in males, milder in females). Mouse knockout models recapitulate autism-like behaviors and show reduced synapse density, establishing NEXMIF as a key regulator of synapse formation and dendritic arborization. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

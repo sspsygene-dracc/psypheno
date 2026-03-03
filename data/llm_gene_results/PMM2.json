@@ -1,0 +1,9 @@
+{
+  "symbol": "PMM2",
+  "central_gene_id": 19869,
+  "pubmed_links": "[Lam & Krasnewich (2021) PMM2-CDG](https://pubmed.ncbi.nlm.nih.gov/20301289/); [Serrano et al. (2015) Phosphomannomutase deficiency (PMM2-CDG): ataxia and cerebellar assessment](https://pubmed.ncbi.nlm.nih.gov/26502900/); [Epifani et al. (2023) Untangling adaptive functioning of PMM2-CDG across age and its impact on parental stress](https://pubmed.ncbi.nlm.nih.gov/38129426/)",
+  "summary": "PMM2 encodes phosphomannomutase 2, and biallelic loss-of-function variants cause PMM2-CDG, the most common congenital disorder of glycosylation, presenting with intellectual disability (IQ 40–70), cerebellar ataxia, and global developmental delay; some patients additionally exhibit autism spectrum features and behavioral disturbances. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

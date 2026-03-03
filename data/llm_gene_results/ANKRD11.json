@@ -5,5 +5,5 @@
   "summary": "Haploinsufficiency of ANKRD11 is the established cause of KBG syndrome, a condition characterized by intellectual disability, autism spectrum disorder, ADHD, OCD, and other neurobehavioral features; de novo loss-of-function variants in ANKRD11 have also been independently identified in large ASD sequencing studies reaching exome-wide significance. (well-established)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }
