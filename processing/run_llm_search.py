@@ -316,10 +316,10 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
 def generate_config(args: argparse.Namespace) -> int:
     """Generate a YAML config from the database."""
-    from processing.config import Config
+    from processing.config import get_sspsygene_config
 
-    config = Config()
-    db_path = config.data_dir / config.out_db
+    config = get_sspsygene_config()
+    db_path = config.out_db
     if not db_path.exists():
         print(f"ERROR: Database not found at {db_path}")
         print("Run 'sspsygene load-db' first.")
