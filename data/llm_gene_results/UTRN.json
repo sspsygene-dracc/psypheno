@@ -1,0 +1,9 @@
+{
+  "symbol": "UTRN",
+  "central_gene_id": 37787,
+  "pubmed_links": "[Lee et al. (2019) Transcriptome changes during manic episodes identify UTRN as upregulated state-specific biomarker in bipolar disorder](https://pubmed.ncbi.nlm.nih.gov/31118907/);[Perronnet & Vaillend (2010) Dystrophins, utrophins, and associated scaffolding complexes: role in mammalian brain](https://pubmed.ncbi.nlm.nih.gov/20625423/);[Imamura & Ozawa (1998) Differential expression of dystrophin isoforms and utrophin during morphological differentiation of rat brain astrocytes](https://pubmed.ncbi.nlm.nih.gov/9600931/)",
+  "summary": "UTRN (utrophin) was identified as consistently upregulated during acute manic episodes in bipolar disorder patients across microarray, mega-analysis, and RNA-Seq studies, suggesting a role as a state-specific transcriptomic biomarker. Utrophin is expressed in brain astrocytes and synaptic scaffolding complexes, providing biological plausibility, but direct links to autism, schizophrenia, or neurodevelopmental disorders remain absent from the literature. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

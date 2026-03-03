@@ -1,0 +1,9 @@
+{
+  "symbol": "DACH1",
+  "central_gene_id": 42279,
+  "pubmed_links": "[Brouwer et al. (2022) GWAS of longitudinal brain structure links DACH1 to schizophrenia and depression](https://pubmed.ncbi.nlm.nih.gov/35383335/); [Castiglioni et al. (2019) Dynamic and cell-specific DACH1 expression in human neocortical and striatal development](https://pubmed.ncbi.nlm.nih.gov/29688344/); [Yang et al. (2023) Intellectual disability MED23 mutation dysregulates gene expression via MED23-DACH1-IEG axis](https://pubmed.ncbi.nlm.nih.gov/36718943/)",
+  "summary": "DACH1 encodes a transcription factor highly expressed in neural progenitors during human cortical and striatal development, with GWAS evidence linking it to brain structural change rates and genetic overlap with schizophrenia and depression; it also functions as a downstream mediator of MED23, a gene mutated in familial intellectual disability, where loss of DACH1 disrupts immediate early gene regulation critical for synaptic plasticity. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

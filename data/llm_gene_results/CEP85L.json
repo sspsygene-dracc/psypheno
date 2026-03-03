@@ -1,0 +1,9 @@
+{
+  "symbol": "CEP85L",
+  "central_gene_id": 40421,
+  "pubmed_links": "[Tsai et al. (2020) Pathogenic Variants in CEP85L Cause Sporadic and Familial Posterior Predominant Lissencephaly](https://pubmed.ncbi.nlm.nih.gov/32097630/); [Kodani et al. (2020) Posterior Neocortex-Specific Regulation of Neuronal Migration by CEP85L Identifies Maternal Centriole-Dependent Activation of CDK5](https://pubmed.ncbi.nlm.nih.gov/32097629/); [van Hulzen et al. (2017) Genetic Overlap Between Attention-Deficit/Hyperactivity Disorder and Bipolar Disorder: Evidence From Genome-wide Association Study Meta-analysis](https://pubmed.ncbi.nlm.nih.gov/27890468/)",
+  "summary": "CEP85L encodes a centrosomal protein required for neuronal migration; rare pathogenic variants cause lissencephaly type 10 (OMIM #617609) with intellectual disability, developmental delay, and epilepsy in ~70-90% of affected individuals, acting via the CEP85L-CDK5-LIS1 pathway. A common intronic variant (rs11756438) reached genome-wide significance in a cross-disorder GWAS for shared ADHD/bipolar disorder risk, and has been followed up in schizophrenia association studies. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

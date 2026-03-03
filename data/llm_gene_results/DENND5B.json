@@ -1,0 +1,9 @@
+{
+  "symbol": "DENND5B",
+  "central_gene_id": 42639,
+  "pubmed_links": "[Scala et al. (2024) De novo variants in DENND5B cause a neurodevelopmental disorder](https://pubmed.ncbi.nlm.nih.gov/38387458/);[Huang et al. (2021) Altered expression of DENND5B in patients with epilepsy and its regulation of seizures in mice](https://pubmed.ncbi.nlm.nih.gov/34837825/)",
+  "summary": "DENND5B encodes a RAB39A guanine nucleotide exchange factor involved in endosomal membrane trafficking and is highly expressed in the brain; de novo loss-of-function and missense variants cause a syndromic neurodevelopmental disorder characterized by intellectual disability, autism spectrum disorder, ADHD, epilepsy, and structural brain abnormalities. Independent work shows DENND5B expression is reduced in epileptic brain tissue and functionally modulates seizure threshold in mice. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

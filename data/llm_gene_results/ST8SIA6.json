@@ -1,0 +1,9 @@
+{
+  "symbol": "ST8SIA6",
+  "central_gene_id": 33501,
+  "pubmed_links": "[Garaffo et al. (2013) ST8SIA6 as a Dlx5 target in olfactory/GnRH neurodevelopment](https://pubmed.ncbi.nlm.nih.gov/24427155/); [Huang et al. (2023) ST8SIA6 downregulated in dopaminergic neurons in a Parkinson's disease mouse model](https://pubmed.ncbi.nlm.nih.gov/36977454/)",
+  "summary": "ST8SIA6 encodes an alpha-2,8-sialyltransferase expressed in the developing olfactory/GnRH system, where knockdown in zebrafish disrupts olfactory axon extension and GnRH neuron migration relevant to Kallmann syndrome; it is also neuroprotective in dopaminergic neurons in a Parkinson's disease model. No direct evidence links ST8SIA6 to autism, schizophrenia, bipolar disorder, or intellectual disability, though its close paralog ST8SIA2 is a well-established schizophrenia gene. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

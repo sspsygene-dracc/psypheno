@@ -1,0 +1,9 @@
+{
+  "symbol": "ZFYVE9",
+  "central_gene_id": 38889,
+  "pubmed_links": "[Mestres et al. (2016) SARA regulates neuronal migration during neocortical development through L1 trafficking](https://pubmed.ncbi.nlm.nih.gov/27471254/);[Yu et al. (2017) Smad anchor for receptor activation contributes to seizures in temporal lobe epilepsy](https://pubmed.ncbi.nlm.nih.gov/28035691/);[Mestres et al. (2020) Smad anchor for receptor activation nuclear localization during development identifies Layers V and VI of the neocortex](https://pubmed.ncbi.nlm.nih.gov/32037591/)",
+  "summary": "ZFYVE9 encodes SARA (Smad Anchor for Receptor Activation), an early endosomal protein regulating TGF-β/Smad signaling that is critical for cortical neuronal migration and neocortical layer specification during brain development; SARA knockdown disrupts neuronal positioning in the cortex—a mechanism broadly implicated in neurodevelopmental disorders—and SARA has also been linked to temporal lobe epilepsy via TGF-β/p-Smad3 signaling, though direct associations with autism, schizophrenia, or intellectual disability remain unestablished. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

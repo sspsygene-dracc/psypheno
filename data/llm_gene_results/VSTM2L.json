@@ -1,0 +1,9 @@
+{
+  "symbol": "VSTM2L",
+  "central_gene_id": 38148,
+  "pubmed_links": "[Rossini et al. (2011) VSTM2L is a novel secreted antagonist of the neuroprotective peptide Humanin](https://pubmed.ncbi.nlm.nih.gov/21393573/);[Jiang et al. (2022) Genome-wide analysis identified novel susceptible genes of restless legs syndrome in migraineurs](https://pubmed.ncbi.nlm.nih.gov/35350973/);[Miyo et al. (2025) Intermittent hypoxia induces cognitive dysfunction and hippocampal gene expression changes in a mouse model of obstructive sleep apnea](https://pubmed.ncbi.nlm.nih.gov/40806623/)",
+  "summary": "VSTM2L encodes a CNS-enriched secreted protein that antagonizes Humanin, a neuroprotective peptide, and is highly expressed in cortex, hippocampus, and amygdala; a GWAS identified a VSTM2L variant associated with restless legs syndrome comorbid with migraine, and hippocampal Vstm2l expression is reduced in a mouse model of hypoxia-induced cognitive dysfunction. No direct links to autism, schizophrenia, or other core neuropsychiatric disorders have been established, though its brain-selective expression and role in neuronal survival pathways make it a biologically plausible candidate. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

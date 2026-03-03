@@ -1,0 +1,9 @@
+{
+  "symbol": "TRAPPC3",
+  "central_gene_id": 35736,
+  "pubmed_links": "[Shaheen et al. (2016) Characterizing the morbid genome of ciliopathies](https://pubmed.ncbi.nlm.nih.gov/27894351/); [Tong et al. (2013) Novel genes mediating NRF1-regulated neurite outgrowth in neuroblastoma IMR-32 cells](https://pubmed.ncbi.nlm.nih.gov/23219993/); [Almousa et al. (2024) TRAPPC6B biallelic variants cause a neurodevelopmental disorder with TRAPP II and trafficking disruptions](https://pubmed.ncbi.nlm.nih.gov/37713627/)",
+  "summary": "TRAPPC3 encodes a core structural subunit of all three mammalian TRAPP vesicle-tethering complexes and forms an obligate heterodimer with TRAPPC6B; pathogenic TRAPPC6B variants that weaken this interaction destabilize TRAPP II assembly and cause a neurodevelopmental disorder with microcephaly, epilepsy, and severe intellectual disability, implicating TRAPPC3 disruption in a similar mechanism. TRAPPC3 has also been identified as a candidate ciliopathy gene and has been linked to neurite outgrowth signaling, but no direct disease-causing variants in TRAPPC3 itself have been reported in neuropsychiatric or neurodevelopmental patients. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

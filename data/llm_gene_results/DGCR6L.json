@@ -1,0 +1,9 @@
+{
+  "symbol": "DGCR6L",
+  "central_gene_id": 42688,
+  "pubmed_links": "[Das Chakraborty et al. (2012) Dysregulation of DGCR6 and DGCR6L: psychopathological outcomes in 22q11.2 deletion syndrome](https://pubmed.ncbi.nlm.nih.gov/22832905/); [Liu et al. (2002) Genetic variation at the 22q11 PRODH2/DGCR6 locus increases susceptibility to schizophrenia](https://pubmed.ncbi.nlm.nih.gov/11891283/); [Edelmann et al. (2001) Two functional copies of the DGCR6 gene on chromosome 22q11 due to ancestral locus duplication](https://pubmed.ncbi.nlm.nih.gov/11157784/)",
+  "summary": "DGCR6L is a paralog of DGCR6 located within the 22q11.2 deletion region, and epigenetic dysregulation of both genes has been associated with childhood psychopathological outcomes—including anxiety disorders—in 22q11.2 deletion syndrome, a condition conferring high risk for schizophrenia and other psychiatric disorders. Variants at the broader PRODH2/DGCR6 locus have also been independently linked to increased schizophrenia susceptibility. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

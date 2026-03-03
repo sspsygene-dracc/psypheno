@@ -1,9 +1,9 @@
 {
   "symbol": "DYNLRB1",
   "central_gene_id": 43484,
-  "pubmed_links": null,
-  "summary": null,
-  "status": "no_results",
+  "pubmed_links": "[Terenzio et al. (2020) DYNLRB1 is essential for dynein mediated transport and neuronal survival](https://pubmed.ncbi.nlm.nih.gov/32088381/);[El-Agamy et al. (2023) FMRP long-range transport and degradation are mediated by Dynlrb1 in sensory neurons](https://pubmed.ncbi.nlm.nih.gov/37739344/);[Timalsina et al. (2023) NAGK-SNRPN interaction promotes axodendritic branching via dynein-mediated microtubule transport](https://pubmed.ncbi.nlm.nih.gov/37511433/)",
+  "summary": "DYNLRB1 encodes a dynein light chain roadblock-type subunit essential for retrograde axonal transport and sensory neuron survival, with conditional neuronal knockout causing lysosomal transport failure and neurodegeneration. It has been implicated in neurodevelopmental contexts through its role in transporting FMRP (the Fragile X syndrome protein) and regulating dendritic branching in hippocampal neurons, suggesting a mechanistic link to neurodevelopmental disorders via impaired intraneuronal cargo trafficking. (emerging evidence)",
+  "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

@@ -1,0 +1,9 @@
+{
+  "symbol": "COG6",
+  "central_gene_id": 41245,
+  "pubmed_links": "[Shaheen et al. (2013) Novel syndrome of hypohidrosis and intellectual disability linked to COG6 deficiency](https://pubmed.ncbi.nlm.nih.gov/23606727/); [Xia et al. (2022) Swedish COG6-CDG experience and comprehensive literature review](https://pubmed.ncbi.nlm.nih.gov/36636598/); [Cirnigliaro et al. (2022) COG6-CDG: Novel variants and novel malformation](https://pubmed.ncbi.nlm.nih.gov/35068072/)",
+  "summary": "COG6, encoding a subunit of the Conserved Oligomeric Golgi complex, is linked to two overlapping neurodevelopmental conditions: Shaheen syndrome (intellectual disability, hypohidrosis, microcephaly) caused by a hypomorphic intronic variant, and COG6-CDG, a congenital disorder of glycosylation featuring intellectual disability, ADHD, corpus callosum agenesis, delayed myelination, and progressive microcephaly. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

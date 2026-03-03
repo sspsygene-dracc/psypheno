@@ -1,9 +1,9 @@
 {
   "symbol": "DACH2",
   "central_gene_id": 42280,
-  "pubmed_links": null,
-  "summary": null,
-  "status": "no_results",
+  "pubmed_links": "[Zhang et al. (2014) Exome sequencing identifies mutations in ABCD1 and DACH2 in two brothers with a distinct phenotype](https://pubmed.ncbi.nlm.nih.gov/25234129/); [Davis et al. (2006) Mouse Dach2 mutants do not exhibit gross defects in eye development or brain function](https://pubmed.ncbi.nlm.nih.gov/16470613/)",
+  "summary": "DACH2, an X-linked transcription factor involved in organogenesis, was identified alongside an ABCD1 mutation in two brothers presenting with intellectual disability, congenital language disorder, and growth retardation, with the authors suggesting DACH2 may contribute to the neurodevelopmental phenotype; however, mouse Dach2 knockout studies show no significant brain function deficits, and there is no established independent link between DACH2 and neuropsychiatric disorders. (novel candidate)",
+  "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

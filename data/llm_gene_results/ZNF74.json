@@ -1,0 +1,9 @@
+{
+  "symbol": "ZNF74",
+  "central_gene_id": 39011,
+  "pubmed_links": "[Aubry et al. (1993) Isolation of a zinc finger gene consistently deleted in DiGeorge syndrome](https://pubmed.ncbi.nlm.nih.gov/8268910/); [Ravassard et al. (1999) ZNF74, a gene deleted in DiGeorge syndrome, is expressed in human neural crest-derived tissues](https://pubmed.ncbi.nlm.nih.gov/10585771/); [Takase et al. (2001) Association of ZNF74 gene genotypes with age-at-onset of schizophrenia](https://pubmed.ncbi.nlm.nih.gov/11705709/)",
+  "summary": "ZNF74 is a KRAB-domain zinc finger gene located within the 22q11.2 deletion region associated with DiGeorge/velocardiofacial syndrome, a condition that confers approximately 30% risk of schizophrenia; it is expressed in embryonic neural crest-derived tissues and neuroepithelium, and one genetic study found ZNF74 genotypes significantly associated with age-at-onset of schizophrenia. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

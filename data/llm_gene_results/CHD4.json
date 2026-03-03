@@ -1,0 +1,9 @@
+{
+  "symbol": "CHD4",
+  "central_gene_id": 40638,
+  "pubmed_links": "[Weiss et al. (2016) De novo mutations in CHD4 cause an intellectual disability syndrome with distinctive dysmorphisms](https://pubmed.ncbi.nlm.nih.gov/27616479/); [Sifrim et al. (2019) The CHD4-related syndrome: clinical spectrum, genotype-phenotype correlations, and molecular basis](https://pubmed.ncbi.nlm.nih.gov/31388190/); [Weiss & Lachlan (2020) CHD4 Neurodevelopmental Disorder](https://pubmed.ncbi.nlm.nih.gov/32881470/)",
+  "summary": "CHD4 encodes an ATP-dependent chromatin remodeler (NuRD complex component) whose de novo variants cause Sifrim-Hitz-Weiss syndrome, characterized by global developmental delay, mild-to-moderate intellectual disability, brain anomalies, congenital heart defects, and dysmorphic features; autism features are enriched in individuals with truncating variants. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "EHMT1",
+  "central_gene_id": 43779,
+  "pubmed_links": "[Koemans et al. (2017) Functional convergence of histone methyltransferases EHMT1 and KMT2C in intellectual disability and ASD](https://pubmed.ncbi.nlm.nih.gov/29069077/); [Frega et al. (2020) Distinct pathogenic genes causing intellectual disability and autism exhibit a common neuronal network hyperactivity phenotype](https://pubmed.ncbi.nlm.nih.gov/31914384/); [Yuen et al. (2016) Targeted NGS identifies an EHMT1 mutation in a Kleefstra syndrome patient with autism](https://pubmed.ncbi.nlm.nih.gov/27651234/)",
+  "summary": "EHMT1 encodes a histone H3K9 methyltransferase whose haploinsufficiency causes Kleefstra syndrome, a neurodevelopmental disorder characterized by intellectual disability, autism spectrum features, and childhood hypotonia. Beyond Kleefstra syndrome, EHMT1 variants have been identified in isolated ASD and the gene is a convergent epigenetic regulator of neuronal network activity implicated across multiple neurodevelopmental conditions. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

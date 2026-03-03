@@ -1,9 +1,9 @@
 {
   "symbol": "EGF",
   "central_gene_id": 43742,
-  "pubmed_links": "[Futamura et al. (2002) Abnormal expression of epidermal growth factor and its receptor in the forebrain and serum of schizophrenic patients](https://pubmed.ncbi.nlm.nih.gov/12192610/); [Tohmi et al. (2003) Neonatal perturbation of neurotrophic signaling results in abnormal sensorimotor gating and social interaction in adults](https://pubmed.ncbi.nlm.nih.gov/12556905/); [Streck et al. (2020) Serum Epidermal Growth Factor is Low in Schizophrenia and Not Affected by Antipsychotics Alone or Combined With Electroconvulsive Therapy](https://pubmed.ncbi.nlm.nih.gov/32194452/)",
+  "pubmed_links": "[Futamura et al. (2002) Abnormal expression of epidermal growth factor and its receptor in the forebrain and serum of schizophrenic patients](https://pubmed.ncbi.nlm.nih.gov/12192610/); [Futamura et al. (2003) Neonatal perturbation of neurotrophic signaling results in abnormal sensorimotor gating and social interaction in adults](https://pubmed.ncbi.nlm.nih.gov/12556905/); [Zhang et al. (2020) Serum Epidermal Growth Factor is Low in Schizophrenia and Not Affected by Antipsychotics Alone or Combined With Electroconvulsive Therapy](https://pubmed.ncbi.nlm.nih.gov/32194452/)",
   "summary": "EGF protein and serum levels are consistently reduced in schizophrenia patients, and neonatal EGF signaling perturbation in animal models produces persistent dopaminergic dysregulation and schizophrenia-relevant behavioral deficits including impaired prepulse inhibition and social interaction. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

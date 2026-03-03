@@ -1,0 +1,9 @@
+{
+  "symbol": "ZNF385B",
+  "central_gene_id": 39212,
+  "pubmed_links": "[Okamoto et al. (2017) Neurological manifestations of 2q31 microdeletion syndrome](https://pubmed.ncbi.nlm.nih.gov/28145600/);[Chen et al. (2017) De novo interstitial deletion of chromosome 2q (2q31.1-q32.1) encompassing HOXD13, ZNF385B and ZNF804A associated with syndactyly](https://pubmed.ncbi.nlm.nih.gov/28600059/)",
+  "summary": "ZNF385B is a brain-expressed zinc finger RNA-binding protein implicated in neurodevelopmental disease primarily through a single case report of a 2q31 microdeletion patient presenting with intellectual disability, epileptic seizures, delayed myelination, and basal ganglia abnormalities, with the authors specifically attributing the neurological features to ZNF385B haploinsufficiency rather than co-deleted HOXD genes. No large-scale GWAS or sequencing studies have independently implicated ZNF385B in autism, schizophrenia, or other neuropsychiatric diagnoses. (novel candidate)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

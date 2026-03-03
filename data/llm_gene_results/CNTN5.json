@@ -1,9 +1,9 @@
 {
   "symbol": "CNTN5",
   "central_gene_id": 41202,
-  "pubmed_links": "[Mlinac-Jerkovic et al. (2017) A current view on contactin-4, -5, and -6: Implications in neurodevelopmental disorders](https://pubmed.ncbi.nlm.nih.gov/28064060/); [Marro et al. (2019) CNTN5-/+ or EHMT2-/+ human iPSC-derived neurons from individuals with autism develop hyperactive neuronal networks](https://pubmed.ncbi.nlm.nih.gov/30747104/); [Hadi et al. (2025) Association Analysis of Rare CNTN5 Variants With Autism Spectrum Disorder in a Japanese Population](https://pubmed.ncbi.nlm.nih.gov/39887962/)",
+  "pubmed_links": "[Oguro-Ando et al. (2017) A current view on contactin-4, -5, and -6: Implications in neurodevelopmental disorders](https://pubmed.ncbi.nlm.nih.gov/28064060/); [Deneault et al. (2019) CNTN5-/+ or EHMT2-/+ human iPSC-derived neurons from individuals with autism develop hyperactive neuronal networks](https://pubmed.ncbi.nlm.nih.gov/30747104/); [Hadi et al. (2025) Association Analysis of Rare CNTN5 Variants With Autism Spectrum Disorder in a Japanese Population](https://pubmed.ncbi.nlm.nih.gov/39887962/)",
   "summary": "CNTN5, a GPI-anchored cell adhesion molecule involved in brain circuit formation, has been linked to autism spectrum disorder through enriched intronic CNV deletions in large ASD cohorts, and iPSC-derived neurons heterozygous for CNTN5 loss develop consistent spontaneous network hyperactivity. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

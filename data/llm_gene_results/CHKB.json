@@ -1,0 +1,9 @@
+{
+  "symbol": "CHKB",
+  "central_gene_id": 40674,
+  "pubmed_links": "[Kutluk et al. (2020) A rare cause of autism spectrum disorder: megaconial muscular dystrophy](https://pubmed.ncbi.nlm.nih.gov/33623274/);[Bardhan et al. (2021) CHKB mutations mimicking atypical Rett syndrome with autistic behaviors](https://pubmed.ncbi.nlm.nih.gov/33712684/);[Haliloglu et al. (2015) Clinical characteristics of megaconial congenital muscular dystrophy due to CHKB defects](https://pubmed.ncbi.nlm.nih.gov/26067811/)",
+  "summary": "CHKB encodes Choline Kinase Beta, and loss-of-function mutations cause megaconial congenital muscular dystrophy (MCMD), a multisystem disorder with prominent neurodevelopmental features including intellectual disability, global developmental delay, and autism spectrum disorder in a substantial proportion of patients. CHKB-related MCMD is recognized as a rare syndromic genetic cause of ASD and can mimic atypical Rett syndrome, but CHKB has not been implicated as an independent psychiatric risk gene outside this muscular dystrophy context. (emerging evidence)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

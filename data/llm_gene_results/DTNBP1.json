@@ -1,0 +1,9 @@
+{
+  "symbol": "DTNBP1",
+  "central_gene_id": 43315,
+  "pubmed_links": "[Straub et al. (2002) DTNBP1 genetic variation associated with schizophrenia](https://pubmed.ncbi.nlm.nih.gov/12098102/); [Talbot et al. (2005) DTNBP1 haplotypes mediate schizophrenia risk via reduced expression](https://pubmed.ncbi.nlm.nih.gov/15917270/); [Bhardwaj et al. (2008) DTNBP1 affects kinetics of transmitter release](https://pubmed.ncbi.nlm.nih.gov/18504299/)",
+  "summary": "DTNBP1 (dysbindin-1) is one of the most replicated schizophrenia susceptibility genes, with risk haplotypes shown to reduce dysbindin expression in prefrontal cortex and hippocampus; the protein regulates synaptic vesicle biogenesis and neurotransmitter release, implicating glutamatergic and dopaminergic dysfunction in schizophrenia pathogenesis. Associations have also been reported with bipolar disorder and childhood-onset psychosis. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

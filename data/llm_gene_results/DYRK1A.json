@@ -1,0 +1,9 @@
+{
+  "symbol": "DYRK1A",
+  "central_gene_id": 43495,
+  "pubmed_links": "[van Bon et al. (2016) Disruptive de novo mutations of DYRK1A lead to a syndromic form of autism and ID](https://pubmed.ncbi.nlm.nih.gov/25707398/);[Kurtz-Nelson et al. (2023) Characterizing the autism spectrum phenotype in DYRK1A-related syndrome](https://pubmed.ncbi.nlm.nih.gov/37497568/);[Neuhaus et al. (2024) Shared and divergent mental health characteristics of ADNP-, CHD8- and DYRK1A-related neurodevelopmental conditions](https://pubmed.ncbi.nlm.nih.gov/38622540/)",
+  "summary": "DYRK1A encodes a dual-specificity kinase critical for brain development, and heterozygous loss-of-function mutations cause a well-characterized syndrome featuring microcephaly, intellectual disability, and autism spectrum disorder. Accounting for 0.1–0.5% of individuals with ID and/or ASD, DYRK1A-related syndrome is one of the more frequent monogenic causes of neurodevelopmental disability. (well-established)",
+  "status": "results",
+  "search_date": "2026-03-03",
+  "model": "claude-sonnet-4-6"
+}

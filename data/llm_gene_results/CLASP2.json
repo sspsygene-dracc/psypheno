@@ -1,9 +1,9 @@
 {
   "symbol": "CLASP2",
   "central_gene_id": 40900,
-  "pubmed_links": "[Marangi et al. (2013) Interstitial deletion of 3p22.3p22.2 encompassing ARPP21 and CLASP2 as a pathogenic factor for syndromic intellectual disability](https://pubmed.ncbi.nlm.nih.gov/24127197/)",
-  "summary": "CLASP2, a microtubule-associated protein critical for synapse formation and neuronal polarity, has been implicated as a candidate gene for syndromic intellectual disability through chromosomal deletions at 3p22.3p22.2. (novel candidate)",
+  "pubmed_links": "[Beffert et al. (2012) Microtubule plus-end tracking protein CLASP2 regulates neuronal polarity and synaptic function](https://pubmed.ncbi.nlm.nih.gov/23035100/);[Marangi et al. (2013) Interstitial deletion of 3p22.3p22.2 encompassing ARPP21 and CLASP2 is a potential pathogenic factor for a syndromic form of intellectual disability](https://pubmed.ncbi.nlm.nih.gov/24127197/);[Caracci et al. (2019) Golgi Complex Dynamics and Its Implication in Prevalent Neurological Disorders](https://pubmed.ncbi.nlm.nih.gov/31134199/)",
+  "summary": "CLASP2, a microtubule plus-end tracking protein, regulates neuronal polarity and excitatory synaptic function, with knockdown reducing axon and dendritic length and overexpression increasing synapse number and GluA1 surface expression. It has been nominated as a candidate gene for syndromic intellectual disability based on a 3p22.3p22.2 chromosomal deletion encompassing both ARPP21 and CLASP2 in a family with intellectual disability. (novel candidate)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }

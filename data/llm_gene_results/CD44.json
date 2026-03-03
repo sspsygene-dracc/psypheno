@@ -1,9 +1,9 @@
 {
   "symbol": "CD44",
   "central_gene_id": 39948,
-  "pubmed_links": null,
-  "summary": "CD44, the primary receptor for hyaluronan in the brain, regulates synaptic development, neural stem cell quiescence, and excitatory synaptogenesis; hyperexcitability resulting from disrupted CD44-hyaluronan signaling is mechanistically linked to both epilepsy and autism spectrum disorder, though CD44 has not been identified as a direct genetic risk factor in GWAS or sequencing studies. (novel candidate)",
+  "pubmed_links": "[Wilson & Litwa (2021) Synaptic hyaluronan synthesis and CD44-mediated signaling coordinate neural circuit development](https://pubmed.ncbi.nlm.nih.gov/34685554/); [Kruk et al. (2023) Astrocytic CD44 deficiency reduces the severity of kainate-induced epilepsy](https://pubmed.ncbi.nlm.nih.gov/37296604/); [Bausch (2006) Potential roles for hyaluronan and CD44 in kainic acid-induced mossy fiber sprouting](https://pubmed.ncbi.nlm.nih.gov/16949761/)",
+  "summary": "CD44, acting as the primary receptor for hyaluronan in the brain, suppresses excitatory synaptogenesis during neural circuit development via RhoGTPase/Rac1 signaling, and disruption of this HA-CD44 axis is sufficient to produce neural hyperexcitability associated with epilepsy, intellectual disability, and autism spectrum disorder; astrocytic CD44 additionally amplifies reactive astrogliosis following seizures, worsening epileptic outcomes. CD44 has not been identified as a direct genetic risk factor in GWAS or sequencing studies of neuropsychiatric disorders. (novel candidate)",
   "status": "results",
   "search_date": "2026-03-03",
-  "model": "claude-sonnet-4-5-20250929 (local agents)"
+  "model": "claude-sonnet-4-6"
 }
