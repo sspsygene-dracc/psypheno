@@ -2,7 +2,6 @@ import React, {
   useEffect,
   useState,
   useCallback,
-  useRef,
   type ReactNode,
 } from "react";
 import Head from "next/head";
@@ -385,7 +384,6 @@ export default function CombinedPvaluesPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const tableRef = useRef<HTMLDivElement>(null);
   const toggleLlmRow = useCallback((symbol: string) => {
     setExpandedRows((prev) => {
       const next = new Set(prev);
@@ -396,7 +394,6 @@ export default function CombinedPvaluesPage() {
   }, []);
   const handlePageChange = useCallback((p: number) => {
     setPage(p);
-    tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
   // Gene flag filter state — all hidden by default
@@ -667,7 +664,6 @@ export default function CombinedPvaluesPage() {
 
         {/* Combined p-values table */}
         <div
-          ref={tableRef}
           id="combined-pvalues-table"
           style={{
             background: "#ffffff",
@@ -735,8 +731,8 @@ export default function CombinedPvaluesPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {loading && (
+              <tbody style={{ opacity: loading && rows.length > 0 ? 0.5 : 1, transition: "opacity 0.15s" }}>
+                {rows.length === 0 && loading && (
                   <tr>
                     <td
                       colSpan={COMBINED_COLUMNS.length + 1}
@@ -750,8 +746,7 @@ export default function CombinedPvaluesPage() {
                     </td>
                   </tr>
                 )}
-                {!loading &&
-                  rows.map((row, idx) => {
+                {rows.map((row, idx) => {
                     const isExpanded = expandedRows.has(row.human_symbol);
 
                     return (
