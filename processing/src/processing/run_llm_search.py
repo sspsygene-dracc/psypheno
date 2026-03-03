@@ -1,21 +1,16 @@
-#!/usr/bin/env python3
 """Parallel LLM gene search orchestrator.
 
 Reads a YAML job file and launches parallel Claude CLI agents, each
 researching one gene for neuropsychiatric associations. Each agent writes
 its result directly to data/llm_gene_results/{SYMBOL}.json.
-
-Can be run standalone or via the sspsygene CLI:
-    sspsygene run-llm-search llm_jobs.yaml
-    sspsygene generate-llm-config --top-n 100 --output llm_jobs.yaml
 """
 
 import concurrent.futures
 import functools
 import json
 import os
+import signal
 import subprocess
-import sys
 import threading
 import time
 from datetime import datetime
@@ -26,11 +21,11 @@ import yaml
 
 from processing.llm_search import (
     VALID_MODES,
-    get_top_genes,
     build_new_prompt,
     build_update_prompt,
     build_verify_prompt,
     build_verify_update_prompt,
+    get_top_genes,
     load_gene_result,
 )
 
@@ -38,12 +33,13 @@ from processing.llm_search import (
 # pylint: disable=redefined-builtin
 print = functools.partial(print, flush=True)  # type: ignore[assignment]
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+PACKAGE_DIR = Path(__file__).resolve().parent
+PROCESSING_DIR = PACKAGE_DIR.parents[1]
+PROJECT_ROOT = PROCESSING_DIR.parent
 DATA_DIR = PROJECT_ROOT / "data"
 GENE_RESULTS_DIR = DATA_DIR / "llm_gene_results"
-LOGS_DIR = SCRIPT_DIR / "logs"
-SETTINGS_FILE = SCRIPT_DIR / ".claude" / "settings.json"
+LOGS_DIR = PROCESSING_DIR / "logs"
+SETTINGS_FILE = PROCESSING_DIR / ".claude" / "settings.json"
 
 # Defaults
 DEFAULT_MAX_WORKERS = 20
@@ -90,7 +86,7 @@ def build_prompt_for_job(job: dict[str, Any]) -> tuple[str, str | None]:
     # For 'new' mode, skip if file already exists
     if mode == "new":
         if gene_file.exists():
-            return "", f"file already exists (mode=new skips existing)"
+            return "", "file already exists (mode=new skips existing)"
         central_gene_id = job.get("central_gene_id", 0)
         return build_new_prompt(symbol, central_gene_id, gene_file_path), None
 
@@ -106,12 +102,12 @@ def build_prompt_for_job(job: dict[str, Any]) -> tuple[str, str | None]:
             build_verify_prompt(symbol, central_gene_id, gene_file_path, existing_data),
             None,
         )
-    elif mode == "update":
+    if mode == "update":
         return (
             build_update_prompt(symbol, central_gene_id, gene_file_path, existing_data),
             None,
         )
-    elif mode == "verify_update":
+    if mode == "verify_update":
         return (
             build_verify_update_prompt(
                 symbol, central_gene_id, gene_file_path, existing_data
@@ -129,14 +125,26 @@ def run_agent(
     max_budget: str,
     timeout: int,
     semaphore: threading.Semaphore,
+    abort_event: threading.Event,
+    active_processes: dict[str, subprocess.Popen[str]],
+    active_processes_lock: threading.Lock,
 ) -> dict[str, Any]:
     """Run a single gene search agent via Claude CLI."""
     start_time = time.time()
     log_file = LOGS_DIR / f"{symbol}.log"
 
     with semaphore:
+        if abort_event.is_set():
+            return {
+                "symbol": symbol,
+                "success": False,
+                "elapsed": 0.0,
+                "returncode": -2,
+            }
+
+        process: subprocess.Popen[str] | None = None
         try:
-            result = subprocess.run(
+            process = subprocess.Popen(
                 [
                     "claude",
                     "-p",
@@ -149,39 +157,53 @@ def run_agent(
                     prompt,
                 ],
                 cwd=str(PROJECT_ROOT),
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=timeout,
                 env={
                     **{k: v for k, v in os.environ.items() if k != "CLAUDECODE"},
                     "CLAUDE_CODE_ENTRYPOINT": "cli",
                 },
             )
+            with active_processes_lock:
+                active_processes[symbol] = process
+
+            stdout, stderr = process.communicate(timeout=timeout)
+            returncode = process.returncode
+            if returncode is None:
+                returncode = -1
 
             elapsed = time.time() - start_time
-            success = result.returncode == 0
+            success = returncode == 0
 
             with open(log_file, "w") as f:
                 f.write(f"=== {symbol} ===\n")
                 f.write(f"Status: {'OK' if success else 'FAILED'}\n")
-                f.write(f"Return code: {result.returncode}\n")
+                f.write(f"Return code: {returncode}\n")
                 f.write(f"Elapsed: {elapsed:.1f}s\n")
-                f.write(f"\n=== STDOUT ===\n{result.stdout}\n")
-                if result.stderr:
-                    f.write(f"\n=== STDERR ===\n{result.stderr}\n")
+                f.write(f"\n=== STDOUT ===\n{stdout}\n")
+                if stderr:
+                    f.write(f"\n=== STDERR ===\n{stderr}\n")
 
-            status = "OK" if success else "FAILED"
+            status = (
+                "ABORTED"
+                if abort_event.is_set() and returncode != 0
+                else ("OK" if success else "FAILED")
+            )
             print(f"[{status}] {symbol} ({elapsed:.1f}s)")
 
             return {
                 "symbol": symbol,
                 "success": success,
                 "elapsed": elapsed,
-                "returncode": result.returncode,
+                "returncode": returncode,
             }
 
         except subprocess.TimeoutExpired:
             elapsed = time.time() - start_time
+            if process is not None:
+                process.kill()
+                process.communicate()
             print(f"[TIMEOUT] {symbol} ({elapsed:.1f}s)")
             with open(log_file, "w") as f:
                 f.write(f"=== {symbol} ===\n")
@@ -204,6 +226,9 @@ def run_agent(
                 "elapsed": elapsed,
                 "returncode": -1,
             }
+        finally:
+            with active_processes_lock:
+                active_processes.pop(symbol, None)
 
 
 def run_pipeline(
@@ -228,7 +253,7 @@ def run_pipeline(
 
     jobs = load_jobs(yaml_file)
 
-    print(f"=== LLM Gene Search Pipeline ===")
+    print("=== LLM Gene Search Pipeline ===")
     print(f"Jobs: {len(jobs)}")
     print(f"Model: {model}")
     print(f"Max workers: {max_workers}")
@@ -244,14 +269,14 @@ def run_pipeline(
         mode = str(job["mode"]).lower()
         prompt, skip_reason = build_prompt_for_job(job)
         if skip_reason:
-            print(f"  [SKIP] {symbol:20s} ({mode}) — {skip_reason}")
+            print(f"  [SKIP] {symbol:20s} ({mode}) - {skip_reason}")
             skipped.append({"symbol": symbol, "mode": mode, "reason": skip_reason})
         else:
             print(f"  [QUEUE] {symbol:20s} ({mode})")
             resolved.append({"symbol": symbol, "mode": mode, "prompt": prompt})
 
     if dry_run:
-        print(f"\nDry run — {len(resolved)} jobs queued, {len(skipped)} skipped.")
+        print(f"\nDry run - {len(resolved)} jobs queued, {len(skipped)} skipped.")
         return 0
 
     if not resolved:
@@ -262,40 +287,90 @@ def run_pipeline(
     start_time = time.time()
     results: list[dict[str, Any]] = []
     semaphore = threading.Semaphore(max_workers)
+    abort_event = threading.Event()
+    force_abort_event = threading.Event()
+    active_processes: dict[str, subprocess.Popen[str]] = {}
+    active_processes_lock = threading.Lock()
+    sigint_count = 0
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {}
-        for job in resolved:
-            future = executor.submit(
-                run_agent,
-                job["symbol"],
-                job["prompt"],
-                model,
-                max_budget,
-                timeout,
-                semaphore,
+    def _kill_running_agents() -> None:
+        with active_processes_lock:
+            running = list(active_processes.items())
+        if not running:
+            print("  No active sub-agents to terminate.")
+            return
+
+        for running_symbol, process in running:
+            try:
+                if process.poll() is None:
+                    process.kill()
+                    print(f"  [KILL] Killed {running_symbol} (pid={process.pid})")
+            except Exception as e:
+                print(f"  [WARN] Could not terminate {running_symbol}: {e}")
+
+    def _handle_sigint(_signum: int, _frame: Any) -> None:
+        nonlocal sigint_count
+        sigint_count += 1
+        if sigint_count == 1:
+            print(
+                "\n[WARN] Ctrl-C received. Press Ctrl-C again to abort the run "
+                "and kill all running sub-agents."
             )
-            futures[future] = job["symbol"]
+            return
 
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            results.append(result)
+        print(
+            "\n[ABORT] Second Ctrl-C received. Aborting run and killing "
+            "all running sub-agents..."
+        )
+        abort_event.set()
+        force_abort_event.set()
+        _kill_running_agents()
+
+    previous_sigint_handler = signal.getsignal(signal.SIGINT)
+    signal.signal(signal.SIGINT, _handle_sigint)
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {}
+            for job in resolved:
+                future = executor.submit(
+                    run_agent,
+                    job["symbol"],
+                    job["prompt"],
+                    model,
+                    max_budget,
+                    timeout,
+                    semaphore,
+                    abort_event,
+                    active_processes,
+                    active_processes_lock,
+                )
+                futures[future] = job["symbol"]
+
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                results.append(result)
+    finally:
+        signal.signal(signal.SIGINT, previous_sigint_handler)
 
     total_elapsed = time.time() - start_time
     succeeded = [r for r in results if r["success"]]
     failed = [r for r in results if not r["success"]]
+    aborted = [r for r in results if r["returncode"] == -2]
 
     print(f"\n{'=' * 50}")
-    print(f"=== SUMMARY ===")
+    print("=== SUMMARY ===")
     print(f"Total time: {total_elapsed:.1f}s ({total_elapsed / 60:.1f}m)")
     print(f"Succeeded: {len(succeeded)}/{len(results)}")
     if skipped:
         print(f"Skipped: {len(skipped)}")
     if failed:
         print(f"Failed: {len(failed)}")
+    if aborted:
+        print(f"Aborted before start: {len(aborted)}")
     print()
     for r in sorted(results, key=lambda x: x["symbol"]):
-        status = "OK" if r["success"] else "FAIL"
+        status = "ABORT" if r["returncode"] == -2 else ("OK" if r["success"] else "FAIL")
         print(f"  [{status}] {r['symbol']:20s} {r['elapsed']:7.1f}s")
 
     # Write summary JSON
@@ -309,6 +384,7 @@ def run_pipeline(
                 "succeeded": len(succeeded),
                 "failed": len(failed),
                 "skipped": len(skipped),
+                "aborted_before_start": len(aborted),
                 "results": results,
                 "skipped_jobs": skipped,
             },
@@ -317,6 +393,8 @@ def run_pipeline(
         )
     print(f"\nSummary written to {summary_file}")
 
+    if force_abort_event.is_set():
+        return 130
     return 0 if not failed else 1
 
 
@@ -384,58 +462,3 @@ def generate_config(
         print(yaml_str)
 
     return 0
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Parallel LLM gene search orchestrator",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""\
-Modes:
-  new            Search from scratch (skips if file already exists)
-  verify         Verify and correct existing data
-  update         Amend existing data with new findings (trusts existing)
-  verify_update  Verify existing data, then search for new findings
-
-Examples:
-  python run_llm_search.py llm_jobs.yaml
-  python run_llm_search.py llm_jobs.yaml --model opus --max-workers 10
-  python run_llm_search.py llm_jobs.yaml --dry-run
-  python run_llm_search.py --generate-config --top-n 100 --output llm_jobs.yaml
-""",
-    )
-    parser.add_argument(
-        "--generate-config",
-        action="store_true",
-        help="Generate a YAML config from the database instead of running jobs",
-    )
-    parser.add_argument("--top-n", type=int, default=50)
-    parser.add_argument("--output", type=str, default=None)
-    parser.add_argument("yaml_file", nargs="?")
-    parser.add_argument("--max-workers", type=int, default=DEFAULT_MAX_WORKERS)
-    parser.add_argument(
-        "--model", type=str, default=DEFAULT_MODEL, choices=VALID_MODELS
-    )
-    parser.add_argument("--max-budget", type=str, default=DEFAULT_MAX_BUDGET)
-    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
-    parser.add_argument("--dry-run", action="store_true")
-
-    args = parser.parse_args()
-
-    if args.generate_config:
-        sys.exit(generate_config(top_n=args.top_n, output=args.output))
-    elif not args.yaml_file:
-        parser.error("yaml_file is required when not using --generate-config")
-    else:
-        sys.exit(
-            run_pipeline(
-                yaml_file=args.yaml_file,
-                model=args.model,
-                max_workers=args.max_workers,
-                max_budget=args.max_budget,
-                timeout=args.timeout,
-                dry_run=args.dry_run,
-            )
-        )

@@ -6,6 +6,15 @@ import click
 
 from processing.click.full_help_group import FullHelpGroup
 from processing.config import get_sspsygene_config
+from processing.run_llm_search import (
+    DEFAULT_MAX_BUDGET,
+    DEFAULT_MAX_WORKERS,
+    DEFAULT_MODEL,
+    DEFAULT_TIMEOUT,
+    VALID_MODELS,
+    generate_config,
+    run_pipeline,
+)
 
 
 @click.group(
@@ -89,5 +98,87 @@ def load_gene_descriptions() -> None:
 
     config = get_sspsygene_config()
     build_descriptions_db(config.base_dir)
+
+
+@cli.command(name="run-llm-search")
+@click.argument("yaml_file", type=click.Path(exists=True, dir_okay=False, path_type=str))
+@click.option(
+    "--max-workers",
+    type=int,
+    default=DEFAULT_MAX_WORKERS,
+    show_default=True,
+    help="Maximum number of concurrent gene search agents.",
+)
+@click.option(
+    "--model",
+    type=str,
+    default=DEFAULT_MODEL,
+    show_default=True,
+    help="Model to use (e.g. sonnet, opus).",
+)
+@click.option(
+    "--max-budget",
+    type=str,
+    default=DEFAULT_MAX_BUDGET,
+    show_default=True,
+    help="Maximum budget in USD per agent run.",
+)
+@click.option(
+    "--timeout",
+    type=int,
+    default=DEFAULT_TIMEOUT,
+    show_default=True,
+    help="Timeout per gene in seconds.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Resolve jobs and print queue/skip info without running agents.",
+)
+def run_llm_search(
+    yaml_file: str,
+    max_workers: int,
+    model: str,
+    max_budget: str,
+    timeout: int,
+    dry_run: bool,
+) -> None:
+    """Run parallel LLM gene searches from a YAML job file."""
+    if model not in VALID_MODELS:
+        valid_models = ", ".join(VALID_MODELS)
+        raise click.ClickException(f"Invalid model '{model}'. Valid models: {valid_models}")
+
+    rc = run_pipeline(
+        yaml_file=yaml_file,
+        model=model,
+        max_workers=max_workers,
+        max_budget=max_budget,
+        timeout=timeout,
+        dry_run=dry_run,
+    )
+    if rc != 0:
+        raise click.exceptions.Exit(rc)
+
+
+@cli.command(name="generate-llm-config")
+@click.option(
+    "--top-n",
+    type=int,
+    default=50,
+    show_default=True,
+    help="Number of top-ranked genes to include in the generated job file.",
+)
+@click.option(
+    "--output",
+    type=click.Path(dir_okay=False, path_type=str),
+    default=None,
+    help="Write YAML config to this file path. If omitted, print to stdout.",
+)
+def generate_llm_config(top_n: int, output: str | None) -> None:
+    """Generate an LLM search YAML config from the database."""
+    rc = generate_config(top_n=top_n, output=output)
+    if rc != 0:
+        raise click.exceptions.Exit(rc)
 
 
