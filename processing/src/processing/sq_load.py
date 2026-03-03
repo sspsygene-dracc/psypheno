@@ -9,11 +9,14 @@ import click
 from processing.central_gene_table import get_central_gene_table
 from processing.combined_pvalues import compute_combined_pvalues
 from processing.new_sqlite3 import NewSqlite3
+from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import TableToProcessConfig
 
 
 def create_indexes(conn: sqlite3.Connection, table: str, idx_fields: list[str]) -> None:
+    table = sanitize_identifier(table)
     for field in idx_fields:
+        field = sanitize_identifier(field)
         print(f"Creating index for {field}")
         sql = f"CREATE INDEX {table}_{field}_idx ON {table} ({field})"
         conn.execute(sql)
@@ -28,7 +31,9 @@ _NOCASE_INDEXES: dict[str, list[str]] = {
 
 
 def create_nocase_indexes(conn: sqlite3.Connection, table: str) -> None:
+    table = sanitize_identifier(table)
     for field in _NOCASE_INDEXES.get(table, []):
+        field = sanitize_identifier(field)
         idx_name = f"{table}_{field}_nocase_idx"
         print(f"Creating NOCASE index {idx_name}")
         conn.execute(f"CREATE INDEX {idx_name} ON {table} ({field} COLLATE NOCASE)")

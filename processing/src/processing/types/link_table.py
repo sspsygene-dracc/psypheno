@@ -3,6 +3,8 @@ from dataclasses import dataclass
 
 import pandas as pd
 
+from processing.sql_utils import sanitize_identifier
+
 
 @dataclass
 class LinkTable:
@@ -18,11 +20,12 @@ class LinkTable:
         )
 
     def write_to_sqlite(self, conn: sqlite3.Connection) -> None:
+        name = sanitize_identifier(self.link_table_name)
         conn.execute(
-            f"CREATE TABLE [{self.link_table_name}] (id INTEGER, central_gene_id INTEGER)"
+            f"CREATE TABLE [{name}] (id INTEGER, central_gene_id INTEGER)"
         )
         conn.executemany(
-            f"INSERT INTO [{self.link_table_name}] (id, central_gene_id) VALUES (?, ?)",
+            f"INSERT INTO [{name}] (id, central_gene_id) VALUES (?, ?)",
             self.central_gene_table_links,
         )
 

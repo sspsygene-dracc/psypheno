@@ -9,7 +9,6 @@ Methods:
 
 import csv
 import math
-import re
 import sqlite3
 from collections import defaultdict
 from pathlib import Path
@@ -18,6 +17,8 @@ from typing import Any, cast
 import click
 import numpy as np
 from scipy.stats import cauchy as cauchy_dist
+
+from processing.sql_utils import sanitize_identifier
 from scipy.stats import combine_pvalues
 
 # HGNC gene_group names mapped to filter flag categories.
@@ -110,10 +111,6 @@ def _load_hgnc_gene_flags(hgnc_path: Path) -> dict[str, str]:
     return symbol_flags
 
 
-def _sanitize_identifier(name: str) -> str:
-    if not re.match(r"^\w+$", name):
-        raise ValueError(f"Invalid SQL identifier: {name}")
-    return name
 
 
 def _parse_link_tables(link_tables_raw: str) -> list[str]:
@@ -134,7 +131,7 @@ def _parse_link_tables(link_tables_raw: str) -> list[str]:
         parts = entry.split(":")
         link_table_name = parts[1] if len(parts) >= 2 else parts[0]
         is_perturbed = parts[2] == "1" if len(parts) >= 3 else False
-        entries.append((_sanitize_identifier(link_table_name), is_perturbed))
+        entries.append((sanitize_identifier(link_table_name), is_perturbed))
 
     has_perturbed = any(p for _, p in entries)
     has_non_perturbed = any(not p for _, p in entries)
@@ -243,8 +240,8 @@ def compute_combined_pvalues(conn: sqlite3.Connection, hgnc_path: Path | None = 
     all_pvalues: dict[int, list[float]] = defaultdict(list)
 
     for table_name, pvalue_col, link_tables_raw in tables_with_pvalues:
-        table_name = _sanitize_identifier(table_name)
-        pvalue_col = _sanitize_identifier(pvalue_col)
+        table_name = sanitize_identifier(table_name)
+        pvalue_col = sanitize_identifier(pvalue_col)
         link_table_names = _parse_link_tables(link_tables_raw or "")
 
         if not link_table_names:

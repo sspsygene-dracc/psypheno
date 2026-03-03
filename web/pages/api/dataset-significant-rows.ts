@@ -9,6 +9,7 @@ const bodySchema = z.object({
   pageSize: z.number().int().min(1).max(100).default(25),
   filterBy: z.enum(["pvalue", "fdr"]),
   sortBy: z.enum(["pvalue", "fdr"]),
+  sortDir: z.enum(["asc", "desc"]).default("asc"),
 });
 
 export default async function handler(
@@ -24,7 +25,7 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { tableName, page, pageSize, filterBy, sortBy } = parse.data;
+  const { tableName, page, pageSize, filterBy, sortBy, sortDir } = parse.data;
 
   try {
     const db = getDb();
@@ -82,7 +83,7 @@ export default async function handler(
         `SELECT ${selectCols} FROM ${baseTable}
          WHERE ${safeFilterCol} IS NOT NULL
          AND ${safeFilterCol} < 0.05
-         ORDER BY ${safeSortCol} ASC
+         ORDER BY ${safeSortCol} ${sortDir === "desc" ? "DESC" : "ASC"} ${sortDir === "asc" ? "NULLS LAST" : "NULLS FIRST"}
          LIMIT ? OFFSET ?`
       )
       .all(pageSize, offset) as Record<string, unknown>[];

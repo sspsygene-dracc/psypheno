@@ -56,15 +56,29 @@ export default async function handler(
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const offset = (page - 1) * pageSize;
 
+    // Sort params
+    const VALID_SORT_COLUMNS: Record<string, { sql: string; defaultDir: "ASC" | "DESC" }> = {
+      human_symbol: { sql: "cg.human_symbol", defaultDir: "ASC" },
+      num_datasets: { sql: "cg.num_datasets", defaultDir: "DESC" },
+    };
+    const sortByRaw = (req.query.sortBy as string) || "num_datasets";
+    const sortDirRaw = (req.query.sortDir as string) || "";
+    const sortEntry = VALID_SORT_COLUMNS[sortByRaw] ?? VALID_SORT_COLUMNS["num_datasets"];
+    const sortDir = sortDirRaw === "asc" ? "ASC" : sortDirRaw === "desc" ? "DESC" : sortEntry.defaultDir;
+    const nullsLast = sortDir === "ASC" ? "NULLS LAST" : "NULLS FIRST";
+    const tiebreaker = sortByRaw === "human_symbol"
+      ? ", cg.num_datasets DESC"
+      : ", cg.human_symbol ASC";
+
     const dataSql = `SELECT cg.id,
-                     cg.human_symbol, 
+                     cg.human_symbol,
                      cg.mouse_symbols,
                      cg.human_synonyms,
                      cg.mouse_synonyms,
                      cg.num_datasets AS dataset_count
                      FROM central_gene cg
                      ${whereSql}
-                     ORDER BY cg.num_datasets DESC, cg.human_symbol ASC, cg.mouse_symbols ASC
+                     ORDER BY ${sortEntry.sql} ${sortDir} ${nullsLast}${tiebreaker}
                      LIMIT ? OFFSET ?`;
 
     const rows = db.prepare(dataSql).all(...params, pageSize, offset) as Array<{

@@ -3,7 +3,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import DataTable from "@/components/DataTable";
+import DataTable, { type SortMode } from "@/components/DataTable";
 import InfoTooltip from "@/components/InfoTooltip";
 import DatasetItem, { Dataset } from "@/components/DatasetItem";
 
@@ -52,6 +52,8 @@ export default function AllDatasets() {
   const [loadingData, setLoadingData] = useState(false);
   const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
   const [loadingPage, setLoadingPage] = useState(false);
+  const [sortBy, setSortBy] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>("none");
   const hydratedFromQuery = useRef(false);
   const pageAbort = useRef<AbortController | null>(null);
 
@@ -121,6 +123,12 @@ export default function AllDatasets() {
     }
   }, [selectedDataset, datasets, router.isReady]);
 
+  // Reset sort when dataset changes
+  useEffect(() => {
+    setSortBy(null);
+    setSortMode("none");
+  }, [selectedDataset]);
+
   useEffect(() => {
     if (!selectedDataset) {
       setDatasetData(null);
@@ -154,17 +162,29 @@ export default function AllDatasets() {
     }
   }, [loadingData, selectedDataset]);
 
-  const fetchPage = async (page: number) => {
+  const buildFetchUrl = (page: number, overrideSortBy?: string | null, overrideSortMode?: SortMode) => {
+    if (!selectedDataset) return "";
+    const params = new URLSearchParams();
+    params.set("tableName", selectedDataset);
+    params.set("page", String(page));
+    const sb = overrideSortBy !== undefined ? overrideSortBy : sortBy;
+    const sm = overrideSortMode !== undefined ? overrideSortMode : sortMode;
+    if (sb && sm && sm !== "none") {
+      params.set("sortBy", sb);
+      params.set("sortMode", sm);
+    }
+    return `/api/dataset-data?${params.toString()}`;
+  };
+
+  const fetchPage = async (page: number, overrideSortBy?: string | null, overrideSortMode?: SortMode) => {
     if (!selectedDataset) return;
     pageAbort.current?.abort();
     const controller = new AbortController();
     pageAbort.current = controller;
     setLoadingPage(true);
     try {
-      const res = await fetch(
-        `/api/dataset-data?tableName=${encodeURIComponent(selectedDataset)}&page=${page}`,
-        { signal: controller.signal }
-      );
+      const url = buildFetchUrl(page, overrideSortBy, overrideSortMode);
+      const res = await fetch(url, { signal: controller.signal });
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const data = await res.json();
       setDatasetData(data);
@@ -174,6 +194,13 @@ export default function AllDatasets() {
     } finally {
       setLoadingPage(false);
     }
+  };
+
+  const handleSort = (col: string, mode: SortMode) => {
+    const newSortBy = mode === "none" ? null : col;
+    setSortBy(newSortBy);
+    setSortMode(mode);
+    fetchPage(1, newSortBy, mode);
   };
 
   const currentPage = datasetData?.page ?? 1;
@@ -394,6 +421,9 @@ export default function AllDatasets() {
                             scalarColumns={datasetData.scalarColumns}
                             fieldLabels={datasetData.fieldLabels}
                             showSummary={false}
+                            sortColumn={sortBy}
+                            sortMode={sortMode}
+                            onSort={handleSort}
                           />
                           {loadingPage && (
                             <div style={{

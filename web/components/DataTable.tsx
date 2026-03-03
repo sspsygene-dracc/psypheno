@@ -7,7 +7,7 @@ function formatColumnHeader(col: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-type SortMode = "none" | "asc" | "desc" | "asc_abs" | "desc_abs";
+export type SortMode = "none" | "asc" | "desc" | "asc_abs" | "desc_abs";
 
 function sortIndicator(mode: SortMode): string {
   switch (mode) {
@@ -19,6 +19,21 @@ function sortIndicator(mode: SortMode): string {
   }
 }
 
+export function computeNextSortMode(
+  clickedCol: string,
+  currentCol: string | null,
+  currentMode: SortMode,
+  scalarSet: Set<string>,
+): SortMode {
+  if (clickedCol !== currentCol) return "asc";
+  const isScalar = scalarSet.has(clickedCol);
+  const cycle: SortMode[] = isScalar
+    ? ["asc", "desc", "asc_abs", "desc_abs", "none"]
+    : ["asc", "desc", "none"];
+  const idx = cycle.indexOf(currentMode);
+  return cycle[(idx + 1) % cycle.length];
+}
+
 export default function DataTable({
   columns,
   rows,
@@ -27,6 +42,9 @@ export default function DataTable({
   showSummary = true,
   scalarColumns,
   fieldLabels,
+  sortColumn: controlledSortColumn,
+  sortMode: controlledSortMode,
+  onSort,
 }: {
   columns: string[];
   rows: Record<string, unknown>[];
@@ -35,48 +53,51 @@ export default function DataTable({
   showSummary?: boolean;
   scalarColumns?: string[];
   fieldLabels?: Record<string, string> | null;
+  sortColumn?: string | null;
+  sortMode?: SortMode;
+  onSort?: (column: string, mode: SortMode) => void;
 }) {
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortMode, setSortMode] = useState<SortMode>("none");
+  const isControlled = onSort !== undefined;
+
+  const [internalSortColumn, setInternalSortColumn] = useState<string | null>(null);
+  const [internalSortMode, setInternalSortMode] = useState<SortMode>("none");
+
+  const effectiveSortColumn = isControlled ? (controlledSortColumn ?? null) : internalSortColumn;
+  const effectiveSortMode = isControlled ? (controlledSortMode ?? "none") : internalSortMode;
 
   const scalarSet = useMemo(() => {
     return new Set(scalarColumns ?? []);
   }, [scalarColumns, columns]);
 
-  // Reset sort when data changes
+  // Reset sort when data changes (uncontrolled mode only)
   useEffect(() => {
-    setSortColumn(null);
-    setSortMode("none");
-  }, [columns, rows]);
+    if (!isControlled) {
+      setInternalSortColumn(null);
+      setInternalSortMode("none");
+    }
+  }, [columns, rows, isControlled]);
 
   const handleHeaderClick = (col: string) => {
-    if (sortColumn !== col) {
-      setSortColumn(col);
-      setSortMode("asc");
-      return;
+    const nextMode = computeNextSortMode(col, effectiveSortColumn, effectiveSortMode, scalarSet);
+    if (isControlled) {
+      onSort!(col, nextMode);
+    } else {
+      setInternalSortColumn(nextMode === "none" ? null : col);
+      setInternalSortMode(nextMode);
     }
-    const isScalar = scalarSet.has(col);
-    const cycle: SortMode[] = isScalar
-      ? ["asc", "desc", "asc_abs", "desc_abs", "none"]
-      : ["asc", "desc", "none"];
-    const idx = cycle.indexOf(sortMode);
-    const next = cycle[(idx + 1) % cycle.length];
-    if (next === "none") {
-      setSortColumn(null);
-    }
-    setSortMode(next);
   };
 
   const sortedRows = useMemo(() => {
-    if (!sortColumn || sortMode === "none") return rows;
+    if (isControlled || !effectiveSortColumn || effectiveSortMode === "none") return rows;
 
-    const isAbsSort = sortMode === "asc_abs" || sortMode === "desc_abs";
-    const isAsc = sortMode === "asc" || sortMode === "asc_abs";
-    const isScalar = scalarSet.has(sortColumn);
+    const isAbsSort = effectiveSortMode === "asc_abs" || effectiveSortMode === "desc_abs";
+    const isAsc = effectiveSortMode === "asc" || effectiveSortMode === "asc_abs";
+    const isScalar = scalarSet.has(effectiveSortColumn);
+    const col = effectiveSortColumn;
 
     return [...rows].sort((a, b) => {
-      const va = a[sortColumn];
-      const vb = b[sortColumn];
+      const va = a[col];
+      const vb = b[col];
 
       // Nulls always sort to end
       if (va == null && vb == null) return 0;
@@ -101,9 +122,12 @@ export default function DataTable({
 
       return isAsc ? cmp : -cmp;
     });
-  }, [rows, sortColumn, sortMode, scalarSet]);
+  }, [rows, effectiveSortColumn, effectiveSortMode, scalarSet, isControlled]);
 
   const rowsToDisplay = maxRows ? sortedRows.slice(0, maxRows) : sortedRows;
+
+  const isActive = (col: string) =>
+    col === effectiveSortColumn && effectiveSortMode !== "none";
 
   return (
     <div style={{ overflowX: "auto" }}>
@@ -117,7 +141,7 @@ export default function DataTable({
         <thead>
           <tr style={{ background: "#f9fafb" }}>
             {columns.map((col) => {
-              const isActive = col === sortColumn && sortMode !== "none";
+              const active = isActive(col);
               return (
                 <th
                   key={col}
@@ -125,7 +149,7 @@ export default function DataTable({
                   style={{
                     padding: "12px 16px",
                     textAlign: "left",
-                    color: isActive ? "#1f2937" : "#6b7280",
+                    color: active ? "#1f2937" : "#6b7280",
                     fontWeight: 600,
                     borderTop: "1px solid #e5e7eb",
                     whiteSpace: "nowrap",
@@ -139,12 +163,12 @@ export default function DataTable({
                   )}
                   <span
                     style={{
-                      fontSize: isActive ? 12 : 18,
+                      fontSize: active ? 12 : 18,
                       marginLeft: 4,
-                      color: isActive ? "#1f2937" : "#9ca3af",
+                      color: active ? "#1f2937" : "#9ca3af",
                     }}
                   >
-                    {sortIndicator(isActive ? sortMode : "none")}
+                    {sortIndicator(active ? effectiveSortMode : "none")}
                   </span>
                 </th>
               );

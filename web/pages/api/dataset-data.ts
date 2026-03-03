@@ -1,19 +1,21 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import {
+  sanitizeIdentifier,
+  validateSortColumn,
+  buildOrderByClause,
+  type ApiSortMode,
+} from "@/lib/gene-query";
 
 const DATASET_PAGE_LIMIT = 25;
 
 const querySchema = z.object({
   tableName: z.string().min(1),
   page: z.coerce.number().min(1).optional(),
+  sortBy: z.string().optional(),
+  sortMode: z.string().optional(),
 });
-
-function sanitizeIdentifier(id: string): string {
-  // Allow only alphanumeric and underscore to avoid SQL injection via identifiers
-  if (!/^\w+$/.test(id)) throw new Error(`Invalid identifier: ${id}`);
-  return id;
-}
 
 export default async function handler(
   req: NextApiRequest,
@@ -88,7 +90,27 @@ export default async function handler(
     const effectivePage = Math.min(page, totalPages);
     const offset = (effectivePage - 1) * DATASET_PAGE_LIMIT;
 
-    const sql = `SELECT ${selectCols} FROM ${tableName} LIMIT ${DATASET_PAGE_LIMIT} OFFSET ${offset}`;
+    // Build ORDER BY clause if sort params provided
+    let orderByClause = "";
+    if (parse.data.sortBy && parse.data.sortMode) {
+      const validModes = new Set(["asc", "desc", "asc_abs", "desc_abs"]);
+      if (validModes.has(parse.data.sortMode)) {
+        const validCol = validateSortColumn(parse.data.sortBy, displayCols);
+        if (validCol) {
+          const scalarCols = new Set(
+            (metadata.scalar_columns || "").split(",").map((s) => s.trim()).filter(Boolean)
+          );
+          let mode = parse.data.sortMode as ApiSortMode;
+          const isAbsMode = mode === "asc_abs" || mode === "desc_abs";
+          if (isAbsMode && !scalarCols.has(validCol)) {
+            mode = mode === "asc_abs" ? "asc" : "desc";
+          }
+          orderByClause = buildOrderByClause({ column: validCol, mode });
+        }
+      }
+    }
+
+    const sql = `SELECT ${selectCols} FROM ${tableName} ${orderByClause} LIMIT ${DATASET_PAGE_LIMIT} OFFSET ${offset}`;
     const rows = db.prepare(sql).all() as Record<string, unknown>[];
 
     const links =

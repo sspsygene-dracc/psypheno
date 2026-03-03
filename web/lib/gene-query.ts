@@ -1,6 +1,40 @@
 import type Database from "better-sqlite3";
 
-export const ROW_LIMIT = 25;
+export const ROW_LIMIT = 10;
+
+export type ApiSortMode = "asc" | "desc" | "asc_abs" | "desc_abs";
+
+export interface OrderBySpec {
+  column: string;      // already sanitized column name
+  mode: ApiSortMode;
+  tableAlias?: string; // e.g. "b"
+}
+
+export function buildOrderByClause(spec: OrderBySpec | null): string {
+  if (!spec) return "";
+  const { column, mode, tableAlias } = spec;
+  const prefix = tableAlias ? `${tableAlias}.` : "";
+  const isAbs = mode === "asc_abs" || mode === "desc_abs";
+  const isAsc = mode === "asc" || mode === "asc_abs";
+  const dir = isAsc ? "ASC" : "DESC";
+  const nulls = isAsc ? "NULLS LAST" : "NULLS FIRST";
+  const expr = isAbs ? `ABS(${prefix}${column})` : `${prefix}${column}`;
+  return `ORDER BY ${expr} ${dir} ${nulls}`;
+}
+
+/**
+ * Validate a sort column against a set of allowed display columns.
+ * Returns the sanitized column name, or null if invalid.
+ */
+export function validateSortColumn(
+  sortBy: string | undefined | null,
+  displayColumns: string[],
+): string | null {
+  if (!sortBy) return null;
+  const colSet = new Set(displayColumns);
+  if (!colSet.has(sortBy)) return null;
+  return sanitizeIdentifier(sortBy);
+}
 
 export function sanitizeIdentifier(id: string): string {
   if (!/^\w+$/.test(id)) throw new Error(`Invalid identifier: ${id}`);
@@ -137,8 +171,10 @@ export function queryFirstPage(
   selectCols: string,
   fromAndWhere: string,
   params: string[],
+  orderBy?: string,
 ): { rows: Record<string, unknown>[]; totalRows: number } | null {
-  const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndWhere} LIMIT ${ROW_LIMIT + 1}`;
+  const orderClause = orderBy ?? "";
+  const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndWhere} ${orderClause} LIMIT ${ROW_LIMIT + 1}`;
   const allRows = db.prepare(dataSql).all(...params) as Record<string, unknown>[];
 
   if (allRows.length === 0) return null;
@@ -167,6 +203,7 @@ export function queryPage(
   fromAndWhere: string,
   params: string[],
   page: number,
+  orderBy?: string,
 ): { rows: Record<string, unknown>[]; totalRows: number; page: number; totalPages: number } {
   const countSql = `SELECT COUNT(*) as cnt FROM (SELECT DISTINCT ${selectCols} ${fromAndWhere})`;
   const totalRows = (db.prepare(countSql).get(...params) as { cnt: number }).cnt;
@@ -175,7 +212,8 @@ export function queryPage(
   const effectivePage = Math.min(page, totalPages);
   const offset = (effectivePage - 1) * ROW_LIMIT;
 
-  const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndWhere} LIMIT ${ROW_LIMIT} OFFSET ${offset}`;
+  const orderClause = orderBy ?? "";
+  const dataSql = `SELECT DISTINCT ${selectCols} ${fromAndWhere} ${orderClause} LIMIT ${ROW_LIMIT} OFFSET ${offset}`;
   const rows = db.prepare(dataSql).all(...params) as Record<string, unknown>[];
 
   return { rows, totalRows, page: effectivePage, totalPages };

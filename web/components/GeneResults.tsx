@@ -1,6 +1,6 @@
 import { TableResult } from "@/lib/table_result";
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
-import DataTable from "@/components/DataTable";
+import DataTable, { type SortMode } from "@/components/DataTable";
 import InfoTooltip from "@/components/InfoTooltip";
 import { ROW_LIMIT } from "@/lib/gene-query";
 
@@ -35,6 +35,11 @@ type TablePageState = {
   error: string | null;
 };
 
+type TableSortState = {
+  sortBy: string | null;
+  sortMode: SortMode;
+};
+
 export default function GeneResults({
   geneDisplayName,
   data,
@@ -55,6 +60,7 @@ export default function GeneResults({
   );
   const [showToc, setShowToc] = useState(false);
   const [tablePageOverrides, setTablePageOverrides] = useState<Record<string, TablePageState>>({});
+  const [tableSortStates, setTableSortStates] = useState<Record<string, TableSortState>>({});
   const abortControllers = useRef<Record<string, AbortController>>({});
 
   useEffect(() => {
@@ -65,11 +71,12 @@ export default function GeneResults({
     return () => mql.removeEventListener("change", handler);
   }, []);
 
-  // Reset pagination overrides when data changes (new gene selected)
+  // Reset pagination overrides and sort states when data changes (new gene selected)
   useEffect(() => {
     Object.values(abortControllers.current).forEach((c) => c.abort());
     abortControllers.current = {};
     setTablePageOverrides({});
+    setTableSortStates({});
   }, [data]);
 
   const scrollToTableTop = (tableName: string) => {
@@ -78,7 +85,12 @@ export default function GeneResults({
     tableEl.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const fetchTablePage = async (tableName: string, page: number) => {
+  const fetchTablePage = async (
+    tableName: string,
+    page: number,
+    sortBy?: string | null,
+    sortMode?: SortMode,
+  ) => {
     scrollToTableTop(tableName);
 
     // Abort any in-flight request for this table
@@ -114,6 +126,11 @@ export default function GeneResults({
         body.perturbedCentralGeneId = perturbedCentralGeneId ?? null;
         body.targetCentralGeneId = targetCentralGeneId ?? null;
       }
+      // Add sort params if present
+      if (sortBy && sortMode && sortMode !== "none") {
+        body.sortBy = sortBy;
+        body.sortMode = sortMode;
+      }
 
       const res = await fetch("/api/gene-table-page", {
         method: "POST",
@@ -148,6 +165,25 @@ export default function GeneResults({
           error: e?.message || "Failed to load page",
         },
       }));
+    }
+  };
+
+  const handleTableSort = (tableName: string, column: string, mode: SortMode) => {
+    const newSortState: TableSortState = {
+      sortBy: mode === "none" ? null : column,
+      sortMode: mode,
+    };
+    setTableSortStates((prev) => ({ ...prev, [tableName]: newSortState }));
+
+    if (mode === "none") {
+      // Clear override to go back to original data
+      setTablePageOverrides((prev) => {
+        const next = { ...prev };
+        delete next[tableName];
+        return next;
+      });
+    } else {
+      fetchTablePage(tableName, 1, column, mode);
     }
   };
 
@@ -219,13 +255,15 @@ export default function GeneResults({
     const items: ReactNode[] = [];
     if (totalPages <= 1) return null;
 
+    const currentSort = tableSortStates[tableName];
+
     const addBtn = (label: string | number, targetPage: number, key: string) => {
       const isActive = targetPage === currentPage;
       const isDisabled = isLoading || targetPage < 1 || targetPage > totalPages;
       items.push(
         <button
           key={key}
-          onClick={() => !isDisabled && !isActive && fetchTablePage(tableName, targetPage)}
+          onClick={() => !isDisabled && !isActive && fetchTablePage(tableName, targetPage, currentSort?.sortBy, currentSort?.sortMode)}
           disabled={isDisabled}
           aria-current={isActive ? "page" : undefined}
           style={{
@@ -436,6 +474,7 @@ export default function GeneResults({
               const isPageLoading = override?.loading ?? false;
               const pageError = override?.error ?? null;
               const hasPagination = effectiveTotalPages > 1;
+              const currentSort = tableSortStates[section.tableName];
 
               return (
                 <div
@@ -552,6 +591,9 @@ export default function GeneResults({
                       scalarColumns={section.scalarColumns}
                       fieldLabels={section.fieldLabels}
                       showSummary={false}
+                      sortColumn={currentSort?.sortBy ?? null}
+                      sortMode={currentSort?.sortMode ?? "none"}
+                      onSort={(col, mode) => handleTableSort(section.tableName, col, mode)}
                     />
                     {isPageLoading && (
                       <div style={{
@@ -621,7 +663,7 @@ export default function GeneResults({
                           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                             <button
                               disabled={effectivePage <= 1 || isPageLoading}
-                              onClick={() => fetchTablePage(section.tableName, effectivePage - 1)}
+                              onClick={() => fetchTablePage(section.tableName, effectivePage - 1, currentSort?.sortBy, currentSort?.sortMode)}
                               style={btnStyle(effectivePage <= 1 || isPageLoading)}
                             >
                               Prev
@@ -629,7 +671,7 @@ export default function GeneResults({
                             {renderPageNumbers(effectivePage, effectiveTotalPages, section.tableName, isPageLoading)}
                             <button
                               disabled={effectivePage >= effectiveTotalPages || isPageLoading}
-                              onClick={() => fetchTablePage(section.tableName, effectivePage + 1)}
+                              onClick={() => fetchTablePage(section.tableName, effectivePage + 1, currentSort?.sortBy, currentSort?.sortMode)}
                               style={btnStyle(effectivePage >= effectiveTotalPages || isPageLoading)}
                             >
                               Next

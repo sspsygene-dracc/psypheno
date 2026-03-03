@@ -14,6 +14,8 @@ type ApiResponse = {
   query: string;
 };
 
+type SortableColumn = "human_symbol" | "num_datasets";
+
 export default function AllGenes() {
   const [genes, setGenes] = useState<SearchSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +26,18 @@ export default function AllGenes() {
   const [pageSize, setPageSize] = useState(50);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortBy, setSortBy] = useState<SortableColumn>("num_datasets");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (col: SortableColumn) => {
+    if (col === sortBy) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      setSortDir(col === "num_datasets" ? "desc" : "asc");
+    }
+    setPage(1);
+  };
 
   // Debounce the search term
   useEffect(() => {
@@ -46,6 +60,8 @@ export default function AllGenes() {
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("pageSize", String(pageSize));
+        params.set("sortBy", sortBy);
+        params.set("sortDir", sortDir);
         if (debounced.trim().length >= 2) params.set("q", debounced.trim());
         const res = await fetch(`/api/all-genes?${params.toString()}`, {
           signal: controller.signal,
@@ -65,7 +81,7 @@ export default function AllGenes() {
     };
     fetchGenes();
     return () => controller.abort();
-  }, [page, pageSize, debounced]);
+  }, [page, pageSize, debounced, sortBy, sortDir]);
 
   return (
     <>
@@ -153,11 +169,27 @@ export default function AllGenes() {
                     fontSize: 14,
                   }}
                 >
-                  <div>Human symbol</div>
+                  <div
+                    onClick={() => handleSort("human_symbol")}
+                    style={{ cursor: "pointer", userSelect: "none", color: sortBy === "human_symbol" ? "#1f2937" : undefined }}
+                  >
+                    Human symbol
+                    <span style={{ fontSize: sortBy === "human_symbol" ? 12 : 18, marginLeft: 4, color: sortBy === "human_symbol" ? "#1f2937" : "#9ca3af" }}>
+                      {sortBy === "human_symbol" ? (sortDir === "asc" ? " \u25B2" : " \u25BC") : " \u21C5"}
+                    </span>
+                  </div>
                   <div>Mouse symbols</div>
                   <div>Human synonyms</div>
                   <div>Mouse synonyms</div>
-                  <div style={{ textAlign: "right" }}>Datasets</div>
+                  <div
+                    onClick={() => handleSort("num_datasets")}
+                    style={{ textAlign: "right", cursor: "pointer", userSelect: "none", color: sortBy === "num_datasets" ? "#1f2937" : undefined }}
+                  >
+                    Datasets
+                    <span style={{ fontSize: sortBy === "num_datasets" ? 12 : 18, marginLeft: 4, color: sortBy === "num_datasets" ? "#1f2937" : "#9ca3af" }}>
+                      {sortBy === "num_datasets" ? (sortDir === "asc" ? " \u25B2" : " \u25BC") : " \u21C5"}
+                    </span>
+                  </div>
                 </div>
 
                 <div
