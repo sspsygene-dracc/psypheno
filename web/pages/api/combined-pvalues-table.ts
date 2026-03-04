@@ -1,17 +1,14 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { sanitizeIdentifier } from "@/lib/gene-query";
 
-const VALID_SORT_COLUMNS: Record<string, string> = {
-  fisher_pvalue: "fisher_pvalue",
-  stouffer_pvalue: "stouffer_pvalue",
-  cauchy_pvalue: "cauchy_pvalue",
-  hmp_pvalue: "hmp_pvalue",
-  num_tables: "num_tables",
-  num_pvalues: "num_pvalues",
-  human_symbol: "human_symbol",
-  llm_search_date: "search_date",
+const VALID_METHODS = ["fisher", "stouffer", "cauchy", "hmp"] as const;
+
+const METHOD_COLUMNS: Record<string, string> = {
+  fisher: "fisher_pvalue",
+  stouffer: "stouffer_pvalue",
+  cauchy: "cauchy_pvalue",
+  hmp: "hmp_pvalue",
 };
 
 const VALID_FLAGS = [
@@ -27,8 +24,7 @@ const VALID_FLAGS = [
 const bodySchema = z.object({
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(100).default(25),
-  sortBy: z.string().default("fisher_pvalue"),
-  sortDir: z.enum(["asc", "desc"]).default("asc"),
+  method: z.enum(VALID_METHODS).default("fisher"),
   hideFlags: z.array(z.enum(VALID_FLAGS)).default([]),
 });
 
@@ -55,29 +51,14 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { page, pageSize, sortBy, sortDir, hideFlags } = parse.data;
-
-  if (!VALID_SORT_COLUMNS[sortBy]) {
-    return res.status(400).json({ error: "Invalid sortBy column" });
-  }
+  const { page, pageSize, method, hideFlags } = parse.data;
+  const methodCol = METHOD_COLUMNS[method];
 
   try {
     const db = getDb();
     const offset = (page - 1) * pageSize;
     const hasLlm = tableExists(db, "llm_gene_results");
     const hasDesc = tableExists(db, "gene_descriptions");
-
-    // Sort column may be on cp, cg, or lr table
-    // If LLM table doesn't exist, fall back to default sort
-    const effectiveSortBy = (sortBy.startsWith("llm_") && !hasLlm) ? "fisher_pvalue" : sortBy;
-    const effectiveSortCol = VALID_SORT_COLUMNS[effectiveSortBy] ?? "fisher_pvalue";
-    const sortTable = effectiveSortBy === "human_symbol"
-      ? "cg"
-      : effectiveSortBy.startsWith("llm_")
-        ? "lr"
-        : "cp";
-    const dir = sortDir === "desc" ? "DESC" : "ASC";
-    const nullsLast = sortDir === "asc" ? "NULLS LAST" : "NULLS FIRST";
 
     // Build WHERE clause to exclude genes with hidden flags
     let flagWhere = "";
@@ -105,29 +86,33 @@ export default async function handler(
       : `, NULL AS gene_description`;
 
     const llmJoin = hasLlm
-      ? "LEFT JOIN llm_gene_results lr ON lr.central_gene_id = cp.central_gene_id"
+      ? "LEFT JOIN llm_gene_results lr ON lr.central_gene_id = f.central_gene_id"
       : "";
 
     const descJoin = hasDesc
-      ? "LEFT JOIN gene_descriptions gd ON gd.central_gene_id = cp.central_gene_id"
+      ? "LEFT JOIN gene_descriptions gd ON gd.central_gene_id = f.central_gene_id"
       : "";
 
+    // CTE computes rank over the filtered set, then we join extra data
     const rows = db
       .prepare(
-        `SELECT cg.human_symbol, cp.fisher_pvalue,
-                cp.stouffer_pvalue,
-                cp.cauchy_pvalue,
-                cp.hmp_pvalue,
-                cp.num_tables, cp.num_pvalues,
-                cp.gene_flags
+        `WITH filtered AS (
+           SELECT cp.central_gene_id,
+                  cp.${methodCol} AS method_pvalue,
+                  cp.num_tables, cp.num_pvalues, cp.gene_flags
+           FROM gene_combined_pvalues cp
+           ${flagWhere}
+         )
+         SELECT ROW_NUMBER() OVER (ORDER BY f.method_pvalue ASC NULLS LAST) AS rank,
+                cg.human_symbol, f.method_pvalue,
+                f.num_tables, f.num_pvalues, f.gene_flags
                 ${llmSelect}
                 ${descSelect}
-         FROM gene_combined_pvalues cp
-         JOIN central_gene cg ON cg.id = cp.central_gene_id
+         FROM filtered f
+         JOIN central_gene cg ON cg.id = f.central_gene_id
          ${llmJoin}
          ${descJoin}
-         ${flagWhere}
-         ORDER BY ${sortTable}.${sanitizeIdentifier(effectiveSortCol)} ${dir} ${nullsLast}
+         ORDER BY f.method_pvalue ASC NULLS LAST
          LIMIT ? OFFSET ?`
       )
       .all(...flagParams, pageSize, offset) as Array<Record<string, unknown>>;
@@ -143,6 +128,7 @@ export default async function handler(
       totalRows: countResult.cnt,
       page,
       pageSize,
+      method,
     });
   } catch (err) {
     console.error("combined-pvalues-table handler error", err);
