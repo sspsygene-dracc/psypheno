@@ -398,21 +398,19 @@ export default function GeneResults({
         }}
       >
         <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
-        {(geneDescription || llmResult) && (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: "12px 14px",
-              border: "1px solid #e5e7eb",
-              borderRadius: 8,
-            }}
-          >
-            <GeneInfoBox
-              geneDescription={geneDescription}
-              llmResult={llmResult}
-            />
-          </div>
-        )}
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "12px 14px",
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+          }}
+        >
+          <GeneInfoBox
+            geneDescription={geneDescription}
+            llmResult={llmResult}
+          />
+        </div>
         {data.length === 0 && (
           <div style={{ opacity: 0.8 }}>No results found in any dataset.</div>
         )}

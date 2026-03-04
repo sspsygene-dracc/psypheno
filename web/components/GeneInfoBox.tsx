@@ -46,10 +46,6 @@ export default function GeneInfoBox({
   const hasLlmNoResults = llmResult && llmResult.status === "no_results";
   const hasLlmNotSearched =
     llmResult && (!llmResult.status || llmResult.status === "not_searched");
-  const hasAnything =
-    geneDescription || hasLlmResults || hasLlmNoResults || hasLlmNotSearched;
-  if (!hasAnything) return null;
-
   return (
     <div
       style={{
@@ -59,7 +55,7 @@ export default function GeneInfoBox({
         fontSize: 13,
       }}
     >
-      {geneDescription && (
+      {geneDescription ? (
         <div
           style={{
             marginBottom: hasLlmResults ? 4 : 0,
@@ -76,6 +72,10 @@ export default function GeneInfoBox({
             {geneDescription}
           </p>
         </div>
+      ) : (
+        <span style={{ color: "#9ca3af", fontStyle: "italic" }}>
+          No RefSeq gene description available for this gene.
+        </span>
       )}
       {hasLlmResults && (
         <>
