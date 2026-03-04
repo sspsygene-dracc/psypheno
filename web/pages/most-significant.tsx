@@ -494,7 +494,6 @@ export default function MostSignificantPage() {
             fontSize: 15,
             lineHeight: 1.7,
             marginBottom: 20,
-            maxWidth: 800,
           }}
         >
           This page ranks genes by their aggregate statistical significance
