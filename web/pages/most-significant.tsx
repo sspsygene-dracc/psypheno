@@ -1,9 +1,4 @@
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  type ReactNode,
-} from "react";
+import React, { useEffect, useState, useCallback, type ReactNode } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import DataTable from "@/components/DataTable";
