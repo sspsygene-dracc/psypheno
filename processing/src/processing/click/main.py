@@ -101,7 +101,9 @@ def load_gene_descriptions() -> None:
 
 
 @cli.command(name="run-llm-search")
-@click.argument("yaml_file", type=click.Path(exists=True, dir_okay=False, path_type=str))
+@click.argument(
+    "yaml_file", type=click.Path(exists=True, dir_okay=False, path_type=str)
+)
 @click.option(
     "--max-workers",
     type=int,
@@ -147,7 +149,9 @@ def run_llm_search(
     """Run parallel LLM gene searches from a YAML job file."""
     if model not in VALID_MODELS:
         valid_models = ", ".join(VALID_MODELS)
-        raise click.ClickException(f"Invalid model '{model}'. Valid models: {valid_models}")
+        raise click.ClickException(
+            f"Invalid model '{model}'. Valid models: {valid_models}"
+        )
 
     rc = run_pipeline(
         yaml_file=yaml_file,
@@ -159,6 +163,56 @@ def run_llm_search(
     )
     if rc != 0:
         raise click.exceptions.Exit(rc)
+
+
+@cli.command()
+@click.option(
+    "--load-db",
+    is_flag=True,
+    default=False,
+    help="Run sspsygene load-db on each deployed site.",
+)
+@click.option(
+    "--no-push",
+    is_flag=True,
+    default=False,
+    help="Skip the local git push step.",
+)
+@click.option(
+    "--prod-only",
+    is_flag=True,
+    default=False,
+    help="Deploy only the production site (skip internal).",
+)
+@click.option(
+    "--int-only",
+    is_flag=True,
+    default=False,
+    help="Deploy only the internal site (skip production).",
+)
+@click.option(
+    "--no-restart",
+    is_flag=True,
+    default=False,
+    help="Skip restarting web servers on psygene.",
+)
+def deploy(
+    load_db: bool,
+    no_push: bool,
+    prod_only: bool,
+    int_only: bool,
+    no_restart: bool,
+) -> None:
+    """Deploy to production and internal sites on hgwdev/psygene."""
+    from processing.deploy import run_deploy
+
+    run_deploy(
+        load_db=load_db,
+        no_push=no_push,
+        prod_only=prod_only,
+        int_only=int_only,
+        no_restart=no_restart,
+    )
 
 
 @cli.command(name="generate-llm-config")
@@ -180,5 +234,3 @@ def generate_llm_config(top_n: int, output: str | None) -> None:
     rc = generate_config(top_n=top_n, output=output)
     if rc != 0:
         raise click.exceptions.Exit(rc)
-
-
