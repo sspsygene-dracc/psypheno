@@ -184,7 +184,7 @@ def _step_restart_psygene() -> None:
 
     result = _run_ssh(
         PSYGENE,
-        "ps aux | grep -E 'next-server|npm.*3110' | grep -v grep",
+        "ps aux | grep -E 'next-server|npm.*3110' | grep -v grep | grep \"^$USER \"",
         desc="Finding Next.js / npm processes",
         check=False,
     )

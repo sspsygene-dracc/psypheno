@@ -123,17 +123,22 @@ stouffer_fdr <- p.adjust(stouffer_p, method = "BH")
 cauchy_fdr   <- p.adjust(cauchy_p,   method = "BH")
 hmp_fdr      <- p.adjust(hmp_p,      method = "BH")
 
-# Write results
+# Format p-values with full double precision (17 significant digits)
+# to avoid write.csv's default ~5-digit rounding, which can make
+# CCT and HMP appear identical when they differ only in low-order digits.
+fmt <- function(x) ifelse(is.na(x), NA_character_, sprintf("%.17e", x))
+
 results <- data.frame(
   gene_id      = gene_ids,
-  fisher_p     = fisher_p,
-  stouffer_p   = stouffer_p,
-  cauchy_p     = cauchy_p,
-  hmp_p        = hmp_p,
-  fisher_fdr   = fisher_fdr,
-  stouffer_fdr = stouffer_fdr,
-  cauchy_fdr   = cauchy_fdr,
-  hmp_fdr      = hmp_fdr
+  fisher_p     = fmt(fisher_p),
+  stouffer_p   = fmt(stouffer_p),
+  cauchy_p     = fmt(cauchy_p),
+  hmp_p        = fmt(hmp_p),
+  fisher_fdr   = fmt(fisher_fdr),
+  stouffer_fdr = fmt(stouffer_fdr),
+  cauchy_fdr   = fmt(cauchy_fdr),
+  hmp_fdr      = fmt(hmp_fdr),
+  stringsAsFactors = FALSE
 )
 
 output_file <- file.path(temp_dir, "results.csv")
