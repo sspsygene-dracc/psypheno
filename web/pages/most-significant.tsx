@@ -465,9 +465,11 @@ export default function MostSignificantPage() {
       <style>{`
         @media (max-width: 700px) {
           .mostsig-gene-info p,
-          .mostsig-gene-info div {
+          .mostsig-gene-info div,
+          .mostsig-gene-info span {
             font-size: 13px !important;
             line-height: 1.5 !important;
+            -webkit-text-size-adjust: 100% !important;
           }
           .mostsig-method-desc {
             font-size: 12px !important;
@@ -686,6 +688,7 @@ export default function MostSignificantPage() {
                 width: "100%",
                 borderCollapse: "collapse",
                 fontSize: 14,
+                WebkitTextSizeAdjust: "100%",
               }}
             >
               <thead>
@@ -764,12 +767,7 @@ export default function MostSignificantPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody
-                style={{
-                  opacity: loading && rows.length > 0 ? 0.5 : 1,
-                  transition: "opacity 0.15s",
-                }}
-              >
+              <tbody key={`page-${page}-${method}`}>
                 {rows.length === 0 && loading && (
                   <tr>
                     <td
