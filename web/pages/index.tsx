@@ -297,6 +297,30 @@ export default function Home() {
               Explore cross-species datasets from the SSPsyGene project
             </p>
           </div>
+          {/* News */}
+          <div
+            style={{
+              width: "min(720px, 92%)",
+              boxSizing: "border-box",
+              marginBottom: 16,
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              borderRadius: 8,
+              padding: "8px 14px",
+              fontSize: 13,
+              color: "#1e40af",
+            }}
+          >
+            <span style={{ fontWeight: 600 }}>New</span>{" "}
+            <span style={{ color: "#6b7280", fontSize: 12 }}>(Mar 2026)</span>
+            {" \u2014 "}
+            <a
+              href="/most-significant"
+              style={{ color: "#2563eb", textDecoration: "none" }}
+            >
+              Most significant genes ranking across all datasets now available!
+            </a>
+          </div>
           {/* Mode toggle */}
           <div
             style={{
@@ -358,7 +382,7 @@ export default function Home() {
               }}
             >
               <SearchBar
-                placeholder="Search for a gene (e.g., CTNNB1, SATB1)"
+                placeholder="Search for a gene (e.g., CNTN5, EBF3)"
                 onSelect={(s) => setSelected(s)}
                 value={selected}
               />
