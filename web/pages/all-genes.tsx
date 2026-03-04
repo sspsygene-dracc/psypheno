@@ -86,7 +86,7 @@ export default function AllGenes() {
   return (
     <>
       <Head>
-        <title>All Genes - SSPsyGene</title>
+        <title>All Genes &mdash; SSPsyGene</title>
       </Head>
       <div
         style={{

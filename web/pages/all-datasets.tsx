@@ -280,7 +280,7 @@ export default function AllDatasets() {
   return (
     <>
       <Head>
-        <title>All Datasets - SSPsyGene</title>
+        <title>All Datasets &mdash; SSPsyGene</title>
       </Head>
       <div
         style={{

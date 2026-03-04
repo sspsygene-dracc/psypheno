@@ -91,7 +91,7 @@ export default function DatasetChangelog() {
   return (
     <>
       <Head>
-        <title>Dataset Changelog - SSPsyGene</title>
+        <title>Dataset Changelog &mdash; SSPsyGene</title>
       </Head>
       <div
         style={{

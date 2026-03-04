@@ -498,7 +498,7 @@ export default function MostSignificantPage() {
           This page ranks genes by their aggregate statistical significance
           across all datasets in SSPsyGene. It identifies genes with the
           strongest cumulative evidence of association across multiple
-          independent experiments &mdash; highlighting candidates for follow-up
+          independent experiments, highlighting candidates for follow-up
           analysis, cross-study validation, or pathway enrichment. Use the
           method selector below to compare how rankings change depending on the
           statistical combination approach.
