@@ -19,5 +19,6 @@ disable=missing-docstring,
     unused-argument,
     unnecessary-pass,
     subprocess-run-check,
-    f-string-without-interpolation
+    f-string-without-interpolation,
+    use-implicit-booleaness-not-comparison
 notes=FIXME,XXX
