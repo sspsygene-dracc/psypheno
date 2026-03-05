@@ -441,7 +441,7 @@ export default function MethodsPage() {
         >
           <h2 style={h2Style}>Cauchy Combination Test (CCT)</h2>
           <p>
-            The CCT (Liu &amp; Xie, 2020) was designed for settings where input
+            The CCT (Liu &amp; Xie, 2019) was designed for settings where input
             p-values may be correlated. It exploits a special property of the
             Cauchy distribution.
           </p>
