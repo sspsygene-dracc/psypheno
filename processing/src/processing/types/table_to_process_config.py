@@ -210,7 +210,8 @@ class TableToProcessConfig:
         used_entrez_ids: set[EntrezGene] = set()
         link_tables: list[LinkTable] = []
         for conversion in self.gene_mappings:
-            gene_columns.append(conversion.column_name.lower())
+            if not conversion.multi_gene_separator:
+                gene_columns.append(conversion.column_name.lower())
             species_list.append(conversion.species)
             link_table = conversion.resolve_to_central_gene_table(
                 primary_table_name=self.table,
