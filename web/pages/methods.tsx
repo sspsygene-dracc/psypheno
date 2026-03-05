@@ -193,7 +193,27 @@ export default function MethodsPage() {
             and, within a single dataset, can have multiple associated p-values
             (e.g., one per perturbation experiment that affected it). Our goal
             is to combine these p-values into a single summary statistic per
-            gene that captures total evidence across all experiments.
+            gene that captures total evidence across all experiments. This is
+            exactly what p-value combination methods like Fisher&apos;s,
+            Stouffer&apos;s, CCT, and HMP are designed for. They take
+            multiple p-values and produce a single aggregate p-value.
+          </p>
+          <p>
+            <strong>Are p-values from different assays comparable?</strong>{" "}
+            Yes. P-values have no &ldquo;unit&rdquo;. Regardless of the
+            assay (RNA-seq, behavioral testing, GWAS, etc.), a p-value is
+            always a number between 0 and 1 with the same statistical meaning.
+            Under the null hypothesis, every p-value is uniformly distributed
+            on [0,&thinsp;1], no matter where it came from. This makes them
+            inherently comparable and valid to combine across assay types.
+            Because all of our datasets fall within the broad domain of
+            neuropsychiatric research, the combined rankings answer the
+            question: <em>which genes show consistent evidence of association
+            across a range of neuropsychiatric diseases and assay
+            types?</em> Reassuringly, the top-ranked genes are well-known
+            players in brain development, many of which already cause known
+            Mendelian neurodevelopmental disorders, giving us confidence
+            that the method is working as intended.
           </p>
           <p>The pipeline for each gene proceeds as follows:</p>
           <ol>
