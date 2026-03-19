@@ -21,6 +21,11 @@ GIT_BRANCH = "main"
 
 PROD_PATH = "/hive/groups/SSPsyGene/sspsygene_website"
 INT_PATH = "/hive/groups/SSPsyGene/sspsygene_website_int"
+PROD_ENV = {
+    "SSPSYGENE_CONFIG_JSON": f"{PROD_PATH}/processing/src/processing/config.json",
+    "SSPSYGENE_DATA_DIR": f"{PROD_PATH}/data",
+    "SSPSYGENE_DATA_DB": f"{PROD_PATH}/data/db/sspsygene.db",
+}
 INT_ENV = {
     "SSPSYGENE_CONFIG_JSON": f"{INT_PATH}/processing/src/processing/config.json",
     "SSPSYGENE_DATA_DIR": f"{INT_PATH}/data",
@@ -246,7 +251,7 @@ def run_deploy(
     # Step 2 — production site
     if do_prod:
         click.secho("\n[2/4] Deploying production site on hgwdev", bold=True)
-        _step_deploy_site(PROD_PATH, label="Production", load_db=load_db)
+        _step_deploy_site(PROD_PATH, label="Production", load_db=load_db, env_vars=PROD_ENV)
     else:
         click.secho("\n[2/4] Skipping production site (--int-only)", bold=True)
 
