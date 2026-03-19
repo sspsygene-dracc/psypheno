@@ -163,7 +163,7 @@ def _step_deploy_site(
         cmd = (
             f"cd {path} && "
             f"{CONDA_INIT} && "
-            f"{env_prefix}conda run -n {CONDA_ENV} --no-banner sspsygene load-db"
+            f"{env_prefix}conda run -n {CONDA_ENV} sspsygene load-db"
         )
         _run_ssh(
             HGWDEV,
