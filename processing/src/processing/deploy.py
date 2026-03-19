@@ -159,6 +159,20 @@ def _step_push() -> None:
     _run_local(["git", "push"], desc="git push")
 
 
+def _step_pull_all(*, do_prod: bool, do_int: bool) -> None:
+    """Pull latest code on all sites before any build/load-db steps.
+
+    This ensures shared resources (e.g. the processing package installed
+    from one site but used by both) are up-to-date before either site
+    runs load-db or npm build.
+    """
+    click.secho("\n[2/4] Pulling latest code on hgwdev", bold=True)
+    if do_prod:
+        _run_ssh(HGWDEV, f"cd {PROD_PATH} && git pull", desc=f"git pull ({PROD_PATH})")
+    if do_int:
+        _run_ssh(HGWDEV, f"cd {INT_PATH} && git pull", desc=f"git pull ({INT_PATH})")
+
+
 def _step_deploy_site(
     path: str,
     *,
@@ -166,10 +180,8 @@ def _step_deploy_site(
     load_db: bool,
     env_vars: dict[str, str] | None = None,
 ) -> None:
-    """Pull, optionally rebuild DB, and build the web app on hgwdev."""
+    """Optionally rebuild DB, and build the web app on hgwdev."""
     click.echo(f"\n  --- {label} ({path}) ---")
-
-    _run_ssh(HGWDEV, f"cd {path} && git pull", desc="git pull")
 
     if load_db:
         env_prefix = ""
@@ -259,14 +271,16 @@ def run_deploy(
     else:
         _step_push()
 
-    # Step 2 — production site
+    # Step 2 — git pull all sites first (shared processing package)
+    _step_pull_all(do_prod=do_prod, do_int=do_int)
+
+    # Step 3 — build/load-db per site
     if do_prod:
-        click.secho("\n[2/4] Deploying production site on hgwdev", bold=True)
+        click.secho("\n[3/4] Deploying production site on hgwdev", bold=True)
         _step_deploy_site(PROD_PATH, label="Production", load_db=load_db, env_vars=PROD_ENV)
     else:
-        click.secho("\n[2/4] Skipping production site (--int-only)", bold=True)
+        click.secho("\n[3/4] Skipping production site (--int-only)", bold=True)
 
-    # Step 3 — internal site
     if do_int:
         click.secho("\n[3/4] Deploying internal site on hgwdev", bold=True)
         _step_deploy_site(INT_PATH, label="Internal", load_db=load_db, env_vars=INT_ENV)
