@@ -28,6 +28,7 @@ INT_ENV = {
 }
 
 CONDA_ENV = "sspsygene"
+CONDA_INIT = "source $HOME/opt_rocky9/miniconda3/etc/profile.d/conda.sh"
 
 # Timeouts (seconds)
 LOCAL_TIMEOUT = 120
@@ -161,6 +162,7 @@ def _step_deploy_site(
             env_prefix = " ".join(f"{k}={v}" for k, v in env_vars.items()) + " "
         cmd = (
             f"cd {path} && "
+            f"{CONDA_INIT} && "
             f"{env_prefix}conda run -n {CONDA_ENV} --no-banner sspsygene load-db"
         )
         _run_ssh(
