@@ -190,7 +190,7 @@ def _step_deploy_site(
         cmd = (
             f"cd {path} && "
             f"{CONDA_INIT} && "
-            f"{env_prefix}conda run -n {CONDA_ENV} sspsygene load-db"
+            f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} sspsygene load-db"
         )
         _run_ssh(
             HGWDEV,
@@ -271,8 +271,9 @@ def run_deploy(
     else:
         _step_push()
 
-    # Step 2 — git pull all sites first (shared processing package)
-    _step_pull_all(do_prod=do_prod, do_int=do_int)
+    # Step 2 — git pull ALL sites first (the processing package may be
+    # installed from one site but used by both, so both must be current)
+    _step_pull_all(do_prod=True, do_int=True)
 
     # Step 3 — build/load-db per site
     if do_prod:
