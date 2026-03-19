@@ -92,7 +92,7 @@ def _run_ssh(
     try:
         if stream:
             proc = subprocess.run(
-                ["ssh", host, remote_cmd],
+                ["ssh", "-t", host, remote_cmd],
                 timeout=timeout,
             )
             result = subprocess.CompletedProcess(
