@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useCallback, type ReactNode } from "react";
 import Head from "next/head";
 import Link from "next/link";
-import DataTable from "@/components/DataTable";
-import DatasetToc, { useAssayGroups } from "@/components/DatasetToc";
 import GeneInfoBox from "@/components/GeneInfoBox";
+import GeneSignificanceSummary from "@/components/GeneSignificanceSummary";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -12,6 +11,7 @@ const NUM_COLS = 6; // rank, gene, pvalue, tables, pvalues, gene info
 
 type RankedRow = {
   rank: number;
+  central_gene_id: number;
   human_symbol: string;
   method_pvalue: number | null;
   num_tables: number;
@@ -26,7 +26,19 @@ type RankedRow = {
 
 type Method = "fisher" | "stouffer" | "cauchy" | "hmp";
 
-const GENE_FLAG_OPTIONS: { key: string; label: string }[] = [
+/** Positive "show" flags — categories of interest. */
+const SHOW_FLAG_OPTIONS: { key: string; label: string; href?: string }[] = [
+  {
+    key: "nimh_priority",
+    label: "NIMH Priority genes version 2023-09-21",
+    href: "https://www.nimh.nih.gov/research/priority-research-areas/genomics-research",
+  },
+  { key: "transcription_factor", label: "Transcription Factors" },
+  { key: "lncrna", label: "lncRNAs" },
+];
+
+/** Negative "hide" flags — broadly-responsive gene families. */
+const HIDE_FLAG_OPTIONS: { key: string; label: string }[] = [
   { key: "heat_shock", label: "Heat shock / chaperones" },
   { key: "mitochondrial_rna", label: "Mitochondrial RNA" },
   { key: "no_hgnc", label: "No HGNC annotation" },
@@ -36,23 +48,19 @@ const GENE_FLAG_OPTIONS: { key: string; label: string }[] = [
   { key: "ubiquitin", label: "Ubiquitin pathway" },
 ];
 
-type DatasetTableMeta = {
-  tableName: string;
-  shortLabel: string | null;
-  pvalueColumn: string | null;
-  fdrColumn: string | null;
-  assay: string[] | null;
+/**
+ * Conflict map: when a show flag is checked, the listed hide flags
+ * should be unchecked (and vice versa) because they are logically
+ * mutually exclusive.
+ */
+const SHOW_HIDE_CONFLICTS: Record<string, string[]> = {
+  // lncRNAs are a subset of non-coding RNA
+  lncrna: ["non_coding"],
+};
+const HIDE_SHOW_CONFLICTS: Record<string, string[]> = {
+  non_coding: ["lncrna"],
 };
 
-type DatasetSigResult = {
-  rows: Record<string, unknown>[];
-  totalRows: number;
-  displayColumns: string[];
-  scalarColumns: string[];
-  geneColumns: string[];
-  fieldLabels: Record<string, string> | null;
-  page: number;
-};
 
 const METHOD_DESCRIPTIONS: {
   key: Method;
@@ -104,12 +112,6 @@ function formatPvalue(p: number | null | undefined): string {
   if (p < 0.001) return p.toExponential(3);
   return p.toPrecision(4);
 }
-
-const formatTableName = (tableName: string, shortLabel: string | null) =>
-  shortLabel ??
-  tableName
-    .replace(/_/g, " ")
-    .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
 
 /* \u2500\u2500\u2500 Pagination component \u2500\u2500\u2500 */
 function Pagination({
@@ -224,7 +226,8 @@ function Pagination({
   );
 }
 
-/* \u2500\u2500\u2500 Per-dataset significant rows section \u2500\u2500\u2500 */
+/* removed DatasetSection — moved to /significant-rows page */
+/* \u2500\u2500\u2500 PLACEHOLDER_FOR_DELETION \u2500\u2500\u2500 */
 function DatasetSection({
   meta,
   filterBy,
@@ -355,6 +358,7 @@ export default function MostSignificantPage() {
   const [page, setPage] = useState(1);
   const [method, setMethod] = useState<Method>("fisher");
   const [loading, setLoading] = useState(true);
+  const [noTableMessage, setNoTableMessage] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const toggleLlmRow = useCallback((symbol: string) => {
     setExpandedRows((prev) => {
@@ -370,8 +374,18 @@ export default function MostSignificantPage() {
 
   // Gene flag filter state \u2014 all hidden by default
   const [hideFlags, setHideFlags] = useState<string[]>(
-    GENE_FLAG_OPTIONS.map((o) => o.key),
+    HIDE_FLAG_OPTIONS.map((o) => o.key),
   );
+
+  // Show-flag filter state — all checked except lncrna (excluded by default
+  // via non_coding hide flag, so showing lncrna would conflict)
+  const [showFlags, setShowFlags] = useState<string[]>(
+    SHOW_FLAG_OPTIONS.filter((o) => o.key !== "lncrna").map((o) => o.key),
+  );
+  const [showOther, setShowOther] = useState(true);
+
+  // Gene name search filter
+  const [geneSearch, setGeneSearch] = useState("");
 
   // Significant rows filter/sort
   const [sigFilterBy, setSigFilterBy] = useState<"pvalue" | "fdr">("pvalue");
@@ -382,6 +396,18 @@ export default function MostSignificantPage() {
   const [assayTypeLabels, setAssayTypeLabels] = useState<
     Record<string, string>
   >({});
+  const [assayFilter, setAssayFilter] = useState<string | null>(null);
+  const [diseaseFilter, setDiseaseFilter] = useState<string | null>(null);
+  const [diseaseTypeLabels, setDiseaseTypeLabels] = useState<
+    Record<string, string>
+  >({});
+  type CpGroup = {
+    assayFilter: string | null;
+    diseaseFilter: string | null;
+    tableName: string | null;
+    numSourceTables: number;
+  };
+  const [cpGroups, setCpGroups] = useState<CpGroup[]>([]);
   const [datasetsLoading, setDatasetsLoading] = useState(true);
   const [showToc, setShowToc] = useState(false);
 
@@ -402,6 +428,8 @@ export default function MostSignificantPage() {
       .then((data) => {
         setDatasetTables(data.tables);
         setAssayTypeLabels(data.assayTypeLabels ?? {});
+        setDiseaseTypeLabels(data.diseaseTypeLabels ?? {});
+        setCpGroups(data.combinedPvalueGroups ?? []);
         setDatasetsLoading(false);
       })
       .catch(() => setDatasetsLoading(false));
@@ -423,6 +451,11 @@ export default function MostSignificantPage() {
         pageSize: PAGE_SIZE,
         method,
         hideFlags,
+        showFlags,
+        showOther,
+        assayFilter,
+        diseaseFilter,
+        geneSearch,
       }),
     })
       .then((r) => {
@@ -432,15 +465,52 @@ export default function MostSignificantPage() {
       .then((data) => {
         setRows(data.rows);
         setTotalRows(data.totalRows);
+        setNoTableMessage(
+          data.noTable
+            ? (data.message ?? "No data available for this combination.")
+            : null,
+        );
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [page, method, hideFlags]);
+  }, [
+    page,
+    method,
+    hideFlags,
+    showFlags,
+    showOther,
+    assayFilter,
+    diseaseFilter,
+    geneSearch,
+  ]);
 
-  const toggleFlag = (flag: string) => {
-    setHideFlags((prev) =>
-      prev.includes(flag) ? prev.filter((f) => f !== flag) : [...prev, flag],
-    );
+  const toggleHideFlag = (flag: string) => {
+    setHideFlags((prev) => {
+      const adding = !prev.includes(flag);
+      if (adding) {
+        // Uncheck conflicting show flags
+        const conflicts = HIDE_SHOW_CONFLICTS[flag];
+        if (conflicts) {
+          setShowFlags((sf) => sf.filter((f) => !conflicts.includes(f)));
+        }
+      }
+      return adding ? [...prev, flag] : prev.filter((f) => f !== flag);
+    });
+    setPage(1);
+  };
+
+  const toggleShowFlag = (flag: string) => {
+    setShowFlags((prev) => {
+      const adding = !prev.includes(flag);
+      if (adding) {
+        // Uncheck conflicting hide flags
+        const conflicts = SHOW_HIDE_CONFLICTS[flag];
+        if (conflicts) {
+          setHideFlags((hf) => hf.filter((f) => !conflicts.includes(f)));
+        }
+      }
+      return adding ? [...prev, flag] : prev.filter((f) => f !== flag);
+    });
     setPage(1);
   };
 
@@ -453,7 +523,7 @@ export default function MostSignificantPage() {
   return (
     <>
       <Head>
-        <title>Most Significant Genes &mdash; SSPsyGene</title>
+        <title>Gene Ranking by Functional Significance &mdash; SSPsyGene</title>
       </Head>
       <Header />
       {/* Mobile font overrides */}
@@ -481,7 +551,7 @@ export default function MostSignificantPage() {
         }}
       >
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-          Ranking the Most Significant Genes Across All Datasets
+          Gene Ranking by Functional Significance Across All Datasets
         </h1>
         <p
           style={{
@@ -491,13 +561,13 @@ export default function MostSignificantPage() {
             marginBottom: 20,
           }}
         >
-          This page ranks genes by their aggregate statistical significance
-          across all datasets in SSPsyGene. It identifies genes with the
-          strongest cumulative evidence of association across multiple
-          independent experiments, highlighting candidates for follow-up
-          analysis, cross-study validation, or pathway enrichment. Use the
-          method selector below to compare how rankings change depending on the
-          statistical combination approach.
+          This page ranks genes by their aggregate functional significance
+          across all assays in SSPsyGene. It identifies genes with the strongest
+          cumulative functional evidence across multiple experiments,
+          highlighting candidates for follow-up analysis, cross-study
+          validation, or pathway enrichment. Use the method selector below to
+          compare how rankings change depending on the statistical combination
+          approach.
         </p>
 
         {/* Method selector */}
@@ -536,55 +606,155 @@ export default function MostSignificantPage() {
               </option>
             ))}
           </select>
+          <Link
+            href="/methods"
+            style={{
+              color: "#2563eb",
+              textDecoration: "none",
+              fontSize: 13,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Full methods documentation &rarr;
+          </Link>
         </div>
 
-        {/* Selected method description */}
-        <div
-          className="mostsig-method-desc"
-          style={{
-            marginBottom: 16,
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            padding: "10px 14px",
-            fontSize: 13,
-            color: "#6b7280",
-          }}
-        >
-          <strong style={{ color: "#374151" }}>{selectedMethod.label}:</strong>{" "}
-          {selectedMethod.description}
-          {selectedMethod.citation && (
-            <span style={{ fontStyle: "italic" }}>
-              {" \u2014 "}
-              {selectedMethod.doi ? (
-                <a
-                  href={`https://doi.org/${selectedMethod.doi}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "#2563eb", textDecoration: "none" }}
-                >
-                  {selectedMethod.citation}
-                </a>
-              ) : (
-                selectedMethod.citation
-              )}
-            </span>
-          )}
-          <div style={{ marginTop: 6 }}>
-            <Link
-              href="/methods"
-              style={{
-                color: "#2563eb",
-                textDecoration: "none",
-                fontSize: 13,
-              }}
-            >
-              Full methods documentation &rarr;
-            </Link>
-          </div>
-        </div>
+        {/* Assay type and disease radio buttons */}
+        {cpGroups.length > 0 &&
+          (() => {
+            const availableAssays = [
+              ...new Set(
+                cpGroups
+                  .filter((g) => g.assayFilter != null)
+                  .map((g) => g.assayFilter as string),
+              ),
+            ].sort();
+            const availableDiseases = [
+              ...new Set(
+                cpGroups
+                  .filter((g) => g.diseaseFilter != null)
+                  .map((g) => g.diseaseFilter as string),
+              ),
+            ].sort();
+            const radioLabelStyle: React.CSSProperties = {
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              cursor: "pointer",
+              color: "#4b5563",
+              whiteSpace: "nowrap",
+              fontSize: 14,
+            };
+            return availableAssays.length > 0 ||
+              availableDiseases.length > 0 ? (
+              <div
+                style={{
+                  marginBottom: 12,
+                  background: "#f9fafb",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 8,
+                  padding: "10px 14px",
+                  fontSize: 13,
+                }}
+              >
+                {availableAssays.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 14,
+                      flexWrap: "wrap",
+                      marginBottom: availableDiseases.length > 0 ? 8 : 0,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: "#374151",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Assay type:
+                    </span>
+                    <label style={radioLabelStyle}>
+                      <input
+                        type="radio"
+                        name="assayFilter"
+                        checked={assayFilter === null}
+                        onChange={() => {
+                          setAssayFilter(null);
+                          setPage(1);
+                        }}
+                      />
+                      All
+                    </label>
+                    {availableAssays.map((key) => (
+                      <label key={key} style={radioLabelStyle}>
+                        <input
+                          type="radio"
+                          name="assayFilter"
+                          checked={assayFilter === key}
+                          onChange={() => {
+                            setAssayFilter(key);
+                            setPage(1);
+                          }}
+                        />
+                        {assayTypeLabels[key] || key}
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {availableDiseases.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 14,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: "#374151",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Disease:
+                    </span>
+                    <label style={radioLabelStyle}>
+                      <input
+                        type="radio"
+                        name="diseaseFilter"
+                        checked={diseaseFilter === null}
+                        onChange={() => {
+                          setDiseaseFilter(null);
+                          setPage(1);
+                        }}
+                      />
+                      All
+                    </label>
+                    {availableDiseases.map((key) => (
+                      <label key={key} style={radioLabelStyle}>
+                        <input
+                          type="radio"
+                          name="diseaseFilter"
+                          checked={diseaseFilter === key}
+                          onChange={() => {
+                            setDiseaseFilter(key);
+                            setPage(1);
+                          }}
+                        />
+                        {diseaseTypeLabels[key] || key}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null;
+          })()}
 
-        {/* Gene category filter */}
+        {/* Gene selection filter box */}
         <div
           id="gene-filters"
           style={{
@@ -592,22 +762,73 @@ export default function MostSignificantPage() {
             background: "#f9fafb",
             border: "1px solid #e5e7eb",
             borderRadius: 8,
-            padding: "10px 14px",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
+            overflow: "hidden",
             fontSize: 13,
           }}
         >
-          <span
-            style={{ fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}
+          <div
+            style={{
+              padding: "8px 14px",
+              fontWeight: 600,
+              fontSize: 14,
+              color: "#374151",
+              borderBottom: "1px solid #e5e7eb",
+            }}
           >
-            Hide gene categories:
-          </span>
-          {GENE_FLAG_OPTIONS.map((opt) => (
+            Gene selection
+          </div>
+
+          {/* Show union of row */}
+          <div
+            style={{
+              padding: "10px 14px",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <span
+              style={{
+                fontWeight: 600,
+                color: "#374151",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Show union of:
+            </span>
+            {SHOW_FLAG_OPTIONS.map((opt) => (
+              <label
+                key={opt.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  cursor: "pointer",
+                  color: "#4b5563",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={showFlags.includes(opt.key)}
+                  onChange={() => toggleShowFlag(opt.key)}
+                />
+                {opt.href ? (
+                  <a
+                    href={opt.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#2563eb", textDecoration: "none" }}
+                  >
+                    {opt.label}
+                  </a>
+                ) : (
+                  opt.label
+                )}
+              </label>
+            ))}
             <label
-              key={opt.key}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -619,51 +840,154 @@ export default function MostSignificantPage() {
             >
               <input
                 type="checkbox"
-                checked={hideFlags.includes(opt.key)}
-                onChange={() => toggleFlag(opt.key)}
+                checked={showOther}
+                onChange={() => {
+                  setShowOther((prev) => !prev);
+                  setPage(1);
+                }}
               />
-              {opt.label}
+              All other genes
             </label>
-          ))}
-          {hideFlags.length > 0 && (
-            <button
-              onClick={() => {
-                setHideFlags([]);
-                setPage(1);
-              }}
+            {!(showFlags.length === SHOW_FLAG_OPTIONS.length && showOther) && (
+              <button
+                onClick={() => {
+                  setShowFlags(SHOW_FLAG_OPTIONS.map((o) => o.key));
+                  setShowOther(true);
+                  // Handle conflict: lncrna being checked means non_coding must be unchecked
+                  setHideFlags((hf) => hf.filter((f) => f !== "non_coding"));
+                  setPage(1);
+                }}
+                style={{
+                  padding: "2px 8px",
+                  fontSize: 12,
+                  background: "#fff",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  color: "#6b7280",
+                }}
+              >
+                Include all
+              </button>
+            )}
+            {(showFlags.length > 0 || showOther) && (
+              <button
+                onClick={() => {
+                  setShowFlags([]);
+                  setShowOther(false);
+                  setPage(1);
+                }}
+                style={{
+                  padding: "2px 8px",
+                  fontSize: 12,
+                  background: "#fff",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  color: "#6b7280",
+                }}
+              >
+                Include none
+              </button>
+            )}
+          </div>
+
+          {/* Excluding row */}
+          <div
+            style={{
+              padding: "10px 14px",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <span
               style={{
-                padding: "2px 8px",
-                fontSize: 12,
-                background: "#fff",
-                border: "1px solid #d1d5db",
-                borderRadius: 4,
-                cursor: "pointer",
-                color: "#6b7280",
+                fontWeight: 600,
+                color: "#374151",
+                whiteSpace: "nowrap",
               }}
             >
-              Show all
-            </button>
-          )}
-          {hideFlags.length < GENE_FLAG_OPTIONS.length && (
-            <button
-              onClick={() => {
-                setHideFlags(GENE_FLAG_OPTIONS.map((o) => o.key));
-                setPage(1);
-              }}
-              style={{
-                padding: "2px 8px",
-                fontSize: 12,
-                background: "#fff",
-                border: "1px solid #d1d5db",
-                borderRadius: 4,
-                cursor: "pointer",
-                color: "#6b7280",
-              }}
-            >
-              Hide all
-            </button>
-          )}
+              Excluding:
+            </span>
+            {HIDE_FLAG_OPTIONS.map((opt) => (
+              <label
+                key={opt.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  cursor: "pointer",
+                  color: "#4b5563",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={hideFlags.includes(opt.key)}
+                  onChange={() => toggleHideFlag(opt.key)}
+                />
+                {opt.label}
+              </label>
+            ))}
+            {hideFlags.length > 0 && (
+              <button
+                onClick={() => {
+                  setHideFlags([]);
+                  setPage(1);
+                }}
+                style={{
+                  padding: "2px 8px",
+                  fontSize: 12,
+                  background: "#fff",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  color: "#6b7280",
+                }}
+              >
+                Exclude none
+              </button>
+            )}
+            {hideFlags.length < HIDE_FLAG_OPTIONS.length && (
+              <button
+                onClick={() => {
+                  setHideFlags(HIDE_FLAG_OPTIONS.map((o) => o.key));
+                  setPage(1);
+                }}
+                style={{
+                  padding: "2px 8px",
+                  fontSize: 12,
+                  background: "#fff",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  color: "#6b7280",
+                }}
+              >
+                Exclude all
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* No-table message for invalid assay×disease combinations */}
+        {noTableMessage && !loading && (
+          <div
+            style={{
+              padding: "16px 20px",
+              marginBottom: 16,
+              background: "#fef3c7",
+              border: "1px solid #fcd34d",
+              borderRadius: 8,
+              color: "#92400e",
+              fontSize: 14,
+            }}
+          >
+            {noTableMessage}
+          </div>
+        )}
 
         {/* Ranked genes table */}
         <div
@@ -705,11 +1029,29 @@ export default function MostSignificantPage() {
                       textAlign: "left",
                       fontWeight: 600,
                       color: "#6b7280",
-                      whiteSpace: "nowrap",
                       borderBottom: "1px solid #e5e7eb",
                     }}
                   >
-                    Gene
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      Gene
+                      <input
+                        type="text"
+                        placeholder="Filter..."
+                        value={geneSearch}
+                        onChange={(e) => {
+                          setGeneSearch(e.target.value);
+                          setPage(1);
+                        }}
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 400,
+                          padding: "2px 6px",
+                          border: "1px solid #d1d5db",
+                          borderRadius: 4,
+                          width: 100,
+                        }}
+                      />
+                    </div>
                   </th>
                   <th
                     style={{
@@ -878,6 +1220,10 @@ export default function MostSignificantPage() {
                             className="mostsig-gene-info"
                             style={{ padding: "10px 14px" }}
                           >
+                            <GeneSignificanceSummary
+                              centralGeneId={row.central_gene_id}
+                              assayTypeLabels={assayTypeLabels}
+                            />
                             <GeneInfoBox
                               geneDescription={row.gene_description}
                               llmResult={{
@@ -914,129 +1260,26 @@ export default function MostSignificantPage() {
           )}
         </div>
 
-        {/* Significant rows per dataset */}
+        {/* Link to significant rows page */}
         <div
-          id="significant-rows"
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            marginBottom: 12,
-            flexWrap: "wrap",
+            padding: "16px 20px",
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            fontSize: 14,
           }}
         >
-          <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>
-            Significant Rows (&lt; 0.05) by Dataset
-          </h2>
-          <div
+          <Link
+            href="/significant-rows"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 13,
+              color: "#2563eb",
+              textDecoration: "none",
+              fontWeight: 500,
             }}
           >
-            <span style={{ color: "#6b7280" }}>Rows where</span>
-            <select
-              value={sigFilterBy}
-              onChange={(e) =>
-                setSigFilterBy(e.target.value as "pvalue" | "fdr")
-              }
-              style={{
-                padding: "4px 8px",
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-                fontSize: 13,
-              }}
-            >
-              <option value="pvalue">p-value</option>
-              <option value="fdr">FDR</option>
-            </select>
-            <span style={{ color: "#6b7280" }}>&lt; 0.05, sorted by</span>
-            <select
-              value={sigSortBy}
-              onChange={(e) => setSigSortBy(e.target.value as "pvalue" | "fdr")}
-              style={{
-                padding: "4px 8px",
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-                fontSize: 13,
-              }}
-            >
-              <option value="pvalue">p-value</option>
-              <option value="fdr">FDR</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-          {showToc && tocGroups.length > 0 && (
-            <DatasetToc groups={tocGroups} anchorPrefix="sig-dataset-" />
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {datasetsLoading ? (
-              <div style={{ color: "#6b7280", padding: "12px 0" }}>
-                Loading datasets...
-              </div>
-            ) : (
-              tocGroups.map((group) => {
-                const items = group.items as DatasetTableMeta[];
-                const filtered = items.filter((t) =>
-                  sigFilterBy === "pvalue" ? t.pvalueColumn : t.fdrColumn,
-                );
-                if (filtered.length === 0) return null;
-                return (
-                  <div key={group.assayKey}>
-                    {tocGroups.length > 1 && (
-                      <div
-                        style={{
-                          marginTop: 24,
-                          marginBottom: 6,
-                          padding: "8px 0",
-                          borderBottom: "2px solid #dbeafe",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: "#1e40af",
-                            backgroundColor: "#dbeafe",
-                            borderRadius: 9999,
-                            padding: "3px 10px",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.03em",
-                          }}
-                        >
-                          {group.label}
-                        </span>
-                        <span style={{ fontSize: 13, color: "#6b7280" }}>
-                          {filtered.length} dataset
-                          {filtered.length !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                    )}
-                    {filtered.map((t) => (
-                      <div
-                        key={t.tableName}
-                        id={`sig-dataset-${t.tableName}`}
-                        style={{ scrollMarginTop: 16 }}
-                      >
-                        <DatasetSection
-                          meta={t}
-                          filterBy={sigFilterBy}
-                          sortBy={sigSortBy}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                );
-              })
-            )}
-          </div>
+            Browse significant rows (&lt; 0.05) by individual dataset &rarr;
+          </Link>
         </div>
       </main>
       <Footer />

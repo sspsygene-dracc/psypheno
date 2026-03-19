@@ -55,6 +55,7 @@ class TableToProcessConfig:
     categories: list[str] = field(default_factory=list)
     source: str | None = None
     assay: list[str] = field(default_factory=list)
+    disease: list[str] = field(default_factory=list)
     field_labels: dict[str, str] = field(default_factory=dict)
     organism: str | None = None
     pvalue_column: str | None = None
@@ -120,6 +121,13 @@ class TableToProcessConfig:
         else:
             assay = list(raw_assay)
 
+        # Disease: normalize string to list
+        raw_disease = json_data.get("disease", [])
+        if isinstance(raw_disease, str):
+            disease = [raw_disease]
+        else:
+            disease = list(raw_disease)
+
         # Field labels: merge global defaults with per-table overrides
         # Keys are normalized (lowercased, sanitized) to match column names
         table_name = json_data["table"]
@@ -172,6 +180,7 @@ class TableToProcessConfig:
             categories=list(json_data.get("categories", [])),
             source=json_data.get("source"),
             assay=assay,
+            disease=disease,
             field_labels=merged_field_labels,
             organism=json_data.get("organism"),
             pvalue_column=pvalue_column,

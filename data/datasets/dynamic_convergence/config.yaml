@@ -55,6 +55,7 @@ tables:
       neurons. Integrates effect sizes and significance across cell types and developmental stages.
     source: "Supplemental Data 2"
     assay: perturbation
+    disease: ["ndd"]
     fieldLabels:
       markername: "Gene name"
       weight: "Meta-analysis sample size weight"
@@ -114,6 +115,7 @@ tables:
       - mutant zebrafish
       - behavioral fingerprints
     assay: behavior
+    disease: ["ndd"]
     fieldLabels:
        human_gene_name: "Human Gene Name"
        zebrafish_mutant: "Zebrafish Mutant"

@@ -38,6 +38,7 @@ tables:
     assay:
       - spatial
       - perturbation
+    disease: ["asd", "ndd"]
     links:
       - https://www.cell.com/cell/fulltext/S0092-8674(25)00197-7
     categories:

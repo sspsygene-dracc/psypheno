@@ -40,6 +40,7 @@ tables:
       genes encompassed by each structural variant.
     source: "Supplementary Table 3 (all 45 sheets)"
     assay: expression
+    disease: ["asd", "ndd"]
     fieldLabels:
       sheet: "Source sheet (deletion type + timepoint)"
       hgnc_symbol: "Gene symbol (HGNC)"

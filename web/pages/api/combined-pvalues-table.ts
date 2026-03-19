@@ -13,12 +13,22 @@ const METHOD_COLUMNS: Record<string, string> = {
 
 const VALID_FLAGS = [
   "heat_shock",
+  "lncrna",
   "mitochondrial_rna",
+  "nimh_priority",
   "no_hgnc",
   "non_coding",
   "pseudogene",
   "ribosomal",
+  "transcription_factor",
   "ubiquitin",
+] as const;
+
+/** Positive "show" flags — used for the "Show union of" filter. */
+const SHOW_FLAGS = [
+  "nimh_priority",
+  "transcription_factor",
+  "lncrna",
 ] as const;
 
 const bodySchema = z.object({
@@ -26,6 +36,13 @@ const bodySchema = z.object({
   pageSize: z.number().int().min(1).max(100).default(25),
   method: z.enum(VALID_METHODS).default("fisher"),
   hideFlags: z.array(z.enum(VALID_FLAGS)).default([]),
+  showFlags: z
+    .array(z.enum(VALID_FLAGS))
+    .default([...SHOW_FLAGS, "__other__" as any]),
+  showOther: z.boolean().default(true),
+  assayFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
+  diseaseFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
+  geneSearch: z.string().max(50).regex(/^[A-Za-z0-9._-]*$/).default(""),
 });
 
 /** Check whether a table exists in the database. */
@@ -51,7 +68,8 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { page, pageSize, method, hideFlags } = parse.data;
+  const { page, pageSize, method, hideFlags, showFlags, showOther, assayFilter, diseaseFilter, geneSearch } =
+    parse.data;
   const methodCol = METHOD_COLUMNS[method];
 
   try {
@@ -60,16 +78,103 @@ export default async function handler(
     const hasLlm = tableExists(db, "llm_gene_results");
     const hasDesc = tableExists(db, "gene_descriptions");
 
-    // Build WHERE clause to exclude genes with hidden flags
-    let flagWhere = "";
+    // Determine which combined p-values table to query via combined_pvalue_groups
+    let cpTable = "gene_combined_pvalues";
+    let noTable = false;
+    let numSourceTables = 0;
+    if (assayFilter || diseaseFilter) {
+      const hasGroups = tableExists(db, "combined_pvalue_groups");
+      if (hasGroups) {
+        const group = db
+          .prepare(
+            `SELECT table_name, num_source_tables FROM combined_pvalue_groups
+             WHERE assay_filter IS ? AND disease_filter IS ?`
+          )
+          .get(assayFilter ?? null, diseaseFilter ?? null) as
+          | { table_name: string | null; num_source_tables: number }
+          | undefined;
+        if (group && group.table_name) {
+          cpTable = group.table_name;
+          numSourceTables = group.num_source_tables;
+        } else if (group) {
+          // Group exists but no table (< 2 source tables)
+          noTable = true;
+          numSourceTables = group.num_source_tables;
+        } else {
+          noTable = true;
+        }
+      } else {
+        noTable = true;
+      }
+    }
+
+    if (noTable) {
+      return res.status(200).json({
+        rows: [],
+        totalRows: 0,
+        page,
+        pageSize,
+        method,
+        noTable: true,
+        numSourceTables,
+        message:
+          numSourceTables === 1
+            ? "Only one dataset matches this combination — no meta-analysis needed. See individual results below."
+            : "No datasets match this combination.",
+      });
+    }
+
+    // Build WHERE conditions
+    const conditions: string[] = [];
     const flagParams: string[] = [];
+
+    // 1. Exclude genes with hidden flags
     if (hideFlags.length > 0) {
-      const conditions = hideFlags.map(() => "cp.gene_flags LIKE ?");
-      flagWhere = `WHERE (cp.gene_flags IS NULL OR NOT (${conditions.join(" OR ")}))`;
+      const hideConds = hideFlags.map(() => "cp.gene_flags LIKE ?");
+      conditions.push(
+        `(cp.gene_flags IS NULL OR NOT (${hideConds.join(" OR ")}))`
+      );
       for (const flag of hideFlags) {
         flagParams.push(`%${flag}%`);
       }
     }
+
+    // 2. Show-flag inclusion filter (union logic)
+    // Only active show flags from SHOW_FLAGS are considered.
+    const activeShowFlags = showFlags.filter((f) =>
+      (SHOW_FLAGS as readonly string[]).includes(f)
+    );
+    const allShowFlagsActive =
+      activeShowFlags.length === SHOW_FLAGS.length && showOther;
+
+    if (!allShowFlagsActive) {
+      // Build: gene matches if it has ANY of the active show flags,
+      // OR (if showOther) it has NONE of the show flags.
+      const parts: string[] = [];
+      for (const flag of activeShowFlags) {
+        parts.push("cp.gene_flags LIKE ?");
+        flagParams.push(`%${flag}%`);
+      }
+      if (showOther) {
+        // Gene has none of the show-category flags
+        const noneConditions = SHOW_FLAGS.map(
+          () => "(cp.gene_flags IS NULL OR cp.gene_flags NOT LIKE ?)"
+        );
+        parts.push(`(${noneConditions.join(" AND ")})`);
+        for (const flag of SHOW_FLAGS) {
+          flagParams.push(`%${flag}%`);
+        }
+      }
+      if (parts.length > 0) {
+        conditions.push(`(${parts.join(" OR ")})`);
+      } else {
+        // Nothing selected — show nothing
+        conditions.push("0");
+      }
+    }
+
+    const flagWhere =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const llmSelect = hasLlm
       ? `, lr.pubmed_links AS llm_pubmed_links,
@@ -85,43 +190,61 @@ export default async function handler(
       ? `, gd.description AS gene_description`
       : `, NULL AS gene_description`;
 
-    const llmJoin = hasLlm
-      ? "LEFT JOIN llm_gene_results lr ON lr.central_gene_id = f.central_gene_id"
+    // Two-CTE approach: ranks are computed over the flag-filtered set,
+    // then gene name search is applied as an outer filter so ranks stay stable.
+    const geneSearchWhere = geneSearch
+      ? "WHERE r.human_symbol LIKE ?"
       : "";
+    const geneSearchParams = geneSearch ? [geneSearch + "%"] : [];
 
-    const descJoin = hasDesc
-      ? "LEFT JOIN gene_descriptions gd ON gd.central_gene_id = f.central_gene_id"
-      : "";
-
-    // CTE computes rank over the filtered set, then we join extra data
     const rows = db
       .prepare(
         `WITH filtered AS (
            SELECT cp.central_gene_id,
                   cp.${methodCol} AS method_pvalue,
                   cp.num_tables, cp.num_pvalues, cp.gene_flags
-           FROM gene_combined_pvalues cp
+           FROM ${cpTable} cp
            ${flagWhere}
+         ),
+         ranked AS (
+           SELECT ROW_NUMBER() OVER (ORDER BY f.method_pvalue ASC NULLS LAST) AS rank,
+                  cg.human_symbol, f.central_gene_id, f.method_pvalue,
+                  f.num_tables, f.num_pvalues, f.gene_flags
+           FROM filtered f
+           JOIN central_gene cg ON cg.id = f.central_gene_id
          )
-         SELECT ROW_NUMBER() OVER (ORDER BY f.method_pvalue ASC NULLS LAST) AS rank,
-                cg.human_symbol, f.method_pvalue,
-                f.num_tables, f.num_pvalues, f.gene_flags
+         SELECT r.rank, r.central_gene_id, r.human_symbol, r.method_pvalue,
+                r.num_tables, r.num_pvalues, r.gene_flags
                 ${llmSelect}
                 ${descSelect}
-         FROM filtered f
-         JOIN central_gene cg ON cg.id = f.central_gene_id
-         ${llmJoin}
-         ${descJoin}
-         ORDER BY f.method_pvalue ASC NULLS LAST
+         FROM ranked r
+         ${hasLlm ? "LEFT JOIN llm_gene_results lr ON lr.central_gene_id = r.central_gene_id" : ""}
+         ${hasDesc ? "LEFT JOIN gene_descriptions gd ON gd.central_gene_id = r.central_gene_id" : ""}
+         ${geneSearchWhere}
+         ORDER BY r.method_pvalue ASC NULLS LAST
          LIMIT ? OFFSET ?`
       )
-      .all(...flagParams, pageSize, offset) as Array<Record<string, unknown>>;
+      .all(...flagParams, ...geneSearchParams, pageSize, offset) as Array<Record<string, unknown>>;
 
-    const countResult = db
-      .prepare(
-        `SELECT COUNT(*) as cnt FROM gene_combined_pvalues cp ${flagWhere}`
-      )
-      .get(...flagParams) as { cnt: number };
+    const countResult = geneSearch
+      ? db
+          .prepare(
+            `WITH filtered AS (
+               SELECT cp.central_gene_id
+               FROM ${cpTable} cp
+               ${flagWhere}
+             )
+             SELECT COUNT(*) as cnt
+             FROM filtered f
+             JOIN central_gene cg ON cg.id = f.central_gene_id
+             WHERE cg.human_symbol LIKE ?`
+          )
+          .get(...flagParams, geneSearch + "%") as { cnt: number }
+      : db
+          .prepare(
+            `SELECT COUNT(*) as cnt FROM ${cpTable} cp ${flagWhere}`
+          )
+          .get(...flagParams) as { cnt: number };
 
     return res.status(200).json({
       rows,

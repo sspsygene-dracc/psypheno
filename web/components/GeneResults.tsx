@@ -4,6 +4,7 @@ import DataTable, { type SortMode } from "@/components/DataTable";
 import DatasetToc from "@/components/DatasetToc";
 import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
 import InfoTooltip from "@/components/InfoTooltip";
+import GeneSignificanceSummary from "@/components/GeneSignificanceSummary";
 import { ROW_LIMIT } from "@/lib/gene-query";
 
 const formatTableName = (section: TableResult) =>
@@ -411,6 +412,14 @@ export default function GeneResults({
             llmResult={llmResult}
           />
         </div>
+        {centralGeneId != null &&
+          !perturbedCentralGeneId &&
+          !targetCentralGeneId && (
+            <GeneSignificanceSummary
+              centralGeneId={centralGeneId}
+              assayTypeLabels={assayTypeLabels}
+            />
+          )}
         {data.length === 0 && (
           <div style={{ opacity: 0.8 }}>No results found in any dataset.</div>
         )}

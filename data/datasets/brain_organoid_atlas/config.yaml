@@ -86,6 +86,7 @@ tables:
       in brain organoids from neurodevelopmental disorder patients at stringent FDR threshold of 0.05.
     source: "Table S10 (filtered, FDR < 0.05)"
     assay: expression
+    disease: ["ndd"]
     fieldLabels:
       disease: "NDD disease category"
     links:
@@ -122,6 +123,7 @@ tables:
       disorder patients at relaxed FDR threshold of 0.2, capturing additional candidate genes.
     source: "Table S10 (filtered, FDR < 0.2)"
     assay: expression
+    disease: ["ndd"]
     fieldLabels:
       disease: "NDD disease category"
     links:
@@ -158,6 +160,7 @@ tables:
       organoid subclasses and neurodevelopmental disease categories using single-cell NEBULA analysis.
     source: "Table S10"
     assay: expression
+    disease: ["ndd"]
     fieldLabels:
       disease: "NDD disease category"
     links:
@@ -197,6 +200,7 @@ tables:
       validation of single-cell differential expression findings with FDR-adjusted p-values.
     source: "Table S11"
     assay: expression
+    disease: ["ndd"]
     fieldLabels:
       diagnosis: "NDD diagnosis category"
       statistic: "Wilcoxon test statistic"

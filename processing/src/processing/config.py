@@ -20,11 +20,16 @@ class GeneMapConfig:
         self.alliance_homology_file = (
             self.super_base_dir / gene_map_config["alliance_homology_file"]
         )
+        nimh = gene_map_config.get("nimh_gene_list")
+        self.nimh_gene_list_file: Path | None = (
+            self.super_base_dir / nimh if nimh else None
+        )
 
 
 class GlobalConfig(TypedDict, total=False):
     fieldLabels: dict[str, str]
     assayTypes: dict[str, str]
+    diseaseTypes: dict[str, str]
 
 
 class YamlTablesFile(TypedDict, total=False):

@@ -19,6 +19,7 @@ import sqlite3
 import subprocess
 import tempfile
 from collections import defaultdict
+from collections.abc import Callable
 from pathlib import Path
 
 import click
@@ -77,8 +78,9 @@ FLAG_LOCUS_GROUPS: dict[str, list[str]] = {
 def _load_hgnc_gene_flags(hgnc_path: Path) -> dict[str, str]:
     """Parse HGNC TSV and return {symbol: comma-separated flags} for flagged genes.
 
-    Uses gene_group to match protein family flags (heat_shock, ribosomal, etc.)
-    and locus_group for broader categories (non_coding).
+    Uses gene_group to match protein family flags (heat_shock, ribosomal, etc.),
+    locus_group for broader categories (non_coding), gene_group substring match
+    for transcription factors, and locus_type for lncRNAs.
     """
     # Build reverse lookups: group_name -> flag
     group_to_flag: dict[str, str] = {}
@@ -108,16 +110,36 @@ def _load_hgnc_gene_flags(hgnc_path: Path) -> dict[str, str]:
                     g = g.strip().strip('"')
                     if g in group_to_flag:
                         flags.add(group_to_flag[g])
+                    # Detect transcription factors by substring match
+                    if "transcription factor" in g.lower():
+                        flags.add("transcription_factor")
 
             # Check locus_group
             locus_group = row.get("locus_group", "").strip()
             if locus_group in locus_to_flag:
                 flags.add(locus_to_flag[locus_group])
 
+            # Check locus_type for lncRNAs
+            locus_type = row.get("locus_type", "").strip()
+            if locus_type == "RNA, long non-coding":
+                flags.add("lncrna")
+
             if flags:
                 symbol_flags[symbol] = ",".join(sorted(flags))
 
     return symbol_flags
+
+
+def _load_nimh_priority_genes(nimh_csv_path: Path) -> set[str]:
+    """Load NIMH priority gene symbols from CSV, returning a deduplicated set."""
+    symbols: set[str] = set()
+    with open(nimh_csv_path, "r", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            symbol = row.get("gene_symbol", "").strip()
+            if symbol:
+                symbols.add(symbol)
+    return symbols
 
 
 def _parse_link_tables(link_tables_raw: str) -> list[str]:
@@ -357,42 +379,26 @@ def _call_r_combine(
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def compute_combined_pvalues(
+def _compute_combined_for_tables(
     conn: sqlite3.Connection,
-    hgnc_path: Path | None = None,
-    no_index: bool = False,
+    tables_with_pvalues: list[tuple[str, str, str]],
+    output_table: str,
+    no_index: bool,
+    gene_flags_fn: Callable[[int], str | None] | None = None,
+    label: str = "",
 ) -> None:
-    """Compute and store combined p-values per gene across all datasets."""
-    click.echo("\nComputing combined p-values...")
+    """Core computation: collect p-values from given tables, call R, write output.
 
-    # 1. Find all tables with pvalue_column
-    tables_with_pvalues = conn.execute(
-        "SELECT table_name, pvalue_column, link_tables FROM data_tables "
-        "WHERE pvalue_column IS NOT NULL"
-    ).fetchall()
-
-    if not tables_with_pvalues:
-        click.echo("  No tables with pvalue_column configured, skipping.")
-        return
-
-    # Load HGNC gene flags for classification
-    hgnc_flags: dict[str, str] = {}
-    if hgnc_path and hgnc_path.exists():
-        hgnc_flags = _load_hgnc_gene_flags(hgnc_path)
-        click.echo(f"  Loaded HGNC gene flags for {len(hgnc_flags)} genes")
-
-    click.echo(f"  Found {len(tables_with_pvalues)} tables with p-value columns")
-
-    # 2. Collect p-values per gene: {gene_id: {table_name: [pvalues]}}
+    ``gene_flags_fn`` is only called for the main (unfiltered) table.
+    Per-assay tables reuse the flags from the main table by omitting this arg.
+    """
     per_table_pvalues: dict[int, dict[str, list[float]]] = defaultdict(
         lambda: defaultdict(list)
     )
-    # Also collect all raw p-values per gene for CCT/HMP
     all_pvalues: dict[int, list[float]] = defaultdict(list)
 
     for table_name, pvalue_cols_raw, link_tables_raw in tables_with_pvalues:
         table_name = sanitize_identifier(table_name)
-        # pvalue_column may be comma-separated for tables with multiple p-value columns
         pvalue_cols = [sanitize_identifier(c) for c in pvalue_cols_raw.split(",")]
         link_table_names = _parse_link_tables(link_tables_raw or "")
 
@@ -426,32 +432,20 @@ def compute_combined_pvalues(
                     all_pvalues[gene_id].append(pval_float)
 
         col_label = ", ".join(pvalue_cols) if len(pvalue_cols) > 1 else pvalue_cols[0]
-        click.echo(f"  Processed {table_name}.{col_label}")
+        click.echo(f"  {label}Processed {table_name}.{col_label}")
 
     if not all_pvalues:
-        click.echo("  No valid p-values found, skipping.")
+        click.echo(f"  {label}No valid p-values found, skipping.")
         return
 
-    # 3. Call R for statistical computation
-    click.echo("  Calling R for p-value combination and FDR correction...")
+    click.echo(f"  {label}Calling R for p-value combination and FDR correction...")
     r_results = _call_r_combine(per_table_pvalues, all_pvalues)
     if r_results is None:
-        # R unavailable — create empty table so the rest of the page still works
         r_results = {}
 
-    # 4. Build symbol lookup for gene flags and HGNC annotation status
-    symbol_lookup: dict[int, str] = {}
-    hgnc_id_lookup: dict[int, str | None] = {}
-    rows_gene = conn.execute(
-        "SELECT id, human_symbol, hgnc_id FROM central_gene WHERE human_symbol IS NOT NULL"
-    ).fetchall()
-    for row in rows_gene:
-        symbol_lookup[row[0]] = row[1]
-        hgnc_id_lookup[row[0]] = row[2]
-
-    # 5. Create output table and insert
+    out_table = sanitize_identifier(output_table)
     conn.execute(
-        """CREATE TABLE gene_combined_pvalues (
+        f"""CREATE TABLE {out_table} (
         central_gene_id INTEGER PRIMARY KEY,
         fisher_pvalue REAL,
         fisher_fdr REAL,
@@ -470,27 +464,11 @@ def compute_combined_pvalues(
     for gene_id in sorted(all_pvalues.keys()):
         num_tables = len(per_table_pvalues[gene_id])
         num_pvalues = len(all_pvalues[gene_id])
-
-        # Get R results for this gene
         r = r_results.get(gene_id, {})
-
-        # Look up gene flags from HGNC
-        flags: set[str] = set()
-        symbol = symbol_lookup.get(gene_id)
-        if symbol and hgnc_flags:
-            flag_str = hgnc_flags.get(symbol)
-            if flag_str:
-                flags.update(flag_str.split(","))
-
-        # Flag genes without HGNC annotation
-        hgnc_id = hgnc_id_lookup.get(gene_id)
-        if not hgnc_id:
-            flags.add("no_hgnc")
-
-        gene_flag = ",".join(sorted(flags)) if flags else None
+        gene_flag = gene_flags_fn(gene_id) if gene_flags_fn else None
 
         conn.execute(
-            """INSERT INTO gene_combined_pvalues
+            f"""INSERT INTO {out_table}
             (central_gene_id, fisher_pvalue, fisher_fdr, stouffer_pvalue, stouffer_fdr,
              cauchy_pvalue, cauchy_fdr, hmp_pvalue, hmp_fdr, num_tables, num_pvalues,
              gene_flags)
@@ -513,16 +491,181 @@ def compute_combined_pvalues(
 
     if not no_index:
         conn.execute(
-            "CREATE INDEX gene_combined_pvalues_gene_idx "
-            "ON gene_combined_pvalues (central_gene_id)"
+            f"CREATE INDEX {out_table}_gene_idx "
+            f"ON {out_table} (central_gene_id)"
         )
     conn.commit()
 
     n_with_results = sum(1 for r in r_results.values() if r)
     if n_with_results > 0:
         click.echo(
-            f"  Computed combined p-values for "
+            f"  {label}Computed combined p-values for "
             f"{click.style(str(n_with_results), bold=True)} genes"
         )
     else:
-        click.echo("  No combined p-value results (R may be unavailable)")
+        click.echo(f"  {label}No combined p-value results (R may be unavailable)")
+
+
+def compute_combined_pvalues(
+    conn: sqlite3.Connection,
+    hgnc_path: Path | None = None,
+    no_index: bool = False,
+    nimh_csv_path: Path | None = None,
+) -> None:
+    """Compute and store combined p-values per gene across all datasets,
+    then separately per assay type."""
+    click.echo("\nComputing combined p-values...")
+
+    # 1. Find all tables with pvalue_column (include assay and disease for splits)
+    tables_with_pvalues = conn.execute(
+        "SELECT table_name, pvalue_column, link_tables, assay, disease FROM data_tables "
+        "WHERE pvalue_column IS NOT NULL"
+    ).fetchall()
+
+    if not tables_with_pvalues:
+        click.echo("  No tables with pvalue_column configured, skipping.")
+        return
+
+    # Load HGNC gene flags for classification
+    hgnc_flags: dict[str, str] = {}
+    if hgnc_path and hgnc_path.exists():
+        hgnc_flags = _load_hgnc_gene_flags(hgnc_path)
+        click.echo(f"  Loaded HGNC gene flags for {len(hgnc_flags)} genes")
+
+    # Load NIMH priority gene list
+    nimh_genes: set[str] = set()
+    if nimh_csv_path and nimh_csv_path.exists():
+        nimh_genes = _load_nimh_priority_genes(nimh_csv_path)
+        click.echo(f"  Loaded NIMH priority gene list: {len(nimh_genes)} unique genes")
+
+    click.echo(f"  Found {len(tables_with_pvalues)} tables with p-value columns")
+
+    # Build symbol/HGNC lookups for gene flags
+    symbol_lookup: dict[int, str] = {}
+    hgnc_id_lookup: dict[int, str | None] = {}
+    rows_gene = conn.execute(
+        "SELECT id, human_symbol, hgnc_id FROM central_gene WHERE human_symbol IS NOT NULL"
+    ).fetchall()
+    for row in rows_gene:
+        symbol_lookup[row[0]] = row[1]
+        hgnc_id_lookup[row[0]] = row[2]
+
+    def get_gene_flags(gene_id: int) -> str | None:
+        flags: set[str] = set()
+        symbol = symbol_lookup.get(gene_id)
+        if symbol and hgnc_flags:
+            flag_str = hgnc_flags.get(symbol)
+            if flag_str:
+                flags.update(flag_str.split(","))
+        hgnc_id = hgnc_id_lookup.get(gene_id)
+        if not hgnc_id:
+            flags.add("no_hgnc")
+        if symbol and symbol in nimh_genes:
+            flags.add("nimh_priority")
+        return ",".join(sorted(flags)) if flags else None
+
+    # Strip assay/disease columns for the core computation (expects 3-tuples)
+    tables_3col = [(t[0], t[1], t[2]) for t in tables_with_pvalues]
+
+    # 2. Compute global combined p-values (all tables)
+    _compute_combined_for_tables(
+        conn, tables_3col, "gene_combined_pvalues", no_index,
+        gene_flags_fn=get_gene_flags,
+    )
+
+    # 3. Build assay and disease groupings for 2D split
+    assay_to_tables: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
+    disease_to_tables: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
+    # Key: (assay_key, disease_key) -> tables
+    combo_to_tables: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
+
+    for table_name, pvalue_col, link_tables, assay_raw, disease_raw in tables_with_pvalues:
+        assay_keys = [a.strip() for a in (assay_raw or "").split(",") if a.strip()]
+        disease_keys = [d.strip() for d in (disease_raw or "").split(",") if d.strip()]
+
+        entry = (table_name, pvalue_col, link_tables)
+
+        for ak in assay_keys:
+            assay_to_tables[ak].append(entry)
+        for dk in disease_keys:
+            disease_to_tables[dk].append(entry)
+        for ak in assay_keys:
+            for dk in disease_keys:
+                combo_to_tables[(ak, dk)].append(entry)
+
+    # Create metadata table for available filter combinations
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS combined_pvalue_groups (
+        assay_filter TEXT,
+        disease_filter TEXT,
+        table_name TEXT,
+        num_source_tables INTEGER,
+        PRIMARY KEY (assay_filter, disease_filter)
+        )"""
+    )
+
+    def _compute_group(
+        tables: list[tuple[str, str, str]],
+        out_table: str,
+        label: str,
+        assay_filter: str | None,
+        disease_filter: str | None,
+    ) -> None:
+        """Compute a combined p-value group and register it in the metadata table."""
+        # Deduplicate tables (a table may appear via multiple assay/disease keys)
+        unique_tables = list({t[0]: t for t in tables}.values())
+        if len(unique_tables) < 2:
+            click.echo(f"  {label}Skipping — only {len(unique_tables)} source table(s)")
+            conn.execute(
+                "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, table_name, num_source_tables) "
+                "VALUES (?, ?, NULL, ?)",
+                (assay_filter, disease_filter, len(unique_tables)),
+            )
+            conn.commit()
+            return
+
+        click.echo(f"\n  {label}({len(unique_tables)} tables)...")
+        _compute_combined_for_tables(
+            conn, unique_tables, out_table, no_index,
+            gene_flags_fn=get_gene_flags,
+            label=f"{label}",
+        )
+        conn.execute(
+            "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, table_name, num_source_tables) "
+            "VALUES (?, ?, ?, ?)",
+            (assay_filter, disease_filter, out_table, len(unique_tables)),
+        )
+        conn.commit()
+
+    # Register the global table
+    conn.execute(
+        "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, table_name, num_source_tables) "
+        "VALUES (NULL, NULL, 'gene_combined_pvalues', ?)",
+        (len(tables_3col),),
+    )
+    conn.commit()
+
+    # 4. Per-assay tables
+    for assay_key in sorted(assay_to_tables.keys()):
+        out_table = f"gene_combined_pvalues_{assay_key}"
+        _compute_group(
+            assay_to_tables[assay_key], out_table,
+            f"[assay={assay_key}] ", assay_key, None,
+        )
+
+    # 5. Per-disease tables
+    for disease_key in sorted(disease_to_tables.keys()):
+        out_table = f"gene_combined_pvalues_d_{disease_key}"
+        _compute_group(
+            disease_to_tables[disease_key], out_table,
+            f"[disease={disease_key}] ", None, disease_key,
+        )
+
+    # 6. Per-(assay × disease) combination tables
+    for (assay_key, disease_key) in sorted(combo_to_tables.keys()):
+        out_table = f"gene_combined_pvalues_{assay_key}_d_{disease_key}"
+        _compute_group(
+            combo_to_tables[(assay_key, disease_key)], out_table,
+            f"[assay={assay_key}, disease={disease_key}] ",
+            assay_key, disease_key,
+        )

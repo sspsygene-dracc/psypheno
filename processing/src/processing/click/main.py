@@ -80,11 +80,13 @@ def load_db(
             config.out_db,
             config.tables_config.tables,
             assay_types=config.global_config.get("assayTypes", {}),
+            disease_types=config.global_config.get("diseaseTypes", {}),
             skip_missing=skip_missing_datasets,
             hgnc_path=config.gene_map_config.hgnc_file,
             no_index=no_index,
             data_dir=config.base_dir,
             skip_gene_descriptions=skip_gene_descriptions,
+            nimh_csv_path=config.gene_map_config.nimh_gene_list_file,
         )
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)

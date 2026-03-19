@@ -30,6 +30,7 @@ tables:
       cohorts. Aggregates transcriptomic signatures across age-related comparisons.
     source: "PsychScreen download (psychscreen.org)"
     assay: expression
+    disease: []
     links:
       - https://downloads.wenglab.org/Age_DEGcombined.csv
       - https://psychscreen.org
@@ -61,6 +62,7 @@ tables:
       transcriptomic studies. Provides ASD-specific gene expression changes across brain regions.
     source: "PsychScreen download (psychscreen.org)"
     assay: expression
+    disease: ["asd", "ndd"]
     links:
       - https://downloads.wenglab.org/ASD_DEGcombined.csv
       - https://psychscreen.org
@@ -92,6 +94,7 @@ tables:
       studies. Captures transcriptional alterations associated with bipolar disorder.
     source: "PsychScreen download (psychscreen.org)"
     assay: expression
+    disease: ["bipolar", "ndd"]
     links:
       - https://downloads.wenglab.org/Bipolar_DEGcombined.csv
       - https://psychscreen.org
@@ -123,6 +126,7 @@ tables:
       studies. Provides schizophrenia-specific transcriptional changes across brain regions.
     source: "PsychScreen download (psychscreen.org)"
     assay: expression
+    disease: ["scz", "ndd"]
     links:
       - https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv
       - https://psychscreen.org

@@ -195,6 +195,7 @@ def load_data_tables(
         categories TEXT,
         source TEXT,
         assay TEXT,
+        disease TEXT,
         field_labels TEXT,
         organism TEXT,
         publication_first_author TEXT,
@@ -250,11 +251,11 @@ def load_data_tables(
             table_name, short_label, long_label, description, gene_columns,
             gene_species, display_columns,
             scalar_columns, link_tables,
-            links, categories, source, assay, field_labels, organism,
+            links, categories, source, assay, disease, field_labels, organism,
             publication_first_author, publication_last_author, publication_author_count, publication_year,
             publication_journal, publication_doi, publication_pmid,
             pvalue_column, fdr_column)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -274,6 +275,7 @@ def load_data_tables(
                 else None,
                 table_config.source,
                 ",".join(table_config.assay) if table_config.assay else None,
+                ",".join(table_config.disease) if table_config.disease else None,
                 json.dumps(filtered_field_labels) if filtered_field_labels else None,
                 table_config.organism,
                 table_config.publication_first_author,
@@ -365,6 +367,23 @@ def load_assay_types(
     conn.commit()
 
 
+def load_disease_types(
+    conn: sqlite3.Connection, disease_types: dict[str, str]
+) -> None:
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE disease_types (
+        key TEXT PRIMARY KEY,
+        label TEXT)"""
+    )
+    for key, label in disease_types.items():
+        cur.execute(
+            "INSERT INTO disease_types (key, label) VALUES (?, ?)",
+            (key, label),
+        )
+    conn.commit()
+
+
 def load_llm_search_results(
     conn: sqlite3.Connection,
     data_dir: Path,
@@ -427,11 +446,13 @@ def load_db(
     db_name: Path,
     table_configs: list[TableToProcessConfig],
     assay_types: dict[str, str] | None = None,
+    disease_types: dict[str, str] | None = None,
     skip_missing: bool = False,
     hgnc_path: Path | None = None,
     no_index: bool = False,
     data_dir: Path | None = None,
     skip_gene_descriptions: bool = False,
+    nimh_csv_path: Path | None = None,
 ) -> None:
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
@@ -445,8 +466,9 @@ def load_db(
         load_data_tables(conn, table_configs, skip_missing=skip_missing, no_index=no_index)
         load_gene_tables(conn, no_index=no_index)
         load_assay_types(conn, assay_types or {})
+        load_disease_types(conn, disease_types or {})
         if data_dir and not skip_gene_descriptions:
             copy_gene_descriptions(conn, data_dir, no_index=no_index)
-        compute_combined_pvalues(conn, hgnc_path=hgnc_path, no_index=no_index)
+        compute_combined_pvalues(conn, hgnc_path=hgnc_path, no_index=no_index, nimh_csv_path=nimh_csv_path)
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)

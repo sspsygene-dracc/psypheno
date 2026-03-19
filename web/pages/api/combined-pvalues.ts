@@ -50,7 +50,7 @@ export default async function handler(
     const tablesWithPvalues = db
       .prepare(
         `SELECT table_name, short_label, description, pvalue_column, fdr_column,
-                link_tables, field_labels
+                link_tables, field_labels, assay
          FROM data_tables
          WHERE pvalue_column IS NOT NULL OR fdr_column IS NOT NULL
          ORDER BY id ASC`
@@ -63,9 +63,10 @@ export default async function handler(
         fdr_column: string | null;
         link_tables: string | null;
         field_labels: string | null;
+        assay: string | null;
       }>;
 
-    // For each table, count how many rows this gene has
+    // For each table, count rows and fetch best p-value/FDR for this gene
     const contributingTables: Array<{
       tableName: string;
       shortLabel: string | null;
@@ -73,13 +74,15 @@ export default async function handler(
       pvalueColumn: string | null;
       fdrColumn: string | null;
       rowCount: number;
+      bestPvalue: number | null;
+      bestFdr: number | null;
+      assay: string[] | null;
     }> = [];
 
     for (const t of tablesWithPvalues) {
       const linkTableNames = parseNonPerturbedLinkTables(t.link_tables || "");
       if (linkTableNames.length === 0) continue;
 
-      // Count rows for this gene in this table
       const subqueries = linkTableNames.map((lt) => {
         return `SELECT id FROM ${lt} WHERE central_gene_id = ?`;
       });
@@ -89,20 +92,46 @@ export default async function handler(
 
       try {
         const baseTable = sanitizeIdentifier(t.table_name);
-        const countResult = db
-          .prepare(
-            `SELECT COUNT(*) as cnt FROM ${baseTable} WHERE id IN (${idSubquery})`
-          )
-          .get(...params) as { cnt: number };
 
-        if (countResult.cnt > 0) {
+        // Build aggregate query for count, best p-value, best FDR
+        const pvalCols = t.pvalue_column
+          ? t.pvalue_column.split(",").map((c) => sanitizeIdentifier(c.trim()))
+          : [];
+        const fdrCols = t.fdr_column
+          ? t.fdr_column.split(",").map((c) => sanitizeIdentifier(c.trim()))
+          : [];
+
+        const minPvalExpr = pvalCols.length > 0
+          ? pvalCols.map((c) => `MIN(${c})`).join(", ")
+          : null;
+        const minFdrExpr = fdrCols.length > 0
+          ? fdrCols.map((c) => `MIN(${c})`).join(", ")
+          : null;
+
+        const selectParts = ["COUNT(*) as cnt"];
+        if (minPvalExpr) selectParts.push(`${minPvalExpr} as best_pval`);
+        if (minFdrExpr) selectParts.push(`${minFdrExpr} as best_fdr`);
+
+        const row = db
+          .prepare(
+            `SELECT ${selectParts.join(", ")} FROM ${baseTable} WHERE id IN (${idSubquery})`
+          )
+          .get(...params) as Record<string, unknown>;
+
+        const cnt = row.cnt as number;
+        if (cnt > 0) {
           contributingTables.push({
             tableName: t.table_name,
             shortLabel: t.short_label,
             description: t.description,
             pvalueColumn: t.pvalue_column,
             fdrColumn: t.fdr_column,
-            rowCount: countResult.cnt,
+            rowCount: cnt,
+            bestPvalue: minPvalExpr ? (row.best_pval as number | null) : null,
+            bestFdr: minFdrExpr ? (row.best_fdr as number | null) : null,
+            assay: t.assay
+              ? t.assay.split(",").map((s) => s.trim()).filter(Boolean)
+              : null,
           });
         }
       } catch {

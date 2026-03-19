@@ -45,8 +45,12 @@ tables:
       - iPSC-derived neurons
       - NGN2 induction
       - CRISPRa and RNAi knockout
+    assay: perturbation
+    disease: ["scz", "ndd"]
+    pvalue_column: P.Value
+    fdr_column: adj.P.Val
     organism: Homo sapiens (iPSC-derived neurons)
-    in_path: Supp_1_all.csv 
+    in_path: Supp_1_all.csv
     separator: ","
     split_column_map: []
     gene_mappings:
@@ -55,7 +59,7 @@ tables:
         species: human
         is_perturbed: false
         is_target: true
-      - column_name: perturbed_gene 
+      - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
         species: human
         is_perturbed: true
@@ -72,8 +76,12 @@ tables:
       - iPSC-derived neurons
       - NGN2 induction
       - CRISPRa and RNAi knockout
+    assay: perturbation
+    disease: ["scz", "ndd"]
+    pvalue_column: pval
+    fdr_column: padj
     organism: Homo sapiens (iPSC-derived neurons)
-    in_path: Supp_2_all.csv 
+    in_path: Supp_2_all.csv
     separator: ","
     split_column_map: []
     gene_mappings:

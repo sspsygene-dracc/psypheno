@@ -20,3 +20,9 @@ assayTypes:
   perturbation: "Perturbation Screen"
   curated: "Curated Database"
   phenotype: "Phenotype Annotation"
+
+diseaseTypes:
+  asd: "Autism Spectrum Disorder"
+  scz: "Schizophrenia"
+  bipolar: "Bipolar Disorder"
+  ndd: "Neurodevelopmental Disorders"
