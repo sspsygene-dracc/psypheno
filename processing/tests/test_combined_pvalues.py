@@ -395,7 +395,7 @@ def _make_test_db():
             source TEXT, assay TEXT, field_labels TEXT, organism TEXT,
             publication_title TEXT, publication_authors TEXT, publication_year TEXT,
             publication_doi TEXT, publication_url TEXT, publication_journal TEXT,
-            pvalue_column TEXT, fdr_column TEXT
+            pvalue_column TEXT, fdr_column TEXT, disease TEXT
         )"""
     )
     conn.execute(

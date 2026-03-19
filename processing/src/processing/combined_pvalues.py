@@ -14,12 +14,14 @@ Methods:
 
 import csv
 import math
+import os
 import shutil
 import sqlite3
 import subprocess
 import tempfile
 from collections import defaultdict
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import click
@@ -379,18 +381,14 @@ def _call_r_combine(
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def _compute_combined_for_tables(
+def _collect_pvalues_for_tables(
     conn: sqlite3.Connection,
     tables_with_pvalues: list[tuple[str, str, str]],
-    output_table: str,
-    no_index: bool,
-    gene_flags_fn: Callable[[int], str | None] | None = None,
     label: str = "",
-) -> None:
-    """Core computation: collect p-values from given tables, call R, write output.
+) -> tuple[dict[int, dict[str, list[float]]], dict[int, list[float]]]:
+    """Collect p-values from the database for the given tables.
 
-    ``gene_flags_fn`` is only called for the main (unfiltered) table.
-    Per-assay tables reuse the flags from the main table by omitting this arg.
+    Returns (per_table_pvalues, all_pvalues).
     """
     per_table_pvalues: dict[int, dict[str, list[float]]] = defaultdict(
         lambda: defaultdict(list)
@@ -434,15 +432,20 @@ def _compute_combined_for_tables(
         col_label = ", ".join(pvalue_cols) if len(pvalue_cols) > 1 else pvalue_cols[0]
         click.echo(f"  {label}Processed {table_name}.{col_label}")
 
-    if not all_pvalues:
-        click.echo(f"  {label}No valid p-values found, skipping.")
-        return
+    return per_table_pvalues, all_pvalues
 
-    click.echo(f"  {label}Calling R for p-value combination and FDR correction...")
-    r_results = _call_r_combine(per_table_pvalues, all_pvalues)
-    if r_results is None:
-        r_results = {}
 
+def _write_combined_results(
+    conn: sqlite3.Connection,
+    output_table: str,
+    per_table_pvalues: dict[int, dict[str, list[float]]],
+    all_pvalues: dict[int, list[float]],
+    r_results: dict[int, dict[str, float | None]],
+    no_index: bool,
+    gene_flags_fn: Callable[[int], str | None] | None = None,
+    label: str = "",
+) -> None:
+    """Create the output table and insert combined p-value results."""
     out_table = sanitize_identifier(output_table)
     conn.execute(
         f"""CREATE TABLE {out_table} (
@@ -567,16 +570,9 @@ def compute_combined_pvalues(
     # Strip assay/disease columns for the core computation (expects 3-tuples)
     tables_3col = [(t[0], t[1], t[2]) for t in tables_with_pvalues]
 
-    # 2. Compute global combined p-values (all tables)
-    _compute_combined_for_tables(
-        conn, tables_3col, "gene_combined_pvalues", no_index,
-        gene_flags_fn=get_gene_flags,
-    )
-
-    # 3. Build assay and disease groupings for 2D split
+    # 2. Build assay and disease groupings for 2D split
     assay_to_tables: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
     disease_to_tables: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
-    # Key: (assay_key, disease_key) -> tables
     combo_to_tables: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
 
     for table_name, pvalue_col, link_tables, assay_raw, disease_raw in tables_with_pvalues:
@@ -593,7 +589,99 @@ def compute_combined_pvalues(
             for dk in disease_keys:
                 combo_to_tables[(ak, dk)].append(entry)
 
-    # Create metadata table for available filter combinations
+    # 3. Build list of all groups to compute
+    # Each group: (tables, out_table, label, assay_filter, disease_filter, use_gene_flags, min_tables)
+    groups: list[tuple[
+        list[tuple[str, str, str]], str, str, str | None, str | None, bool, int
+    ]] = []
+
+    # Global group (min_tables=1: always compute even with a single source table)
+    groups.append((tables_3col, "gene_combined_pvalues", "[global] ", None, None, True, 1))
+
+    # Per-assay groups (min_tables=2: skip if only 1 source table)
+    for assay_key in sorted(assay_to_tables.keys()):
+        groups.append((
+            assay_to_tables[assay_key],
+            f"gene_combined_pvalues_{assay_key}",
+            f"[assay={assay_key}] ",
+            assay_key, None, True, 2,
+        ))
+
+    # Per-disease groups
+    for disease_key in sorted(disease_to_tables.keys()):
+        groups.append((
+            disease_to_tables[disease_key],
+            f"gene_combined_pvalues_d_{disease_key}",
+            f"[disease={disease_key}] ",
+            None, disease_key, True, 2,
+        ))
+
+    # Per-(assay × disease) groups
+    for (assay_key, disease_key) in sorted(combo_to_tables.keys()):
+        groups.append((
+            combo_to_tables[(assay_key, disease_key)],
+            f"gene_combined_pvalues_{assay_key}_d_{disease_key}",
+            f"[assay={assay_key}, disease={disease_key}] ",
+            assay_key, disease_key, True, 2,
+        ))
+
+    # Phase 1: Collect p-values from DB for all groups (sequential — fast)
+    click.echo(f"\n  Collecting p-values for {len(groups)} group(s)...")
+    collected: list[tuple[
+        dict[int, dict[str, list[float]]],
+        dict[int, list[float]],
+        str, str, str | None, str | None, bool,
+    ]] = []
+
+    for tables, out_table, label, assay_filter, disease_filter, use_flags, min_tables in groups:
+        # Deduplicate tables
+        unique_tables = list({t[0]: t for t in tables}.values())
+        if len(unique_tables) < min_tables:
+            click.echo(f"  {label}Skipping — only {len(unique_tables)} source table(s)")
+            collected.append(({}, {}, out_table, label, assay_filter, disease_filter, use_flags))
+            continue
+
+        click.echo(f"  {label}Collecting from {len(unique_tables)} tables...")
+        per_table, all_pvals = _collect_pvalues_for_tables(
+            conn, unique_tables, label
+        )
+        collected.append((per_table, all_pvals, out_table, label, assay_filter, disease_filter, use_flags))
+
+    # Phase 2: Run R meta-analyses in parallel (slow — this is the bottleneck)
+    r_jobs = [
+        (i, per_table, all_pvals, label)
+        for i, (per_table, all_pvals, _out, label, _af, _df, _uf) in enumerate(collected)
+        if all_pvals
+    ]
+
+    max_workers = min(len(r_jobs), os.cpu_count() or 4) if r_jobs else 1
+    click.echo(f"\n  Launching {len(r_jobs)} R meta-analysis job(s) with {max_workers} parallel workers...")
+
+    r_results_by_idx: dict[int, dict[int, dict[str, float | None]]] = {}
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_idx = {}
+        for idx, per_table, all_pvals, label in r_jobs:
+            click.echo(f"  {label}Submitting R job...")
+            future = executor.submit(_call_r_combine, per_table, all_pvals)
+            future_to_idx[future] = (idx, label)
+
+        for future in as_completed(future_to_idx):
+            idx, label = future_to_idx[future]
+            try:
+                result = future.result()
+                r_results_by_idx[idx] = result if result is not None else {}
+                click.echo(f"  {label}R job completed.")
+            except Exception as e:
+                click.echo(click.style(
+                    f"  {label}R job failed: {e}", fg="red",
+                ))
+                r_results_by_idx[idx] = {}
+
+    # Phase 3: Write results to DB (sequential — fast)
+    click.echo(f"\n  Writing results to database...")
+
+    # Create metadata table
     conn.execute(
         """CREATE TABLE IF NOT EXISTS combined_pvalue_groups (
         assay_filter TEXT,
@@ -604,68 +692,30 @@ def compute_combined_pvalues(
         )"""
     )
 
-    def _compute_group(
-        tables: list[tuple[str, str, str]],
-        out_table: str,
-        label: str,
-        assay_filter: str | None,
-        disease_filter: str | None,
-    ) -> None:
-        """Compute a combined p-value group and register it in the metadata table."""
-        # Deduplicate tables (a table may appear via multiple assay/disease keys)
-        unique_tables = list({t[0]: t for t in tables}.values())
-        if len(unique_tables) < 2:
-            click.echo(f"  {label}Skipping — only {len(unique_tables)} source table(s)")
+    for i, (per_table, all_pvals, out_table, label, assay_filter, disease_filter, use_flags) in enumerate(collected):
+        if not all_pvals:
+            # Group was skipped (< 2 source tables)
             conn.execute(
                 "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, table_name, num_source_tables) "
                 "VALUES (?, ?, NULL, ?)",
-                (assay_filter, disease_filter, len(unique_tables)),
+                (assay_filter, disease_filter, len(per_table)),
             )
             conn.commit()
-            return
+            continue
 
-        click.echo(f"\n  {label}({len(unique_tables)} tables)...")
-        _compute_combined_for_tables(
-            conn, unique_tables, out_table, no_index,
-            gene_flags_fn=get_gene_flags,
-            label=f"{label}",
+        r_results = r_results_by_idx.get(i, {})
+        flags_fn = get_gene_flags if use_flags else None
+
+        _write_combined_results(
+            conn, out_table, per_table, all_pvals,
+            r_results, no_index, flags_fn, label,
         )
+
+        # Count source tables for metadata
+        num_source = len({tbl for gene_tbls in per_table.values() for tbl in gene_tbls})
         conn.execute(
             "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, table_name, num_source_tables) "
             "VALUES (?, ?, ?, ?)",
-            (assay_filter, disease_filter, out_table, len(unique_tables)),
+            (assay_filter, disease_filter, out_table, num_source),
         )
         conn.commit()
-
-    # Register the global table
-    conn.execute(
-        "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, table_name, num_source_tables) "
-        "VALUES (NULL, NULL, 'gene_combined_pvalues', ?)",
-        (len(tables_3col),),
-    )
-    conn.commit()
-
-    # 4. Per-assay tables
-    for assay_key in sorted(assay_to_tables.keys()):
-        out_table = f"gene_combined_pvalues_{assay_key}"
-        _compute_group(
-            assay_to_tables[assay_key], out_table,
-            f"[assay={assay_key}] ", assay_key, None,
-        )
-
-    # 5. Per-disease tables
-    for disease_key in sorted(disease_to_tables.keys()):
-        out_table = f"gene_combined_pvalues_d_{disease_key}"
-        _compute_group(
-            disease_to_tables[disease_key], out_table,
-            f"[disease={disease_key}] ", None, disease_key,
-        )
-
-    # 6. Per-(assay × disease) combination tables
-    for (assay_key, disease_key) in sorted(combo_to_tables.keys()):
-        out_table = f"gene_combined_pvalues_{assay_key}_d_{disease_key}"
-        _compute_group(
-            combo_to_tables[(assay_key, disease_key)], out_table,
-            f"[assay={assay_key}, disease={disease_key}] ",
-            assay_key, disease_key,
-        )
