@@ -1,0 +1,1370 @@
+﻿index,gene_symbol,gene_name,Ensembl_ID,trait,experiment,source,source_URL,FWER_signif,FDR0.05
+1,ABCC9,ATP binding cassette subfamily C member 9,ENSG00000069431,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+2,ABI2,abl interactor 2 ,ENSG00000138443,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+3,ABL1,"ABL proto-oncogene 1, non-receptor tyrosine kinase",ENSG00000097007,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+4,ACHE,acetylcholinesterase (Cartwright blood group) ,ENSG00000087085,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+5,ACLY,ATP citrate lyase,ENSG00000131473,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+6,ACTA2,"actin alpha 2, smooth muscle",ENSG00000107796,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+7,ACTC1,actin alpha cardiac muscle 1 ,ENSG00000159251,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+8,ACTL6B,actin like 6B,ENSG00000077080,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+9,ACVR2A,activin A receptor type 2A,ENSG00000121989,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+10,ADAP1,ArfGAP with dual PH domains 1 ,ENSG00000105963,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+11,ADAP1,ArfGAP with dual PH domains 1 ,ENSG00000105963,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+12,ADCY5,adenylate cyclase 5,ENSG00000173175,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+13,ADGRB1,adhesion G protein-coupled receptor B1,ENSG00000181790,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+14,ADGRF5,adhesion G protein-coupled receptor F5 ,ENSG00000069122,SuicideDeath,RVAS,Suicide_2021,https://pubmed.ncbi.nlm.nih.gov/34042246/,yes,yes
+15,ADNP,activity dependent neuroprotector homeobox ,ENSG00000101126,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+16,ADNP,activity dependent neuroprotector homeobox ,ENSG00000101126,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+17,ADNP,activity dependent neuroprotector homeobox,ENSG00000101126,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+18,ADNP,activity dependent neuroprotector homeobox ,ENSG00000101126,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+19,ADNP ,activity dependent neuroprotector homeobox ,ENSG00000101126,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+20,ADNP ,activity dependent neuroprotector homeobox ,ENSG00000101126,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+21,ADNP ,activity dependent neuroprotector homeobox ,ENSG00000101126,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+22,AFF3,ALF transcription elongation factor 3,ENSG00000144218,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+23,AGAP2,"ArfGAP with GTPase domain, ankyrin repeat and PH domain 2 ",ENSG00000135439,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+24,AGO1,argonaute RISC component 1 ,ENSG00000092847,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+25,AGO1,argonaute RISC component 1,ENSG00000092847,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+26,AGO3,argonaute RISC catalytic component 3 ,ENSG00000126070,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+27,AGO3,argonaute RISC catalytic component 3 ,ENSG00000126070,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+28,AGO4,argonaute RISC component 4 ,ENSG00000134698,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+29,AGO4,argonaute RISC component 4,ENSG00000134698,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+30,AHDC1,AT-hook DNA binding motif containing 1 ,ENSG00000126705,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+31,AHDC1,AT-hook DNA binding motif containing 1,ENSG00000126705,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+32,AHDC1 ,AT-hook DNA binding motif containing 1 ,ENSG00000126705,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+33,AHDC1 ,AT-hook DNA binding motif containing 1 ,ENSG00000126705,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+34,AHNAK,AHNAK nucleoprotein ,ENSG00000124942,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+35,AKAP11,A kinase (PRKA) anchor protein 11,ENSG00000023516,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+36,AKAP9,A-kinase anchoring protein 9 ,ENSG00000127914,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+37,AKT3,AKT serine/threonine kinase 3,ENSG00000275199,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+38,ALDH18A1,aldehyde dehydrogenase 18 family member A1,ENSG00000059573,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+39,ALG13 ,ALG13 UDP-N-acetylglucosaminyltransferase subunit ,ENSG00000101901,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+40,AMH,anti-Mullerian hormone,ENSG00000104899,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+41,AMIGO1,adhesion molecule with Ig like domain 1,ENSG00000181754,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+42,ANK2,ankyrin 2 ,ENSG00000145362,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+43,ANK2,ankyrin 2 ,ENSG00000145362,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+44,ANK2,ankyrin 2 ,ENSG00000145362,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+45,ANK2,ankyrin 2 ,ENSG00000145362,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+46,ANK2,ankyrin 2,ENSG00000145362,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+47,ANK2,ankyrin 2 ,ENSG00000145362,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+48,ANK3,ankyrin 3,ENSG00000151150,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+49,ANKH,ANKH inorganic pyrophosphate transport regulator,ENSG00000154122,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+50,ANKRD11,ankyrin repeat domain containing 11,ENSG00000167522,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+51,ANKRD11,ankyrin repeat domain containing 11 ,ENSG00000167522,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+52,ANKRD11 ,ankyrin repeat domain 11 ,ENSG00000167522,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+53,ANKRD11 ,ankyrin repeat domain 11 ,ENSG00000167522,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+54,ANKRD11 ,ankyrin repeat domain 11 ,ENSG00000167522,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+55,ANKRD12,Ankyrin repeat domain 12,ENSG00000101745,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+56,ANKRD12,ankyrin repeat domain 12,ENSG00000101745,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+57,ANP32A,acidic nuclear phosphoprotein 32 family member A ,ENSG00000140350,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+58,ANP32A,acidic nuclear phosphoprotein 32 family member A ,ENSG00000140350,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+59,AP1G1,adaptor related protein complex 1 subunit gamma 1,ENSG00000166747,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+60,AP2S1,adaptor related protein complex 2 subunit sigma 1 ,ENSG00000042753,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+61,AP2S1,adaptor related protein complex 2 subunit sigma 1,ENSG00000042753,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+62,AP2S1,adaptor related protein complex 2 subunit sigma 1 ,ENSG00000042753,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+63,AP3B2,adaptor related protein complex 3 subunit beta 2,ENSG00000103723,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+64,AP3D1,adaptor related protein complex 3 subunit delta 1,ENSG00000065000,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+65,APBB1,amyloid beta precursor protein binding family B member 1,ENSG00000166313,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+66,APBB1,amyloid beta precursor protein binding family B member 1 ,ENSG00000166313,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+67,AQP10,aquaporin 10 ,ENSG00000143595,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+68,ARCN1,archain 1,ENSG00000095139,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+69,ARF1,ADP ribosylation factor 1,ENSG00000143761,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+70,ARF3,ADP ribosylation factor 3,ENSG00000134287,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+71,ARHGAP32,Rho GTPase activating protein 32,ENSG00000134909,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+72,ARHGAP35,Rho GTPase activating protein 35,ENSG00000160007,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+73,ARID1A,AT-rich interaction domain 1A,ENSG00000117713,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+74,ARID1B,AT-rich interaction domain 1B ,ENSG00000049618,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+75,ARID1B,AT-rich interaction domain 1B,ENSG00000049618,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+76,ARID1B,AT-rich interaction domain 1B ,ENSG00000049618,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+77,ARID1B ,AT-rich interaction domain 1B ,ENSG00000049618,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+78,ARID1B ,AT-rich interaction domain 1B ,ENSG00000049618,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+79,ARID1B ,AT-rich interaction domain 1B ,ENSG00000049618,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+80,ARID2,AT-rich interaction domain 2 ,ENSG00000189079,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+81,ARID2,AT-rich interaction domain 2,ENSG00000189079,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+82,ARID5B,AT-rich interaction domain 5B,ENSG00000150347,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+83,ARIH1,ariadne RBR E3 ubiquitin protein ligase 1,ENSG00000166233,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+84,ASH1L,"Ash1 (absent, small, or homeotic)-like (Drosophila)",ENSG00000116539,"NDD, SCZ",RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+85,ASH1L,"Ash1 (absent, small, or homeotic)-like (Drosophila)",ENSG00000116539,"NDD, SCZ",RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+86,ASH1L,"Ash1 (absent, small, or homeotic)-like (Drosophila)",ENSG00000116539,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+87,ASH1L,"Ash1 (absent, small, or homeotic)-like (Drosophila)",ENSG00000116539,"NDD, SCZ",RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+88,ASH1L,"Ash1 (absent, small, or homeotic)-like (Drosophila)",ENSG00000116539,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+89,ASH1L,ASH1 like histone lysine methyltransferase,ENSG00000116539,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+90,ASH1L,ASH1 like histone lysine methyltransferase ,ENSG00000116539,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+91,ASXL1,ASXL transcriptional regulator 1,ENSG00000171456,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+92,ASXL1 ,ASXL transcriptional regulator 1 ,ENSG00000171456,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+93,ASXL1 ,ASXL transcriptional regulator 1 ,ENSG00000171456,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+94,ASXL2,ASXL transcriptional regulator 2,ENSG00000143970,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+95,ASXL3,ASXL transcriptional regulator 3 ,ENSG00000141431,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+96,ASXL3,ASXL transcriptional regulator 3,ENSG00000141431,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+97,ASXL3,ASXL transcriptional regulator 3 ,ENSG00000141431,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+98,ASXL3 ,ASXL transcriptional regulator 3 ,ENSG00000141431,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+99,ASXL3 ,ASXL transcriptional regulator 3 ,ENSG00000141431,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+100,ASXL3 ,ASXL transcriptional regulator 3 ,ENSG00000141431,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+101,ATF2,activating transcription factor 2,ENSG00000115966,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+102,ATG13,autophagy related 13,ENSG00000175224,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+103,ATG9B,autophagy related 9B,ENSG00000181652,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+104,ATP1A2,ATPase Na+/K+ transporting subunit alpha 2,ENSG00000018625,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+105,ATP1A3,ATPase Na+/K+ transporting subunit alpha 3,ENSG00000105409,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+106,ATP1B1,ATPase Na+/K+ transporting subunit beta 1,ENSG00000143153,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+107,ATP2B1,ATPase plasma membrane Ca2+ transporting 1,ENSG00000070961,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+108,ATP2B2,ATPase plasma membrane Ca2+ transporting 2,ENSG00000157087,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+109,ATP2B2,ATPase plasma membrane Ca2+ transporting 2 ,ENSG00000157087,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+110,ATP4A,ATPase H+/K+ transporting subunit alpha,ENSG00000105675,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+111,ATP6V0A1,ATPase H+ transporting V0 subunit a1,ENSG00000033627,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+112,ATP6V1A,ATPase H+ transporting V1 subunit A,ENSG00000114573,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+113,ATP6V1B2,ATPase H+ transporting V1 subunit B2,ENSG00000147416,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+114,AUTS2,activator of transcription and developmental regulator AUTS2,ENSG00000158321,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+115,AUTS2,activator of transcription and developmental regulator AUTS2 ,ENSG00000158321,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+116,AUTS2 ,activator of transcription and developmental regulator AUTS2 ,ENSG00000158321,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+117,AUTS2 ,activator of transcription and developmental regulator AUTS2 ,ENSG00000158321,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+118,B3GNT6,"UDP-GlcNAc:betaGal beta-1,3-N-acetylglucosaminyltransferase 6",ENSG00000198488,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+119,BAP1,BRCA1 associated protein 1,ENSG00000163930,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+120,BCAS3,BCAS3 microtubule associated cell migration factor,ENSG00000141376,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+121,BCL11A,BCL11 transcription factor A,ENSG00000119866,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+122,BCL11A,BCL11 transcription factor A ,ENSG00000119866,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+123,BCL11A ,BAF chromatin remodeling complex subunit BCL11A ,ENSG00000119866,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+124,BCL11A ,BAF chromatin remodeling complex subunit BCL11A ,ENSG00000119866,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+125,BCL11A ,BAF chromatin remodeling complex subunit BCL11A ,ENSG00000119866,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+126,BCL11B,BCL11 transcription factor B,ENSG00000127152,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+127,BCL9,BCL9 transcription coactivator,ENSG00000116128,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+128,BICD2,BICD cargo adaptor 2,ENSG00000185963,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+129,BICRA,BRD4 interacting chromatin remodeling complex associated protein,ENSG00000063169,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+130,BLTP1,bridge-like lipid transfer protein family member 1,ENSG00000138688,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+131,BLTP2,bridge-like lipid transfer protein family member 2,ENSG00000007202,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+132,BMPR1A,bone morphogenetic protein receptor type 1A,ENSG00000107779,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+133,BOD1L1,biorientation of chromosomes in cell division 1 like 1,ENSG00000038219,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+134,BPTF,bromodomain PHD finger transcription factor,ENSG00000171634,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+135,BRAF,"B-Raf proto-oncogene, serine/threonine kinase ",ENSG00000157764,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+136,BRAF,"B-Raf proto-oncogene, serine/threonine kinase",ENSG00000157764,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+137,BRAF ,"B-Raf proto-oncogene, serine/threonine kinase ",ENSG00000157764,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+138,BRAF ,"B-Raf proto-oncogene, serine/threonine kinase ",ENSG00000157764,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+139,BRD3,bromodomain containing 3,ENSG00000169925,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+140,BRD4,bromodomain containing 4,ENSG00000141867,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+141,BRPF1,bromodomain and PHD finger containing 1 ,ENSG00000156983,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+142,BRPF1,bromodomain and PHD finger containing 1 ,ENSG00000156983,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+143,BRPF1,bromodomain and PHD finger containing 1,ENSG00000156983,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+144,BRSK1,BR serine/threonine kinase 1,ENSG00000160469,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+145,BRSK2,BR serine/threonine kinase 2,ENSG00000174672,NDD,RVAS,ASD_2019_Feliciano,https://pubmed.ncbi.nlm.nih.gov/31452935/,yes,yes
+146,BRSK2,BR serine/threonine kinase 2,ENSG00000174672,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+147,BRSK2,BR serine/threonine kinase 2 ,ENSG00000291428,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+148,BRWD1,bromodomain and WD repeat domain containing 1,ENSG00000185658,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+149,BTBD10,BTB domain containing 10,ENSG00000148925,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+150,BTF3,basic transcription factor 3 ,ENSG00000145741,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+151,BTG3,BTG anti-proliferation factor 3,ENSG00000281484,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+152,C2orf42,chromosome 2 open reading frame 42 ,ENSG00000115998,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+153,C3,complement C3,ENSG00000125730,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+154,CABP7,calcium binding protein 7 ,ENSG00000100314,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+155,CACNA1A,calcium voltage-gated channel subunit alpha1 A,ENSG00000141837,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+156,CACNA1C,calcium voltage-gated channel subunit alpha1 C,ENSG00000285479,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+157,CACNA1D,calcium voltage-gated channel subunit alpha1 D,ENSG00000157388,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+158,CACNA1E,calcium voltage-gated channel subunit alpha1 E ,ENSG00000198216,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+159,CACNA1E,calcium voltage-gated channel subunit alpha1 E ,ENSG00000198216,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+160,CACNA1E,calcium voltage-gated channel subunit alpha1 E,ENSG00000198216,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+161,CACNA1G,"Calcium channel, voltage-dependent, T type, alpha 1G subunit",ENSG00000006283,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,yes,yes
+162,CACNA1G,calcium voltage-gated channel subunit alpha1 G,ENSG00000006283,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+163,CACNA2D1,calcium voltage-gated channel auxiliary subunit alpha2delta 1,ENSG00000153956,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+164,CALM1,calmodulin 1,ENSG00000198668,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+165,CAMK2A,calcium/calmodulin dependent protein kinase II alpha,ENSG00000070808,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+166,CAMK2B,calcium/calmodulin dependent protein kinase II beta,ENSG00000058404,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+167,CAMK2D,calcium/calmodulin dependent protein kinase II delta,ENSG00000145349,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+168,CAMK2G,calcium/calmodulin dependent protein kinase II gamma,ENSG00000148660,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+169,CAMK4,calcium/calmodulin dependent protein kinase IV,ENSG00000152495,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+170,CAMTA1,calmodulin binding transcription activator 1,ENSG00000171735,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+171,CAMTA2,calmodulin binding transcription activator 2,ENSG00000108509,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+172,CAMTA2,calmodulin binding transcription activator 2 ,ENSG00000108509,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+173,CAPN12,calpain 12 ,ENSG00000182472,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+174,CAPN15,calpain 15 ,ENSG00000282214,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+175,CAPRIN1,cell cycle associated protein 1 ,ENSG00000135387,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+176,CAPRIN1,cell cycle associated protein 1,ENSG00000135387,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+177,CAPRIN1,cell cycle associated protein 1 ,ENSG00000135387,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+178,CASK ,calcium/calmodulin dependent serine protein kinase ,ENSG00000147044,"NDD, XLDD",RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+179,CASK ,calcium/calmodulin dependent serine protein kinase ,ENSG00000147044,"NDD, XLDD",RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+180,CASKIN1,CASK interacting protein 1,ENSG00000167971,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+181,CASKIN2,CASK interacting protein 2,ENSG00000177303,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+182,CASZ1,castor zinc finger 1 ,ENSG00000130940,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+183,CASZ1,castor zinc finger 1 ,ENSG00000130940,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+184,CASZ1,castor zinc finger 1,ENSG00000130940,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+185,CASZ1,castor zinc finger 1 ,ENSG00000130940,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+186,CBL,Cbl proto-oncogene ,ENSG00000110395,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+187,CBL,Cbl proto-oncogene,ENSG00000110395,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+188,CBLL1,Cbl proto-oncogene like 1,ENSG00000105879,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+189,CBX3,chromobox 3,ENSG00000122565,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+190,CBX5,chromobox 5,ENSG00000094916,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+191,CDC42,cell division cycle 42,ENSG00000070831,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+192,CDC42BPB,CDC42 binding protein kinase beta ,ENSG00000198752,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+193,CDC42BPB,CDC42 binding protein kinase beta,ENSG00000198752,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+194,CDK13,cyclin dependent kinase 13 ,ENSG00000065883,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+195,CDK13,cyclin dependent kinase 13,ENSG00000065883,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+196,CDK13 ,cyclin dependent kinase 13 ,ENSG00000065883,"NDD, XLDD",RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+197,CDK13 ,cyclin dependent kinase 13 ,ENSG00000065883,"NDD, XLDD",RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+198,CDK8,cyclin dependent kinase 8,ENSG00000132964,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+199,CDKL5 ,cyclin dependent kinase like 5 ,ENSG00000008086,"NDD, XLDD",RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+200,CDKL5 ,cyclin dependent kinase like 5 ,ENSG00000008086,"NDD, XLDD",RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+201,CDKL5 ,cyclin dependent kinase like 5 ,ENSG00000008086,"NDD, XLDD",RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+202,CDKN1C,cyclin dependent kinase inhibitor 1C,ENSG00000273707,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+203,CDKN2AIP,CDKN2A interacting protein,ENSG00000168564,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+204,CELF1,CUGBP Elav-like family member 1,ENSG00000149187,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+205,CELF2,CUGBP Elav-like family member 2,ENSG00000048740,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+206,CELF4,CUGBP Elav-like family member 4 ,ENSG00000101489,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+207,CELF4,CUGBP Elav-like family member 4,ENSG00000101489,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+208,CELF4,CUGBP Elav-like family member 4 ,ENSG00000101489,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+209,CENPE,centromere protein E,ENSG00000138778,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+210,CENPV,centromere protein V,ENSG00000166582,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+211,CERT1,ceramide transporter 1 ,ENSG00000113163,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+212,CERT1,ceramide transporter 1 ,ENSG00000113163,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+213,CERT1,ceramide transporter 1,ENSG00000113163,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+214,CGREF1,cell growth regulator with EF-hand domain 1,ENSG00000138028,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+215,CHAMP1,chromosome alignment maintaining phosphoprotein 1 ,ENSG00000198824,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+216,CHAMP1,chromosome alignment maintaining phosphoprotein 1,ENSG00000198824,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+217,CHAMP1 ,chromosome alignment maintaining phosphoprotein 1 ,ENSG00000198824,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+218,CHAMP1 ,chromosome alignment maintaining phosphoprotein 1 ,ENSG00000198824,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+219,CHD2,chromodomain helicase DNA binding protein 2 ,ENSG00000173575,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+220,CHD2,chromodomain helicase DNA binding protein 2 ,ENSG00000173575,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+221,CHD2,chromodomain helicase DNA binding protein 2,ENSG00000173575,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+222,CHD2,chromodomain helicase DNA binding protein 2 ,ENSG00000173575,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+223,CHD2 ,chromodomain helicase DNA binding protein 2 ,ENSG00000173575,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+224,CHD2 ,chromodomain helicase DNA binding protein 2 ,ENSG00000173575,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+225,CHD2 ,chromodomain helicase DNA binding protein 2 ,ENSG00000173575,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+226,CHD3,chromodomain helicase DNA binding protein 3 ,ENSG00000170004,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+227,CHD3,chromodomain helicase DNA binding protein 3,ENSG00000170004,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+228,CHD4,chromodomain helicase DNA binding protein 4,ENSG00000111642,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+229,CHD4 ,chromodomain helicase DNA binding protein 4 ,ENSG00000111642,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+230,CHD4 ,chromodomain helicase DNA binding protein 4 ,ENSG00000111642,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+231,CHD5,chromodomain helicase DNA binding protein 5,ENSG00000116254,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+232,CHD7,chromodomain helicase DNA binding protein 7 ,ENSG00000171316,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+233,CHD7,chromodomain helicase DNA binding protein 7,ENSG00000171316,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+234,CHD8,chromodomain helicase DNA binding protein 8 ,ENSG00000100888,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+235,CHD8,chromodomain helicase DNA binding protein 8 ,ENSG00000100888,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+236,CHD8,chromodomain helicase DNA binding protein 8,ENSG00000100888,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+237,CHD8,chromodomain helicase DNA binding protein 8 ,ENSG00000100888,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+238,CHD8 ,chromodomain helicase DNA binding protein 8 ,ENSG00000100888,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+239,CHD8 ,chromodomain helicase DNA binding protein 8 ,ENSG00000100888,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+240,CHD8 ,chromodomain helicase DNA binding protein 8 ,ENSG00000100888,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+241,CHMP7,charged multivesicular body protein 7,ENSG00000147457,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+242,CIC,capicua transcriptional repressor,ENSG00000079432,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+243,CLASP1,cytoplasmic linker associated protein 1 ,ENSG00000074054,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+244,CLPTM1,CLPTM1 regulator of GABA type A receptor forward trafficking,ENSG00000104853,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+245,CLTC,clathrin heavy chain ,ENSG00000141367,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+246,CLTC,clathrin heavy chain ,ENSG00000141367,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+247,CLTC,clathrin heavy chain,ENSG00000141367,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+248,CMPK2,cytidine/uridine monophosphate kinase 2 ,ENSG00000134326,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+249,CNKSR2,connector enhancer of kinase suppressor of Ras 2 ,ENSG00000149970,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+250,CNKSR2 ,connector enhancer of kinase suppressor of Ras 2 ,ENSG00000149970,"NDD, XLDD",RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+251,CNKSR2 ,connector enhancer of kinase suppressor of Ras 2 ,ENSG00000149970,"NDD, XLDD",RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+252,CNKSR2 ,connector enhancer of kinase suppressor of Ras 2 ,ENSG00000149970,"NDD, XLDD",RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+253,CNOT1,CCR4-NOT transcription complex subunit 1,ENSG00000125107,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+254,CNOT2,CCR4-NOT transcription complex subunit 2,ENSG00000111596,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+255,CNOT3,CCR4-NOT transcription complex subunit 3,ENSG00000274941,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+256,CNOT3,CCR4-NOT transcription complex subunit 3 ,ENSG00000277114,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+257,CNOT3 ,CCR4-NOT transcription complex subunit 3 ,ENSG00000273943,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+258,CNOT3 ,CCR4-NOT transcription complex subunit 3 ,ENSG00000273943,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+259,COL2A1,collagen type II alpha 1 chain,ENSG00000139219,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+260,COL4A1,collagen type IV alpha 1 chain,ENSG00000187498,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+261,CORO1A,coronin 1A,ENSG00000102879,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+262,CPD,carboxypeptidase D,ENSG00000108582,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+263,CPSF6,cleavage and polyadenylation specific factor 6,ENSG00000111605,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+264,CPSF7,cleavage and polyadenylation specific factor 7,ENSG00000149532,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+265,CPSF7,cleavage and polyadenylation specific factor 7 ,ENSG00000149532,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+266,CREBBP,CREB binding protein,ENSG00000005339,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+267,CREBBP ,CREB binding protein ,ENSG00000005339,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+268,CREBBP ,CREB binding protein ,ENSG00000005339,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+269,CREBBP ,CREB binding protein ,ENSG00000005339,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+270,CRIM1,cysteine rich transmembrane BMP regulator 1,ENSG00000277354,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+271,CSDE1,cold shock domain containing E1,ENSG00000009307,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+272,CSNK1E,casein kinase 1 epsilon,ENSG00000213923,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+273,CSNK2A1,casein kinase 2 alpha 1 ,ENSG00000101266,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+274,CSNK2A1,casein kinase 2 alpha 1,ENSG00000101266,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+275,CSNK2A1,casein kinase 2 alpha 1 ,ENSG00000101266,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+276,CSNK2A1 ,casein kinase 2 alpha 1 ,ENSG00000101266,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+277,CSNK2A1 ,casein kinase 2 alpha 1 ,ENSG00000101266,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+278,CSNK2B,casein kinase 2 beta,ENSG00000230700,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+279,CTBP1,C-terminal binding protein 1,ENSG00000159692,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+280,CTCF,CCCTC-binding factor ,ENSG00000102974,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+281,CTCF,CCCTC-binding factor,ENSG00000102974,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+282,CTCF,CCCTC-binding factor ,ENSG00000102974,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+283,CTCF ,CCCTC-binding factor ,ENSG00000102974,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+284,CTCF ,CCCTC-binding factor ,ENSG00000102974,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+285,CTNNA2,catenin alpha 2,ENSG00000066032,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+286,CTNNB1,catenin beta 1 ,ENSG00000168036,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+287,CTNNB1,catenin beta 1,ENSG00000168036,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+288,CTNNB1,catenin beta 1 ,ENSG00000168036,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+289,CTNNB1 ,catenin beta 1 ,ENSG00000168036,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+290,CTNNB1 ,catenin beta 1 ,ENSG00000168036,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+291,CTNNB1 ,catenin beta 1 ,ENSG00000168036,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+292,CTNND1,catenin delta 1,ENSG00000198561,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+293,CTR9,"CTR9 homolog, Paf1/RNA polymerase II complex component",ENSG00000198730,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+294,CUL1,Cullin 1,ENSG00000055130,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,yes,yes
+295,CUL3,cullin 3 ,ENSG00000036257,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+296,CUL3,cullin 3 ,ENSG00000036257,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+297,CUL3,cullin 3 ,ENSG00000036257,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+298,CUL3,cullin 3,ENSG00000036257,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+299,CUL3,cullin 3 ,ENSG00000036257,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+300,CUX2,cut like homeobox 2,ENSG00000111249,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+301,CYFIP2,cytoplasmic FMR1 interacting protein 2,ENSG00000055163,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+302,CYLD,CYLD lysine 63 deubiquitinase,ENSG00000083799,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+303,DAGLA,"Diacylglycerol lipase, alpha",ENSG00000134780,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+304,DAZAP1,DAZ associated protein 1,ENSG00000071626,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+305,DCAF7,DDB1 and CUL4 associated factor 7,ENSG00000136485,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+306,DCTN2,dynactin subunit 2,ENSG00000175203,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+307,DDB1,damage specific DNA binding protein 1,ENSG00000167986,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+308,DDX23,DEAD-box helicase 23,ENSG00000174243,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+309,DDX3X,DEAD-box helicase 3 X-linked ,ENSG00000215301,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+310,DDX3X,DEAD-box helicase 3 X-linked ,ENSG00000215301,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+311,DDX3X ,DEAD-box helicase 3 X-linked ,ENSG00000215301,"NDD, XLDD",RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+312,DDX3X ,DEAD-box helicase 3 X-linked ,ENSG00000215301,"NDD, XLDD",RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+313,DDX6,DEAD-box helicase 6,ENSG00000110367,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+314,DEAF1,DEAF1 transcription factor ,ENSG00000177030,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+315,DEAF1,DEAF1 transcription factor ,ENSG00000282712,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+316,DEAF1,DEAF1 transcription factor,ENSG00000282712,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+317,DEAF1,DEAF1 transcription factor ,ENSG00000282712,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+318,DEDD,death effector domain containing,ENSG00000158796,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+319,DHDDS,dehydrodolichyl diphosphate synthase subunit,ENSG00000117682,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+320,DHX30,DExH-box helicase 30,ENSG00000132153,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+321,DIP2A,disco interacting protein 2 homolog A,ENSG00000160305,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+322,DIP2C,disco interacting protein 2 homolog C,ENSG00000151240,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+323,DLG4,discs large MAGUK scaffold protein 4 ,ENSG00000132535,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+324,DLG4,discs large MAGUK scaffold protein 4 ,ENSG00000132535,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+325,DLG4,discs large MAGUK scaffold protein 4,ENSG00000132535,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+326,DLG4,discs large MAGUK scaffold protein 4 ,ENSG00000132535,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+327,DLK2,delta like non-canonical Notch ligand 2,ENSG00000171462,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+328,DLL1,delta like canonical Notch ligand 1,ENSG00000275555,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+329,DLX3,distal-less homeobox 3 ,ENSG00000064195,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+330,DLX3,distal-less homeobox 3 ,ENSG00000064195,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+331,DMPK,DM1 protein kinase,ENSG00000104936,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+332,DMPK,DM1 protein kinase ,ENSG00000104936,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+333,DMWD,"DM1 locus, WD repeat containing ",ENSG00000185800,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+334,DNM1,dynamin 1,ENSG00000106976,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+335,DNM1 ,dynamin 1 ,ENSG00000106976,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+336,DNM1 ,dynamin 1 ,ENSG00000106976,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+337,DNM1L,dynamin 1 like,ENSG00000087470,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+338,DNM3,Dynamin 3,ENSG00000197959,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+339,DNMT3A,DNA methyltransferase 3 alpha ,ENSG00000119772,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+340,DNMT3A,DNA methyltransferase 3 alpha ,ENSG00000119772,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+341,DNMT3A,DNA methyltransferase 3 alpha ,ENSG00000119772,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+342,DNMT3A,DNA methyltransferase 3 alpha,ENSG00000119772,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+343,DNMT3A,DNA methyltransferase 3 alpha ,ENSG00000119772,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+344,DOP1A,DOP1 leucine zipper like protein A,ENSG00000083097,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+345,DOT1L,DOT1 like histone lysine methyltransferase,ENSG00000104885,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+346,DPF2,double PHD fingers 2,ENSG00000133884,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+347,DPYSL2,dihydropyrimidinase like 2 ,ENSG00000092964,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+348,DPYSL2,dihydropyrimidinase like 2,ENSG00000092964,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+349,DPYSL5,dihydropyrimidinase like 5,ENSG00000157851,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+350,DRD2,dopamine receptor D2,ENSG00000149295,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+351,DSCAM,DS cell adhesion molecule ,ENSG00000171587,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+352,DSCAM,DS cell adhesion molecule ,ENSG00000171587,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+353,DSCAM,DS cell adhesion molecule ,ENSG00000171587,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+354,DSCAM,DS cell adhesion molecule ,ENSG00000171587,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+355,DSCAM,DS cell adhesion molecule,ENSG00000171587,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+356,DUS1L,dihydrouridine synthase 1 like,ENSG00000169718,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+357,DUSP16,dual specificity phosphatase 16,ENSG00000280962,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+358,DVL3,dishevelled segment polarity protein 3 ,ENSG00000161202,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+359,DYNC1H1,dynein cytoplasmic 1 heavy chain 1,ENSG00000197102,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+360,DYNC1H1,dynein cytoplasmic 1 heavy chain 1 ,ENSG00000197102,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+361,DYNC1H1 ,dynein cytoplasmic 1 heavy chain 1 ,ENSG00000197102,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+362,DYNC1H1 ,dynein cytoplasmic 1 heavy chain 1 ,ENSG00000197102,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+363,DYNC1H1 ,dynein cytoplasmic 1 heavy chain 1 ,ENSG00000197102,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+364,DYRK1A,dual specificity tyrosine phosphorylation regulated kinase 1A ,ENSG00000157540,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+365,DYRK1A,dual specificity tyrosine phosphorylation regulated kinase 1A ,ENSG00000157540,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+366,DYRK1A,dual specificity tyrosine phosphorylation regulated kinase 1A,ENSG00000157540,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+367,DYRK1A,dual specificity tyrosine phosphorylation regulated kinase 1A ,ENSG00000157540,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+368,DYRK1A ,dual specificity tyrosine phosphorylation regulated kinase 1A ,ENSG00000157540,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+369,DYRK1A ,dual specificity tyrosine phosphorylation regulated kinase 1A ,ENSG00000157540,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+370,DYRK1A ,dual specificity tyrosine phosphorylation regulated kinase 1A ,ENSG00000157540,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+371,EBF3,EBF transcription factor 3 ,ENSG00000108001,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+372,EBF3,EBF transcription factor 3,ENSG00000108001,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+373,EBF3,EBF transcription factor 3 ,ENSG00000108001,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+374,EEF1A2,eukaryotic translation elongation factor 1 alpha 2 ,ENSG00000101210,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+375,EEF1A2,eukaryotic translation elongation factor 1 alpha 2,ENSG00000101210,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+376,EEF1A2 ,eukaryotic translation elongation factor 1 alpha 2 ,ENSG00000101210,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+377,EEF1A2 ,eukaryotic translation elongation factor 1 alpha 2 ,ENSG00000101210,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+378,EFTUD2,elongation factor Tu GTP binding domain containing 2 ,ENSG00000108883,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+379,EFTUD2,elongation factor Tu GTP binding domain containing 2,ENSG00000108883,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+380,EGLN2,egl-9 family hypoxia inducible factor 2 ,ENSG00000269858,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+381,EHMT1,euchromatic histone lysine methyltransferase 1,ENSG00000181090,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+382,EHMT1,euchromatic histone lysine methyltransferase 1 ,ENSG00000181090,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+383,EHMT1 ,euchromatic histone lysine methyltransferase 1 ,ENSG00000181090,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+384,EHMT1 ,euchromatic histone lysine methyltransferase 1 ,ENSG00000181090,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+385,EIF3B,eukaryotic translation initiation factor 3 subunit B,ENSG00000106263,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+386,EIF3G,eukaryotic translation initiation factor 3 subunit G ,ENSG00000130811,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+387,EIF3G,eukaryotic translation initiation factor 3 subunit G,ENSG00000130811,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+388,EIF4A2,eukaryotic translation initiation factor 4A2,ENSG00000156976,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+389,EIF5A,eukaryotic translation initiation factor 5A,ENSG00000288145,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+390,ELAVL3,ELAV like RNA binding protein 3,ENSG00000196361,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+391,ELAVL4,ELAV like RNA binding protein 4,ENSG00000162374,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+392,EML6,EMAP like 6,ENSG00000214595,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+393,ENC1,ectodermal-neural cortex 1 ,ENSG00000171617,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+394,ENO3,enolase 3 ,ENSG00000108515,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+395,ENO3,enolase 3 ,ENSG00000108515,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+396,EP300,E1A binding protein p300,ENSG00000100393,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+397,EP300 ,E1A binding protein p300 ,ENSG00000100393,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+398,EP300 ,E1A binding protein p300 ,ENSG00000100393,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+399,ERF,ETS2 repressor factor,ENSG00000105722,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+400,ERLIN1,ER lipid raft associated 1,ENSG00000107566,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+401,ESRRG,estrogen related receptor gamma,ENSG00000196482,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+402,ESS2,ess-2 splicing factor homolog ,ENSG00000100056,SuicideDeath,RVAS,Suicide_2021,https://pubmed.ncbi.nlm.nih.gov/34042246/,yes,yes
+403,ETF1,eukaryotic translation termination factor 1,ENSG00000120705,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+404,EXT1,exostosin glycosyltransferase 1,ENSG00000182197,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+405,EZH2,enhancer of zeste 2 polycomb repressive complex 2 subunit,ENSG00000106462,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+406,FAM104A,family with sequence similarity 104 member A ,ENSG00000133193,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+407,FAM120A,Family with sequence similarity 120A,ENSG00000048828,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+408,FAM120A,family with sequence similarity 120A,ENSG00000048828,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+409,FAM178A,"Family with sequence similarity 178, member A",ENSG00000119906,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+410,FAM200A,family with sequence similarity 200 member A ,ENSG00000221909,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+411,FAM200B,family with sequence similarity 200 member B ,ENSG00000237765,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+412,FBN1,fibrillin 1,ENSG00000166147,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+413,FBN2,fibrillin 2,ENSG00000138829,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+414,FBXO11,F-box protein 11 ,ENSG00000138081,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+415,FBXO11,F-box protein 11,ENSG00000138081,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+416,FBXO28,F-box protein 28,ENSG00000143756,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+417,FBXW7,F-box and WD repeat domain containing 7,ENSG00000109670,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+418,FEZF2,FEZ family zinc finger 2,ENSG00000153266,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+419,FGF12,fibroblast growth factor 12,ENSG00000114279,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+420,FGFR1,fibroblast growth factor receptor 1,ENSG00000077782,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+421,FGFR2,fibroblast growth factor receptor 2,ENSG00000066468,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+422,FGFR3,fibroblast growth factor receptor 3,ENSG00000068078,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+423,FOSL2,"FOS like 2, AP-1 transcription factor subunit ",ENSG00000075426,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+424,FOSL2,"FOS like 2, AP-1 transcription factor subunit",ENSG00000075426,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+425,FOXG1,forkhead box G1,ENSG00000176165,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+426,FOXG1 ,forkhead box G1 ,ENSG00000176165,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+427,FOXG1 ,forkhead box G1 ,ENSG00000176165,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+428,FOXP1,forkhead box P1 ,ENSG00000114861,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+429,FOXP1,forkhead box P1,ENSG00000114861,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+430,FOXP1,forkhead box P1 ,ENSG00000114861,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+431,FOXP1 ,forkhead box P1 ,ENSG00000114861,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+432,FOXP1 ,forkhead box P1 ,ENSG00000114861,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+433,FOXP1 ,forkhead box P1 ,ENSG00000114861,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+434,FOXP2,forkhead box P2 ,ENSG00000128573,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+435,FOXP2,forkhead box P2 ,ENSG00000128573,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+436,FOXP2,forkhead box P2 ,ENSG00000128573,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+437,FOXP2,forkhead box P2,ENSG00000128573,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+438,FRMD5,FERM domain containing 5,ENSG00000171877,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+439,FUS,FUS RNA binding protein,ENSG00000089280,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+440,G3BP1,G3BP stress granule assembly factor 1 ,ENSG00000145907,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+441,G3BP2,G3BP stress granule assembly factor 2,ENSG00000138757,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+442,GABBR1,gamma-aminobutyric acid type B receptor subunit 1,ENSG00000237051,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+443,GABBR2,gamma-aminobutyric acid type B receptor subunit 2,ENSG00000136928,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+444,GABRA1,gamma-aminobutyric acid type A receptor subunit alpha1,ENSG00000022355,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+445,GABRA1,gamma-aminobutyric acid type A receptor subunit alpha1 ,ENSG00000022355,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+446,GABRB2,gamma-aminobutyric acid type A receptor subunit beta2 ,ENSG00000145864,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+447,GABRB2,gamma-aminobutyric acid type A receptor subunit beta2,ENSG00000145864,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+448,GABRB3,gamma-aminobutyric acid type A receptor subunit beta3 ,ENSG00000166206,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+449,GABRB3,gamma-aminobutyric acid type A receptor subunit beta3,ENSG00000166206,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+450,GABRB3 ,gamma-aminobutyric acid type A receptor subunit beta3 ,ENSG00000166206,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+451,GABRB3 ,gamma-aminobutyric acid type A receptor subunit beta3 ,ENSG00000166206,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+452,GABRB3 ,gamma-aminobutyric acid type A receptor subunit beta3 ,ENSG00000166206,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+453,GABRG2,gamma-aminobutyric acid type A receptor subunit gamma2 ,ENSG00000113327,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+454,GABRG2,gamma-aminobutyric acid type A receptor subunit gamma2,ENSG00000113327,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+455,GAK,cyclin G associated kinase,ENSG00000178950,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+456,GAPVD1,GTPase activating protein and VPS9 domains 1,ENSG00000165219,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+457,GATA3,GATA binding protein 3,ENSG00000107485,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+458,GATAD2B,GATA zinc finger domain containing 2B ,ENSG00000261992,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+459,GATAD2B,GATA zinc finger domain containing 2B,ENSG00000261992,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+460,GATAD2B ,GATA zinc finger domain containing 2B ,ENSG00000261992,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+461,GATAD2B ,GATA zinc finger domain containing 2B ,ENSG00000261992,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+462,GFAP,glial fibrillary acidic protein ,ENSG00000131095,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+463,GFAP,glial fibrillary acidic protein,ENSG00000131095,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+464,GGNBP2,gametogenetin binding protein 2,ENSG00000275099,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+465,GIGYF1,GRB10 interacting GYF protein 1 ,ENSG00000146830,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+466,GIGYF1,GRB10 interacting GYF protein 1 ,ENSG00000146830,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+467,GIGYF1,GRB10 interacting GYF protein 1,ENSG00000146830,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+468,GIGYF1,GRB10 interacting GYF protein 1 ,ENSG00000146830,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+469,GLI3,GLI family zinc finger 3,ENSG00000106571,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+470,GLRA2,glycine receptor alpha 2 ,ENSG00000101958,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+471,GLYR1,glyoxylate reductase 1 homolog,ENSG00000140632,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+472,GNAI1,G protein subunit alpha i1,ENSG00000127955,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+473,GNAI1,G protein subunit alpha i1 ,ENSG00000127955,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+474,GNAI1 ,G protein subunit alpha i1 ,ENSG00000127955,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+475,GNAI1 ,G protein subunit alpha i1 ,ENSG00000127955,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+476,GNAI1 ,G protein subunit alpha i1 ,ENSG00000127955,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+477,GNAO1,G protein subunit alpha o1,ENSG00000087258,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+478,GNAO1 ,G protein subunit alpha o1 ,ENSG00000087258,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+479,GNAO1 ,G protein subunit alpha o1 ,ENSG00000087258,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+480,GNAS,GNAS complex locus,ENSG00000087460,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+481,GNB1,G protein subunit beta 1,ENSG00000078369,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+482,GNB2,G protein subunit beta 2,ENSG00000172354,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+483,GOLGA4,golgin A4,ENSG00000144674,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+484,GPR4,G protein-coupled receptor 4,ENSG00000177464,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+485,GRIA1,glutamate ionotropic receptor AMPA type subunit 1 ,ENSG00000155511,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+486,GRIA2,glutamate ionotropic receptor AMPA type subunit 2,ENSG00000120251,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+487,GRIA3,"Glutamate receptor, ionotropic, AMPA 3",ENSG00000125675,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,yes,yes
+488,GRIK2,glutamate ionotropic receptor kainate type subunit 2,ENSG00000164418,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+489,GRIN1,glutamate ionotropic receptor NMDA type subunit 1,ENSG00000176884,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+490,GRIN2A,"Glutamate receptor, ionotropic, N-methyl D-aspartate 2A",ENSG00000183454,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,yes,yes
+491,GRIN2A,glutamate ionotropic receptor NMDA type subunit 2A,ENSG00000183454,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+492,GRIN2B,glutamate ionotropic receptor NMDA type subunit 2B ,ENSG00000273079,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+493,GRIN2B,glutamate ionotropic receptor NMDA type subunit 2B ,ENSG00000273079,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+494,GRIN2B,glutamate ionotropic receptor NMDA type subunit 2B,ENSG00000273079,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+495,GRIN2B,glutamate ionotropic receptor NMDA type subunit 2B ,ENSG00000273079,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+496,GRIN2B ,glutamate ionotropic receptor NMDA type subunit 2B ,ENSG00000273079,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+497,GRIN2B ,glutamate ionotropic receptor NMDA type subunit 2B ,ENSG00000273079,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+498,GRIN2B ,glutamate ionotropic receptor NMDA type subunit 2B ,ENSG00000273079,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+499,GRN,granulin precursor,ENSG00000030582,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+500,GSK3B,glycogen synthase kinase 3 beta,ENSG00000082701,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+501,H1-4,"H1.4 linker histone, cluster member",ENSG00000168298,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+502,H1-4,"H1.4 linker histone, cluster member",ENSG00000168298,NDD,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+503,H1-4,"H1.4 linker histone, cluster member",ENSG00000168298,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+504,H2AC6,H2A clustered histone 6 ,ENSG00000180573,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+505,H2AC6,H2A clustered histone 6,ENSG00000180573,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+506,H2AC8,H2A clustered histone 8,ENSG00000277075,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+507,H3-3A,H3.3 histone A,ENSG00000163041,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+508,H4C11,H4 clustered histone 11,ENSG00000197238,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+509,HAPSTR1,HUWE1 associated protein modifying stress responses,ENSG00000182831,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+510,HCN1,hyperpolarization activated cyclic nucleotide gated potassium channel 1,ENSG00000164588,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+511,HCN4,Hyperpolarization activated cyclic nucleotide-gated potassium channel 4,ENSG00000138622,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+512,HDAC2,histone deacetylase 2,ENSG00000196591,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+513,HDAC4,histone deacetylase 4,ENSG00000068024,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+514,HDAC8 ,histone deacetylase 8 ,ENSG00000147099,"NDD, XLDD",RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+515,HDAC8 ,histone deacetylase 8 ,ENSG00000147099,"NDD, XLDD",RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+516,HDLBP,high density lipoprotein binding protein,ENSG00000115677,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+517,HECTD1,HECT domain E3 ubiquitin protein ligase 1,ENSG00000092148,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+518,HECTD4,HECT domain E3 ubiquitin protein ligase 4,ENSG00000173064,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+519,HECW2,"HECT, C2 and WW domain containing E3 ubiquitin protein ligase 2 ",ENSG00000138411,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+520,HECW2,"HECT, C2 and WW domain containing E3 ubiquitin protein ligase 2",ENSG00000138411,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+521,HERC1,HECT and RLD domain containing E3 ubiquitin protein ligase family member 1,ENSG00000103657,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,yes,yes
+522,HIC2,HIC ZBTB transcriptional repressor 2,ENSG00000169635,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+523,HIVEP2,HIVEP zinc finger 2 ,ENSG00000010818,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+524,HIVEP2,HIVEP zinc finger 2,ENSG00000010818,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+525,HIVEP3,HIVEP zinc finger 3 ,ENSG00000127124,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+526,HK1,hexokinase 1,ENSG00000156515,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+527,HMGXB3,HMG-box containing 3 ,ENSG00000113716,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+528,HNF4A,hepatocyte nuclear factor 4 alpha,ENSG00000101076,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+529,HNRNPA2B1,heterogeneous nuclear ribonucleoprotein A2/B1,ENSG00000122566,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+530,HNRNPD,heterogeneous nuclear ribonucleoprotein D ,ENSG00000138668,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+531,HNRNPD,heterogeneous nuclear ribonucleoprotein D,ENSG00000138668,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+532,HNRNPH2,heterogeneous nuclear ribonucleoprotein H2 ,ENSG00000126945,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,no,yes
+533,HNRNPK,heterogeneous nuclear ribonucleoprotein K,ENSG00000165119,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+534,HNRNPU,heterogeneous nuclear ribonucleoprotein U ,ENSG00000153187,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+535,HNRNPU,heterogeneous nuclear ribonucleoprotein U,ENSG00000153187,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+536,HNRNPU ,heterogeneous nuclear ribonucleoprotein U ,ENSG00000153187,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+537,HNRNPU ,heterogeneous nuclear ribonucleoprotein U ,ENSG00000153187,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+538,HNRNPUL2,heterogeneous nuclear ribonucleoprotein U like 2,ENSG00000214753,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+539,HRAS,"HRas proto-oncogene, GTPase",ENSG00000276536,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+540,HSP90AB1,heat shock protein 90 alpha family class B member 1,ENSG00000096384,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+541,HUWE1,"HECT, UBA and WWE domain containing E3 ubiquitin protein ligase 1 ",ENSG00000086758,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+542,HUWE1,"HECT, UBA and WWE domain containing E3 ubiquitin protein ligase 1 ",ENSG00000086758,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,no,yes
+543,ILF2,katanin catalytic subunit A1 like 2 ,ENSG00000167216,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+544,INF2,inverted formin 2,ENSG00000203485,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+545,INHBA,inhibin subunit beta A,ENSG00000122641,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+546,INO80D,INO80 complex subunit D,ENSG00000283510,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+547,INTS3,integrator complex subunit 3,ENSG00000262826,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+548,IQSEC2 ,IQ motif and Sec7 domain ArfGEF 2 ,ENSG00000124313,"NDD, XLDD",RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+549,IQSEC2 ,IQ motif and Sec7 domain ArfGEF 2 ,ENSG00000124313,"NDD, XLDD",RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+550,IRF2BPL,interferon regulatory factor 2 binding protein like ,ENSG00000119669,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+551,IRF2BPL,interferon regulatory factor 2 binding protein like ,ENSG00000119669,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+552,IRF2BPL,interferon regulatory factor 2 binding protein like,ENSG00000119669,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+553,IRF2BPL,interferon regulatory factor 2 binding protein like ,ENSG00000119669,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+554,ITGB4,integrin subunit beta 4 ,ENSG00000132470,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+555,ITPR1,"inositol 1,4,5-trisphosphate receptor type 1",ENSG00000150995,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+556,ITPR1 ,"inositol 1,4,5-trisphosphate receptor type 1 ",ENSG00000150995,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+557,ITPR1 ,"inositol 1,4,5-trisphosphate receptor type 1 ",ENSG00000150995,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+558,ITPR3,"inositol 1,4,5-trisphosphate receptor type 3",ENSG00000096433,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+559,ITSN1,intersectin 1,ENSG00000205726,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+560,JAG1,jagged canonical Notch ligand 1,ENSG00000101384,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+561,KANSL1,KAT8 regulatory NSL complex subunit 1 ,ENSG00000275867,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+562,KANSL1,KAT8 regulatory NSL complex subunit 1,ENSG00000275867,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+563,KANSL1 ,KAT8 regulatory NSL complex subunit 1 ,ENSG00000275867,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+564,KANSL1 ,KAT8 regulatory NSL complex subunit 1 ,ENSG00000275867,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+565,KAT5,lysine acetyltransferase 5,ENSG00000172977,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+566,KAT6A,lysine acetyltransferase 6A ,ENSG00000083168,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+567,KAT6A,lysine acetyltransferase 6A,ENSG00000083168,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+568,KAT6A ,lysine acetyltransferase 6A ,ENSG00000083168,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+569,KAT6A ,lysine acetyltransferase 6A ,ENSG00000083168,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+570,KAT6B,lysine acetyltransferase 6B ,ENSG00000281813,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+571,KAT6B,lysine acetyltransferase 6B,ENSG00000281813,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+572,KAT6B ,lysine acetyltransferase 6B ,ENSG00000281813,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+573,KAT6B ,lysine acetyltransferase 6B ,ENSG00000281813,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+574,KAT8,lysine acetyltransferase 8,ENSG00000103510,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+575,KATNAL2,interleukin enhancer binding factor 2 ,ENSG00000143621,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+576,KBTBD6,kelch repeat and BTB domain containing 6,ENSG00000165572,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+577,KBTBD7,kelch repeat and BTB domain containing 7,ENSG00000120696,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+578,KCNA1,potassium voltage-gated channel subfamily A member 1,ENSG00000111262,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+579,KCNA2,potassium voltage-gated channel subfamily A member 2,ENSG00000177301,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+580,KCNB1,potassium voltage-gated channel subfamily B member 1,ENSG00000158445,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+581,KCNB1,potassium voltage-gated channel subfamily B member 1 ,ENSG00000158445,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+582,KCNC1,potassium voltage-gated channel subfamily C member 1 ,ENSG00000129159,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+583,KCNC1,potassium voltage-gated channel subfamily C member 1,ENSG00000129159,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+584,KCND3,potassium voltage-gated channel subfamily D member 3 ,ENSG00000171385,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+585,KCND3,potassium voltage-gated channel subfamily D member 3,ENSG00000171385,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+586,KCNH1,potassium voltage-gated channel subfamily H member 1,ENSG00000143473,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+587,KCNH1 ,potassium voltage-gated channel subfamily H member 1 ,ENSG00000143473,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+588,KCNH1 ,potassium voltage-gated channel subfamily H member 1 ,ENSG00000143473,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+589,KCNH7,potassium voltage-gated channel subfamily H member 7,ENSG00000184611,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+590,KCNJ6,potassium inwardly rectifying channel subfamily J member 6 ,ENSG00000157542,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+591,KCNJ6,potassium inwardly rectifying channel subfamily J member 6,ENSG00000157542,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+592,KCNMA1,potassium calcium-activated channel subfamily M alpha 1,ENSG00000156113,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+593,KCNQ2,potassium voltage-gated channel subfamily Q member 2,ENSG00000281151,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+594,KCNQ2 ,potassium voltage-gated channel subfamily Q member 2 ,ENSG00000281151,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+595,KCNQ2 ,potassium voltage-gated channel subfamily Q member 2 ,ENSG00000281151,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+596,KCNQ3,potassium voltage-gated channel subfamily Q member 3 ,ENSG00000184156,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+597,KCNQ3,potassium voltage-gated channel subfamily Q member 3,ENSG00000184156,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+598,KCNQ3,potassium voltage-gated channel subfamily Q member 3 ,ENSG00000184156,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+599,KCNQ3 ,potassium voltage-gated channel subfamily Q member 3 ,ENSG00000184156,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+600,KCNQ3 ,potassium voltage-gated channel subfamily Q member 3 ,ENSG00000184156,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+601,KCNQ3 ,potassium voltage-gated channel subfamily Q member 3 ,ENSG00000184156,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+602,KCNS3,potassium voltage-gated channel modifier subfamily S member 3 ,ENSG00000170745,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+603,KCNT1,potassium sodium-activated channel subfamily T member 1,ENSG00000107147,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+604,KCNT2,potassium sodium-activated channel subfamily T member 2,ENSG00000162687,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+605,KDM1A,lysine demethylase 1A,ENSG00000004487,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+606,KDM3B,lysine demethylase 3B,ENSG00000120733,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+607,KDM5B,lysine demethylase 5B ,ENSG00000117139,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+608,KDM5B,lysine demethylase 5B,ENSG00000117139,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+609,KDM5B,lysine demethylase 5B ,ENSG00000117139,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+610,KDM5B ,lysine demethylase 5B ,ENSG00000117139,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+611,KDM5B ,lysine demethylase 5B ,ENSG00000117139,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+612,KDM5B ,lysine demethylase 5B ,ENSG00000117139,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+613,KDM5C,lysine demethylase 5C ,ENSG00000126012,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,no,yes
+614,KDM6A,lysine demethylase 6A ,ENSG00000147050,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+615,KDM6A,lysine demethylase 6A ,ENSG00000147050,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,no,yes
+616,KDM6B,Lysine (K)-specific demethylase 6B,ENSG00000132510,"NDD, SCZ",RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+617,KDM6B,Lysine (K)-specific demethylase 6B,ENSG00000132510,"NDD, SCZ",RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+618,KDM6B,Lysine (K)-specific demethylase 6B,ENSG00000132510,"NDD, SCZ",RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+619,KDM6B,Lysine (K)-specific demethylase 6B,ENSG00000132510,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+620,KDM6B,lysine demethylase 6B,ENSG00000132510,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+621,KDM6B,lysine demethylase 6B ,ENSG00000132510,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+622,KIAA0232,KIAA0232 ,ENSG00000170871,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+623,KIDINS220,kinase D interacting substrate 220,ENSG00000134313,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+624,KIF11,kinesin family member 11 ,ENSG00000138160,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+625,KIF11,kinesin family member 11,ENSG00000138160,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+626,KIF1A,kinesin family member 1A,ENSG00000130294,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+627,KIF1A ,kinesin family member 1A ,ENSG00000130294,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+628,KIF1A ,kinesin family member 1A ,ENSG00000130294,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+629,KIF1B,kinesin family member 1B,ENSG00000054523,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+630,KIF2A,kinesin family member 2A,ENSG00000068796,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+631,KIF5B,kinesin family member 5B,ENSG00000170759,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+632,KIF5C,kinesin family member 5C ,ENSG00000276734,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+633,KIF5C,kinesin family member 5C,ENSG00000276734,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+634,KIF5C,kinesin family member 5C ,ENSG00000276734,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+635,KLF7,KLF transcription factor 7,ENSG00000118263,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+636,KLHDC3,kelch domain containing 3,ENSG00000124702,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+637,KLHL20,kelch like family member 20,ENSG00000076321,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+638,KLHL6,kelch like family member 6,ENSG00000172578,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+639,KMT2A,lysine methyltransferase 2A ,ENSG00000118058,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+640,KMT2A,lysine methyltransferase 2A,ENSG00000118058,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+641,KMT2A,lysine methyltransferase 2A ,ENSG00000118058,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+642,KMT2A ,lysine methyltransferase 2A ,ENSG00000118058,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+643,KMT2A ,lysine methyltransferase 2A ,ENSG00000118058,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+644,KMT2B,lysine methyltransferase 2B,ENSG00000272333,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+645,KMT2C,lysine methyltransferase 2C ,ENSG00000055609,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+646,KMT2C,lysine methyltransferase 2C ,ENSG00000055609,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+647,KMT2C,lysine methyltransferase 2C ,ENSG00000055609,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+648,KMT2C,lysine methyltransferase 2C,ENSG00000055609,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+649,KMT2D,lysine methyltransferase 2D,ENSG00000167548,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+650,KMT2E,lysine methyltransferase 2E (inactive) ,ENSG00000005483,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+651,KMT2E,lysine methyltransferase 2E (inactive),ENSG00000005483,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+652,KMT5B,lysine methyltransferase 5B ,ENSG00000110066,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+653,KMT5B,lysine methyltransferase 5B ,ENSG00000110066,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+654,KMT5B,lysine methyltransferase 5B ,ENSG00000110066,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+655,KMT5B,lysine methyltransferase 5B ,ENSG00000110066,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+656,KMT5B,lysine methyltransferase 5B ,ENSG00000110066,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+657,KMT5B,lysine methyltransferase 5B,ENSG00000110066,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+658,KMT5B,lysine methyltransferase 5B,ENSG00000110066,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+659,KPNA1,karyopherin subunit alpha 1,ENSG00000114030,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+660,KRAS,"KRAS proto-oncogene, GTPase",ENSG00000133703,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+661,LARP1,"La ribonucleoprotein 1, translational regulator",ENSG00000155506,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+662,LARP4B,La ribonucleoprotein 4B ,ENSG00000107929,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+663,LASP1,LIM and SH3 protein 1,ENSG00000002834,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+664,LDB1,LIM domain binding 1 ,ENSG00000198728,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+665,LDB1,LIM domain binding 1,ENSG00000198728,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+666,LEF1,lymphoid enhancer binding factor 1,ENSG00000138795,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+667,LEO1,"LEO1 homolog, Paf1/RNA polymerase II complex component ",ENSG00000166477,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+668,LEO1,"LEO1 homolog, Paf1/RNA polymerase II complex component ",ENSG00000166477,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+669,LEO1,"LEO1 homolog, Paf1/RNA polymerase II complex component",ENSG00000166477,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+670,LHX2,LIM homeobox 2,ENSG00000106689,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+671,LMNB1,lamin B1,ENSG00000113368,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+672,LONP1,"lon peptidase 1, mitochondrial",ENSG00000196365,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+673,LRFN3,leucine rich repeat and fibronectin type III domain containing 3,ENSG00000126243,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+674,LRRC4,leucine rich repeat containing 4,ENSG00000128594,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+675,LZTR1,leucine zipper like post translational regulator 1,ENSG00000099949,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+676,MAEA,"macrophage erythroblast attacher, E3 ubiquitin ligase",ENSG00000090316,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+677,MAFB,MAF bZIP transcription factor B,ENSG00000204103,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+678,MAGEC1,"Melanoma antigen family C, 1",ENSG00000155495,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+679,MAGEL2,MAGE family member L2,ENSG00000288188,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+680,MAGI2,"Membrane associated guanylate kinase, WW and PDZ domain containing 2",ENSG00000187391,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+681,MAP1A,microtubule associated protein 1A ,ENSG00000166963,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+682,MAP1A,microtubule associated protein 1A ,ENSG00000166963,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+683,MAP2,microtubule associated protein 2,ENSG00000078018,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+684,MAP2K1,mitogen-activated protein kinase kinase 1 ,ENSG00000169032,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+685,MAP2K1,mitogen-activated protein kinase kinase 1,ENSG00000169032,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+686,MAP3K7,mitogen-activated protein kinase kinase kinase 7,ENSG00000135341,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+687,MAP4K4,mitogen-activated protein kinase kinase kinase kinase 4,ENSG00000071054,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+688,MAPK3,mitogen-activated protein kinase 3 ,ENSG00000102882,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+689,MAPK8IP3,mitogen-activated protein kinase 8 interacting protein 3,ENSG00000138834,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+690,MARK2,microtubule affinity regulating kinase 2,ENSG00000072518,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+691,MARK2,microtubule affinity regulating kinase 2 ,ENSG00000072518,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+692,MAX,MYC associated factor X,ENSG00000125952,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+693,MBD5,methyl-CpG binding domain protein 5 ,ENSG00000204406,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+694,MBD5,methyl-CpG binding domain protein 5 ,ENSG00000204406,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+695,MBD5,methyl-CpG binding domain protein 5,ENSG00000204406,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+696,MBD5,methyl-CpG binding domain protein 5 ,ENSG00000204406,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+697,MBD6,methyl-CpG binding domain protein 6 ,ENSG00000166987,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+698,MCOLN1,mucolipin TRP cation channel 1,ENSG00000090674,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+699,MECP2 ,methyl-CpG binding protein 2 ,ENSG00000169057,"NDD, XLDD",RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+700,MECP2 ,methyl-CpG binding protein 2 ,ENSG00000169057,"NDD, XLDD",RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+701,MED12,mediator complex subunit 12 ,ENSG00000184634,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,no,yes
+702,MED13,mediator complex subunit 13,ENSG00000108510,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+703,MED13,mediator complex subunit 13 ,ENSG00000108510,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+704,MED13L,mediator complex subunit 13L,ENSG00000123066,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+705,MED13L,mediator complex subunit 13L ,ENSG00000123066,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+706,MED13L ,mediator complex subunit 13L ,ENSG00000123066,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+707,MED13L ,mediator complex subunit 13L ,ENSG00000123066,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+708,MED23,mediator complex subunit 23,ENSG00000112282,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+709,MED24,mediator complex subunit 24,ENSG00000008838,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+710,MEF2C,myocyte enhancer factor 2C ,ENSG00000081189,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+711,MEF2C,myocyte enhancer factor 2C,ENSG00000081189,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+712,MEF2C ,myocyte enhancer factor 2C ,ENSG00000081189,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+713,MEF2C ,myocyte enhancer factor 2C ,ENSG00000081189,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+714,MEIS2,Meis homeobox 2 ,ENSG00000134138,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+715,MEIS2,Meis homeobox 2 ,ENSG00000134138,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+716,MEIS2,Meis homeobox 2,ENSG00000134138,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+717,MEIS2,Meis homeobox 2 ,ENSG00000134138,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+718,METTL2A,"methyltransferase 2A, tRNA N3-cytidine",ENSG00000087995,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+719,MFN2,mitofusin 2,ENSG00000116688,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+720,MIB1,MIB E3 ubiquitin protein ligase 1,ENSG00000101752,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+721,MIP,major intrinsic protein of lens fiber,ENSG00000135517,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+722,MKX,mohawk homeobox ,ENSG00000150051,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+723,MKX,mohawk homeobox,ENSG00000150051,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+724,MKX,mohawk homeobox ,ENSG00000150051,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+725,MLXIP,MLX interacting protein,ENSG00000281178,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+726,MN1,"MN1 proto-oncogene, transcriptional regulator",ENSG00000169184,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+727,MORC2,MORC family CW-type zinc finger 2,ENSG00000133422,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+728,MRFAP1,Morf4 family associated protein 1,ENSG00000179010,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+729,MRTFA,myocardin related transcription factor A,ENSG00000196588,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+730,MSANTD2,Myb/SANT DNA binding domain containing 2,ENSG00000120458,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+731,MSI1,musashi RNA binding protein 1,ENSG00000135097,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+732,MSL2,MSL complex subunit 2,ENSG00000174579,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+733,MSL3,MSL complex subunit 3 ,ENSG00000005302,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+734,MSL3 ,MSL complex subunit 3 ,ENSG00000005302,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+735,MSL3 ,MSL complex subunit 3 ,ENSG00000005302,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+736,MSL3 ,MSL complex subunit 3 ,ENSG00000005302,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+737,MTF2,metal response element binding transcription factor 2 ,ENSG00000143033,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+738,MTOR,mechanistic target of rapamycin kinase,ENSG00000198793,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+739,MYCN,"MYCN proto-oncogene, bHLH transcription factor",ENSG00000134323,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+740,MYH3,myosin heavy chain 3,ENSG00000109063,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+741,MYO18A,myosin XVIIIA,ENSG00000196535,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+742,MYO1E,myosin IE ,ENSG00000157483,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+743,MYRF,myelin regulatory factor,ENSG00000124920,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+744,MYT1L,myelin transcription factor 1 like ,ENSG00000186487,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+745,MYT1L,myelin transcription factor 1 like ,ENSG00000186487,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+746,MYT1L,myelin transcription factor 1 like,ENSG00000186487,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+747,MYT1L,myelin transcription factor 1 like ,ENSG00000186487,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+748,MYT1L ,myelin transcription factor 1 like ,ENSG00000186487,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+749,MYT1L ,myelin transcription factor 1 like ,ENSG00000186487,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+750,MYT1L ,myelin transcription factor 1 like ,ENSG00000186487,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+751,NAA10 ,"N-alpha-acetyltransferase 10, NatA catalytic subunit ",ENSG00000102030,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+752,NAA10 ,"N-alpha-acetyltransferase 10, NatA catalytic subunit ",ENSG00000102030,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+753,NAA10 ,"N-alpha-acetyltransferase 10, NatA catalytic subunit ",ENSG00000102030,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+754,NAA15,"N-alpha-acetyltransferase 15, NatA auxiliary subunit ",ENSG00000164134,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+755,NAA15,"N-alpha-acetyltransferase 15, NatA auxiliary subunit ",ENSG00000164134,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+756,NAA15,"N-alpha-acetyltransferase 15, NatA auxiliary subunit",ENSG00000164134,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+757,NAA15,"N-alpha-acetyltransferase 15, NatA auxiliary subunit ",ENSG00000164134,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+758,NAA25,"N-alpha-acetyltransferase 25, NatB auxiliary subunit",ENSG00000111300,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+759,NACA,nascent polypeptide associated complex subunit alpha,ENSG00000196531,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+760,NACC1,nucleus accumbens associated 1,ENSG00000160877,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+761,NALCN,"sodium leak channel, non-selective",ENSG00000102452,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+762,NAMPT,nicotinamide phosphoribosyltransferase,ENSG00000105835,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+763,NARS1,asparaginyl-tRNA synthetase 1,ENSG00000134440,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+764,NAV3,neuron navigator 3,ENSG00000067798,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+765,NCKAP1,NCK associated protein 1 ,ENSG00000061676,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+766,NCKAP1,NCK associated protein 1,ENSG00000061676,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+767,NCL,nucleolin,ENSG00000115053,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+768,NEDD8,NEDD8 ubiquitin like modifier,ENSG00000285246,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+769,NEO1,neogenin 1,ENSG00000067141,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+770,NEXMIF,neurite extension and migration factor ,ENSG00000050030,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+771,NEXMIF,neurite extension and migration factor ,ENSG00000050030,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,no,yes
+772,NEXMIF,neurite extension and migration factor ,ENSG00000050030,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+773,NF1,neurofibromin 1,ENSG00000196712,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+774,NF1,neurofibromin 1 ,ENSG00000196712,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+775,NFE2L3,"nuclear factor, erythroid 2 like 3 ",ENSG00000050344,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+776,NFIA,nuclear factor I A ,ENSG00000162599,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+777,NFIA,nuclear factor I A,ENSG00000162599,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+778,NFIB,nuclear factor I B,ENSG00000147862,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+779,NFIX,nuclear factor I X,ENSG00000008441,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+780,NFIX ,nuclear factor I X ,ENSG00000008441,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+781,NFIX ,nuclear factor I X ,ENSG00000008441,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+782,NIPBL,NIPBL cohesin loading factor,ENSG00000164190,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+783,NKX2-1,NK2 homeobox 1,ENSG00000136352,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+784,NLGN2,neuroligin 2,ENSG00000283859,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+785,NONO,non-POU domain containing octamer binding ,ENSG00000147140,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+786,NOTCH1,notch receptor 1,ENSG00000148400,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+787,NOTCH2,notch receptor 2,ENSG00000134250,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+788,NPR1,natriuretic peptide receptor 1,ENSG00000169418,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+789,NPTN,neuroplastin,ENSG00000156642,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+790,NR2F1,nuclear receptor subfamily 2 group F member 1 ,ENSG00000175745,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+791,NR3C2,"Nuclear receptor subfamily 3, group C, member 2",ENSG00000151623,"NDD, SCZ",RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+792,NR3C2,nuclear receptor subfamily 3 group C member 2,ENSG00000151623,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+793,NR4A2,nuclear receptor subfamily 4 group A member 2 ,ENSG00000153234,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+794,NR4A2,nuclear receptor subfamily 4 group A member 2,ENSG00000153234,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+795,NR4A2,nuclear receptor subfamily 4 group A member 2 ,ENSG00000153234,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+796,NRXN1,neurexin 1 ,ENSG00000179915,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+797,NRXN1,neurexin 1 ,ENSG00000179915,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+798,NRXN1,neurexin 1 ,ENSG00000179915,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+799,NRXN1,neurexin 1,ENSG00000179915,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+800,NRXN3,neurexin 3,ENSG00000021645,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+801,NSD1,nuclear receptor binding SET domain protein 1,ENSG00000165671,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+802,NSD1 ,nuclear receptor binding SET domain protein 1 ,ENSG00000165671,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+803,NSD1 ,nuclear receptor binding SET domain protein 1 ,ENSG00000165671,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+804,NSD1 ,nuclear receptor binding SET domain protein 1 ,ENSG00000165671,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+805,NSD2,nuclear receptor binding SET domain protein 2 ,ENSG00000109685,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+806,NSD2,nuclear receptor binding SET domain protein 2,ENSG00000109685,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+807,NTRK2,neurotrophic receptor tyrosine kinase 2,ENSG00000148053,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+808,OBSCN,"obscurin, cytoskeletal calmodulin and titin-interacting RhoGEF",ENSG00000154358,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+809,ODC1,ornithine decarboxylase 1 ,ENSG00000115758,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+810,ODC1,ornithine decarboxylase 1,ENSG00000115758,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+811,OR4P4,"Olfactory receptor, family 4, subfamily P, member 4",ENSG00000181927,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+812,OTUD7A,OTU deubiquitinase 7A,ENSG00000169918,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+813,OTX2,orthodenticle homeobox 2,ENSG00000165588,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+814,PACS1,phosphofurin acidic cluster sorting protein 1,ENSG00000175115,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+815,PACS1 ,phosphofurin acidic cluster sorting protein 1 ,ENSG00000175115,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+816,PACS1 ,phosphofurin acidic cluster sorting protein 1 ,ENSG00000175115,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+817,PACS2,phosphofurin acidic cluster sorting protein 2 ,ENSG00000179364,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+818,PACS2,phosphofurin acidic cluster sorting protein 2,ENSG00000179364,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+819,PAFAH1B1,platelet activating factor acetylhydrolase 1b regulatory subunit 1,ENSG00000007168,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+820,PAK1,p21 (RAC1) activated kinase 1,ENSG00000149269,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+821,PAPOLA,poly(A) polymerase alpha,ENSG00000090060,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+822,PAPOLG,poly(A) polymerase gamma ,ENSG00000115421,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+823,PAPOLG,poly(A) polymerase gamma,ENSG00000115421,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+824,PASK,PAS domain containing serine/threonine kinase ,ENSG00000115687,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+825,PAX2,paired box 2,ENSG00000075891,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+826,PAX5,paired box 5 ,ENSG00000196092,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+827,PAX5,paired box 5,ENSG00000196092,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+828,PAX5,paired box 5 ,ENSG00000196092,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+829,PBX1,PBX homeobox 1 ,ENSG00000185630,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+830,PBX1,PBX homeobox 1,ENSG00000185630,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+831,PBX1,PBX homeobox 1 ,ENSG00000185630,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+832,PBX3,PBX homeobox 3,ENSG00000167081,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+833,PCBP2,poly(rC) binding protein 2,ENSG00000197111,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+834,PCSK2,proprotein convertase subtilisin/kexin type 2,ENSG00000125851,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+835,PDE10A,phosphodiesterase 10A,ENSG00000112541,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+836,PDE4D,phosphodiesterase 4D,ENSG00000113448,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+837,PDHA1 ,pyruvate dehydrogenase E1 subunit alpha 1 ,ENSG00000131828,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+838,PDHA1 ,pyruvate dehydrogenase E1 subunit alpha 1 ,ENSG00000131828,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+839,PDHA1 ,pyruvate dehydrogenase E1 subunit alpha 1 ,ENSG00000131828,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+840,PDK2,pyruvate dehydrogenase kinase 2 ,ENSG00000005882,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+841,PER1,period circadian regulator 1 ,ENSG00000179094,SuicideDeath,RVAS,Suicide_2021,https://pubmed.ncbi.nlm.nih.gov/34042246/,yes,yes
+842,PHF12,PHD finger protein 12 ,ENSG00000109118,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+843,PHF12,PHD finger protein 12 ,ENSG00000109118,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+844,PHF12,PHD finger protein 12 ,ENSG00000109118,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+845,PHF12,PHD finger protein 12,ENSG00000109118,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+846,PHF12,PHD finger protein 12 ,ENSG00000109118,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+847,PHF2,PHD finger protein 2 ,ENSG00000197724,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+848,PHF2,PHD finger protein 2,ENSG00000197724,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+849,PHF21A,PHD finger protein 21A ,ENSG00000135365,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+850,PHF21A,PHD finger protein 21A ,ENSG00000135365,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+851,PHF21A,PHD finger protein 21A,ENSG00000135365,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+852,PHF21A,PHD finger protein 21A ,ENSG00000135365,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+853,PHF3,PHD finger protein 3 ,ENSG00000118482,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+854,PHF3,PHD finger protein 3 ,ENSG00000118482,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+855,PHF7,PHD finger protein 7 ,ENSG00000010318,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+856,PHF8,PHD finger protein 8 ,ENSG00000172943,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,no,yes
+857,PHIP,pleckstrin homology domain interacting protein ,ENSG00000146247,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+858,PHIP,pleckstrin homology domain interacting protein ,ENSG00000146247,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+859,PHIP,pleckstrin homology domain interacting protein,ENSG00000146247,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+860,PHLDB1,pleckstrin homology like domain family B member 1,ENSG00000019144,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+861,PIK3CA,"phosphatidylinositol-4,5-bisphosphate 3-kinase catalytic subunit alpha ",ENSG00000121879,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+862,PIK3CA,"phosphatidylinositol-4,5-bisphosphate 3-kinase catalytic subunit alpha",ENSG00000121879,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+863,PIK3R1,phosphoinositide-3-kinase regulatory subunit 1,ENSG00000145675,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+864,PIK3R2,phosphoinositide-3-kinase regulatory subunit 2,ENSG00000105647,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+865,PIP5K1C,phosphatidylinositol-4-phosphate 5-kinase type 1 gamma,ENSG00000186111,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+866,PISD,phosphatidylserine decarboxylase,ENSG00000241878,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+867,PLAC8L1,PLAC8 like 1 ,ENSG00000173261,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+868,PLK5,polo like kinase 5 (inactive) ,ENSG00000185988,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+869,PLXNA1,plexin A1,ENSG00000114554,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+870,PLXNA2,plexin A2,ENSG00000076356,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+871,PLXNB1,plexin B1 ,ENSG00000164050,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+872,POGZ,pogo transposable element derived with ZNF domain ,ENSG00000143442,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+873,POGZ,pogo transposable element derived with ZNF domain ,ENSG00000143442,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+874,POGZ,pogo transposable element derived with ZNF domain,ENSG00000143442,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+875,POGZ,pogo transposable element derived with ZNF domain ,ENSG00000143442,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+876,POGZ ,pogo transposable element derived with ZNF domain ,ENSG00000143442,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+877,POGZ ,pogo transposable element derived with ZNF domain ,ENSG00000143442,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+878,POGZ ,pogo transposable element derived with ZNF domain ,ENSG00000143442,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+879,POLR3B,RNA polymerase III subunit B,ENSG00000013503,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+880,POU3F3,POU class 3 homeobox 3 ,ENSG00000198914,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+881,POU3F3,POU class 3 homeobox 3,ENSG00000198914,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+882,PPARG,peroxisome proliferator activated receptor gamma,ENSG00000132170,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+883,PPFIA2,PTPRF interacting protein alpha 2,ENSG00000139220,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+884,PPM1D,"protein phosphatase, Mg2+/Mn2+ dependent 1D",ENSG00000170836,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+885,PPM1D ,"protein phosphatase, Mg2+/Mn2+ dependent 1D ",ENSG00000170836,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+886,PPM1D ,"protein phosphatase, Mg2+/Mn2+ dependent 1D ",ENSG00000170836,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+887,PPP1CB,protein phosphatase 1 catalytic subunit beta ,ENSG00000213639,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+888,PPP1CB,protein phosphatase 1 catalytic subunit beta,ENSG00000213639,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+889,PPP1R9B,protein phosphatase 1 regulatory subunit 9B,ENSG00000108819,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+890,PPP2CA,protein phosphatase 2 catalytic subunit alpha,ENSG00000113575,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+891,PPP2R1A,protein phosphatase 2 scaffold subunit Aalpha,ENSG00000105568,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+892,PPP2R1A ,protein phosphatase 2 scaffold subunit Aalpha ,ENSG00000105568,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+893,PPP2R1A ,protein phosphatase 2 scaffold subunit Aalpha ,ENSG00000105568,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+894,PPP2R5D,protein phosphatase 2 regulatory subunit B'delta,ENSG00000112640,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+895,PPP2R5D,protein phosphatase 2 regulatory subunit B'delta ,ENSG00000112640,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+896,PPP2R5D ,protein phosphatase 2 regulatory subunit B'delta ,ENSG00000112640,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+897,PPP2R5D ,protein phosphatase 2 regulatory subunit B'delta ,ENSG00000112640,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+898,PPP3CA,protein phosphatase 3 catalytic subunit alpha,ENSG00000138814,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+899,PRDM16,PR/SET domain 16,ENSG00000142611,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+900,PREP,Prolyl endopeptidase,ENSG00000085377,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+901,PRH1,proline rich protein HaeIII subfamily 1,ENSG00000277823,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+902,PRKAR1A,protein kinase cAMP-dependent type I regulatory subunit alpha,ENSG00000108946,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+903,PRKAR1B,protein kinase cAMP-dependent type I regulatory subunit beta ,ENSG00000188191,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+904,PRKAR1B,protein kinase cAMP-dependent type I regulatory subunit beta,ENSG00000188191,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+905,PRKCA,protein kinase C alpha ,ENSG00000154229,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+906,PRKCB,protein kinase C beta,ENSG00000166501,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+907,PRKCE,protein kinase C epsilon,ENSG00000171132,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+908,PRKD1,protein kinase D1 ,ENSG00000184304,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+909,PRKD1,protein kinase D1,ENSG00000184304,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+910,PRKG1,protein kinase cGMP-dependent 1,ENSG00000185532,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+911,PROC,"protein C, inactivator of coagulation factors Va and VIIIa",ENSG00000115718,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+912,PRPF18,pre-mRNA processing factor 18 ,ENSG00000165630,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+913,PRPF8,pre-mRNA processing factor 8,ENSG00000274442,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+914,PRR12,proline rich 12 ,ENSG00000126464,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+915,PRR12,proline rich 12 ,ENSG00000126464,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+916,PRR12,proline rich 12,ENSG00000126464,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+917,PSMA3,proteasome 20S subunit alpha 3,ENSG00000100567,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+918,PSMC3,"proteasome 26S subunit, ATPase 3",ENSG00000165916,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+919,PSMC5,"proteasome 26S subunit, ATPase 5",ENSG00000087191,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+920,PSMD11,"proteasome 26S subunit, non-ATPase 11",ENSG00000108671,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+921,PSMD11,"proteasome 26S subunit, non-ATPase 11 ",ENSG00000108671,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+922,PSMD12,"proteasome 26S subunit, non-ATPase 12",ENSG00000197170,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+923,PSMD6,"proteasome 26S subunit, non-ATPase 6 ",ENSG00000163636,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+924,PSMG4,proteasome assembly chaperone 4 ,ENSG00000180822,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+925,PTCH1,patched 1,ENSG00000185920,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+926,PTCHD1,patched domain containing 1 ,ENSG00000165186,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+927,PTEN,phosphatase and tensin homolog ,ENSG00000284792,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+928,PTEN,phosphatase and tensin homolog,ENSG00000284792,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+929,PTEN,phosphatase and tensin homolog ,ENSG00000284792,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+930,PTEN ,phosphatase and tensin homolog ,ENSG00000284792,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+931,PTEN ,phosphatase and tensin homolog ,ENSG00000284792,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+932,PTEN ,phosphatase and tensin homolog ,ENSG00000284792,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+933,PTGDR2,prostaglandin D2 receptor 2,ENSG00000183134,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+934,PTPN11,protein tyrosine phosphatase non-receptor type 11,ENSG00000179295,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+935,PTPN11 ,protein tyrosine phosphatase non-receptor type 11 ,ENSG00000179295,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+936,PTPN11 ,protein tyrosine phosphatase non-receptor type 11 ,ENSG00000179295,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+937,PTPRD,protein tyrosine phosphatase receptor type D,ENSG00000282932,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+938,PTPRF,protein tyrosine phosphatase receptor type F,ENSG00000142949,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+939,PUF60,poly(U) binding splicing factor 60,ENSG00000274081,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+940,PUF60 ,poly(U) binding splicing factor 60 ,ENSG00000274081,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+941,PUM2,pumilio RNA binding family member 2,ENSG00000055917,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+942,PURA,purine rich element binding protein A,ENSG00000185129,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+943,PURA ,purine rich element binding protein A ,ENSG00000185129,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+944,PURA ,purine rich element binding protein A ,ENSG00000185129,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+945,QRICH1,glutamine rich 1 ,ENSG00000198218,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+946,QRICH1,glutamine rich 1,ENSG00000198218,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+947,QRICH1,glutamine rich 1 ,ENSG00000198218,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+948,RAB11A,"RAB11A, member RAS oncogene family ",ENSG00000103769,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+949,RAB11A,"RAB11A, member RAS oncogene family",ENSG00000103769,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+950,RAB11B,"RAB11B, member RAS oncogene family",ENSG00000185236,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+951,RAB11FIP4,RAB11 family interacting protein 4,ENSG00000131242,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+952,RAB14,"RAB14, member RAS oncogene family",ENSG00000119396,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+953,RAB43,"RAB43, member RAS oncogene family",ENSG00000172780,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+954,RAC1,Rac family small GTPase 1 ,ENSG00000136238,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+955,RAC1,Rac family small GTPase 1,ENSG00000136238,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+956,RAF1,"Raf-1 proto-oncogene, serine/threonine kinase",ENSG00000132155,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+957,RAI1,retinoic acid induced 1 ,ENSG00000108557,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+958,RAI1,retinoic acid induced 1 ,ENSG00000108557,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+959,RAI1,retinoic acid induced 1,ENSG00000108557,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+960,RAI1,retinoic acid induced 1 ,ENSG00000108557,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+961,RALA,RAS like proto-oncogene A,ENSG00000006451,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+962,RALGAPB,Ral GTPase activating protein non-catalytic subunit beta,ENSG00000170471,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+963,RANBP17,RAN binding protein 17 ,ENSG00000204764,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+964,RAP1B,"RAP1B, member of RAS oncogene family",ENSG00000127314,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+965,RAPGEF4,Rap guanine nucleotide exchange factor 4 ,ENSG00000091428,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+966,RARA,retinoic acid receptor alpha,ENSG00000131759,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+967,RARB,retinoic acid receptor beta,ENSG00000077092,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+968,RB1CC1,RB1-inducible coiled-coil 1,ENSG00000023287,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,yes,yes
+969,RBBP4,"RB binding protein 4, chromatin remodeling factor",ENSG00000162521,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+970,RBM12,RNA binding motif protein 12,ENSG00000244462,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+971,RELN,reelin ,ENSG00000189056,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+972,RESF1,retroelement silencing factor 1,ENSG00000174718,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+973,RFX3,regulatory factor X3 ,ENSG00000080298,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+974,RFX3,regulatory factor X3,ENSG00000080298,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+975,RFX3,regulatory factor X3 ,ENSG00000080298,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+976,RFX7,regulatory factor X7,ENSG00000181827,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+977,RFX8,regulatory factor X8 ,ENSG00000196460,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+978,RHOBTB2,Rho related BTB domain containing 2,ENSG00000008853,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+979,RIT1,Ras like without CAAX 1,ENSG00000143622,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+980,RMND5A,required for meiotic nuclear division 5 homolog A,ENSG00000153561,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+981,ROPN1,rhophilin associated tail protein 1,ENSG00000065371,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+982,RORA,RAR related orphan receptor A,ENSG00000069667,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+983,RORB,RAR related orphan receptor B ,ENSG00000198963,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+984,RORB,RAR related orphan receptor B,ENSG00000198963,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+985,RORB,RAR related orphan receptor B ,ENSG00000198963,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+986,RPL10A,ribosomal protein L10a,ENSG00000198755,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+987,RPL19,ribosomal protein L19,ENSG00000108298,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+988,RPL26,ribosomal protein L26 ,ENSG00000161970,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+989,RRP8,ribosomal RNA processing 8 ,ENSG00000132275,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+990,RTN4RL2,reticulon 4 receptor like 2,ENSG00000186907,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+991,RUNX1T1,RUNX1 partner transcriptional co-repressor 1,ENSG00000079102,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+992,RUSC1,RUN and SH3 domain containing 1,ENSG00000160753,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+993,RYR2,ryanodine receptor 2 ,ENSG00000198626,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+994,RYR2,ryanodine receptor 2,ENSG00000198626,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+995,SALL3,spalt like transcription factor 3,ENSG00000263310,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+996,SATB1,SATB homeobox 1 ,ENSG00000182568,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+997,SATB1,SATB homeobox 1,ENSG00000182568,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+998,SATB2,SATB homeobox 2 ,ENSG00000119042,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+999,SATB2,SATB homeobox 2,ENSG00000119042,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1000,SATB2,SATB homeobox 2 ,ENSG00000119042,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1001,SATB2 ,SATB homeobox 2 ,ENSG00000119042,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1002,SBNO2,strawberry notch homolog 2,ENSG00000278788,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1003,SCAF1,SR-related CTD associated factor 1,ENSG00000126461,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1004,SCAF4,SR-related CTD associated factor 4,ENSG00000156304,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1005,SCAPER,S-phase cyclin A associated protein in the ER,ENSG00000140386,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1006,SCN1A,sodium voltage-gated channel alpha subunit 1,ENSG00000144285,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1007,SCN1A ,sodium voltage-gated channel alpha subunit 1 ,ENSG00000144285,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1008,SCN2A,sodium voltage-gated channel alpha subunit 2 ,ENSG00000136531,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1009,SCN2A,sodium voltage-gated channel alpha subunit 2 ,ENSG00000136531,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+1010,SCN2A,sodium voltage-gated channel alpha subunit 2,ENSG00000136531,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1011,SCN2A,sodium voltage-gated channel alpha subunit 2 ,ENSG00000136531,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1012,SCN2A ,sodium voltage-gated channel alpha subunit 2 ,ENSG00000136531,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+1013,SCN2A ,sodium voltage-gated channel alpha subunit 2 ,ENSG00000136531,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1014,SCN3A,sodium voltage-gated channel alpha subunit 3,ENSG00000153253,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1015,SCN4A,sodium voltage-gated channel alpha subunit 4,ENSG00000007314,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1016,SCN8A,sodium voltage-gated channel alpha subunit 8 ,ENSG00000196876,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1017,SCN8A,sodium voltage-gated channel alpha subunit 8,ENSG00000196876,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1018,SCN8A ,sodium voltage-gated channel alpha subunit 8 ,ENSG00000196876,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1019,SCN8A ,sodium voltage-gated channel alpha subunit 8 ,ENSG00000196876,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1020,SCUBE3,"signal peptide, CUB domain and EGF like domain containing 3",ENSG00000146197,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1021,SEC16A,"SEC16 homolog A, endoplasmic reticulum export factor",ENSG00000148396,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1022,SEMA6B,semaphorin 6B,ENSG00000167680,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1023,SEPTIN10,septin 10 ,ENSG00000186522,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1024,SET,SET nuclear proto-oncogene,ENSG00000119335,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1025,SET ,SET nuclear proto-oncogene ,ENSG00000119335,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1026,SET ,SET nuclear proto-oncogene ,ENSG00000119335,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1027,SETBP1,SET binding protein 1 ,ENSG00000152217,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1028,SETBP1,SET binding protein 1 ,ENSG00000152217,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+1029,SETBP1,SET binding protein 1,ENSG00000152217,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1030,SETD1A,SET domain containing 1A,ENSG00000099381,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,yes,yes
+1031,SETD1A,"SET domain containing 1A, histone lysine methyltransferase",ENSG00000099381,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1032,SETD1A,"SET domain containing 1A, histone lysine methyltransferase ",ENSG00000099381,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1033,SETD1B,"SET domain containing 1B, histone lysine methyltransferase ",ENSG00000139718,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1034,SETD1B,"SET domain containing 1B, histone lysine methyltransferase",ENSG00000139718,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1035,SETD2,"SET domain containing 2, histone lysine methyltransferase ",ENSG00000181555,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1036,SETD2,"SET domain containing 2, histone lysine methyltransferase ",ENSG00000181555,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1037,SETD2,"SET domain containing 2, histone lysine methyltransferase",ENSG00000181555,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1038,SETD5,SET domain containing 5 ,ENSG00000168137,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1039,SETD5,SET domain containing 5 ,ENSG00000168137,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+1040,SETD5,SET domain containing 5,ENSG00000168137,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1041,SETD5,SET domain containing 5 ,ENSG00000168137,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1042,SETD5 ,SET domain containing 5 ,ENSG00000168137,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+1043,SETD5 ,SET domain containing 5 ,ENSG00000168137,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1044,SETD5 ,SET domain containing 5 ,ENSG00000168137,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1045,SF1,splicing factor 1,ENSG00000168066,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1046,SF3B1,splicing factor 3b subunit 1 ,ENSG00000115524,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1047,SF3B1,splicing factor 3b subunit 1,ENSG00000115524,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1048,SF3B2,splicing factor 3b subunit 2,ENSG00000087365,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1049,SF3B3,splicing factor 3b subunit 3,ENSG00000189091,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1050,SF3B4,splicing factor 3b subunit 4,ENSG00000143368,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1051,SHANK2,SH3 and multiple ankyrin repeat domains 2 ,ENSG00000162105,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1052,SHANK2,SH3 and multiple ankyrin repeat domains 2 ,ENSG00000162105,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+1053,SHANK2,SH3 and multiple ankyrin repeat domains 2,ENSG00000162105,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1054,SHANK2,SH3 and multiple ankyrin repeat domains 2 ,ENSG00000162105,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1055,SHANK3,SH3 and multiple ankyrin repeat domains 3 ,ENSG00000251322,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+1056,SHANK3,SH3 and multiple ankyrin repeat domains 3 ,ENSG00000251322,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1057,SHANK3,SH3 and multiple ankyrin repeat domains 3 ,ENSG00000251322,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+1058,SHANK3,SH3 and multiple ankyrin repeat domains 3,ENSG00000251322,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1059,SHANK3,SH3 and multiple ankyrin repeat domains 3 ,ENSG00000292254,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1060,SHISA6,shisa family member 6 ,ENSG00000188803,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1061,SHOC2,SHOC2 leucine rich repeat scaffold protein,ENSG00000108061,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1062,SIN3A,SIN3 transcription regulator family member A ,ENSG00000169375,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1063,SIN3A,SIN3 transcription regulator family member A ,ENSG00000169375,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1064,SIN3A,SIN3 transcription regulator family member A ,ENSG00000169375,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+1065,SIN3A,SIN3 transcription regulator family member A,ENSG00000169375,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1066,SKI,SKI proto-oncogene ,ENSG00000157933,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1067,SKI,SKI proto-oncogene,ENSG00000157933,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1068,SKI,SKI proto-oncogene ,ENSG00000157933,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1069,SKIDA1,SKI/DACH domain containing 1 ,ENSG00000180592,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1070,SLC15A3,solute carrier family 15 member 3,ENSG00000110446,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1071,SLC22A11,"Solute carrier family 22 (organic anion/urate transporter), member 11",ENSG00000168065,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+1072,SLC2A1,solute carrier family 2 member 1,ENSG00000117394,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1073,SLC35A2 ,solute carrier family 35 member A2 ,ENSG00000102100,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1074,SLC39A8,solute carrier family 39 member 8,ENSG00000138821,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1075,SLC4A4,solute carrier family 4 member 4,ENSG00000080493,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1076,SLC6A1,solute carrier family 6 member 1 ,ENSG00000157103,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1077,SLC6A1,solute carrier family 6 member 1 ,ENSG00000157103,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+1078,SLC6A1,solute carrier family 6 member 1,ENSG00000157103,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1079,SLC6A1,solute carrier family 6 member 1 ,ENSG00000157103,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1080,SLC6A1 ,solute carrier family 6 member 1 ,ENSG00000157103,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+1081,SLC6A1 ,solute carrier family 6 member 1 ,ENSG00000157103,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1082,SLC6A2,solute carrier family 6 member 2,ENSG00000103546,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1083,SLC9A3,solute carrier family 9 member A3,ENSG00000281861,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1084,SMAD4,SMAD family member 4,ENSG00000141646,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1085,SMAD4 ,SMAD family member 4 ,ENSG00000141646,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1086,SMAD4 ,SMAD family member 4 ,ENSG00000141646,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1087,SMAD6,SMAD family member 6,ENSG00000137834,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1088,SMARCA2,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily a, member 2",ENSG00000080503,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1089,SMARCA2 ,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily a, member 2 ",ENSG00000080503,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1090,SMARCA2 ,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily a, member 2 ",ENSG00000080503,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1091,SMARCA4,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily a, member 4 ",ENSG00000127616,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1092,SMARCA4,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily a, member 4",ENSG00000127616,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1093,SMARCB1,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily b, member 1",ENSG00000275837,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1094,SMARCC2,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin subfamily c member 2 ",ENSG00000139613,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1095,SMARCC2,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin subfamily c member 2 ",ENSG00000139613,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+1096,SMARCC2,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin subfamily c member 2",ENSG00000139613,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1097,SMARCC2,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin subfamily c member 2 ",ENSG00000139613,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1098,SMARCD1,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily d, member 1 ",ENSG00000066117,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1099,SMARCD1,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily d, member 1 ",ENSG00000066117,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1100,SMARCE1,"SWI/SNF related, matrix associated, actin dependent regulator of chromatin, subfamily e, member 1",ENSG00000073584,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1101,SMC1A ,structural maintenance of chromosomes 1A ,ENSG00000072501,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1102,SMC1A ,structural maintenance of chromosomes 1A ,ENSG00000072501,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1103,SMC1A ,structural maintenance of chromosomes 1A ,ENSG00000072501,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+1104,SMC3,structural maintenance of chromosomes 3 ,ENSG00000108055,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1105,SMC3,structural maintenance of chromosomes 3,ENSG00000108055,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1106,SNAP25,synaptosome associated protein 25,ENSG00000132639,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1107,SNAPC1,small nuclear RNA activating complex polypeptide 1 ,ENSG00000023608,SuicideDeath,RVAS,Suicide_2021,https://pubmed.ncbi.nlm.nih.gov/34042246/,yes,yes
+1108,SNAPC5,small nuclear RNA activating complex polypeptide 5 ,ENSG00000174446,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1109,SNRNP200,small nuclear ribonucleoprotein U5 subunit 200,ENSG00000144028,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1110,SNX5,sorting nexin 5 ,ENSG00000089006,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1111,SOGA1,"suppressor of glucose, autophagy associated 1",ENSG00000149639,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1112,SON,SON DNA and RNA binding protein ,ENSG00000159140,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1113,SON,SON DNA and RNA binding protein,ENSG00000159140,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1114,SOS1,SOS Ras/Rac guanine nucleotide exchange factor 1,ENSG00000115904,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1115,SOX10,SRY-box transcription factor 10,ENSG00000100146,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1116,SOX11,SRY-box transcription factor 11,ENSG00000176887,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1117,SOX2,SRY-box transcription factor 2,ENSG00000181449,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1118,SOX4,SRY-box transcription factor 4,ENSG00000124766,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1119,SOX5,SRY-box transcription factor 5 ,ENSG00000134532,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1120,SOX5,SRY-box transcription factor 5,ENSG00000134532,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1121,SOX6,SRY-box transcription factor 6,ENSG00000110693,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1122,SOX9,SRY-box transcription factor 9,ENSG00000125398,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1123,SP4,Sp4 transcription factor,ENSG00000105866,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,yes,yes
+1124,SPAST,spastin ,ENSG00000021574,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1125,SPAST,spastin ,ENSG00000021574,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1126,SPAST,spastin ,ENSG00000021574,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+1127,SPAST,spastin,ENSG00000021574,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1128,SPEN,spen family transcriptional repressor ,ENSG00000065526,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1129,SPEN,spen family transcriptional repressor ,ENSG00000065526,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+1130,SPEN,spen family transcriptional repressor,ENSG00000065526,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1131,SPI1,Spi-1 proto-oncogene,ENSG00000066336,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1132,SPOP,speckle type BTB/POZ protein,ENSG00000121067,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1133,SPRY2,sprouty RTK signaling antagonist 2 ,ENSG00000136158,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1134,SPRY2,sprouty RTK signaling antagonist 2,ENSG00000136158,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1135,SPRY2,sprouty RTK signaling antagonist 2 ,ENSG00000136158,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1136,SPTAN1,"spectrin alpha, non-erythrocytic 1",ENSG00000197694,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1137,SPTBN1,"spectrin beta, non-erythrocytic 1",ENSG00000115306,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1138,SPTBN2,"spectrin beta, non-erythrocytic 2",ENSG00000173898,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1139,SRCAP,Snf2 related CREBBP activator protein ,ENSG00000080603,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1140,SRCAP,Snf2 related CREBBP activator protein,ENSG00000080603,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1141,SRP54,signal recognition particle 54,ENSG00000100883,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1142,SRPR,SRP receptor subunit alpha ,ENSG00000182934,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1143,SRPRA,SRP receptor subunit alpha,ENSG00000182934,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1144,SRPRA,SRP receptor subunit alpha,ENSG00000182934,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1145,SRRM2,Serine/arginine repetitive matrix 2,ENSG00000167978,"NDD, SCZ",RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1146,SRRM2,Serine/arginine repetitive matrix 2,ENSG00000167978,"NDD, SCZ",RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+1147,SRRM2,serine/arginine repetitive matrix 2,ENSG00000167978,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1148,SRRM3,serine/arginine repetitive matrix 3,ENSG00000177679,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1149,SRSF1,serine and arginine rich splicing factor 1,ENSG00000136450,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1150,SRSF11,serine and arginine rich splicing factor 11 ,ENSG00000116754,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1151,SRSF7,serine and arginine rich splicing factor 7,ENSG00000115875,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1152,STAG1,Stromal antigen 1,ENSG00000118007,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+1153,STAG1,STAG1 cohesin complex component,ENSG00000118007,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1154,STAG2,stromal antigen 2 ,ENSG00000101972,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,no,yes
+1155,STARD9,StAR related lipid transfer domain containing 9 ,ENSG00000159433,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1156,STAT1,signal transducer and activator of transcription 1,ENSG00000115415,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1157,STC1,stanniocalcin 1 ,ENSG00000159167,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1158,STX1B,syntaxin 1B,ENSG00000099365,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1159,STXBP1,syntaxin binding protein 1 ,ENSG00000136854,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1160,STXBP1,syntaxin binding protein 1,ENSG00000136854,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1161,STXBP1,syntaxin binding protein 1 ,ENSG00000136854,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1162,STXBP1 ,syntaxin binding protein 1 ,ENSG00000136854,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1163,STXBP1 ,syntaxin binding protein 1 ,ENSG00000136854,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1164,SUPT16H,"SPT16 homolog, facilitates chromatin remodeling subunit",ENSG00000092201,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1165,SUPT6H,"SPT6 homolog, histone chaperone and transcription elongation factor",ENSG00000109111,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1166,SUSD4,sushi domain containing 4 ,ENSG00000143502,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1167,SV2A,Synaptic vesicle glycoprotein 2A,ENSG00000159164,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+1168,SVEP1,"sushi, von Willebrand factor type A, EGF and pentraxin domain containing 1",ENSG00000165124,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1169,SYK,spleen associated tyrosine kinase,ENSG00000165025,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1170,SYNCRIP,synaptotagmin binding cytoplasmic RNA interacting protein ,ENSG00000135316,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1171,SYNCRIP,synaptotagmin binding cytoplasmic RNA interacting protein,ENSG00000135316,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1172,SYNCRIP,synaptotagmin binding cytoplasmic RNA interacting protein ,ENSG00000135316,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1173,SYNGAP1,synaptic Ras GTPase activating protein 1 ,ENSG00000227460,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+1174,SYNGAP1,synaptic Ras GTPase activating protein 1,ENSG00000227460,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1175,SYNGAP1,synaptic Ras GTPase activating protein 1 ,ENSG00000227460,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1176,SYNGAP1 ,synaptic Ras GTPase activating protein 1 ,ENSG00000227460,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+1177,SYNGAP1 ,synaptic Ras GTPase activating protein 1 ,ENSG00000227460,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1178,SYNGAP1 ,synaptic Ras GTPase activating protein 1 ,ENSG00000227460,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1179,SYT1,synaptotagmin 1 ,ENSG00000067715,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1180,SYT1,synaptotagmin 1,ENSG00000067715,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1181,SYT1,synaptotagmin 1 ,ENSG00000067715,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1182,TAB2,TGF-beta activated kinase 1 (MAP3K7) binding protein 2 ,ENSG00000055208,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1183,TAB2,TGF-beta activated kinase 1 (MAP3K7) binding protein 2,ENSG00000055208,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1184,TAF1,TATA-box binding protein associated factor 1 ,ENSG00000147133,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1185,TAF4,TATA-box binding protein associated factor 4,ENSG00000280529,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1186,TANC2,"tetratricopeptide repeat, ankyrin repeat and coiled-coil containing 2",ENSG00000170921,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1187,TANC2,"tetratricopeptide repeat, ankyrin repeat and coiled-coil containing 2 ",ENSG00000170921,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1188,TAOK1,TAO kinase 1 ,ENSG00000160551,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1189,TAOK1,TAO kinase 1,ENSG00000160551,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1190,TAOK1,TAO kinase 1 ,ENSG00000160551,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1191,TAOK3,TAO kinase 3,ENSG00000135090,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1192,TBCEL,tubulin folding cofactor E like,ENSG00000154114,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1193,TBCEL,tubulin folding cofactor E like ,ENSG00000154114,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1194,TBL1XR1,TBL1X receptor 1 ,ENSG00000177565,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1195,TBL1XR1,TBL1X/Y related 1,ENSG00000177565,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1196,TBL1XR1,TBL1X/Y related 1 ,ENSG00000177565,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1197,TBL1XR1 ,TBL1X receptor 1 ,ENSG00000177565,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1198,TBL1XR1 ,TBL1X receptor 1 ,ENSG00000177565,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1199,TBR1,T-box brain transcription factor 1 ,ENSG00000136535,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1200,TBR1,T-box brain transcription factor 1 ,ENSG00000136535,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1201,TBR1,T-box brain transcription factor 1 ,ENSG00000136535,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1202,TBR1,T-box brain transcription factor 1 ,ENSG00000136535,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+1203,TBR1,T-box brain transcription factor 1,ENSG00000136535,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1204,TBR1,T-box brain transcription factor 1 ,ENSG00000136535,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1205,TBX3,T-box transcription factor 3,ENSG00000135111,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1206,TCF12,transcription factor 12 ,ENSG00000140262,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1207,TCF12,transcription factor 12 ,ENSG00000140262,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+1208,TCF12,transcription factor 12,ENSG00000140262,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1209,TCF20,transcription factor 20,ENSG00000262024,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1210,TCF20,transcription factor 20 ,ENSG00000276461,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1211,TCF20 ,transcription factor 20 ,ENSG00000262024,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1212,TCF20 ,transcription factor 20 ,ENSG00000262024,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1213,TCF20 ,transcription factor 20 ,ENSG00000262024,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1214,TCF3,transcription factor 3,ENSG00000071564,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1215,TCF4,transcription factor 4,ENSG00000196628,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1216,TCF4,transcription factor 4 ,ENSG00000196628,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1217,TCF4 ,transcription factor 4 ,ENSG00000196628,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1218,TCF4 ,transcription factor 4 ,ENSG00000196628,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1219,TCF7L2,transcription factor 7 like 2 ,ENSG00000148737,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1220,TCF7L2,transcription factor 7 like 2 ,ENSG00000148737,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1221,TCF7L2,transcription factor 7 like 2 ,ENSG00000148737,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1222,TCF7L2,transcription factor 7 like 2 ,ENSG00000148737,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+1223,TCF7L2,transcription factor 7 like 2,ENSG00000148737,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1224,TCF7L2,transcription factor 7 like 2 ,ENSG00000148737,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1225,TERF2IP,TERF2 interacting protein,ENSG00000166848,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1226,TFAP2B,transcription factor AP-2 beta,ENSG00000008196,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1227,TFAP4,transcription factor AP-4,ENSG00000090447,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1228,TLE3,"TLE family member 3, transcriptional corepressor",ENSG00000140332,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1229,TLE4,"TLE family member 4, transcriptional corepressor",ENSG00000106829,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1230,TLK2,tousled like kinase 2 ,ENSG00000146872,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,yes,yes
+1231,TLK2,tousled like kinase 2 ,ENSG00000146872,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1232,TLK2,tousled like kinase 2,ENSG00000146872,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1233,TLK2,tousled like kinase 2 ,ENSG00000146872,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1234,TM9SF4,transmembrane 9 superfamily member 4 ,ENSG00000101337,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1235,TM9SF4,transmembrane 9 superfamily member 4,ENSG00000101337,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1236,TM9SF4,transmembrane 9 superfamily member 4 ,ENSG00000101337,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1237,TMEM178A,transmembrane protein 178A ,ENSG00000152154,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1238,TMEM42,transmembrane protein 42 ,ENSG00000280516,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1239,TMEM63B,transmembrane protein 63B,ENSG00000137216,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1240,TNFRSF11A,TNF receptor superfamily member 11a,ENSG00000141655,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1241,TNFRSF21,TNF receptor superfamily member 21,ENSG00000146072,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1242,TNKS1BP1,tankyrase 1 binding protein 1 ,ENSG00000149115,SuicideDeath,RVAS,Suicide_2021,https://pubmed.ncbi.nlm.nih.gov/34042246/,yes,yes
+1243,TNNC2,"troponin C2, fast skeletal type",ENSG00000101470,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1244,TNPO2,transportin 2 ,ENSG00000105576,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1245,TNPO2,transportin 2,ENSG00000105576,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1246,TNPO3,transportin 3 ,ENSG00000064419,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1247,TNPO3,transportin 3,ENSG00000064419,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1248,TNRC6A,trinucleotide repeat containing adaptor 6A,ENSG00000288130,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1249,TNRC6B,trinucleotide repeat containing adaptor 6B ,ENSG00000100354,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1250,TNRC6B,trinucleotide repeat containing adaptor 6B ,ENSG00000100354,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+1251,TNRC6B,trinucleotide repeat containing adaptor 6B ,ENSG00000100354,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+1252,TNRC6B,trinucleotide repeat containing adaptor 6B,ENSG00000100354,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1253,TOP2B,DNA topoisomerase II beta,ENSG00000077097,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1254,TRA2B,transformer 2 beta homolog ,ENSG00000136527,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1255,TRAF2,TNF receptor associated factor 2,ENSG00000127191,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1256,TRAF7,TNF receptor associated factor 7 ,ENSG00000131653,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1257,TRAF7,TNF receptor associated factor 7,ENSG00000131653,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1258,TRIM8,tripartite motif containing 8,ENSG00000171206,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1259,TRIO,trio Rho guanine nucleotide exchange factor ,ENSG00000038382,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+1260,TRIO,trio Rho guanine nucleotide exchange factor,ENSG00000038382,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1261,TRIO ,trio Rho guanine nucleotide exchange factor ,ENSG00000038382,"NDD, SCZ",RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1262,TRIO ,trio Rho guanine nucleotide exchange factor ,ENSG00000038382,"NDD, SCZ",RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1263,TRIO ,trio Rho guanine nucleotide exchange factor ,ENSG00000038382,"NDD, SCZ",RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,yes,yes
+1264,TRIP12,thyroid hormone receptor interactor 12 ,ENSG00000153827,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1265,TRIP12,thyroid hormone receptor interactor 12 ,ENSG00000153827,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1266,TRIP12,thyroid hormone receptor interactor 12 ,ENSG00000153827,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1267,TRIP12,thyroid hormone receptor interactor 12 ,ENSG00000153827,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+1268,TRIP12,thyroid hormone receptor interactor 12,ENSG00000153827,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1269,TRIP12,thyroid hormone receptor interactor 12 ,ENSG00000153827,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1270,TRPM3,transient receptor potential cation channel subfamily M member 3,ENSG00000083067,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1271,TRRAP,transformation/transcription domain associated protein ,ENSG00000196367,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1272,TRRAP,transformation/transcription domain associated protein,ENSG00000196367,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1273,TSC1,TSC complex subunit 1,ENSG00000165699,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1274,TSC2,TSC complex subunit 2,ENSG00000103197,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1275,TSHZ1,teashirt zinc finger homeobox 1 ,ENSG00000179981,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1276,U2AF2,U2 small nuclear RNA auxiliary factor 2 ,ENSG00000063244,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1277,U2AF2,U2 small nuclear RNA auxiliary factor 2,ENSG00000063244,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1278,UBA2,ubiquitin like modifier activating enzyme 2,ENSG00000126261,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1279,UBE3A,ubiquitin protein ligase E3A,ENSG00000114062,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1280,UBR1,ubiquitin protein ligase E3 component n-recognin 1,ENSG00000159459,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1281,UBR5,ubiquitin protein ligase E3 component n-recognin 5,ENSG00000104517,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1282,UBTF,upstream binding transcription factor,ENSG00000108312,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1283,UIMC1,ubiquitin interaction motif containing 1 ,ENSG00000087206,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+1284,UNC80,"unc-80 homolog, NALCN channel complex subunit ",ENSG00000144406,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1285,UPF1,UPF1 RNA helicase and ATPase,ENSG00000005007,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1286,UPF3B,UPF3B regulator of nonsense mediated mRNA decay ,ENSG00000125351,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1287,UPF3B ,UPF3B regulator of nonsense mediated mRNA decay ,ENSG00000125351,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1288,UPF3B ,UPF3B regulator of nonsense mediated mRNA decay ,ENSG00000125351,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1289,UPF3B ,UPF3B regulator of nonsense mediated mRNA decay ,ENSG00000125351,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+1290,USP46,ubiquitin specific peptidase 46,ENSG00000109189,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1291,USP49,ubiquitin specific peptidase 49,ENSG00000164663,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1292,USP7,ubiquitin specific peptidase 7,ENSG00000187555,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1293,USP9X,ubiquitin specific peptidase 9 X-linked ,ENSG00000124486,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1294,USP9X ,ubiquitin specific peptidase 9 X-linked ,ENSG00000124486,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1295,USP9X ,ubiquitin specific peptidase 9 X-linked ,ENSG00000124486,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1296,USP9X ,ubiquitin specific peptidase 9 X-linked ,ENSG00000124486,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+1297,VAMP2,vesicle associated membrane protein 2 ,ENSG00000220205,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1298,VAMP2,vesicle associated membrane protein 2,ENSG00000220205,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1299,VCP,valosin containing protein,ENSG00000165280,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1300,VEZF1,vascular endothelial zinc finger 1 ,ENSG00000136451,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1301,VEZF1,vascular endothelial zinc finger 1 ,ENSG00000136451,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1302,VEZF1,vascular endothelial zinc finger 1,ENSG00000136451,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1303,VPS4A,vacuolar protein sorting 4 homolog A,ENSG00000132612,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1304,WAC,WW domain containing adaptor with coiled-coil ,ENSG00000095787,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1305,WAC,WW domain containing adaptor with coiled-coil ,ENSG00000095787,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,yes,Yes
+1306,WAC,WW domain containing adaptor with coiled-coil,ENSG00000095787,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1307,WAC,WW domain containing adaptor with coiled-coil ,ENSG00000095787,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1308,WAC ,WW domain containing adaptor with coiled-coil ,ENSG00000095787,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1309,WAC ,WW domain containing adaptor with coiled-coil ,ENSG00000095787,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1310,WAC ,WW domain containing adaptor with coiled-coil ,ENSG00000095787,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1311,WAPL,WAPL cohesin release factor,ENSG00000062650,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1312,WDFY3,WD repeat and FYVE domain containing 3 ,ENSG00000163625,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1313,WDFY3,WD repeat and FYVE domain containing 3,ENSG00000163625,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1314,WDFY4,WDFY family member 4 ,ENSG00000128815,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1315,WDR26,WD repeat domain 26 ,ENSG00000162923,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1316,WDR26,WD repeat domain 26 ,ENSG00000162923,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1317,WDR26,WD repeat domain 26,ENSG00000162923,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1318,WDR37,WD repeat domain 37,ENSG00000047056,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1319,WDR45 ,WD repeat domain 45 ,ENSG00000196998,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1320,WDR45 ,WD repeat domain 45 ,ENSG00000196998,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1321,WDR45 ,WD repeat domain 45 ,ENSG00000196998,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+1322,WDR48,WD repeat domain 48,ENSG00000114742,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1323,WDR87,WD repeat domain 87 ,ENSG00000171804,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1324,XPO1,exportin 1,ENSG00000082898,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1325,XPO7,Exportin 7,ENSG00000130227,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,yes,yes
+1326,YTHDF3,YTH N6-methyladenosine RNA binding protein 3 ,ENSG00000185728,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1327,YWHAG,tyrosine 3-monooxygenase/tryptophan 5-monooxygenase activation protein gamma ,ENSG00000170027,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1328,YWHAG,tyrosine 3-monooxygenase/tryptophan 5-monooxygenase activation protein gamma,ENSG00000170027,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1329,YY1,YY1 transcription factor,ENSG00000100811,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1330,ZBTB1,zinc finger and BTB domain containing 1,ENSG00000126804,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1331,ZBTB10,zinc finger and BTB domain containing 10,ENSG00000205189,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1332,ZBTB18,zinc finger and BTB domain containing 18 ,ENSG00000179456,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1333,ZBTB18,zinc finger and BTB domain containing 18,ENSG00000179456,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1334,ZBTB18 ,zinc finger and BTB domain containing 18 ,ENSG00000179456,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1335,ZBTB18 ,zinc finger and BTB domain containing 18 ,ENSG00000179456,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1336,ZBTB20,zinc finger and BTB domain containing 20,ENSG00000181722,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1337,ZBTB21,zinc finger and BTB domain containing 21,ENSG00000173276,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1338,ZBTB21,zinc finger and BTB domain containing 21 ,ENSG00000173276,NDD,RVAS,ASD_2022_MSSNG_Trost,https://pubmed.ncbi.nlm.nih.gov/36368308/,not reported,yes
+1339,ZBTB34,zinc finger and BTB domain containing 34,ENSG00000177125,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1340,ZBTB7A,zinc finger and BTB domain containing 7A ,ENSG00000178951,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1341,ZBTB7A,zinc finger and BTB domain containing 7A,ENSG00000178951,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1342,ZC4H2 ,zinc finger C4H2-type containing ,ENSG00000126970,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,yes,yes
+1343,ZC4H2 ,zinc finger C4H2-type containing ,ENSG00000126970,NDD,RVAS,DDD_2017,https://pubmed.ncbi.nlm.nih.gov/28135719/,yes,yes
+1344,ZC4H2 ,zinc finger C4H2-type containing ,ENSG00000126970,NDD,RVAS,DDDX_2021,https://pubmed.ncbi.nlm.nih.gov/33504798/,yes,yes
+1345,ZDBF2,zinc finger DBF-type containing 2,ENSG00000283649,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1346,ZDHHC5,zinc finger DHHC-type palmitoyltransferase 5,ENSG00000156599,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1347,ZEB2,zinc finger E-box binding homeobox 2,ENSG00000169554,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1348,ZFHX3,zinc finger homeobox 3,ENSG00000140836,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1349,ZFHX4,zinc finger homeobox 4,ENSG00000091656,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1350,ZMIZ1,zinc finger MIZ-type containing 1,ENSG00000108175,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1351,ZMYM2,"Zinc finger, MYM-type 2",ENSG00000121741,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+1352,ZMYM2,"Zinc finger, MYM-type 2",ENSG00000121741,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+1353,ZMYM2,zinc finger MYM-type containing 2,ENSG00000121741,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1354,ZMYND11,zinc finger MYND-type containing 11 ,ENSG00000015171,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1355,ZMYND11,zinc finger MYND-type containing 11 ,ENSG00000015171,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,yes,yes
+1356,ZMYND11,zinc finger MYND-type containing 11,ENSG00000015171,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1357,ZMYND8,zinc finger MYND-type containing 8 ,ENSG00000101040,NDD,RVAS,ASD_2020_ASC_Satterstrom,https://pubmed.ncbi.nlm.nih.gov/31981491/,no,yes
+1358,ZMYND8,zinc finger MYND-type containing 8,ENSG00000101040,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1359,ZNF136,Zinc finger protein 136,ENSG00000196646,SCZ ,RVAS,SCZ_SCHEMA_2022,https://pubmed.ncbi.nlm.nih.gov/35396579/,no,yes
+1360,ZNF148,zinc finger protein 148,ENSG00000163848,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1361,ZNF292,zinc finger protein 292 ,ENSG00000188994,NDD,RVAS,DD_2019_ASD_Coe,https://pubmed.ncbi.nlm.nih.gov/30559488/,no,yes
+1362,ZNF292,zinc finger protein 292 ,ENSG00000188994,NDD,RVAS,NDD_2020_Wang,https://pubmed.ncbi.nlm.nih.gov/33004838/,no,yes
+1363,ZNF292,zinc finger protein 292,ENSG00000188994,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1364,ZNF423,zinc finger protein 423,ENSG00000102935,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1365,ZNF462,zinc finger protein 462,ENSG00000148143,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1366,ZNF536,zinc finger protein 536,ENSG00000198597,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,no,yes
+1367,ZNF559,zinc finger protein 559 ,ENSG00000188321,NDD,RVAS,2019_ASD_RuzzoE,https://pubmed.ncbi.nlm.nih.gov/31398340/,no,Yes
+1368,ZNF644,zinc finger protein 644,ENSG00000122482,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes
+1369,ZNF865,zinc finger protein 865,ENSG00000261221,NDD,RVAS,ASD_2022_ASC_Fu,https://pubmed.ncbi.nlm.nih.gov/35982160/,yes,yes

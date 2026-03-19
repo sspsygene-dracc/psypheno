@@ -761,9 +761,9 @@ export default function MethodsPage() {
             driven by a single very small p-value from one table.
           </p>
         </section>
-        <p style={{ marginTop: 36, textAlign: "right", fontFamily: "serif", fontSize: 16 }}>
+        {/* <p style={{ marginTop: 36, textAlign: "right", fontFamily: "serif", fontSize: 16 }}>
           Johannes Birgmeier, March 3rd, 2026
-        </p>
+        </p> */}
       </main>
       <Footer />
     </>
