@@ -228,6 +228,8 @@ function Pagination({
 
 /* \u2500\u2500\u2500 Main page \u2500\u2500\u2500 */
 export default function MostSignificantPage() {
+  const router = useRouter();
+
   const [rows, setRows] = useState<RankedRow[]>([]);
   const [totalRows, setTotalRows] = useState(0);
   const [page, setPage] = useState(1);
@@ -288,6 +290,62 @@ export default function MostSignificantPage() {
     disease: string[] | null;
   };
   const [datasetTables, setDatasetTables] = useState<DatasetTableMeta[]>([]);
+
+  // Default flag values for URL diffing
+  const defaultHideFlags = HIDE_FLAG_OPTIONS.map((o) => o.key);
+  const defaultShowFlags = SHOW_FLAG_OPTIONS.filter((o) => o.key !== "lncrna").map((o) => o.key);
+
+  // Initialize state from URL query params on first load
+  const initializedFromUrl = useRef(false);
+  useEffect(() => {
+    if (!router.isReady || initializedFromUrl.current) return;
+    initializedFromUrl.current = true;
+    const q = router.query;
+    if (typeof q.method === "string" && ["fisher", "stouffer", "cauchy", "hmp"].includes(q.method)) {
+      setMethod(q.method as Method);
+    }
+    if (typeof q.assay === "string") setAssayFilter(q.assay);
+    if (typeof q.disease === "string") setDiseaseFilter(q.disease);
+    if (typeof q.gene === "string") setGeneSearch(q.gene);
+    if (typeof q.page === "string") {
+      const p = parseInt(q.page, 10);
+      if (p >= 1) setPage(p);
+    }
+    if (typeof q.show === "string") {
+      setShowFlags(q.show === "" ? [] : q.show.split(","));
+    }
+    if (typeof q.hide === "string") {
+      setHideFlags(q.hide === "" ? [] : q.hide.split(","));
+    }
+    if (typeof q.showOther === "string") {
+      setShowOther(q.showOther !== "0");
+    }
+  }, [router.isReady, router.query]);
+
+  // Sync state back to URL (shallow, no navigation)
+  const isFirstSync = useRef(true);
+  useEffect(() => {
+    if (!router.isReady || !initializedFromUrl.current) return;
+    if (isFirstSync.current) {
+      isFirstSync.current = false;
+      return;
+    }
+    const params: Record<string, string> = {};
+    if (method !== "fisher") params.method = method;
+    if (assayFilter) params.assay = assayFilter;
+    if (diseaseFilter) params.disease = diseaseFilter;
+    if (geneSearch) params.gene = geneSearch;
+    if (page > 1) params.page = String(page);
+    const showSorted = [...showFlags].sort().join(",");
+    const defaultShowSorted = [...defaultShowFlags].sort().join(",");
+    if (showSorted !== defaultShowSorted) params.show = showFlags.join(",");
+    const hideSorted = [...hideFlags].sort().join(",");
+    const defaultHideSorted = [...defaultHideFlags].sort().join(",");
+    if (hideSorted !== defaultHideSorted) params.hide = hideFlags.join(",");
+    if (!showOther) params.showOther = "0";
+    router.replace({ pathname: router.pathname, query: params }, undefined, { shallow: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [method, assayFilter, diseaseFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady]);
 
   useEffect(() => {
     fetch("/api/dataset-tables-with-pvalues")
@@ -908,7 +966,7 @@ export default function MostSignificantPage() {
                 Only one dataset matches this combination — no meta-analysis
                 needed.{" "}
                 <Link
-                  href="/significant-rows"
+                  href={`/significant-rows${assayFilter || diseaseFilter ? "?" + [assayFilter && `assay=${encodeURIComponent(assayFilter)}`, diseaseFilter && `disease=${encodeURIComponent(diseaseFilter)}`].filter(Boolean).join("&") : ""}`}
                   style={{ color: "#92400e", fontWeight: 600 }}
                 >
                   Browse individual dataset results &rarr;
