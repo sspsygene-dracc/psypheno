@@ -296,10 +296,10 @@ export default function MostSignificantPage() {
   const defaultShowFlags = SHOW_FLAG_OPTIONS.filter((o) => o.key !== "lncrna").map((o) => o.key);
 
   // Initialize state from URL query params on first load
-  const initializedFromUrl = useRef(false);
+  const [urlInitialized, setUrlInitialized] = useState(false);
   useEffect(() => {
-    if (!router.isReady || initializedFromUrl.current) return;
-    initializedFromUrl.current = true;
+    if (!router.isReady || urlInitialized) return;
+    setUrlInitialized(true);
     const q = router.query;
     if (typeof q.method === "string" && ["fisher", "stouffer", "cauchy", "hmp"].includes(q.method)) {
       setMethod(q.method as Method);
@@ -320,12 +320,13 @@ export default function MostSignificantPage() {
     if (typeof q.showOther === "string") {
       setShowOther(q.showOther !== "0");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, router.query]);
 
   // Sync state back to URL (shallow, no navigation)
   const isFirstSync = useRef(true);
   useEffect(() => {
-    if (!router.isReady || !initializedFromUrl.current) return;
+    if (!router.isReady || !urlInitialized) return;
     if (isFirstSync.current) {
       isFirstSync.current = false;
       return;
@@ -440,8 +441,9 @@ export default function MostSignificantPage() {
   };
 
   useEffect(() => {
+    if (!urlInitialized) return;
     fetchRanked();
-  }, [fetchRanked]);
+  }, [fetchRanked, urlInitialized]);
 
   const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
 
