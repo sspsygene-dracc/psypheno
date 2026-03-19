@@ -85,16 +85,26 @@ def _run_ssh(
     desc: str,
     timeout: int = SSH_TIMEOUT,
     check: bool = True,
+    stream: bool = False,
 ) -> subprocess.CompletedProcess[str]:
     """Run a command on *host* via SSH; raise DeployError on failure."""
     click.echo(f"  -> [{host}] {desc}")
     try:
-        result = subprocess.run(
-            ["ssh", host, remote_cmd],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
+        if stream:
+            proc = subprocess.run(
+                ["ssh", host, remote_cmd],
+                timeout=timeout,
+            )
+            result = subprocess.CompletedProcess(
+                proc.args, proc.returncode, stdout="", stderr=""
+            )
+        else:
+            result = subprocess.run(
+                ["ssh", host, remote_cmd],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
     except subprocess.TimeoutExpired as e:
         raise DeployError(f"Timed out after {timeout}s on {host}: {desc}") from e
     if check and result.returncode != 0:
@@ -175,6 +185,7 @@ def _step_deploy_site(
             cmd,
             desc="sspsygene load-db (this may take a while)",
             timeout=LOAD_DB_TIMEOUT,
+            stream=True,
         )
 
     _run_ssh(
