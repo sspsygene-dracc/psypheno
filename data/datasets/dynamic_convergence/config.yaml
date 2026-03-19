@@ -47,7 +47,8 @@ tables:
     changelog:
       - date: "2025-11-07"
         message: "Initial data load"
-    shortLabel: META-DEGs NDD Convergence
+    shortLabel: meta_degs_ndd_convergence
+    mediumLabel: META-DEGs NDD Convergence
     longLabel: Meta-analysis of convergent NDD risk gene effects across development
     description:
       Meta-differentially expressed genes showing convergent transcriptional effects across 29
@@ -103,7 +104,8 @@ tables:
     changelog:
       - date: "2026-02-17"
         message: "Initial data load"
-    shortLabel: Mutant behavior fingerprints
+    shortLabel: mutant_behavior_fingerprints
+    mediumLabel: Mutant behavior fingerprints
     source: "Supplemental Data 3 download media-5.xlsx"
     longLabel: Mutant zebrafish baseline behavioral fingerprint pvalues
     description:

@@ -38,7 +38,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
-    shortLabel: 4TF Perturb-seq DEGs
+    shortLabel: 4tf_perturb_seq_degs
+    mediumLabel: 4TF Perturb-seq DEGs
     longLabel: Differential expression from in vivo Perturb-seq of four transcription factors
     description:
       Cell-type-specific differential expression results from massively parallel in vivo Perturb-seq
@@ -84,7 +85,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
-    shortLabel: 4TF Cell Proportion Changes
+    shortLabel: 4tf_cell_proportion_changes
+    mediumLabel: 4TF Cell Proportion Changes
     longLabel: Cell type proportion shifts from transcription factor perturbations
     description:
       Quantification of cell type and subcluster abundance changes resulting from CRISPR perturbations

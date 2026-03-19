@@ -9,6 +9,7 @@ type ChangelogEntry = {
   message: string | null;
   table_name: string;
   short_label: string | null;
+  medium_label: string | null;
   long_label: string | null;
   description: string | null;
   organism: string | null;
@@ -203,7 +204,7 @@ export default function DatasetChangelog() {
                               fontWeight: 500,
                             }}
                           >
-                            {entry.short_label ?? entry.table_name}
+                            {entry.medium_label ?? entry.short_label ?? entry.table_name}
                           </Link>
                           {entry.long_label && (
                             <div

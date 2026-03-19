@@ -16,6 +16,8 @@ type CombinedPvalues = {
 type ContributingTable = {
   tableName: string;
   shortLabel: string | null;
+  mediumLabel: string | null;
+  longLabel: string | null;
   description: string | null;
   bestPvalue: number | null;
   bestFdr: number | null;
@@ -35,8 +37,8 @@ function formatPvalue(p: number | null): string {
   return p.toPrecision(3);
 }
 
-const formatTableName = (tableName: string, shortLabel: string | null) =>
-  shortLabel ??
+const formatTableName = (tableName: string, mediumLabel: string | null) =>
+  mediumLabel ??
   tableName
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
@@ -130,49 +132,6 @@ export default function GeneSignificanceSummary({
 
       {expanded && (
         <div style={{ padding: "0 14px 14px" }}>
-          {/* Combined p-values */}
-          <div style={{ marginBottom: 12 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#6b7280",
-                marginBottom: 4,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Combined p-values
-            </div>
-            <table style={{ borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Method</th>
-                  <th style={thStyle}>P-value</th>
-                  <th style={thStyle}>FDR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { label: "Fisher", p: cp.fisher, fdr: cp.fisherFdr },
-                  { label: "Stouffer", p: cp.stouffer, fdr: cp.stoufferFdr },
-                  { label: "Cauchy (CCT)", p: cp.cauchy, fdr: cp.cauchyFdr },
-                  {
-                    label: "Harmonic Mean",
-                    p: cp.hmp,
-                    fdr: cp.hmpFdr,
-                  },
-                ].map((row) => (
-                  <tr key={row.label}>
-                    <td style={tdStyle}>{row.label}</td>
-                    <td style={tdStyle}>{formatPvalue(row.p)}</td>
-                    <td style={tdStyle}>{formatPvalue(row.fdr)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
           {/* Per-dataset breakdown */}
           {tables.length > 0 && (
             <div>
@@ -208,7 +167,7 @@ export default function GeneSignificanceSummary({
                   {tables.map((t) => (
                     <tr key={t.tableName}>
                       <td style={tdStyle}>
-                        {formatTableName(t.tableName, t.shortLabel)}
+                        {formatTableName(t.tableName, t.mediumLabel)}
                       </td>
                       <td style={tdStyle}>
                         {t.assay

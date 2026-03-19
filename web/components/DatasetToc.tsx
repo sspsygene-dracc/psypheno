@@ -3,6 +3,8 @@ import { useMemo } from "react";
 export type TocItem = {
   tableName: string;
   shortLabel?: string | null;
+  mediumLabel?: string | null;
+  longLabel?: string | null;
   assay?: string[] | null;
 };
 
@@ -13,7 +15,7 @@ type AssayGroup = {
 };
 
 const formatTableName = (item: TocItem) =>
-  item.shortLabel ??
+  item.mediumLabel ??
   item.tableName
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));

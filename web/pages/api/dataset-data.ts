@@ -39,7 +39,7 @@ export default async function handler(
     // Get table metadata
     const metadata = db
       .prepare(
-        `SELECT display_columns, scalar_columns, description, short_label, long_label,
+        `SELECT display_columns, scalar_columns, description, short_label, medium_label, long_label,
                 links, categories, source, assay, field_labels, organism,
                 publication_first_author, publication_last_author, publication_year,
                 publication_journal, publication_doi, publication_pmid
@@ -50,6 +50,7 @@ export default async function handler(
         scalar_columns: string | null;
         description: string | null;
         short_label: string | null;
+        medium_label: string | null;
         long_label: string | null;
         links: string | null;
         categories: string | null;
@@ -145,6 +146,7 @@ export default async function handler(
       totalPages,
       description: metadata.description ?? null,
       shortLabel: metadata.short_label ?? null,
+      mediumLabel: metadata.medium_label ?? null,
       longLabel: metadata.long_label ?? null,
       organism: metadata.organism ?? null,
       source: metadata.source ?? null,

@@ -19,7 +19,8 @@ tables:
     changelog:
       - date: "2025-10-27"
         message: "Initial data load"
-    shortLabel: MGI Phenotype Annotations
+    shortLabel: mgi_phenotype_annotations
+    mediumLabel: MGI Phenotype Annotations
     longLabel: Mouse Genome Informatics phenotypic allele annotations
     description:
       Curated phenotypic annotations for mouse mutant alleles from MGI, mapping Mammalian Phenotype

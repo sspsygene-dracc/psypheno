@@ -119,7 +119,7 @@ export default async function handler(
         numSourceTables,
         message:
           numSourceTables === 1
-            ? "Only one dataset matches this combination — no meta-analysis needed. See individual results below."
+            ? "Only one dataset matches this combination — no meta-analysis needed. Browse individual dataset results on the significant rows page."
             : "No datasets match this combination.",
       });
     }

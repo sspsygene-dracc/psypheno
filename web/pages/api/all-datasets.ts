@@ -14,7 +14,7 @@ export default async function handler(
 
     const datasets = db
       .prepare(
-        `SELECT table_name, short_label, long_label, description, gene_columns, gene_species, display_columns, scalar_columns, link_tables,
+        `SELECT table_name, short_label, medium_label, long_label, description, gene_columns, gene_species, display_columns, scalar_columns, link_tables,
                 links, categories, source, assay, organism,
                 publication_first_author, publication_last_author, publication_author_count, publication_year, publication_journal, publication_doi
          FROM data_tables
@@ -23,6 +23,7 @@ export default async function handler(
       .all() as Array<{
       table_name: string;
       short_label: string | null;
+      medium_label: string | null;
       long_label: string | null;
       description: string | null;
       gene_columns: string;

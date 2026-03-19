@@ -184,6 +184,7 @@ def load_data_tables(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         table_name TEXT,
         short_label TEXT,
+        medium_label TEXT,
         long_label TEXT,
         description TEXT,
         gene_columns TEXT,
@@ -248,17 +249,18 @@ def load_data_tables(
 
         cur.execute(
             """INSERT INTO data_tables (
-            table_name, short_label, long_label, description, gene_columns,
+            table_name, short_label, medium_label, long_label, description, gene_columns,
             gene_species, display_columns,
             scalar_columns, link_tables,
             links, categories, source, assay, disease, field_labels, organism,
             publication_first_author, publication_last_author, publication_author_count, publication_year,
             publication_journal, publication_doi, publication_pmid,
             pvalue_column, fdr_column)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
+                table_config.medium_label,
                 table_config.long_label,
                 table_config.description,
                 ",".join(data_and_meta.gene_columns),

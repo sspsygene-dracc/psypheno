@@ -14,7 +14,7 @@ export default async function handler(
 
     const rows = db
       .prepare(
-        `SELECT table_name, short_label, pvalue_column, fdr_column, assay, disease
+        `SELECT table_name, short_label, medium_label, long_label, pvalue_column, fdr_column, assay, disease
          FROM data_tables
          WHERE pvalue_column IS NOT NULL OR fdr_column IS NOT NULL
          ORDER BY id ASC`
@@ -22,6 +22,8 @@ export default async function handler(
       .all() as Array<{
         table_name: string;
         short_label: string | null;
+        medium_label: string | null;
+        long_label: string | null;
         pvalue_column: string | null;
         fdr_column: string | null;
         assay: string | null;
@@ -84,6 +86,8 @@ export default async function handler(
       tables: rows.map((r) => ({
         tableName: r.table_name,
         shortLabel: r.short_label,
+        mediumLabel: r.medium_label,
+        longLabel: r.long_label,
         pvalueColumn: r.pvalue_column,
         fdrColumn: r.fdr_column,
         assay: r.assay ? r.assay.split(",").map((s) => s.trim()).filter(Boolean) : null,

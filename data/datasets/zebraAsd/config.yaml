@@ -46,7 +46,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
-    shortLabel: Zebrafish ASD Functional Screen
+    shortLabel: zebrafish_asd_functional_screen
+    mediumLabel: Zebrafish ASD Functional Screen
     longLabel: High-throughput in vivo screen of autism risk genes in zebrafish
     description:
       Parallel functional analysis of 10 autism spectrum disorder risk genes in zebrafish, measuring
@@ -93,7 +94,8 @@ tables:
     changelog:
       - date: "2026-02-23"
         message: "Initial data load"
-    shortLabel: Mutant behavior rest-wake and visual-startle
+    shortLabel: mutant_behavior_rest_wake_visual_startle
+    mediumLabel: Mutant behavior rest-wake and visual-startle
     source: "Supplemental Table S2, Related to Figure 2"
     longLabel: "Sleep-wake and Visual-Startle Parameters in Zebrafish Mutants of 10 ASD Genes"
     description:

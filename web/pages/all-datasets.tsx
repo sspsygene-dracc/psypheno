@@ -10,6 +10,7 @@ import DatasetItem, { Dataset } from "@/components/DatasetItem";
 type DatasetData = {
   tableName: string;
   shortLabel: string | null;
+  mediumLabel: string | null;
   longLabel: string | null;
   description: string | null;
   organism: string | null;
@@ -93,10 +94,17 @@ export default function AllDatasets() {
     if (typeof selectParam !== "string") return;
     const normalized = normalizeSlug(selectParam);
     const match = datasets.find(
-      (d) => d.short_label && normalizeSlug(d.short_label) === normalized
+      (d) =>
+        (d.short_label && normalizeSlug(d.short_label) === normalized) ||
+        normalizeSlug(d.table_name) === normalized
     );
     if (match) {
-      setSelectedDataset(match.table_name);
+      // Just scroll to the dataset in the list — don't auto-select/load data
+      requestAnimationFrame(() => {
+        document
+          .getElementById(`ds-${match.table_name}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
   }, [router.isReady, loading, datasets]);
 
@@ -150,17 +158,15 @@ export default function AllDatasets() {
         setLoadingData(false);
       }
     };
-    fetchDatasetData();
+    fetchDatasetData().then(() => {
+      requestAnimationFrame(() => {
+        document
+          .getElementById("dataset-table-top")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
   }, [selectedDataset]);
 
-  useEffect(() => {
-    if (!loadingData && datasetData && selectedDataset) {
-      const anchor = document.getElementById("dataset-table-top");
-      if (anchor) {
-        anchor.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }
-  }, [loadingData, selectedDataset]);
 
   const buildFetchUrl = (page: number, overrideSortBy?: string | null, overrideSortMode?: SortMode) => {
     if (!selectedDataset) return "";
@@ -356,6 +362,7 @@ export default function AllDatasets() {
                   {datasets.map((dataset) => (
                     <DatasetItem
                       key={dataset.table_name}
+                      id={`ds-${dataset.table_name}`}
                       dataset={dataset}
                       onSelect={setSelectedDataset}
                       assayTypeLabels={assayTypeLabels}
@@ -383,7 +390,7 @@ export default function AllDatasets() {
                         fontWeight: 600,
                       }}
                     >
-                      {datasetData?.shortLabel ??
+                      {datasetData?.mediumLabel ?? datasetData?.shortLabel ??
                         selectedDataset
                           ?.replace(/_/g, " ")
                           .replace(

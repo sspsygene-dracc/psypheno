@@ -35,7 +35,8 @@ tables:
     changelog:
       - date: "2025-11-05"
         message: "Initial data load"
-    shortLabel: NDD Patient List
+    shortLabel: ndd_patient_list
+    mediumLabel: NDD Patient List
     longLabel: Brain organoid atlas patient metadata with pathogenic variants
     description:
       Patient-level metadata linking individuals with neurodevelopmental disorders to their pathogenic
@@ -79,7 +80,8 @@ tables:
     changelog:
       - date: "2025-11-05"
         message: "Initial data load"
-    shortLabel: NEBULA DEGs (FDR 0.05)
+    shortLabel: nebula_degs_fdr_005
+    mediumLabel: NEBULA DEGs (FDR 0.05)
     longLabel: NEBULA differential expression analysis at 0.05 FDR threshold
     description:
       Differentially expressed genes identified using NEBULA (negative binomial mixed model)
@@ -116,7 +118,8 @@ tables:
     changelog:
       - date: "2025-11-05"
         message: "Initial data load"
-    shortLabel: NEBULA DEGs (FDR 0.2)
+    shortLabel: nebula_degs_fdr_02
+    mediumLabel: NEBULA DEGs (FDR 0.2)
     longLabel: NEBULA differential expression analysis at 0.2 FDR threshold
     description:
       Differentially expressed genes identified using NEBULA in brain organoids from neurodevelopmental
@@ -153,7 +156,8 @@ tables:
     changelog:
       - date: "2025-11-05"
         message: "Initial data load"
-    shortLabel: Full NEBULA Gene List
+    shortLabel: full_nebula_gene_list
+    mediumLabel: Full NEBULA Gene List
     longLabel: Complete list of differentially expressed genes from NEBULA analysis
     description:
       Comprehensive gene-level screen showing all differentially expressed genes across brain
@@ -193,7 +197,8 @@ tables:
     changelog:
       - date: "2025-11-05"
         message: "Initial data load"
-    shortLabel: Pseudobulk Validation Genes
+    shortLabel: pseudobulk_validation_genes
+    mediumLabel: Pseudobulk Validation Genes
     longLabel: Selected validation genes from cell subclass pseudobulk analysis
     description:
       Wilcoxon test results for selected genes across cell subclass pseudobulk comparisons, providing

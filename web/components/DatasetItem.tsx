@@ -4,6 +4,7 @@ import InfoTooltip from "@/components/InfoTooltip";
 export type Dataset = {
   table_name: string;
   short_label: string | null;
+  medium_label: string | null;
   long_label: string | null;
   description: string | null;
   gene_columns: string;
@@ -28,14 +29,15 @@ type DatasetItemProps = {
   dataset: Dataset;
   onSelect: (tableName: string) => void;
   assayTypeLabels?: Record<string, string>;
+  id?: string;
 };
 
-export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {} }: DatasetItemProps) {
+export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, id }: DatasetItemProps) {
   const prettifiedName = dataset.table_name
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
 
-  const heading = dataset.short_label ?? prettifiedName;
+  const heading = dataset.medium_label ?? dataset.short_label ?? prettifiedName;
 
   const displayColumns = dataset.display_columns
     .split(",")
@@ -75,7 +77,9 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {} }:
 
   return (
     <div
+      id={id}
       style={{
+        scrollMarginTop: 16,
         width: "100%",
         padding: "16px 20px",
         borderTop: "1px solid #e5e7eb",

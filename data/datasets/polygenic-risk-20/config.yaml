@@ -33,7 +33,8 @@ maintainers:
     comment: Initial table creation
 tables:
   - table: SCZ_Risk_Arrayed_RNAseq_supp_1
-    shortLabel: SCZ Risk Arrayed bulk RNA-seq
+    shortLabel: scz_risk_arrayed_bulk_rnaseq
+    mediumLabel: SCZ Risk Arrayed bulk RNA-seq
     longLabel: Polygenic risk for schizophrenia -arrayed assay perturbation on CALN1 CLCN3 CUL9 DOC2A FURIN GATAD2A INO80E PCCB PLCL1 SF3B1 SNAP91 SNCA THOC7 TMEM219 TSNARE1 ZNF823
     description:
         "This data shows effects of arrayed perturbation data fromn bulk RNA-seq DEG tables
@@ -65,7 +66,8 @@ tables:
         is_perturbed: true
         is_target: false
   - table: SCZ_Risk_Pooled_ECCITEseq_supp_2
-    shortLabel: SCZ Risk Pooled ECCITE-seq
+    shortLabel: scz_risk_pooled_eccite_seq
+    mediumLabel: SCZ Risk Pooled ECCITE-seq
     longLabel: Polygenic risk for schizophrenia - pooled assay perturbation on CALN1 CLCN3 FES NAGA PLCL1 SF3B1 TMEM219 UBE2Q2L ZNF804A ZNF823
     description:
         "This data shows effects of pooled ECCITE-seq assays (Target vs. Scramble DEGs)

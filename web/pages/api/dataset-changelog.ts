@@ -15,7 +15,7 @@ export default async function handler(
     const entries = db
       .prepare(
         `SELECT c.date, c.message, c.table_name,
-                d.short_label, d.long_label, d.description,
+                d.short_label, d.medium_label, d.long_label, d.description,
                 d.organism, d.source,
                 d.publication_first_author, d.publication_last_author, d.publication_author_count,
                 d.publication_year, d.publication_journal, d.publication_doi
@@ -28,6 +28,7 @@ export default async function handler(
       message: string | null;
       table_name: string;
       short_label: string | null;
+      medium_label: string | null;
       long_label: string | null;
       description: string | null;
       organism: string | null;

@@ -50,6 +50,7 @@ class TableToProcessConfig:
     gene_mappings: list[GeneMapping]
     separator: str
     short_label: str | None = None
+    medium_label: str | None = None
     long_label: str | None = None
     links: list[str] = field(default_factory=list)
     categories: list[str] = field(default_factory=list)
@@ -69,7 +70,17 @@ class TableToProcessConfig:
     publication_pmid: str | None = None
     changelog: list[dict[str, str]] = field(default_factory=list)
 
+    # short_label is a code/link identifier: lowercase letters, digits, underscores only
+    _SHORT_LABEL_RE = re.compile(r"^[a-z0-9_]+$")
+
     def __post_init__(self):
+        if self.short_label is not None:
+            if not self._SHORT_LABEL_RE.match(self.short_label):
+                raise ValueError(
+                    f"table {self.table}: short_label {self.short_label!r} contains "
+                    f"disallowed characters. Only lowercase letters, digits, "
+                    f"and underscores are allowed."
+                )
         num_perturbed = 0
         num_target = 0
         for gene_mapping in self.gene_mappings:
@@ -175,6 +186,7 @@ class TableToProcessConfig:
             ],
             separator=json_data["separator"] if "separator" in json_data else "\t",
             short_label=json_data.get("shortLabel"),
+            medium_label=json_data.get("mediumLabel"),
             long_label=json_data.get("longLabel"),
             links=list(json_data.get("links", [])),
             categories=list(json_data.get("categories", [])),

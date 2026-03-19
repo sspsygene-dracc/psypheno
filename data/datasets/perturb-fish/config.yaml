@@ -25,7 +25,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
-    shortLabel: Perturb-FISH Astrocyte Screen
+    shortLabel: perturb_fish_astrocyte_screen
+    mediumLabel: Perturb-FISH Astrocyte Screen
     longLabel: CRISPR screening with spatial transcriptomics in astrocytes
     description:
       Spatial transcriptomics and functional calcium imaging screen of 127 autism spectrum disorder

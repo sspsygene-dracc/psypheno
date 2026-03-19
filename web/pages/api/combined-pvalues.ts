@@ -49,7 +49,7 @@ export default async function handler(
     // Fetch all tables that have pvalue/fdr columns
     const tablesWithPvalues = db
       .prepare(
-        `SELECT table_name, short_label, description, pvalue_column, fdr_column,
+        `SELECT table_name, short_label, medium_label, long_label, description, pvalue_column, fdr_column,
                 link_tables, field_labels, assay
          FROM data_tables
          WHERE pvalue_column IS NOT NULL OR fdr_column IS NOT NULL
@@ -58,6 +58,8 @@ export default async function handler(
       .all() as Array<{
         table_name: string;
         short_label: string | null;
+        medium_label: string | null;
+        long_label: string | null;
         description: string | null;
         pvalue_column: string | null;
         fdr_column: string | null;
@@ -70,6 +72,8 @@ export default async function handler(
     const contributingTables: Array<{
       tableName: string;
       shortLabel: string | null;
+      mediumLabel: string | null;
+      longLabel: string | null;
       description: string | null;
       pvalueColumn: string | null;
       fdrColumn: string | null;
@@ -123,6 +127,8 @@ export default async function handler(
           contributingTables.push({
             tableName: t.table_name,
             shortLabel: t.short_label,
+            mediumLabel: t.medium_label,
+            longLabel: t.long_label,
             description: t.description,
             pvalueColumn: t.pvalue_column,
             fdrColumn: t.fdr_column,

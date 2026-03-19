@@ -33,7 +33,7 @@ export default async function handler(
     // Fetch table metadata
     const tableMeta = db
       .prepare(
-        `SELECT table_name, short_label, pvalue_column, fdr_column,
+        `SELECT table_name, short_label, medium_label, long_label, pvalue_column, fdr_column,
                 field_labels, display_columns, scalar_columns
          FROM data_tables
          WHERE table_name = ?
@@ -42,6 +42,8 @@ export default async function handler(
       .get(tableName) as {
         table_name: string;
         short_label: string | null;
+        medium_label: string | null;
+        long_label: string | null;
         pvalue_column: string | null;
         fdr_column: string | null;
         field_labels: string | null;
@@ -126,6 +128,8 @@ export default async function handler(
     return res.status(200).json({
       tableName: tableMeta.table_name,
       shortLabel: tableMeta.short_label,
+      mediumLabel: tableMeta.medium_label,
+      longLabel: tableMeta.long_label,
       pvalueColumn: tableMeta.pvalue_column,
       fdrColumn: tableMeta.fdr_column,
       fieldLabels,

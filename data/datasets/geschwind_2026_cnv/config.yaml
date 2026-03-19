@@ -30,7 +30,8 @@ tables:
     changelog:
       - date: "2026-02-25"
         message: "Initial data load"
-    shortLabel: "ASD CNV DE Results"
+    shortLabel: "asd_cnv_de_results"
+    mediumLabel: "ASD CNV DE Results"
     longLabel: "Differential expression across ASD-associated CNV deletions and mutations"
     description: >
       Genome-wide differential expression results for 9 ASD-associated genetic forms

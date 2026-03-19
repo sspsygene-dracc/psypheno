@@ -1,6 +1,8 @@
 export interface TableResult {
   tableName: string;
   shortLabel?: string | null;
+  mediumLabel?: string | null;
+  longLabel?: string | null;
   description: string | null;
   source?: string | null;
   assay?: string[] | null;

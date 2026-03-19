@@ -27,11 +27,13 @@ export default async function handler(
 
     const tables = db
       .prepare(
-        `SELECT table_name, short_label, description, source, assay, field_labels, gene_columns, display_columns, scalar_columns, link_tables, publication_first_author, publication_last_author, publication_author_count, publication_year, publication_journal, publication_doi FROM data_tables ORDER BY id ASC`
+        `SELECT table_name, short_label, medium_label, long_label, description, source, assay, field_labels, gene_columns, display_columns, scalar_columns, link_tables, publication_first_author, publication_last_author, publication_author_count, publication_year, publication_journal, publication_doi FROM data_tables ORDER BY id ASC`
       )
       .all() as Array<{
         table_name: string;
         short_label: string | null;
+        medium_label: string | null;
+        long_label: string | null;
         description: string | null;
         source: string | null;
         assay: string | null;
@@ -51,6 +53,8 @@ export default async function handler(
     const results: Array<{
       tableName: string;
       shortLabel: string | null;
+      mediumLabel: string | null;
+      longLabel: string | null;
       description: string | null;
       source: string | null;
       assay: string[];
@@ -99,6 +103,8 @@ export default async function handler(
         results.push({
           tableName: t.table_name,
           shortLabel: t.short_label ?? null,
+          mediumLabel: t.medium_label ?? null,
+          longLabel: t.long_label ?? null,
           description: t.description ?? null,
           source: t.source ?? null,
           assay,

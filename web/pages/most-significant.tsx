@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useCallback, type ReactNode } from "react";
+import React, { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import GeneInfoBox from "@/components/GeneInfoBox";
 import GeneSignificanceSummary from "@/components/GeneSignificanceSummary";
 import Header from "@/components/Header";
@@ -26,7 +27,7 @@ type RankedRow = {
 
 type Method = "fisher" | "stouffer" | "cauchy" | "hmp";
 
-/** Positive "show" flags — categories of interest. */
+/** Positive "show" flags \u2014 categories of interest. */
 const SHOW_FLAG_OPTIONS: { key: string; label: string; href?: string }[] = [
   {
     key: "nimh_priority",
@@ -37,7 +38,7 @@ const SHOW_FLAG_OPTIONS: { key: string; label: string; href?: string }[] = [
   { key: "lncrna", label: "lncRNAs" },
 ];
 
-/** Negative "hide" flags — broadly-responsive gene families. */
+/** Negative "hide" flags \u2014 broadly-responsive gene families. */
 const HIDE_FLAG_OPTIONS: { key: string; label: string }[] = [
   { key: "heat_shock", label: "Heat shock / chaperones" },
   { key: "mitochondrial_rna", label: "Mitochondrial RNA" },
@@ -60,7 +61,6 @@ const SHOW_HIDE_CONFLICTS: Record<string, string[]> = {
 const HIDE_SHOW_CONFLICTS: Record<string, string[]> = {
   non_coding: ["lncrna"],
 };
-
 
 const METHOD_DESCRIPTIONS: {
   key: Method;
@@ -226,131 +226,6 @@ function Pagination({
   );
 }
 
-/* removed DatasetSection — moved to /significant-rows page */
-/* \u2500\u2500\u2500 PLACEHOLDER_FOR_DELETION \u2500\u2500\u2500 */
-function DatasetSection({
-  meta,
-  filterBy,
-  sortBy,
-}: {
-  meta: DatasetTableMeta;
-  filterBy: "pvalue" | "fdr";
-  sortBy: "pvalue" | "fdr";
-}) {
-  const [result, setResult] = useState<DatasetSigResult | null>(null);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setPage(1);
-  }, [filterBy, sortBy]);
-
-  useEffect(() => {
-    setLoading(true);
-    fetch("/api/dataset-significant-rows", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tableName: meta.tableName,
-        page,
-        pageSize: PAGE_SIZE,
-        filterBy,
-        sortBy,
-      }),
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        setResult({
-          rows: data.rows,
-          totalRows: data.totalRows,
-          displayColumns: data.displayColumns,
-          scalarColumns: data.scalarColumns,
-          geneColumns: data.geneColumns ?? [],
-          fieldLabels: data.fieldLabels,
-          page: data.page,
-        });
-        setLoading(false);
-      })
-      .catch(() => {
-        setResult(null);
-        setLoading(false);
-      });
-  }, [meta.tableName, page, filterBy, sortBy]);
-
-  if (!loading && (!result || result.totalRows === 0)) return null;
-
-  const totalPages = result
-    ? Math.max(1, Math.ceil(result.totalRows / PAGE_SIZE))
-    : 1;
-
-  return (
-    <div
-      style={{
-        marginBottom: 16,
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
-        borderRadius: 12,
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: "12px 14px",
-          borderBottom: "1px solid #e5e7eb",
-          fontWeight: 600,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <span>{formatTableName(meta.tableName, meta.shortLabel)}</span>
-        {result && (
-          <span style={{ fontSize: 13, fontWeight: 400, color: "#6b7280" }}>
-            {result.totalRows} significant row
-            {result.totalRows !== 1 ? "s" : ""}
-          </span>
-        )}
-      </div>
-      {loading && (
-        <div style={{ padding: 16, color: "#6b7280", fontSize: 14 }}>
-          Loading...
-        </div>
-      )}
-      {!loading && result && result.rows.length > 0 && (
-        <>
-          <DataTable
-            columns={result.displayColumns}
-            rows={result.rows}
-            scalarColumns={result.scalarColumns}
-            geneColumns={result.geneColumns}
-            fieldLabels={result.fieldLabels ?? undefined}
-            showSummary={false}
-          />
-          {totalPages > 1 && (
-            <div
-              style={{
-                padding: "4px 14px 8px",
-                borderTop: "1px solid #e5e7eb",
-              }}
-            >
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                total={result.totalRows}
-                loading={loading}
-                onPageChange={setPage}
-              />
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 /* \u2500\u2500\u2500 Main page \u2500\u2500\u2500 */
 export default function MostSignificantPage() {
   const [rows, setRows] = useState<RankedRow[]>([]);
@@ -358,7 +233,7 @@ export default function MostSignificantPage() {
   const [page, setPage] = useState(1);
   const [method, setMethod] = useState<Method>("fisher");
   const [loading, setLoading] = useState(true);
-  const [noTableMessage, setNoTableMessage] = useState<string | null>(null);
+  const [noTable, setNoTable] = useState<{ numSourceTables: number } | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const toggleLlmRow = useCallback((symbol: string) => {
     setExpandedRows((prev) => {
@@ -377,7 +252,7 @@ export default function MostSignificantPage() {
     HIDE_FLAG_OPTIONS.map((o) => o.key),
   );
 
-  // Show-flag filter state — all checked except lncrna (excluded by default
+  // Show-flag filter state \u2014 all checked except lncrna (excluded by default
   // via non_coding hide flag, so showing lncrna would conflict)
   const [showFlags, setShowFlags] = useState<string[]>(
     SHOW_FLAG_OPTIONS.filter((o) => o.key !== "lncrna").map((o) => o.key),
@@ -387,12 +262,6 @@ export default function MostSignificantPage() {
   // Gene name search filter
   const [geneSearch, setGeneSearch] = useState("");
 
-  // Significant rows filter/sort
-  const [sigFilterBy, setSigFilterBy] = useState<"pvalue" | "fdr">("pvalue");
-  const [sigSortBy, setSigSortBy] = useState<"pvalue" | "fdr">("pvalue");
-
-  // Dataset tables for TOC and significant rows sections
-  const [datasetTables, setDatasetTables] = useState<DatasetTableMeta[]>([]);
   const [assayTypeLabels, setAssayTypeLabels] = useState<
     Record<string, string>
   >({});
@@ -408,16 +277,17 @@ export default function MostSignificantPage() {
     numSourceTables: number;
   };
   const [cpGroups, setCpGroups] = useState<CpGroup[]>([]);
-  const [datasetsLoading, setDatasetsLoading] = useState(true);
-  const [showToc, setShowToc] = useState(false);
-
-  useEffect(() => {
-    const mql = window.matchMedia("(min-width: 900px)");
-    setShowToc(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setShowToc(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
+  type DatasetTableMeta = {
+    tableName: string;
+    shortLabel: string | null;
+    mediumLabel: string | null;
+    longLabel: string | null;
+    pvalueColumn: string | null;
+    fdrColumn: string | null;
+    assay: string[] | null;
+    disease: string[] | null;
+  };
+  const [datasetTables, setDatasetTables] = useState<DatasetTableMeta[]>([]);
 
   useEffect(() => {
     fetch("/api/dataset-tables-with-pvalues")
@@ -426,16 +296,13 @@ export default function MostSignificantPage() {
         return r.json();
       })
       .then((data) => {
-        setDatasetTables(data.tables);
         setAssayTypeLabels(data.assayTypeLabels ?? {});
         setDiseaseTypeLabels(data.diseaseTypeLabels ?? {});
         setCpGroups(data.combinedPvalueGroups ?? []);
-        setDatasetsLoading(false);
+        setDatasetTables(data.tables ?? []);
       })
-      .catch(() => setDatasetsLoading(false));
+      .catch(() => {});
   }, []);
-
-  const tocGroups = useAssayGroups(datasetTables, assayTypeLabels);
 
   const selectedMethod =
     METHOD_DESCRIPTIONS.find((m) => m.key === method) ?? METHOD_DESCRIPTIONS[0];
@@ -465,9 +332,9 @@ export default function MostSignificantPage() {
       .then((data) => {
         setRows(data.rows);
         setTotalRows(data.totalRows);
-        setNoTableMessage(
+        setNoTable(
           data.noTable
-            ? (data.message ?? "No data available for this combination.")
+            ? { numSourceTables: data.numSourceTables ?? 0 }
             : null,
         );
         setLoading(false);
@@ -544,7 +411,7 @@ export default function MostSignificantPage() {
       `}</style>
       <main
         style={{
-          maxWidth: showToc ? 1200 : 1000,
+          maxWidth: 1000,
           margin: "0 auto",
           padding: "24px 16px",
           color: "#1f2937",
@@ -568,6 +435,14 @@ export default function MostSignificantPage() {
           validation, or pathway enrichment. Use the method selector below to
           compare how rankings change depending on the statistical combination
           approach.
+        </p>
+        <p style={{ marginBottom: 20 }}>
+          <Link
+            href="/significant-rows"
+            style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}
+          >
+            Browse significant rows (&lt; 0.05) by individual dataset &rarr;
+          </Link>
         </p>
 
         {/* Method selector */}
@@ -753,6 +628,49 @@ export default function MostSignificantPage() {
               </div>
             ) : null;
           })()}
+
+        {/* Datasets included in current filter */}
+        {(() => {
+          const filtered = datasetTables.filter((t) => {
+            if (!t.pvalueColumn) return false;
+            if (assayFilter && !(t.assay ?? []).includes(assayFilter))
+              return false;
+            if (diseaseFilter && !(t.disease ?? []).includes(diseaseFilter))
+              return false;
+            return true;
+          });
+          if (filtered.length === 0) return null;
+          const formatName = (t: DatasetTableMeta) =>
+            t.mediumLabel ??
+            t.tableName
+              .replace(/_/g, " ")
+              .replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+          return (
+            <div
+              style={{
+                marginBottom: 12,
+                fontSize: 13,
+                color: "#6b7280",
+                lineHeight: 1.6,
+              }}
+            >
+              <span style={{ fontWeight: 600, color: "#374151" }}>
+                {filtered.length} dataset{filtered.length !== 1 ? "s" : ""} included:
+              </span>{" "}
+              {filtered.map((t, i) => (
+                <span key={t.tableName}>
+                  {i > 0 && ", "}
+                  <Link
+                    href={`/all-datasets?select=${encodeURIComponent(t.shortLabel ? t.shortLabel.replace(/\s+/g, "_") : t.tableName)}`}
+                    style={{ color: "#2563eb", textDecoration: "none" }}
+                  >
+                    {formatName(t)}
+                  </Link>
+                </span>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Gene selection filter box */}
         <div
@@ -972,8 +890,8 @@ export default function MostSignificantPage() {
           </div>
         </div>
 
-        {/* No-table message for invalid assay×disease combinations */}
-        {noTableMessage && !loading && (
+        {/* No-table message for invalid assay\u00D7disease combinations */}
+        {noTable && !loading && (
           <div
             style={{
               padding: "16px 20px",
@@ -985,12 +903,25 @@ export default function MostSignificantPage() {
               fontSize: 14,
             }}
           >
-            {noTableMessage}
+            {noTable.numSourceTables === 1 ? (
+              <>
+                Only one dataset matches this combination — no meta-analysis
+                needed.{" "}
+                <Link
+                  href="/significant-rows"
+                  style={{ color: "#92400e", fontWeight: 600 }}
+                >
+                  Browse individual dataset results &rarr;
+                </Link>
+              </>
+            ) : (
+              "No datasets match this combination."
+            )}
           </div>
         )}
 
         {/* Ranked genes table */}
-        <div
+        {!noTable && <div
           id="ranked-genes-table"
           style={{
             background: "#ffffff",
@@ -1258,29 +1189,8 @@ export default function MostSignificantPage() {
               />
             </div>
           )}
-        </div>
+        </div>}
 
-        {/* Link to significant rows page */}
-        <div
-          style={{
-            padding: "16px 20px",
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            fontSize: 14,
-          }}
-        >
-          <Link
-            href="/significant-rows"
-            style={{
-              color: "#2563eb",
-              textDecoration: "none",
-              fontWeight: 500,
-            }}
-          >
-            Browse significant rows (&lt; 0.05) by individual dataset &rarr;
-          </Link>
-        </div>
       </main>
       <Footer />
     </>

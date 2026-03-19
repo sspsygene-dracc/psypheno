@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import DataTable from "@/components/DataTable";
 import DatasetToc, { useAssayGroups } from "@/components/DatasetToc";
 import Header from "@/components/Header";
@@ -11,6 +12,8 @@ const PAGE_SIZE = 10;
 type DatasetTableMeta = {
   tableName: string;
   shortLabel: string | null;
+  mediumLabel: string | null;
+  longLabel: string | null;
   pvalueColumn: string | null;
   fdrColumn: string | null;
   assay: string[] | null;
@@ -27,8 +30,8 @@ type DatasetSigResult = {
   page: number;
 };
 
-const formatTableName = (tableName: string, shortLabel: string | null) =>
-  shortLabel ??
+const formatTableName = (tableName: string, mediumLabel: string | null) =>
+  mediumLabel ??
   tableName
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
@@ -225,7 +228,7 @@ function DatasetSection({
           alignItems: "center",
         }}
       >
-        <span>{formatTableName(meta.tableName, meta.shortLabel)}</span>
+        <span>{formatTableName(meta.tableName, meta.mediumLabel)}</span>
         {result && (
           <span style={{ fontSize: 13, fontWeight: 400, color: "#6b7280" }}>
             {result.totalRows} significant row
@@ -285,6 +288,17 @@ export default function SignificantRowsPage() {
   const [diseaseFilter, setDiseaseFilter] = useState<string | null>(null);
   const [datasetsLoading, setDatasetsLoading] = useState(true);
   const [showToc, setShowToc] = useState(false);
+  const router = useRouter();
+
+  // Initialize filters from URL query params on first load
+  const [initializedFromUrl, setInitializedFromUrl] = useState(false);
+  useEffect(() => {
+    if (!router.isReady || initializedFromUrl) return;
+    const { assay, disease } = router.query;
+    if (typeof assay === "string") setAssayFilter(assay);
+    if (typeof disease === "string") setDiseaseFilter(disease);
+    setInitializedFromUrl(true);
+  }, [router.isReady, initializedFromUrl, router.query]);
 
   useEffect(() => {
     const mql = window.matchMedia("(min-width: 900px)");

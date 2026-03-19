@@ -8,7 +8,7 @@ import GeneSignificanceSummary from "@/components/GeneSignificanceSummary";
 import { ROW_LIMIT } from "@/lib/gene-query";
 
 const formatTableName = (section: TableResult) =>
-  section.shortLabel ??
+  section.mediumLabel ??
   section.tableName
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));

@@ -16,7 +16,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
-    shortLabel: SFARI Animal Model Genes
+    shortLabel: sfari_animal_model_genes
+    mediumLabel: SFARI Animal Model Genes
     longLabel: SFARI Gene animal model evidence for autism genes
     description:
       Curated animal model data for autism spectrum disorder candidate genes from SFARI Gene
@@ -51,7 +52,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
-    shortLabel: SFARI Animal Rescue Models
+    shortLabel: sfari_animal_rescue_models
+    mediumLabel: SFARI Animal Rescue Models
     longLabel: SFARI Gene animal rescue experiment data
     description:
       Curated rescue experiment data showing genetic or pharmacological interventions that ameliorate
@@ -87,7 +89,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
-    shortLabel: SFARI Human Gene Scores
+    shortLabel: sfari_human_gene_scores
+    mediumLabel: SFARI Human Gene Scores
     longLabel: SFARI Gene human genetic evidence and scoring
     description:
       Curated human genetic evidence for autism spectrum disorder candidate genes with assigned
