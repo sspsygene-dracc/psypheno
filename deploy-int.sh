@@ -5,8 +5,8 @@
 # Run this script directly on hgwdev or psygene.
 #
 # Usage:
-#   ./deploy-int.sh              # pull + build + restart
-#   ./deploy-int.sh --load-db    # pull + rebuild database + build + restart
+#   ./deploy-int.sh              # pull + restart
+#   ./deploy-int.sh --load-db    # pull + rebuild database + restart
 #
 # The internal instance is a separate copy of the site used for pre-publication
 # data. It runs on port 3111 at https://psypheno-int.gi.ucsc.edu.
@@ -63,14 +63,8 @@ if [ "$LOAD_DB" = true ]; then
     echo
 fi
 
-# Step 3: Build the web application
-log "Building web application..."
-cd "${SITE_PATH}/web"
-npm run build
-echo
-
-# Step 4: Restart the service
-log "Restarting ${SERVICE_NAME} ... (needs sudo)"
+# Step 3: Restart the service
+log "Restarting ${SERVICE_NAME}... (needs sudo)"
 sudo /usr/bin/systemctl restart "$SERVICE_NAME"
 
 echo

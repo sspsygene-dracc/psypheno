@@ -597,12 +597,10 @@ You only need to do this once you're confident everything is correct.
 
 ### 5d. Check the website
 
-After loading the database, rebuild and restart the internal web app to see
-your changes:
+After loading the database, restart the internal web server so it picks up
+the new database:
 
 ```bash
-cd /hive/groups/SSPsyGene/sspsygene_website_int/web
-npm run build
 sudo systemctl restart sspsygene-int
 ```
 
@@ -717,8 +715,7 @@ cd /hive/groups/SSPsyGene/sspsygene_website_int
 This will:
 1. `git pull` the latest code
 2. Rebuild the database (this takes a while)
-3. Run `npm run build` to rebuild the web app
-4. Restart the `sspsygene-int` systemd service
+3. Restart the `sspsygene-int` systemd service
 
 After it finishes, verify your dataset at https://psypheno-int.gi.ucsc.edu.
 
@@ -806,7 +803,6 @@ system administrator if you don't have access.
 | Load single dataset (fast test) | `sspsygene load-db --dataset NAME` |
 | Load all datasets, skip slow steps | `sspsygene load-db --no-index --skip-meta-analysis` |
 | Load all datasets (production) | `sspsygene load-db` |
-| Start dev server | `cd web && npm run dev` |
 | Deploy to internal (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website_int && ./deploy-int.sh --load-db` |
 | Deploy to production (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website && ./deploy-prod.sh --load-db` |
 

@@ -4,6 +4,7 @@ Analyzes git commits touching config-related files since a given date,
 then launches two parallel Claude CLI agents:
 1. Email agent — drafts a summary email for wranglers
 2. Docs agent — suggests updates to docs/adding-datasets.md
+3. Dev docs agent — suggests updates to development.md
 """
 
 import concurrent.futures
@@ -84,6 +85,34 @@ GIT CHANGES:
 
 CURRENT docs/adding-datasets.md CONTENT:
 {wranglers_md}
+"""
+
+DEV_DOCS_PROMPT_TEMPLATE = """\
+You are an assistant helping maintain the SSPSyGene neuropsychiatric genetics \
+data platform. development.md is the developer-facing documentation covering \
+setup, architecture, and workflows.
+
+Below are:
+1. Git commits and diffs touching config-related files since {since_date}
+2. The current contents of development.md
+
+Your job is to suggest specific updates to development.md so the documentation \
+stays accurate and up-to-date with any changes to config loading, processing \
+pipeline behavior, config.yaml schema, or development workflows.
+
+IMPORTANT GUIDELINES:
+- Focus on ensuring the documentation matches the CURRENT state after the changes.
+- Show your suggestions as concrete text — either a unified diff or rewritten \
+sections with clear markers for what to add/remove/change.
+- If development.md is empty or doesn't exist yet, write a complete initial \
+draft based on what you can infer from the diffs and commit messages.
+- If no documentation changes are needed, say so clearly.
+
+GIT CHANGES:
+{changes}
+
+CURRENT development.md CONTENT:
+{dev_md}
 """
 
 
@@ -177,13 +206,26 @@ def run_docs_agent(
     changes: str, since_date: str, wranglers_md: str,
     repo_root: Path, timeout: int
 ) -> str:
-    """Launch the docs-suggestion agent."""
+    """Launch the adding-datasets docs-suggestion agent."""
     prompt = DOCS_PROMPT_TEMPLATE.format(
         since_date=since_date,
         changes=changes,
         wranglers_md=wranglers_md if wranglers_md else "(file does not exist yet)",
     )
     return run_claude_agent(prompt, repo_root, timeout, "DOCS")
+
+
+def run_dev_docs_agent(
+    changes: str, since_date: str, dev_md: str,
+    repo_root: Path, timeout: int
+) -> str:
+    """Launch the development.md docs-suggestion agent."""
+    prompt = DEV_DOCS_PROMPT_TEMPLATE.format(
+        since_date=since_date,
+        changes=changes,
+        dev_md=dev_md if dev_md else "(file does not exist yet)",
+    )
+    return run_claude_agent(prompt, repo_root, timeout, "DEV-DOCS")
 
 
 def load_last_notified_date(state_file: Path) -> str | None:
@@ -224,24 +266,33 @@ def run_notify(
         print("No config-related changes found in the given period.")
         return
 
-    # 3. Read docs/adding-datasets.md if it exists
+    # 3. Read doc files if they exist
     wranglers_path = repo_root / "docs/adding-datasets.md"
     wranglers_md = ""
     if wranglers_path.exists():
         wranglers_md = wranglers_path.read_text()
 
-    # 4. Launch both agents in parallel
-    print("Launching email and docs agents in parallel...")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    dev_docs_path = repo_root / "development.md"
+    dev_md = ""
+    if dev_docs_path.exists():
+        dev_md = dev_docs_path.read_text()
+
+    # 4. Launch all three agents in parallel
+    print("Launching email, docs, and dev-docs agents in parallel...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         email_future = executor.submit(
             run_email_agent, changes, since_date, repo_root, timeout
         )
         docs_future = executor.submit(
             run_docs_agent, changes, since_date, wranglers_md, repo_root, timeout
         )
+        dev_docs_future = executor.submit(
+            run_dev_docs_agent, changes, since_date, dev_md, repo_root, timeout
+        )
 
         email_result = email_future.result()
         docs_result = docs_future.result()
+        dev_docs_result = dev_docs_future.result()
 
     # 5. Write outputs
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -253,6 +304,10 @@ def run_notify(
     docs_path = output_dir / "adding-datasets_suggestions.md"
     docs_path.write_text(docs_result)
     print(f"Doc suggestions written to: {docs_path}")
+
+    dev_docs_out = output_dir / "development_suggestions.md"
+    dev_docs_out.write_text(dev_docs_result)
+    print(f"Dev doc suggestions written to: {dev_docs_out}")
 
     # 6. Save state
     save_last_notified_date(STATE_FILE)
