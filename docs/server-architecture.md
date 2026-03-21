@@ -48,15 +48,43 @@ unused leftover from an earlier configuration.
     (same structure)
 ```
 
-The systemd service files reference these directories:
+There is also a symlink `/cluster/home/jbirgmei/sspsygene_website` →
+`/hive/groups/SSPsyGene/sspsygene_website`. The systemd service files use the
+`/cluster/home/...` path for prod/dev; both resolve to the same directory.
 
-- `sspsygene.service` (prod) and `sspsygene-dev.service` (dev):
-  `WorkingDirectory=/cluster/home/jbirgmei/sspsygene_website/web`
-- `sspsygene-int.service` (int):
-  `WorkingDirectory=/hive/groups/SSPsyGene/sspsygene_website_int/web`
+### Systemd service configuration
 
-The DB path for each instance is configured via the `SSPSYGENE_DATA_DB`
-environment variable in the respective systemd service file.
+All three service files live in `/etc/systemd/system/` on psygene:
+
+**sspsygene.service (prod):**
+```ini
+ExecStart=/usr/bin/npm start -- --port 3110
+WorkingDirectory=/cluster/home/jbirgmei/sspsygene_website/web
+User=jbirgmei
+Environment=SSPSYGENE_DATA_DB=/cluster/home/jbirgmei/sspsygene_website/data/db/sspsygene.db
+Environment=NODE_ENV=production
+Restart=always
+```
+
+**sspsygene-dev.service (dev):**
+```ini
+ExecStart=/usr/bin/npm start -- --port 3112
+WorkingDirectory=/cluster/home/jbirgmei/sspsygene_website/web
+User=jbirgmei
+Environment=SSPSYGENE_DATA_DB=/cluster/home/jbirgmei/sspsygene_website/data/db/sspsygene.db
+Environment=NODE_ENV=production
+Restart=always
+```
+
+**sspsygene-int.service (int):**
+```ini
+ExecStart=/usr/bin/npm start -- --port 3111
+WorkingDirectory=/hive/groups/SSPsyGene/sspsygene_website_int/web
+User=jbirgmei
+Environment=SSPSYGENE_DATA_DB=/hive/groups/SSPsyGene/sspsygene_website_int/data/db/sspsygene.db
+Environment=NODE_ENV=production
+Restart=always
+```
 
 ## Machines
 

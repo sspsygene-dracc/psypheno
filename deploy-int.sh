@@ -70,7 +70,7 @@ npm run build
 echo
 
 # Step 4: Restart the service
-log "Restarting ${SERVICE_NAME}..."
+log "Restarting ${SERVICE_NAME} ... (needs sudo)"
 sudo /usr/bin/systemctl restart "$SERVICE_NAME"
 
 echo

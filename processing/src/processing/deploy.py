@@ -29,7 +29,7 @@ PROD_ENV = {
 INT_ENV = {
     "SSPSYGENE_CONFIG_JSON": f"{INT_PATH}/processing/src/processing/config.json",
     "SSPSYGENE_DATA_DIR": f"{INT_PATH}/data",
-    "SSPSYGENE_DATA_DB": "/cluster/home/jbirgmei/sspsygene_website_int/data/db/sspsygene.db",
+    "SSPSYGENE_DATA_DB": f"{INT_PATH}/data/db/sspsygene.db",
 }
 
 CONDA_ENV = "sspsygene"

@@ -70,7 +70,7 @@ npm run build
 echo
 
 # Step 4: Restart both prod and dev services (they share the same code/data)
-log "Restarting sspsygene (prod) and sspsygene-dev (dev)..."
+log "Restarting sspsygene (prod) and sspsygene-dev (dev) ... (needs sudo)"
 sudo /usr/bin/systemctl restart sspsygene
 sudo /usr/bin/systemctl restart sspsygene-dev
 
