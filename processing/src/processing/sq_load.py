@@ -455,6 +455,7 @@ def load_db(
     data_dir: Path | None = None,
     skip_gene_descriptions: bool = False,
     nimh_csv_path: Path | None = None,
+    skip_meta_analysis: bool = False,
 ) -> None:
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
@@ -471,6 +472,7 @@ def load_db(
         load_disease_types(conn, disease_types or {})
         if data_dir and not skip_gene_descriptions:
             copy_gene_descriptions(conn, data_dir, no_index=no_index)
-        compute_combined_pvalues(conn, hgnc_path=hgnc_path, no_index=no_index, nimh_csv_path=nimh_csv_path)
+        if not skip_meta_analysis:
+            compute_combined_pvalues(conn, hgnc_path=hgnc_path, no_index=no_index, nimh_csv_path=nimh_csv_path)
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)

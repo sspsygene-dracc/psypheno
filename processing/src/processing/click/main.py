@@ -1,6 +1,7 @@
 import logging
 import sys
 import shutil
+from pathlib import Path
 
 import click
 
@@ -64,11 +65,18 @@ def cli(
     default=False,
     help="Skip copying gene descriptions into the database.",
 )
+@click.option(
+    "--skip-meta-analysis",
+    is_flag=True,
+    default=False,
+    help="Skip computing combined p-values (meta-analysis). Speeds up loading for test purposes.",
+)
 def load_db(
     dataset: str | None,
     skip_missing_datasets: bool,
     no_index: bool,
     skip_gene_descriptions: bool,
+    skip_meta_analysis: bool,
 ) -> None:
     """Load the database"""
     try:
@@ -87,6 +95,7 @@ def load_db(
             data_dir=config.base_dir,
             skip_gene_descriptions=skip_gene_descriptions,
             nimh_csv_path=config.gene_map_config.nimh_gene_list_file,
+            skip_meta_analysis=skip_meta_analysis,
         )
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
@@ -215,6 +224,39 @@ def deploy(
         int_only=int_only,
         no_restart=no_restart,
     )
+
+
+@cli.command(name="notify-wranglers")
+@click.option(
+    "--since",
+    type=str,
+    default=None,
+    help="ISO date (YYYY-MM-DD) to look for changes from. "
+    "Defaults to last notification date, or fails if no prior run.",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(path_type=Path),
+    default=Path("notify-output"),
+    show_default=True,
+    help="Directory to write email draft and doc suggestions.",
+)
+@click.option(
+    "--timeout",
+    type=int,
+    default=300,
+    show_default=True,
+    help="Timeout in seconds per Claude agent.",
+)
+def notify_wranglers(since: str | None, output_dir: Path, timeout: int) -> None:
+    """Draft a wrangler notification email and doc updates using Claude agents."""
+    from processing.notify_wranglers import run_notify
+
+    try:
+        run_notify(since=since, output_dir=output_dir, timeout=timeout)
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 @cli.command(name="generate-llm-config")
