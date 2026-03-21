@@ -23,7 +23,10 @@ to the corresponding localhost port (with SSL termination).
 
 - **Prod and dev are identical.** They share the same WorkingDirectory and
   database (`sspsygene_website`). The dev instance exists as a separate URL
-  for testing convenience, but serves the exact same code and data as prod.
+  on a different port, but serves the exact same code and data as prod. (The
+  three-instance setup with a separate dev URL was requested by the wranglers
+  team.) Because they share everything, `deploy-prod.sh` always restarts
+  **both** the `sspsygene` and `sspsygene-dev` services.
 - **Internal (int) is separate.** It has its own code checkout and database
   (`sspsygene_website_int`). It is password-protected via Apache basic auth
   and intended for consortium-internal, pre-publication data.

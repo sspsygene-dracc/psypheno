@@ -3,7 +3,7 @@
 Analyzes git commits touching config-related files since a given date,
 then launches two parallel Claude CLI agents:
 1. Email agent — drafts a summary email for wranglers
-2. Docs agent — suggests updates to WRANGLERS.md
+2. Docs agent — suggests updates to docs/adding-datasets.md
 """
 
 import concurrent.futures
@@ -60,13 +60,13 @@ GIT CHANGES:
 DOCS_PROMPT_TEMPLATE = """\
 You are an assistant helping maintain the SSPSyGene neuropsychiatric genetics \
 data platform. Data wranglers maintain config.yaml files for datasets, and \
-WRANGLERS.md is their reference documentation.
+docs/adding-datasets.md is their reference documentation.
 
 Below are:
 1. Git commits and diffs touching config-related files since {since_date}
-2. The current contents of WRANGLERS.md
+2. The current contents of docs/adding-datasets.md
 
-Your job is to suggest specific updates to WRANGLERS.md so the documentation \
+Your job is to suggest specific updates to docs/adding-datasets.md so the documentation \
 stays accurate and up-to-date with the current config.yaml schema.
 
 IMPORTANT GUIDELINES:
@@ -74,7 +74,7 @@ IMPORTANT GUIDELINES:
 the changes.
 - Show your suggestions as concrete text — either a unified diff or rewritten \
 sections with clear markers for what to add/remove/change.
-- If WRANGLERS.md is empty or doesn't exist yet, write a complete initial \
+- If docs/adding-datasets.md is empty or doesn't exist yet, write a complete initial \
 draft documenting the config.yaml format based on what you can infer from the \
 diffs and commit messages.
 - If no documentation changes are needed, say so clearly.
@@ -82,7 +82,7 @@ diffs and commit messages.
 GIT CHANGES:
 {changes}
 
-CURRENT WRANGLERS.MD CONTENT:
+CURRENT docs/adding-datasets.md CONTENT:
 {wranglers_md}
 """
 
@@ -224,8 +224,8 @@ def run_notify(
         print("No config-related changes found in the given period.")
         return
 
-    # 3. Read WRANGLERS.md if it exists
-    wranglers_path = repo_root / "WRANGLERS.md"
+    # 3. Read docs/adding-datasets.md if it exists
+    wranglers_path = repo_root / "docs/adding-datasets.md"
     wranglers_md = ""
     if wranglers_path.exists():
         wranglers_md = wranglers_path.read_text()
@@ -250,7 +250,7 @@ def run_notify(
     email_path.write_text(email_result)
     print(f"Email draft written to: {email_path}")
 
-    docs_path = output_dir / "wranglers_md_suggestions.md"
+    docs_path = output_dir / "adding-datasets_suggestions.md"
     docs_path.write_text(docs_result)
     print(f"Doc suggestions written to: {docs_path}")
 

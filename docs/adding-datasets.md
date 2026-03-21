@@ -256,9 +256,13 @@ tables:
                                     # Use the column name EXACTLY as it appears
                                     # in your CSV/TSV header.
                                     # Can also be a list: [pvalue, pval_interaction]
+                                    #
+                                    # OPTIONAL — omit this line entirely if your
+                                    # data does not have a p-value column.
 
     fdr_column: padj                # Which column contains the FDR-adjusted p-value.
                                     # Same rules as pvalue_column.
+                                    # Also optional — omit if not applicable.
 
     # --- Gene mappings (CRITICAL — read carefully) ---
 
@@ -354,8 +358,8 @@ tables:
     in_path: results.csv
     separator: ","
     split_column_map: []
-    pvalue_column: pvalue
-    fdr_column: padj
+    pvalue_column: pvalue            # omit if no p-value column
+    fdr_column: padj                 # omit if no FDR column
     gene_mappings:
       - column_name: gene
         link_table_name: gene
@@ -506,10 +510,31 @@ This keeps the original column and adds two new columns.
 Testing is done on the server (hgwdev or psygene). You'll use the **internal
 (int)** instance to test — that's what it's for.
 
-### Set up your environment
+### One-time setup: install conda and the `sspsygene` CLI
 
-Before running any `sspsygene` commands, you need to activate the conda
-environment and set the environment variables. SSH into the server and run:
+If you haven't set up conda on hgwdev yet, you need to do this once. Install
+Miniconda by following the official instructions:
+https://docs.conda.io/en/latest/miniconda.html
+
+Then create the `sspsygene` environment and install the processing pipeline:
+
+```bash
+# Create a new conda environment with Python 3.13
+conda create -n sspsygene python=3.13
+conda activate sspsygene
+
+# Install the sspsygene CLI tool (from the repo's processing directory)
+cd /hive/groups/SSPsyGene/sspsygene_website_int/processing
+pip install -e .
+```
+
+The `pip install -e .` command installs the `sspsygene` command-line tool in
+"editable" mode, meaning it always uses the current code in the repo. You only
+need to run this once (or again if dependencies change in `pyproject.toml`).
+
+### Set up your environment (every session)
+
+Each time you SSH in, you need to activate conda and set environment variables:
 
 ```bash
 ssh hgwdev
@@ -665,10 +690,12 @@ details):
 |----------|-----|---------|
 | **Internal (int)** | https://psypheno-int.gi.ucsc.edu | Staging / pre-publication data |
 | **Production (prod)** | https://psypheno.gi.ucsc.edu | Public-facing site |
-| **Dev** | https://psypheno-dev.gi.ucsc.edu | Mirror of production (auto-updated with prod) |
+| **Dev** | https://psypheno-dev.gi.ucsc.edu | Identical mirror of prod (same code and data, different port) |
 
-Prod and dev share the same code and data — deploying to prod automatically
-updates dev too.
+Prod and dev share the same code, data, and database — they are the exact same
+site on different URLs. The `deploy-prod.sh` script automatically restarts
+**both** the prod and dev services, so you never need to deploy to dev
+separately.
 
 ### Prerequisites
 
@@ -707,9 +734,11 @@ cd /hive/groups/SSPsyGene/sspsygene_website
 ```
 
 This restarts both the `sspsygene` (prod) and `sspsygene-dev` (dev) services,
-since they share the same code and data.
+since they share the same code and data. There is no separate deploy step for
+dev — it is always updated together with prod.
 
-After it finishes, verify at https://psypheno.gi.ucsc.edu/.
+After it finishes, verify at https://psypheno.gi.ucsc.edu/ (or equivalently
+at https://psypheno-dev.gi.ucsc.edu/ — both show the same thing).
 
 ### Deploy without reloading the database
 
