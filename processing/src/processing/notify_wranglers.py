@@ -26,7 +26,9 @@ CONFIG_PATHS = [
     "data/datasets/globals.yaml",
     "processing/src/processing/config.py",
     "processing/src/processing/types/*.py",
-    "WRANGLERS.md",
+    "docs/adding-datasets.md",
+    "server-architecture.md",
+    "development.md",
     "README.md",
 ]
 
