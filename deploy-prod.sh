@@ -5,8 +5,8 @@
 # Run this script directly on hgwdev or psygene.
 #
 # Usage:
-#   ./deploy-prod.sh              # pull + build + restart
-#   ./deploy-prod.sh --load-db    # pull + rebuild database + build + restart
+#   ./deploy-prod.sh              # pull + restart
+#   ./deploy-prod.sh --load-db    # pull + rebuild database + restart
 #
 # The production instance runs on port 3110 at https://psypheno.gi.ucsc.edu.
 # The dev instance (port 3112, psypheno-dev.gi.ucsc.edu) shares the same code
@@ -63,14 +63,8 @@ if [ "$LOAD_DB" = true ]; then
     echo
 fi
 
-# Step 3: Build the web application
-log "Building web application..."
-cd "${SITE_PATH}/web"
-npm run build
-echo
-
-# Step 4: Restart both prod and dev services (they share the same code/data)
-log "Restarting sspsygene (prod) and sspsygene-dev (dev) ... (needs sudo)"
+# Step 3: Restart both prod and dev services (they share the same code/data)
+log "Restarting sspsygene (prod) and sspsygene-dev (dev)... (needs sudo)"
 sudo /usr/bin/systemctl restart sspsygene
 sudo /usr/bin/systemctl restart sspsygene-dev
 
