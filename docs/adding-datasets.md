@@ -572,7 +572,7 @@ If this fails, read the error message carefully. Common errors:
 
 Fix the error and try again until this step passes.
 
-### 5b. Load the full database without slow steps (~5 minutes)
+### 5b. Load the full database without slow steps
 
 Once your single dataset loads, try loading ALL datasets together. Use these
 flags to skip the slow parts (index creation and meta-analysis):
@@ -584,7 +584,7 @@ sspsygene load-db --no-index --skip-meta-analysis
 This checks that your dataset doesn't conflict with any other dataset (e.g.
 duplicate table names). If this works, move on.
 
-### 5c. Load the full database (slow — ~15-30 minutes)
+### 5c. Load the full database (slow)
 
 This is the production-ready load with all indexes and meta-analysis:
 
