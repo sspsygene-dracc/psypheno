@@ -101,7 +101,11 @@ def load_gene_tables(
                 if entry.mouse_mgi_accession_ids
                 else None
             ),
-            ",".join(str(x) for x in entry.mouse_ensembl_genes) if entry.mouse_ensembl_genes else None,
+            (
+                ",".join(str(x) for x in entry.mouse_ensembl_genes)
+                if entry.mouse_ensembl_genes
+                else None
+            ),
             ",".join(human_synonyms) if entry.human_synonyms else None,
             ",".join(mouse_synonyms) if entry.mouse_synonyms else None,
             ",".join(entry.dataset_names) if entry.dataset_names else None,
@@ -214,20 +218,27 @@ def load_data_tables(
     for table_config in table_configs:
         if not table_config.in_path.exists():
             if skip_missing:
-                click.echo(click.style(
-                    f"Warning: Skipping table '{table_config.table}': "
-                    f"file not found: {table_config.in_path}",
-                    fg="yellow", bold=True,
-                ))
+                click.echo(
+                    click.style(
+                        f"Warning: Skipping table '{table_config.table}': "
+                        f"file not found: {table_config.in_path}",
+                        fg="yellow",
+                        bold=True,
+                    )
+                )
                 skipped.append(table_config.table)
                 continue
             else:
-                click.echo(click.style(
-                    f"Error: File not found for table '{table_config.table}': "
-                    f"{table_config.in_path}\n"
-                    "Hint: use --skip-missing-datasets to skip missing files.",
-                    fg="red", bold=True,
-                ), err=True)
+                click.echo(
+                    click.style(
+                        f"Error: File not found for table '{table_config.table}': "
+                        f"{table_config.in_path}\n"
+                        "Hint: use --skip-missing-datasets to skip missing files.",
+                        fg="red",
+                        bold=True,
+                    ),
+                    err=True,
+                )
                 sys.exit(1)
         data_and_meta = table_config.load_data_table()
         loaded.append(table_config.table)
@@ -236,15 +247,16 @@ def load_data_tables(
         )
         for link_table in data_and_meta.link_tables:
             link_table.write_to_sqlite(conn)
-            create_indexes(conn, link_table.link_table_name, ["central_gene_id"], skip=no_index)
+            create_indexes(
+                conn, link_table.link_table_name, ["central_gene_id"], skip=no_index
+            )
         assert "id" in data_and_meta.data.columns, "id column not found in data"
         create_indexes(conn, table_config.table, ["id"], skip=no_index)
 
         # Only store field labels for columns that actually exist in the table
         display_col_set = set(data_and_meta.display_columns)
         filtered_field_labels = {
-            k: v for k, v in table_config.field_labels.items()
-            if k in display_col_set
+            k: v for k, v in table_config.field_labels.items() if k in display_col_set
         }
 
         cur.execute(
@@ -272,9 +284,7 @@ def load_data_tables(
                     for link_table in data_and_meta.link_tables
                 ),
                 ",".join(table_config.links) if table_config.links else None,
-                ",".join(table_config.categories)
-                if table_config.categories
-                else None,
+                ",".join(table_config.categories) if table_config.categories else None,
                 table_config.source,
                 ",".join(table_config.assay) if table_config.assay else None,
                 ",".join(table_config.disease) if table_config.disease else None,
@@ -333,7 +343,9 @@ def load_data_tables(
         divider = f"+-{'-' * name_width}-+-{'-' * status_width}-+"
         click.echo("")
         click.echo(divider)
-        click.echo(f"| {header_table:<{name_width}} | {header_status:<{status_width}} |")
+        click.echo(
+            f"| {header_table:<{name_width}} | {header_status:<{status_width}} |"
+        )
         click.echo(divider)
         skipped_set = set(skipped)
         for table in all_tables:
@@ -352,9 +364,7 @@ def load_data_tables(
         )
 
 
-def load_assay_types(
-    conn: sqlite3.Connection, assay_types: dict[str, str]
-) -> None:
+def load_assay_types(conn: sqlite3.Connection, assay_types: dict[str, str]) -> None:
     cur = conn.cursor()
     cur.execute(
         """CREATE TABLE assay_types (
@@ -369,9 +379,7 @@ def load_assay_types(
     conn.commit()
 
 
-def load_disease_types(
-    conn: sqlite3.Connection, disease_types: dict[str, str]
-) -> None:
+def load_disease_types(conn: sqlite3.Connection, disease_types: dict[str, str]) -> None:
     cur = conn.cursor()
     cur.execute(
         """CREATE TABLE disease_types (
@@ -467,13 +475,21 @@ def load_db(
     db_name.unlink(missing_ok=True)
     with NewSqlite3(db_name, logger) as new_sqlite3:
         conn = new_sqlite3.conn
-        load_data_tables(conn, table_configs, skip_missing=skip_missing, no_index=no_index)
+        load_data_tables(
+            conn, table_configs, skip_missing=skip_missing, no_index=no_index
+        )
         load_gene_tables(conn, no_index=no_index)
         load_assay_types(conn, assay_types or {})
         load_disease_types(conn, disease_types or {})
         if data_dir and not skip_gene_descriptions:
             copy_gene_descriptions(conn, data_dir, no_index=no_index)
         if not skip_meta_analysis:
-            compute_combined_pvalues(conn, hgnc_path=hgnc_path, no_index=no_index, nimh_csv_path=nimh_csv_path, tf_list_path=tf_list_path)
+            compute_combined_pvalues(
+                conn,
+                hgnc_path=hgnc_path,
+                no_index=no_index,
+                nimh_csv_path=nimh_csv_path,
+                tf_list_path=tf_list_path,
+            )
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)
