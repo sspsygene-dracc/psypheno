@@ -16,10 +16,11 @@ on gene pages.
 2. [Create a dataset directory](#step-2-create-a-dataset-directory)
 3. [Preprocess the data](#step-3-preprocess-the-data-to-csvtsv)
 4. [Write config.yaml](#step-4-write-configyaml)
-5. [Test locally](#step-5-test-locally)
+5. [Test on the server](#step-5-test-on-the-server)
 6. [Commit to git](#step-6-commit-to-git)
 7. [Deploy](#step-7-deploy)
-8. [Troubleshooting](#troubleshooting)
+8. [Promoting a dataset from internal to production](#promoting-a-dataset-from-internal-to-production)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -39,10 +40,11 @@ Find the supplemental data for the paper you want to add. This is usually:
 - Which supplementary table or figure the data comes from
 - The full author list, journal name, and publication year
 
-**Do NOT commit the raw downloaded files to git.** Raw data files (especially
-Excel spreadsheets) are large and do not belong in the repository. Only your
-preprocessing script and the final processed CSV/TSV should be in the repo
-(and even the CSV/TSV may be gitignored if it's large — more on this later).
+**Do NOT commit raw downloaded files or processed data files to git.** Data
+files (especially Excel spreadsheets and large CSVs/TSVs) are large and do not
+belong in the repository. Only your preprocessing script and config files should
+be committed — the processed files are regenerated on the server by running
+your preprocessing script (see Step 6 for details).
 
 ---
 
@@ -304,16 +306,29 @@ tables:
     split_column_map: []            # Leave as empty list [] unless you need to
                                     # split a column. See "Advanced" section below.
 
-    # --- Custom field labels (optional) ---
+    # --- Custom field labels / column descriptions (optional) ---
+    #
+    # fieldLabels lets you add human-readable descriptions to columns.
+    # On the website, these appear as tooltip icons (ⓘ) next to column
+    # headers — hover over the icon to see the description.
+    #
+    # Use this to explain what non-obvious columns mean, what units
+    # they are in, or any other context a reader would need.
+    #
+    # KEY:   the column name, lowercased, with non-alphanumeric chars
+    #        replaced by underscores (e.g. "Log2(FC)" → "log2_fc_")
+    # VALUE: the description text shown in the tooltip
+    #
+    # Common columns already have global default labels defined in
+    # data/datasets/globals.yaml (pvalue, padj, fdr, logfc, basemean,
+    # cell_type, etc.). You only need to add fieldLabels for columns
+    # that are specific to your dataset or where the global default
+    # isn't descriptive enough. Per-table labels override the globals.
 
-    fieldLabels:                    # Override how column names are displayed on
-      cell_type: "Brain cell type"  # the website. The KEY is the column name
-                                    # (lowercased, non-alphanumeric chars replaced
-                                    # with underscores). The VALUE is the display label.
-                                    #
-                                    # Common columns already have default labels
-                                    # (pvalue, padj, logfc, etc.) — you only need
-                                    # to add labels for columns specific to your data.
+    fieldLabels:
+      cell_type: "Brain cell type"
+      hc_at_birth_sd_: "Head circumference at birth (standard deviations)"
+      lr: "Likelihood ratio test statistic"
 
     # --- Changelog (optional but recommended) ---
 
@@ -507,12 +522,12 @@ This keeps the original column and adds two new columns.
 
 ## Step 5: Test on the server
 
-Testing is done on the server (hgwdev or psygene). You'll use the **internal
+Testing is done on the server (psygene). You'll use the **internal
 (int)** instance to test — that's what it's for.
 
 ### One-time setup: install conda and the `sspsygene` CLI
 
-If you haven't set up conda on hgwdev yet, you need to do this once. Install
+If you haven't set up conda on psygene yet, you need to do this once. Install
 Miniconda by following the official instructions:
 https://docs.conda.io/en/latest/miniconda.html
 
@@ -537,7 +552,7 @@ need to run this once (or again if dependencies change in `pyproject.toml`).
 Each time you SSH in, you need to activate conda and set environment variables:
 
 ```bash
-ssh hgwdev
+ssh psygene
 cd /hive/groups/SSPsyGene/sspsygene_website_int
 
 # Activate conda
@@ -631,24 +646,34 @@ Then open https://psypheno-int.gi.ucsc.edu in your browser and:
 
 ### What about the processed CSV/TSV files?
 
-**You should generally commit the processed CSV/TSV files.** These are what the
-loading pipeline reads, and they need to be present on the server after
-`git pull`. If you don't commit them, they won't be available when you deploy.
+**You should generally NOT commit the processed CSV/TSV files.** Data files can
+be large and bloat the git repository. Since all server instances run on `/hive`
+(which is backed up), the processed files are safe on the filesystem without
+being in git.
 
-The exception is if your processed files are very large (over ~100 MB). In that
-case, add them to `.gitignore` and run your preprocessing script on the server
-after `git pull` (which means the raw data also needs to be accessible from the
-server, e.g. via a download script).
+Instead, run your preprocessing script on the server after `git pull` to
+regenerate the processed files. Make sure the raw data is accessible from the
+server (e.g. via a download URL in your preprocessing script).
+
+The exception is if your processed files are very small (under ~1 MB). In that
+case it's fine to commit them for convenience.
 
 ### Update .gitignore
 
-Add a `.gitignore` in your dataset directory to exclude raw downloads:
+Add a `.gitignore` in your dataset directory to exclude raw downloads and
+processed data files:
 
 ```bash
 # data/datasets/my-new-dataset/.gitignore
+
+# Raw downloads
 *.xlsx
 *.xls
 raw_download.csv
+
+# Processed data files (regenerated by preprocess.py)
+results.tsv
+results.csv
 ```
 
 ### Git commands
@@ -664,8 +689,8 @@ git add data/datasets/my-new-dataset/config.yaml
 git add data/datasets/my-new-dataset/preprocess.py
 git add data/datasets/my-new-dataset/.gitignore
 
-# 3. Do NOT add data files! If you see large CSV/TSV/Excel files in
-#    "git status", make sure they're in .gitignore.
+# 3. Do NOT add data files (CSV/TSV/Excel)! These should be in .gitignore.
+#    Only commit config.yaml, preprocess.py, and small reference files.
 
 # 4. Commit with a descriptive message
 git commit -m "Add my-new-dataset: DEGs from Smith et al. 2026"
@@ -697,7 +722,7 @@ separately.
 
 ### Prerequisites
 
-- SSH access to `hgwdev` or `psygene`
+- SSH access to `psygene`
 - `sudo` access on `psygene` (needed to restart services)
 - The deployment scripts run directly on the server, not from your laptop
 
@@ -716,6 +741,11 @@ This will:
 1. `git pull` the latest code
 2. Rebuild the database (this takes a while)
 3. Restart the `sspsygene-int` systemd service
+
+**Important:** Before deploying, make sure the processed data files exist on the
+server. Since processed CSV/TSV files are not committed to git, you need to run
+your preprocessing script on the server first (the raw data or a download URL
+must be accessible from the server).
 
 After it finishes, verify your dataset at https://psypheno-int.gi.ucsc.edu.
 
@@ -745,6 +775,70 @@ If you only changed code (not data), you can deploy without `--load-db`:
 ./deploy-int.sh       # code-only deploy to internal
 ./deploy-prod.sh      # code-only deploy to production
 ```
+
+---
+
+## Promoting a dataset from internal to production
+
+The internal (int) and production (prod) instances have **separate data
+directories** on `/hive`. When you're ready to make an internal-only dataset
+public, you need to copy the data files and rebuild the production database.
+
+### What needs to be copied
+
+The config.yaml and preprocessing script are shared via git — both instances
+pull from the same repo. But **processed data files** (CSV/TSV) are not in git,
+so they must be copied manually.
+
+### Step-by-step
+
+1. **Make sure the config.yaml and preprocess.py are committed and pushed:**
+
+   ```bash
+   git add data/datasets/my-dataset/config.yaml data/datasets/my-dataset/preprocess.py
+   git commit -m "Add my-dataset"
+   git push
+   ```
+
+2. **On the server (psygene), copy the dataset's data files from int to prod:**
+
+   ```bash
+   ssh psygene
+
+   # Copy the entire dataset directory (configs + data files)
+   rsync -av \
+     /hive/groups/SSPsyGene/sspsygene_website_int/data/datasets/my-dataset/ \
+     /hive/groups/SSPsyGene/sspsygene_website/data/datasets/my-dataset/
+   ```
+
+   This copies the processed CSV/TSV files that aren't in git. The config.yaml
+   will be overwritten with the same content (since both come from the same
+   repo), which is harmless.
+
+   Alternatively, if you prefer, you can re-run the preprocessing script in the
+   prod directory instead of copying:
+
+   ```bash
+   cd /hive/groups/SSPsyGene/sspsygene_website/data/datasets/my-dataset
+   python preprocess.py
+   ```
+
+3. **Pull latest code and deploy to production:**
+
+   ```bash
+   cd /hive/groups/SSPsyGene/sspsygene_website
+   ./deploy-prod.sh --load-db
+   ```
+
+4. **Verify** at https://psypheno.gi.ucsc.edu.
+
+### Important notes
+
+- **Do not skip the data file copy.** Running `deploy-prod.sh --load-db`
+  without the data files will cause the load to fail or silently skip the
+  dataset.
+- Prod and dev share the same directory, so copying to prod automatically
+  makes the data available on dev too.
 
 ---
 
@@ -784,7 +878,7 @@ that includes your dataset name as a prefix.
 
 ### "Permission denied" during deployment
 
-You need SSH access to the UCSC servers (hgwdev and psygene). Contact the
+You need SSH access to the UCSC servers (especially psygene). Contact the
 system administrator if you don't have access.
 
 ### The website doesn't show my dataset after deployment
