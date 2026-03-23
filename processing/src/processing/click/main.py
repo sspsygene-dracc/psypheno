@@ -95,6 +95,7 @@ def load_db(
             data_dir=config.base_dir,
             skip_gene_descriptions=skip_gene_descriptions,
             nimh_csv_path=config.gene_map_config.nimh_gene_list_file,
+            tf_list_path=config.gene_map_config.tf_list_file,
             skip_meta_analysis=skip_meta_analysis,
         )
     except ValueError as e:

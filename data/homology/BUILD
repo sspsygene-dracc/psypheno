@@ -4,3 +4,4 @@ wget 'https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/hgnc_com
 wget 'https://www.informatics.jax.org/downloads/reports/HGNC_AllianceHomology.rpt'
 wget 'https://zfin.org/downloads/human_orthos.txt'
 wget 'https://www.informatics.jax.org/downloads/reports/MGI_EntrezGene.rpt'
+wget 'https://humantfs.ccbr.utoronto.ca/download/v_1.01/DatabaseExtract_v_1.01.csv'

@@ -77,12 +77,27 @@ FLAG_LOCUS_GROUPS: dict[str, list[str]] = {
 }
 
 
-def _load_hgnc_gene_flags(hgnc_path: Path) -> dict[str, str]:
+def _load_tf_list(tf_list_path: Path) -> set[str]:
+    """Load HGNC symbols of confirmed transcription factors from CisBP DatabaseExtract CSV."""
+    tf_symbols: set[str] = set()
+    with open(tf_list_path, "r") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row.get("Is TF?", "").strip() == "Yes":
+                symbol = row.get("HGNC symbol", "").strip()
+                if symbol:
+                    tf_symbols.add(symbol)
+    return tf_symbols
+
+
+def _load_hgnc_gene_flags(
+    hgnc_path: Path, tf_symbols: set[str] | None = None
+) -> dict[str, str]:
     """Parse HGNC TSV and return {symbol: comma-separated flags} for flagged genes.
 
     Uses gene_group to match protein family flags (heat_shock, ribosomal, etc.),
-    locus_group for broader categories (non_coding), gene_group substring match
-    for transcription factors, and locus_type for lncRNAs.
+    locus_group for broader categories (non_coding), tf_symbols set for
+    transcription factors, and locus_type for lncRNAs.
     """
     # Build reverse lookups: group_name -> flag
     group_to_flag: dict[str, str] = {}
@@ -112,9 +127,9 @@ def _load_hgnc_gene_flags(hgnc_path: Path) -> dict[str, str]:
                     g = g.strip().strip('"')
                     if g in group_to_flag:
                         flags.add(group_to_flag[g])
-                    # Detect transcription factors by substring match
-                    if "transcription factor" in g.lower():
-                        flags.add("transcription_factor")
+            # Check transcription factor list
+            if tf_symbols and symbol in tf_symbols:
+                flags.add("transcription_factor")
 
             # Check locus_group
             locus_group = row.get("locus_group", "").strip()
@@ -514,6 +529,7 @@ def compute_combined_pvalues(
     hgnc_path: Path | None = None,
     no_index: bool = False,
     nimh_csv_path: Path | None = None,
+    tf_list_path: Path | None = None,
 ) -> None:
     """Compute and store combined p-values per gene across all datasets,
     then separately per assay type."""
@@ -529,10 +545,16 @@ def compute_combined_pvalues(
         click.echo("  No tables with pvalue_column configured, skipping.")
         return
 
+    # Load transcription factor list
+    tf_symbols: set[str] | None = None
+    if tf_list_path and tf_list_path.exists():
+        tf_symbols = _load_tf_list(tf_list_path)
+        click.echo(f"  Loaded TF list: {len(tf_symbols)} transcription factors")
+
     # Load HGNC gene flags for classification
     hgnc_flags: dict[str, str] = {}
     if hgnc_path and hgnc_path.exists():
-        hgnc_flags = _load_hgnc_gene_flags(hgnc_path)
+        hgnc_flags = _load_hgnc_gene_flags(hgnc_path, tf_symbols=tf_symbols)
         click.echo(f"  Loaded HGNC gene flags for {len(hgnc_flags)} genes")
 
     # Load NIMH priority gene list

@@ -5,7 +5,8 @@
     "zfin": "homology/human_orthos.txt",
     "hgnc": "homology/hgnc_complete_set.txt",
     "alliance_homology_file": "homology/HGNC_AllianceHomology.rpt",
-    "nimh_gene_list": "NIMH_gene_list_version01_2023-09-21.csv"
+    "nimh_gene_list": "NIMH_gene_list_version01_2023-09-21.csv",
+    "tf_list": "homology/DatabaseExtract_v_1.01.csv"
   },
   "table_config_root": "datasets",
   "global_config": "datasets/globals.yaml"

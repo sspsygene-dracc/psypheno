@@ -24,6 +24,10 @@ class GeneMapConfig:
         self.nimh_gene_list_file: Path | None = (
             self.super_base_dir / nimh if nimh else None
         )
+        tf = gene_map_config.get("tf_list")
+        self.tf_list_file: Path | None = (
+            self.super_base_dir / tf if tf else None
+        )
 
 
 class GlobalConfig(TypedDict, total=False):
