@@ -610,16 +610,16 @@ sspsygene load-db
 This takes a while because it computes combined p-values across all datasets.
 You only need to do this once you're confident everything is correct.
 
-### 5d. Check the website
+### 5d. Check the website on the development site
 
-After loading the database, restart the internal web server so it picks up
+After loading the database, restart the development web server so it picks up
 the new database:
 
 ```bash
-sudo systemctl restart sspsygene-int
+sudo systemctl restart sspsygene-dev
 ```
 
-Then open https://psypheno-int.gi.ucsc.edu in your browser and:
+Then open https://psypheno-dev.gi.ucsc.edu in your browser and:
 
 1. Search for a gene that should be in your dataset
 2. Check that your dataset appears on the gene's page
