@@ -612,14 +612,10 @@ You only need to do this once you're confident everything is correct.
 
 ### 5d. Check the website on the development site
 
-After loading the database, restart the development web server so it picks up
-the new database:
-
-```bash
-sudo systemctl restart sspsygene-dev
-```
-
-Then open https://psypheno-dev.gi.ucsc.edu in your browser and:
+Open https://psypheno-dev.gi.ucsc.edu in your browser — the web process
+auto-detects the rebuilt database (inode/mtime check in `web/lib/db.ts`)
+and picks up the new data on the next request, so no service restart is
+needed. Then:
 
 1. Search for a gene that should be in your dataset
 2. Check that your dataset appears on the gene's page
@@ -713,18 +709,18 @@ details):
 |----------|-----|---------|
 | **Internal (int)** | https://psypheno-int.gi.ucsc.edu | Staging / pre-publication data |
 | **Production (prod)** | https://psypheno.gi.ucsc.edu | Public-facing site |
-| **Dev** | https://psypheno-dev.gi.ucsc.edu | Identical mirror of prod (same code and data, different port) |
+| **Dev** | https://psypheno-dev.gi.ucsc.edu | Independent staging for site-code testing |
 
-Prod and dev share the same code, data, and database — they are the exact same
-site on different URLs. The `deploy-prod.sh` script automatically restarts
-**both** the prod and dev services, so you never need to deploy to dev
-separately.
+All three instances are independent — each has its own checkout and its own
+database on `/hive`. Deploys to one do not affect the others.
 
 ### Prerequisites
 
 - SSH access to `psygene`
-- `sudo` access on `psygene` (needed to restart services)
 - The deployment scripts run directly on the server, not from your laptop
+- `sudo` access on `psygene` is **not** required for data-only updates
+  (the default `--load-db` path). It is only needed when JS code has changed
+  and you pass `--restart`.
 
 ### 7a. Deploy to internal
 
@@ -740,7 +736,9 @@ cd /hive/groups/SSPsyGene/sspsygene_website_int
 This will:
 1. `git pull` the latest code
 2. Rebuild the database (this takes a while)
-3. Restart the `sspsygene-int` systemd service
+3. Swap the new database in atomically — the running `sspsygene-int` service
+   auto-detects the change and reopens its connection on the next request
+   (no restart, no sudo)
 
 **Important:** Before deploying, make sure the processed data files exist on the
 server. Since processed CSV/TSV files are not committed to git, you need to run
@@ -756,24 +754,42 @@ Once you've verified everything looks correct on the internal site:
 ```bash
 cd /hive/groups/SSPsyGene/sspsygene_website
 
-# Deploy with database reload:
+# Deploy with database reload (no sudo needed):
 ./deploy-prod.sh --load-db
 ```
 
-This restarts both the `sspsygene` (prod) and `sspsygene-dev` (dev) services,
-since they share the same code and data. There is no separate deploy step for
-dev — it is always updated together with prod.
+This rebuilds the prod database and atomically swaps it in. The running
+`sspsygene` service picks up the new data on the next request — no restart.
 
-After it finishes, verify at https://psypheno.gi.ucsc.edu/ (or equivalently
-at https://psypheno-dev.gi.ucsc.edu/ — both show the same thing).
+After it finishes, verify at https://psypheno.gi.ucsc.edu/.
+
+Dev and int are independent instances with their own data. If you want a
+matching copy on dev too, run the equivalent in `sspsygene_website_dev`:
+
+```bash
+cd /hive/groups/SSPsyGene/sspsygene_website_dev
+./deploy-dev.sh --load-db
+```
+
+### When you need `--restart`
+
+The default `--load-db` flow does **not** restart the Next.js process — it
+relies on the web app's DB file-change check to pick up new data. If the
+deploy also pulls JS code changes that need to be reloaded, pass `--restart`
+(requires sudo):
+
+```bash
+./deploy-prod.sh --load-db --restart   # data + code deploy with restart
+./deploy-prod.sh --restart             # code-only deploy with restart
+```
 
 ### Deploy without reloading the database
 
 If you only changed code (not data), you can deploy without `--load-db`:
 
 ```bash
-./deploy-int.sh       # code-only deploy to internal
-./deploy-prod.sh      # code-only deploy to production
+./deploy-int.sh --restart       # code-only deploy to internal
+./deploy-prod.sh --restart      # code-only deploy to production
 ```
 
 ---
@@ -837,8 +853,8 @@ so they must be copied manually.
 - **Do not skip the data file copy.** Running `deploy-prod.sh --load-db`
   without the data files will cause the load to fail or silently skip the
   dataset.
-- Prod and dev share the same directory, so copying to prod automatically
-  makes the data available on dev too.
+- Dev has its own directory (`sspsygene_website_dev`); if you want the
+  dataset on dev too, repeat the rsync + `./deploy-dev.sh --load-db` there.
 
 ---
 
@@ -897,8 +913,10 @@ system administrator if you don't have access.
 | Load single dataset (fast test) | `sspsygene load-db --dataset NAME` |
 | Load all datasets, skip slow steps | `sspsygene load-db --no-index --skip-meta-analysis` |
 | Load all datasets (production) | `sspsygene load-db` |
-| Deploy to internal (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website_int && ./deploy-int.sh --load-db` |
-| Deploy to production (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website && ./deploy-prod.sh --load-db` |
+| Deploy to internal (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website_int && ./deploy-int.sh --load-db` |
+| Deploy to dev (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website_dev && ./deploy-dev.sh --load-db` |
+| Deploy to production (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website && ./deploy-prod.sh --load-db` |
+| Restart a service after JS code changes (needs sudo) | add `--restart` to any deploy command |
 
 ---
 

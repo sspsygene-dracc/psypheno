@@ -16,20 +16,22 @@ to the corresponding localhost port (with SSL termination).
 | Service | Port | URL | systemd unit | Data source |
 |---------|------|-----|--------------|-------------|
 | **Production** | 3110 | https://psypheno.gi.ucsc.edu | `sspsygene.service` | `sspsygene_website` |
-| **Dev** | 3112 | https://psypheno-dev.gi.ucsc.edu | `sspsygene-dev.service` | `sspsygene_website` (same as prod) |
+| **Dev** | 3112 | https://psypheno-dev.gi.ucsc.edu | `sspsygene-dev.service` | `sspsygene_website_dev` |
 | **Internal** | 3111 | https://psypheno-int.gi.ucsc.edu | `sspsygene-int.service` | `sspsygene_website_int` |
 
 **Key points:**
 
-- **Prod and dev are identical.** They share the same WorkingDirectory and
-  database (`sspsygene_website`). The dev instance exists as a separate URL
-  on a different port, but serves the exact same code and data as prod. (The
-  three-instance setup with a separate dev URL was requested by the wranglers
-  team.) Because they share everything, `deploy-prod.sh` always restarts
-  **both** the `sspsygene` and `sspsygene-dev` services.
-- **Internal (int) is separate.** It has its own code checkout and database
-  (`sspsygene_website_int`). It is password-protected via Apache basic auth
-  and intended for consortium-internal, pre-publication data.
+- **All three instances are independent.** Each has its own code checkout
+  and database on `/hive`. Deploys to one do not affect the others. Each
+  instance has its own deploy script: `deploy-prod.sh`, `deploy-dev.sh`,
+  `deploy-int.sh`.
+- **Internal (int)** is password-protected via Apache basic auth and intended
+  for consortium-internal, pre-publication data.
+- **No sudo for data updates.** The web process auto-detects a rebuilt
+  SQLite file (inode/mtime check in `web/lib/db.ts`) and re-opens the
+  connection on the next query, so wranglers running `./deploy-*.sh --load-db`
+  do not need to restart the service. Pass `--restart` (requires sudo) only
+  when JS code changes need to be picked up.
 
 ## Directory Layout
 
@@ -40,20 +42,21 @@ unused leftover from an earlier configuration.
 
 ```
 /hive/groups/SSPsyGene/
-  sspsygene_website/              ← Production + Dev (shared)
+  sspsygene_website/              ← Production
     data/
       datasets/                   ← Dataset configs + data files
       homology/                   ← Gene reference files
       db/sspsygene.db             ← SQLite database
     processing/                   ← Python processing pipeline
     web/                          ← Next.js web application
-  sspsygene_website_int/          ← Internal (separate copy)
-    (same structure)
+  sspsygene_website_dev/          ← Dev (separate copy, same structure)
+  sspsygene_website_int/          ← Internal (separate copy, same structure)
 ```
 
 There is also a symlink `/cluster/home/jbirgmei/sspsygene_website` →
-`/hive/groups/SSPsyGene/sspsygene_website`. The systemd service files use the
-`/cluster/home/...` path for prod/dev; both resolve to the same directory.
+`/hive/groups/SSPsyGene/sspsygene_website`. The prod systemd service file uses
+the `/cluster/home/...` path; dev and int reference their `/hive/...` paths
+directly.
 
 ### Systemd service configuration
 
@@ -72,9 +75,9 @@ Restart=always
 **sspsygene-dev.service (dev):**
 ```ini
 ExecStart=/usr/bin/npm start -- --port 3112
-WorkingDirectory=/cluster/home/jbirgmei/sspsygene_website/web
+WorkingDirectory=/hive/groups/SSPsyGene/sspsygene_website_dev/web
 User=jbirgmei
-Environment=SSPSYGENE_DATA_DB=/cluster/home/jbirgmei/sspsygene_website/data/db/sspsygene.db
+Environment=SSPSYGENE_DATA_DB=/hive/groups/SSPsyGene/sspsygene_website_dev/data/db/sspsygene.db
 Environment=NODE_ENV=production
 Restart=always
 ```
@@ -107,36 +110,27 @@ Restart=always
 
 ## Deployment Flow
 
-```
-Local machine              hgwdev                         psygene
-─────────────              ──────                         ───────
-git push ──────────────>  git pull (prod + int copies)
-                          sspsygene load-db (if needed)
-                          npm run build
-                                           ──────────>   restart services
-                                                         (systemd auto-restart)
-```
-
-1. Developer pushes to GitHub from local machine
-2. `sspsygene deploy` connects to hgwdev via SSH
-3. On hgwdev: pulls latest code, optionally rebuilds DB, runs `npm run build`
-4. On psygene: kills running Next.js processes; systemd restarts them
-   automatically with the newly built code
-
-### Deploy commands
+Each instance has its own deploy script run directly on psygene (or hgwdev):
 
 ```bash
-# Deploy to production (also updates dev, since they share code)
-sspsygene deploy --prod-only [--load-db]
+# In each site's root directory (/hive/groups/SSPsyGene/sspsygene_website*/):
+./deploy-prod.sh                       # pull code only, no DB rebuild, no restart
+./deploy-prod.sh --load-db             # pull + rebuild DB (wrangler workflow; no sudo)
+./deploy-prod.sh --restart             # pull + restart service (needs sudo; for code deploys)
+./deploy-prod.sh --load-db --restart   # full deploy
 
-# Deploy to internal only
-sspsygene deploy --int-only [--load-db]
-
-# Deploy to both
-sspsygene deploy [--load-db]
+# Same flags for ./deploy-dev.sh and ./deploy-int.sh.
 ```
 
-Convenience scripts are also available: `./deploy-prod.sh` and `./deploy-int.sh`.
+**Default is no restart.** The web process auto-detects a rebuilt SQLite
+file (inode/mtime check in `web/lib/db.ts`) and re-opens the connection on
+the next query. Wranglers updating data therefore never need sudo. The
+Python `load-db` pipeline builds the new DB at `sspsygene.db.new` and
+atomically swaps it in (`sq_load.py`), so readers never observe a missing
+or half-written file.
+
+Pass `--restart` (requires sudo) only when JS code has changed and needs to
+be reloaded.
 
 ## Environment Variables
 
@@ -159,3 +153,8 @@ on psygene, and passed to `load-db` on hgwdev):
 - **Mar 2026:** systemd service configuration finalized by Johannes Birgmeier.
   Data directories remained on `/hive` for backup and hgwdev accessibility
   benefits.
+- **Apr 2026:** Dev instance moved to its own directory (`sspsygene_website_dev`)
+  so dev deploys no longer affect prod. Web process gained a file-change check
+  so wrangler data updates (`./deploy-*.sh --load-db`) no longer require a
+  sudo systemctl restart; the Python pipeline switched to atomic rename for
+  safe hot-swapping.

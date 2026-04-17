@@ -468,12 +468,20 @@ def load_db(
 ) -> None:
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
-    db_wal = db_name.parent / (db_name.name + "-wal")
-    db_wal.unlink(missing_ok=True)
-    db_shm = db_name.parent / (db_name.name + "-shm")
-    db_shm.unlink(missing_ok=True)
-    db_name.unlink(missing_ok=True)
-    with NewSqlite3(db_name, logger) as new_sqlite3:
+
+    # Build a fresh DB at `{db_name}.new` and atomically swap it into place.
+    # This lets long-running readers (the web process) keep serving the old
+    # inode while we build, then flip to the new one on the next stat check
+    # without ever observing a missing or half-written file.
+    staging = db_name.with_name(db_name.name + ".new")
+    for p in (
+        staging,
+        staging.with_name(staging.name + "-wal"),
+        staging.with_name(staging.name + "-shm"),
+    ):
+        p.unlink(missing_ok=True)
+
+    with NewSqlite3(staging, logger) as new_sqlite3:
         conn = new_sqlite3.conn
         load_data_tables(
             conn, table_configs, skip_missing=skip_missing, no_index=no_index
@@ -493,3 +501,27 @@ def load_db(
             )
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)
+
+    # Checkpoint WAL into the main file and switch to rollback journal mode so
+    # the final file is self-contained — no -wal/-shm sidecars needed by readers.
+    with sqlite3.connect(staging) as swap_conn:
+        swap_conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        swap_conn.execute("PRAGMA journal_mode=DELETE")
+    for leftover in (
+        staging.with_name(staging.name + "-wal"),
+        staging.with_name(staging.name + "-shm"),
+    ):
+        leftover.unlink(missing_ok=True)
+
+    # Atomically replace the live DB. POSIX rename is atomic on the same
+    # filesystem, which the data/db directory always is.
+    staging.replace(db_name)
+
+    # Old reader FDs still point at the now-unlinked inode of the previous
+    # DB; remove any leftover WAL/SHM sidecars for that inode so they don't
+    # confuse fresh openers.
+    for old_sidecar in (
+        db_name.with_name(db_name.name + "-wal"),
+        db_name.with_name(db_name.name + "-shm"),
+    ):
+        old_sidecar.unlink(missing_ok=True)
