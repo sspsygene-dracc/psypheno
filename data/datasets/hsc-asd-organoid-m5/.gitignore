@@ -1,0 +1,10 @@
+# data/datasets/hsc-asd-organoid-m5/.gitignore
+
+# Raw downloads
+*.xlsx
+*.xls
+*.pdf
+
+# Processed data files (regenerated from raw downloads)
+supplementary_table_3_DE_results.tsv
+supplementary_table_12_DE_targets_M5_TFs.tsv

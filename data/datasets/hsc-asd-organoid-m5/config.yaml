@@ -1,0 +1,109 @@
+publication:
+  authors:
+    - Aaron Gordon
+    - Se-Jin Yoon
+    - Lucy K Bicks
+    - Jacqueline M Martín
+    - Greta Pintacuda
+    - Stephanie Arteaga
+    - Brie Wamsley
+    - Qiuyu Guo
+    - Lubayna Elahi
+    - Ricardo E Dolmetsch
+    - Jonathan A Bernstein
+    - Ruth O'Hara
+    - Joachim F Hallmayer
+    - Kasper Lage
+    - Sergiu P Pasca
+    - Daniel H Geschwind
+  year: 2026
+  journal: Nature
+  doi: 10.1038/s41586-025-10047-5
+  pmid: "41611887"
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-02-17"
+    comment: Initial table creation
+tables:
+  - table: hsc_asd_organoid_m5_DE_targets_M5_TFs
+    shortLabel: asd_m5_transcription_factor_de_targets
+    mediumLabel: Gordon 2026 - CRISPRi Perturbation of 26 transcription factors in ASD
+    longLabel: Differentially expressed genes following perturbation of Module 5 transcription factors in ASD
+    description:
+      Cell-type specific differential expression following CRISPRi perturbation of 26 Module 5
+      transcription factors in human stem cell-derived neural progenitors and cycling progenitors. 
+      Module 5 is a co-expression gene module defined in Gordon et al. (2026) 
+      that includes transcription factors implicated in neurodevelopmental regulation.
+    source: "Supplementary Table 12"
+    assay: perturbation
+    links:
+      - https://www.nature.com/articles/s41586-025-10047-5
+    categories:
+      - CRISPRi perturbation
+      - autism spectrum disorder
+      - human cortical organoids
+    organism: Homo sapiens (hiPSC-derived neural progenitors)
+    in_path: supplementary_table_12_DE_targets_M5_TFs.tsv
+    split_column_map: []
+    separator: "\t"
+    gene_mappings:
+      - column_name: target_gene
+        link_table_name: Target_Gene
+        species: human
+        is_perturbed: false
+        is_target: true
+      - column_name: perturbed_gene
+        link_table_name: Perturbed_Gene
+        species: human
+        is_perturbed: true
+        is_target: false
+    pvalue_column: P_Value
+    fdr_column: Adjusted_P_Value
+  - table: hsc_asd_organoid_m5_DE_results
+    shortLabel: asd_organoid_de_results
+    mediumLabel: Gordon 2026 - DEGs of Cortical Organoids with ASD Perturbations
+    longLabel: Differential expression results across ASD genetic perturbations and developmental timepoints
+    description:
+      Differential expression results from bulk RNA-seq of human cortical organoids with
+      ASD-associated mutations compared to controls across developmental timepoints 
+      (days 25, 50, 75, 100, and all combined). Includes 9 genetic perturbations - 15q13, 16p11del, 
+      16p11dup, 22q11del, 22q13del, IdiopathicASD, PCDH19, SHANK3, and Timothy syndrome.
+    source: "Supplementary Table 3"
+    assay: expression
+    disease: ["asd", "ndd"]
+    fieldLabels:
+      organoid_age_(days): "Organoid age (days)"
+      logFC: "Log fold change"
+      Avg_Expr: "Average expression (log2 counts per million)"
+      t: "Moderated t-statistic (limma)"
+      z_std: "Standardized z-score"
+      region_genes: "Genes in CNV region"
+    links:
+      - https://www.nature.com/articles/s41586-025-10047-5
+    categories:
+      - bulk RNA-seq
+      - differential expression
+      - autism spectrum disorder
+      - human cortical organoids
+    organism: Homo sapiens (hiPSC-derived cortical organoids)
+    in_path: supplementary_table_3_DE_results.tsv
+    split_column_map: []
+    separator: "\t"
+    gene_mappings:
+      - column_name: target_gene
+        link_table_name: Target_Gene
+        species: human
+        is_perturbed: false
+        is_target: true
+        ignore_empty: true
+      - column_name: region_genes
+        link_table_name: region_gene
+        species: human
+        is_perturbed: true
+        is_target: false
+        ignore_empty: true
+        multi_gene_separator: ","
+    pvalue_column: P-Value
+    fdr_column: Adjusted_P-Value
+
