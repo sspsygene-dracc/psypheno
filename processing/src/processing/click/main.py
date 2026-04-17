@@ -194,36 +194,46 @@ def run_llm_search(
     "--prod-only",
     is_flag=True,
     default=False,
-    help="Deploy only the production site (skip internal).",
+    help="Deploy only the production site (skip dev and internal).",
+)
+@click.option(
+    "--dev-only",
+    is_flag=True,
+    default=False,
+    help="Deploy only the dev site (skip production and internal).",
 )
 @click.option(
     "--int-only",
     is_flag=True,
     default=False,
-    help="Deploy only the internal site (skip production).",
+    help="Deploy only the internal site (skip production and dev).",
 )
 @click.option(
-    "--no-restart",
+    "--restart",
     is_flag=True,
     default=False,
-    help="Skip restarting web servers on psygene.",
+    help="Restart web servers on psygene after deploying. Default is no "
+    "restart — the web process auto-detects DB changes (see web/lib/db.ts). "
+    "Pass this when JS code has changed and needs to be reloaded.",
 )
 def deploy(
     load_db: bool,
     no_push: bool,
     prod_only: bool,
+    dev_only: bool,
     int_only: bool,
-    no_restart: bool,
+    restart: bool,
 ) -> None:
-    """Deploy to production and internal sites on hgwdev/psygene."""
+    """Deploy to production, dev, and internal sites on hgwdev/psygene."""
     from processing.deploy import run_deploy
 
     run_deploy(
         load_db=load_db,
         no_push=no_push,
         prod_only=prod_only,
+        dev_only=dev_only,
         int_only=int_only,
-        no_restart=no_restart,
+        restart=restart,
     )
 
 

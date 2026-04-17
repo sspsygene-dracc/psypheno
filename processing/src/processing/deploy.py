@@ -20,17 +20,21 @@ PSYGENE = "psygene"
 GIT_BRANCH = "main"
 
 PROD_PATH = "/hive/groups/SSPsyGene/sspsygene_website"
+DEV_PATH = "/hive/groups/SSPsyGene/sspsygene_website_dev"
 INT_PATH = "/hive/groups/SSPsyGene/sspsygene_website_int"
-PROD_ENV = {
-    "SSPSYGENE_CONFIG_JSON": f"{PROD_PATH}/processing/src/processing/config.json",
-    "SSPSYGENE_DATA_DIR": f"{PROD_PATH}/data",
-    "SSPSYGENE_DATA_DB": f"{PROD_PATH}/data/db/sspsygene.db",
-}
-INT_ENV = {
-    "SSPSYGENE_CONFIG_JSON": f"{INT_PATH}/processing/src/processing/config.json",
-    "SSPSYGENE_DATA_DIR": f"{INT_PATH}/data",
-    "SSPSYGENE_DATA_DB": f"{INT_PATH}/data/db/sspsygene.db",
-}
+
+
+def _site_env(path: str) -> dict[str, str]:
+    return {
+        "SSPSYGENE_CONFIG_JSON": f"{path}/processing/src/processing/config.json",
+        "SSPSYGENE_DATA_DIR": f"{path}/data",
+        "SSPSYGENE_DATA_DB": f"{path}/data/db/sspsygene.db",
+    }
+
+
+PROD_ENV = _site_env(PROD_PATH)
+DEV_ENV = _site_env(DEV_PATH)
+INT_ENV = _site_env(INT_PATH)
 
 CONDA_ENV = "sspsygene"
 CONDA_INIT = "source $HOME/opt_rocky9/miniconda3/etc/profile.d/conda.sh"
@@ -159,16 +163,18 @@ def _step_push() -> None:
     _run_local(["git", "push"], desc="git push")
 
 
-def _step_pull_all(*, do_prod: bool, do_int: bool) -> None:
+def _step_pull_all(*, do_prod: bool, do_dev: bool, do_int: bool) -> None:
     """Pull latest code on all sites before any build/load-db steps.
 
     This ensures shared resources (e.g. the processing package installed
-    from one site but used by both) are up-to-date before either site
+    from one site but used by others) are up-to-date before any site
     runs load-db or npm build.
     """
     click.secho("\n[2/4] Pulling latest code on hgwdev", bold=True)
     if do_prod:
         _run_ssh(HGWDEV, f"cd {PROD_PATH} && git pull", desc=f"git pull ({PROD_PATH})")
+    if do_dev:
+        _run_ssh(HGWDEV, f"cd {DEV_PATH} && git pull", desc=f"git pull ({DEV_PATH})")
     if do_int:
         _run_ssh(HGWDEV, f"cd {INT_PATH} && git pull", desc=f"git pull ({INT_PATH})")
 
@@ -253,15 +259,23 @@ def run_deploy(
     load_db: bool = False,
     no_push: bool = False,
     prod_only: bool = False,
+    dev_only: bool = False,
     int_only: bool = False,
-    no_restart: bool = False,
+    restart: bool = False,
 ) -> None:
     """Run the full deployment pipeline."""
-    if prod_only and int_only:
-        raise click.ClickException("--prod-only and --int-only are mutually exclusive.")
+    only_flags = [("--prod-only", prod_only), ("--dev-only", dev_only), ("--int-only", int_only)]
+    picked = [name for name, v in only_flags if v]
+    if len(picked) > 1:
+        raise click.ClickException(f"{' and '.join(picked)} are mutually exclusive.")
 
-    do_prod = not int_only
-    do_int = not prod_only
+    if picked:
+        do_prod = prod_only
+        do_dev = dev_only
+        do_int = int_only
+    else:
+        # Default: all three sites.
+        do_prod = do_dev = do_int = True
 
     _preflight_checks()
 
@@ -271,27 +285,30 @@ def run_deploy(
     else:
         _step_push()
 
-    # Step 2 — git pull ALL sites first (the processing package may be
-    # installed from one site but used by both, so both must be current)
-    _step_pull_all(do_prod=True, do_int=True)
+    # Step 2 — git pull selected sites first (the processing package may be
+    # installed from one site but used by others, so all selected must be
+    # current before any runs load-db or npm build).
+    _step_pull_all(do_prod=do_prod, do_dev=do_dev, do_int=do_int)
 
     # Step 3 — build/load-db per site
+    click.secho("\n[3/4] Deploying sites on hgwdev", bold=True)
     if do_prod:
-        click.secho("\n[3/4] Deploying production site on hgwdev", bold=True)
         _step_deploy_site(PROD_PATH, label="Production", load_db=load_db, env_vars=PROD_ENV)
-    else:
-        click.secho("\n[3/4] Skipping production site (--int-only)", bold=True)
-
+    if do_dev:
+        _step_deploy_site(DEV_PATH, label="Dev", load_db=load_db, env_vars=DEV_ENV)
     if do_int:
-        click.secho("\n[3/4] Deploying internal site on hgwdev", bold=True)
         _step_deploy_site(INT_PATH, label="Internal", load_db=load_db, env_vars=INT_ENV)
-    else:
-        click.secho("\n[3/4] Skipping internal site (--prod-only)", bold=True)
 
-    # Step 4 — restart web servers
-    if no_restart:
-        click.secho("\n[4/4] Skipping restart (--no-restart)", bold=True)
-    else:
+    # Step 4 — restart web servers (default is no restart; the web process
+    # auto-detects DB changes via inode/mtime check in web/lib/db.ts, so
+    # only pass --restart when JS code has changed).
+    if restart:
         _step_restart_psygene()
+    else:
+        click.secho(
+            "\n[4/4] Skipping restart (default). The web process auto-detects DB",
+            bold=True,
+        )
+        click.echo("      changes; pass --restart if JS code changed and needs reloading.")
 
     click.secho("\nDeployment complete!", fg="green", bold=True)

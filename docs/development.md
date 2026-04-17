@@ -116,11 +116,12 @@ Commands:
     --skip-gene-descriptions           Skip gene description copying
     --skip-missing-datasets            Skip missing input files
 
-  deploy                             Deploy to production and internal sites
-    --prod-only / --int-only           Target one environment
+  deploy                             Deploy to prod, dev, and internal sites
+    --prod-only / --dev-only / --int-only   Target one environment
     --load-db                          Rebuild DB during deploy
     --no-push                          Skip git push
-    --no-restart                       Skip service restart
+    --restart                          Restart web servers (default: no restart;
+                                         web auto-detects DB changes)
 
   load-gene-descriptions             Build gene_descriptions.db from NCBI data
 ```
