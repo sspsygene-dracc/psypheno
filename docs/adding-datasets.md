@@ -699,162 +699,84 @@ git push
 
 ## Step 7: Deploy
 
-Deployment is a two-stage process. Always deploy to **internal** first to
-verify, then to **production**.
+For wranglers, "deploying" is just **rebuilding the database** on the right
+server instance. Each of the three instances (int, dev, prod — see
+`docs/server-architecture.md`) has its own checkout and its own database on
+`/hive`, and each running web process auto-detects when its SQLite file has
+been swapped and reopens the connection on the next request — no service
+restart, no sudo.
 
-There are three server instances (see `docs/server-architecture.md` for full
-details):
-
-| Instance | URL | Purpose |
-|----------|-----|---------|
-| **Internal (int)** | https://psypheno-int.gi.ucsc.edu | Staging / pre-publication data |
-| **Production (prod)** | https://psypheno.gi.ucsc.edu | Public-facing site |
-| **Dev** | https://psypheno-dev.gi.ucsc.edu | Independent staging for site-code testing |
-
-All three instances are independent — each has its own checkout and its own
-database on `/hive`. Deploys to one do not affect the others.
-
-### Prerequisites
-
-- SSH access to `psygene`
-- The deployment scripts run directly on the server, not from your laptop
-- `sudo` access on `psygene` is **not** required for data-only updates
-  (the default `--load-db` path). It is only needed when JS code has changed
-  and you pass `--restart`.
-
-### 7a. Deploy to internal
-
-On the server, `cd` into the internal site directory and run the deploy script:
+Always rebuild on **internal** (or **dev**) first to verify, then on
+**production**.
 
 ```bash
-cd /hive/groups/SSPsyGene/sspsygene_website_int
+ssh psygene
+cd /hive/groups/SSPsyGene/sspsygene_website_int   # or _dev, or prod path
+git pull
 
-# Deploy with database reload:
-./deploy-int.sh --load-db
+# Activate the conda env and set env vars for this instance:
+source $HOME/opt_rocky9/miniconda3/etc/profile.d/conda.sh
+conda activate sspsygene
+export SSPSYGENE_CONFIG_JSON="$(pwd)/processing/src/processing/config.json"
+export SSPSYGENE_DATA_DIR="$(pwd)/data"
+export SSPSYGENE_DATA_DB="$(pwd)/data/db/sspsygene.db"
+
+sspsygene load-db
 ```
 
-This will:
-1. `git pull` the latest code
-2. Rebuild the database (this takes a while)
-3. Swap the new database in atomically — the running `sspsygene-int` service
-   auto-detects the change and reopens its connection on the next request
-   (no restart, no sudo)
+After it finishes, verify at the corresponding URL:
+- Internal: https://psypheno-int.gi.ucsc.edu
+- Dev: https://psypheno-dev.gi.ucsc.edu
+- Production: https://psypheno.gi.ucsc.edu
 
-**Important:** Before deploying, make sure the processed data files exist on the
-server. Since processed CSV/TSV files are not committed to git, you need to run
-your preprocessing script on the server first (the raw data or a download URL
-must be accessible from the server).
-
-After it finishes, verify your dataset at https://psypheno-int.gi.ucsc.edu.
-
-### 7b. Deploy to production
-
-Once you've verified everything looks correct on the internal site:
-
-```bash
-cd /hive/groups/SSPsyGene/sspsygene_website
-
-# Deploy with database reload (no sudo needed):
-./deploy-prod.sh --load-db
-```
-
-This rebuilds the prod database and atomically swaps it in. The running
-`sspsygene` service picks up the new data on the next request — no restart.
-
-After it finishes, verify at https://psypheno.gi.ucsc.edu/.
-
-Dev and int are independent instances with their own data. If you want a
-matching copy on dev too, run the equivalent in `sspsygene_website_dev`:
-
-```bash
-cd /hive/groups/SSPsyGene/sspsygene_website_dev
-./deploy-dev.sh --load-db
-```
-
-### When you need `--restart`
-
-The default `--load-db` flow does **not** restart the Next.js process — it
-relies on the web app's DB file-change check to pick up new data. If the
-deploy also pulls JS code changes that need to be reloaded, pass `--restart`
-(requires sudo):
-
-```bash
-./deploy-prod.sh --load-db --restart   # data + code deploy with restart
-./deploy-prod.sh --restart             # code-only deploy with restart
-```
-
-### Deploy without reloading the database
-
-If you only changed code (not data), you can deploy without `--load-db`:
-
-```bash
-./deploy-int.sh --restart       # code-only deploy to internal
-./deploy-prod.sh --restart      # code-only deploy to production
-```
+**Important:** Before rebuilding, make sure the processed data files exist on
+the server (processed CSV/TSVs are not committed to git — see
+[Promoting a dataset from internal to production](#promoting-a-dataset-from-internal-to-production)
+for how to copy them between instances).
 
 ---
 
 ## Promoting a dataset from internal to production
 
-The internal (int) and production (prod) instances have **separate data
-directories** on `/hive`. When you're ready to make an internal-only dataset
-public, you need to copy the data files and rebuild the production database.
+Each instance has its **own data directory** on `/hive`. The `config.yaml`
+and preprocessing script live in git, so they reach prod automatically via
+`git pull`. But **processed CSV/TSV files are not in git**, so they must be
+copied between instances (or regenerated by re-running the preprocessing
+script).
 
-### What needs to be copied
+```bash
+ssh psygene
 
-The config.yaml and preprocessing script are shared via git — both instances
-pull from the same repo. But **processed data files** (CSV/TSV) are not in git,
-so they must be copied manually.
+# 1. Copy processed data files from int to prod (config.yaml is harmlessly
+#    overwritten with the same content from git):
+rsync -av \
+  /hive/groups/SSPsyGene/sspsygene_website_int/data/datasets/my-dataset/ \
+  /hive/groups/SSPsyGene/sspsygene_website/data/datasets/my-dataset/
 
-### Step-by-step
+# 2. Rebuild the production database (same steps as Step 7, but in the
+#    prod directory):
+cd /hive/groups/SSPsyGene/sspsygene_website
+git pull
+source $HOME/opt_rocky9/miniconda3/etc/profile.d/conda.sh
+conda activate sspsygene
+export SSPSYGENE_CONFIG_JSON="$(pwd)/processing/src/processing/config.json"
+export SSPSYGENE_DATA_DIR="$(pwd)/data"
+export SSPSYGENE_DATA_DB="$(pwd)/data/db/sspsygene.db"
+sspsygene load-db
+```
 
-1. **Make sure the config.yaml and preprocess.py are committed and pushed:**
+Verify at https://psypheno.gi.ucsc.edu.
 
-   ```bash
-   git add data/datasets/my-dataset/config.yaml data/datasets/my-dataset/preprocess.py
-   git commit -m "Add my-dataset"
-   git push
-   ```
-
-2. **On the server (psygene), copy the dataset's data files from int to prod:**
-
-   ```bash
-   ssh psygene
-
-   # Copy the entire dataset directory (configs + data files)
-   rsync -av \
-     /hive/groups/SSPsyGene/sspsygene_website_int/data/datasets/my-dataset/ \
-     /hive/groups/SSPsyGene/sspsygene_website/data/datasets/my-dataset/
-   ```
-
-   This copies the processed CSV/TSV files that aren't in git. The config.yaml
-   will be overwritten with the same content (since both come from the same
-   repo), which is harmless.
-
-   Alternatively, if you prefer, you can re-run the preprocessing script in the
-   prod directory instead of copying:
-
-   ```bash
-   cd /hive/groups/SSPsyGene/sspsygene_website/data/datasets/my-dataset
-   python preprocess.py
-   ```
-
-3. **Pull latest code and deploy to production:**
-
-   ```bash
-   cd /hive/groups/SSPsyGene/sspsygene_website
-   ./deploy-prod.sh --load-db
-   ```
-
-4. **Verify** at https://psypheno.gi.ucsc.edu.
+Alternative to rsync: re-run your preprocessing script in the prod dataset
+directory if the raw input is accessible there.
 
 ### Important notes
 
-- **Do not skip the data file copy.** Running `deploy-prod.sh --load-db`
-  without the data files will cause the load to fail or silently skip the
-  dataset.
+- **Do not skip the data file copy.** Running `sspsygene load-db` without
+  the data files will cause the load to fail or silently skip the dataset.
 - Dev has its own directory (`sspsygene_website_dev`); if you want the
-  dataset on dev too, repeat the rsync + `./deploy-dev.sh --load-db` there.
+  dataset on dev too, repeat the rsync + `sspsygene load-db` there (with
+  env vars pointing at the dev directory).
 
 ---
 
@@ -899,10 +821,13 @@ system administrator if you don't have access.
 
 ### The website doesn't show my dataset after deployment
 
-1. Did you include `--load-db` in the deploy command? Without it, only code
-   is deployed — the database is not rebuilt.
-2. Check the deployment output for errors during the `load-db` step.
+1. Did `sspsygene load-db` actually finish without errors? Re-read its output.
+2. Are the `SSPSYGENE_*` env vars pointing at the intended instance's
+   directory? A common mistake is rebuilding the int database while the
+   vars still point at prod (or vice versa).
 3. Try searching for a specific gene that you know is in your dataset.
+4. Give the web process a few seconds — it only re-opens the database on
+   the next incoming request.
 
 ---
 
@@ -912,11 +837,10 @@ system administrator if you don't have access.
 |------|---------|
 | Load single dataset (fast test) | `sspsygene load-db --dataset NAME` |
 | Load all datasets, skip slow steps | `sspsygene load-db --no-index --skip-meta-analysis` |
-| Load all datasets (production) | `sspsygene load-db` |
-| Deploy to internal (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website_int && ./deploy-int.sh --load-db` |
-| Deploy to dev (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website_dev && ./deploy-dev.sh --load-db` |
-| Deploy to production (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website && ./deploy-prod.sh --load-db` |
-| Restart a service after JS code changes (needs sudo) | add `--restart` to any deploy command |
+| Load all datasets (full build) | `sspsygene load-db` |
+| Deploy to internal (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website_int && git pull && sspsygene load-db` |
+| Deploy to dev (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website_dev && git pull && sspsygene load-db` |
+| Deploy to production (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website && git pull && sspsygene load-db` |
 
 ---
 

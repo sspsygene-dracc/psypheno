@@ -22,16 +22,15 @@ to the corresponding localhost port (with SSL termination).
 **Key points:**
 
 - **All three instances are independent.** Each has its own code checkout
-  and database on `/hive`. Deploys to one do not affect the others. Each
-  instance has its own deploy script: `deploy-prod.sh`, `deploy-dev.sh`,
-  `deploy-int.sh`.
+  and database on `/hive`. Deploys to one do not affect the others.
 - **Internal (int)** is password-protected via Apache basic auth and intended
   for consortium-internal, pre-publication data.
 - **No sudo for data updates.** The web process auto-detects a rebuilt
   SQLite file (inode/mtime check in `web/lib/db.ts`) and re-opens the
-  connection on the next query, so wranglers running `./deploy-*.sh --load-db`
-  do not need to restart the service. Pass `--restart` (requires sudo) only
-  when JS code changes need to be picked up.
+  connection on the next query, so wranglers running `sspsygene load-db`
+  on a given instance do not need to restart the service. Code deploys
+  (JS changes) still require a service restart, handled via the
+  `sspsygene deploy` CLI from a developer laptop.
 
 ## Directory Layout
 
@@ -110,27 +109,24 @@ Restart=always
 
 ## Deployment Flow
 
-Each instance has its own deploy script run directly on psygene (or hgwdev):
+Two distinct paths:
 
-```bash
-# In each site's root directory (/hive/groups/SSPsyGene/sspsygene_website*/):
-./deploy-prod.sh                       # pull code only, no DB rebuild, no restart
-./deploy-prod.sh --load-db             # pull + rebuild DB (wrangler workflow; no sudo)
-./deploy-prod.sh --restart             # pull + restart service (needs sudo; for code deploys)
-./deploy-prod.sh --load-db --restart   # full deploy
+**Data-only updates (wranglers, on the server, no sudo).** `cd` into the
+target site's directory, set the `SSPSYGENE_*` environment variables for
+that site, and run `sspsygene load-db`. The Python pipeline builds the new
+DB at `sspsygene.db.new` and atomically swaps it in (`sq_load.py`), and
+the running web process auto-detects the inode/mtime change and re-opens
+its connection on the next query. No restart, no sudo. See
+[adding-datasets.md](adding-datasets.md) for the full wrangler workflow.
 
-# Same flags for ./deploy-dev.sh and ./deploy-int.sh.
-```
-
-**Default is no restart.** The web process auto-detects a rebuilt SQLite
-file (inode/mtime check in `web/lib/db.ts`) and re-opens the connection on
-the next query. Wranglers updating data therefore never need sudo. The
-Python `load-db` pipeline builds the new DB at `sspsygene.db.new` and
-atomically swaps it in (`sq_load.py`), so readers never observe a missing
-or half-written file.
-
-Pass `--restart` (requires sudo) only when JS code has changed and needs to
-be reloaded.
+**Code deploys (JS changes, from a developer laptop).** Use
+`sspsygene deploy` — a Click command in `processing/src/processing/deploy.py`
+that handles `git push`, SSH to hgwdev for `git pull` + optional `load-db`
++ `npm run build` per site, and `kill`ing the Next.js processes on psygene
+so systemd restarts them with the new build. Target subsets with
+`--prod-only` / `--dev-only` / `--int-only`, rebuild data with `--load-db`,
+and pass `--restart` to restart the web servers. See
+[development.md](development.md) for the CLI reference.
 
 ## Environment Variables
 
@@ -155,6 +151,7 @@ on psygene, and passed to `load-db` on hgwdev):
   benefits.
 - **Apr 2026:** Dev instance moved to its own directory (`sspsygene_website_dev`)
   so dev deploys no longer affect prod. Web process gained a file-change check
-  so wrangler data updates (`./deploy-*.sh --load-db`) no longer require a
-  sudo systemctl restart; the Python pipeline switched to atomic rename for
-  safe hot-swapping.
+  so wrangler data updates no longer require a sudo systemctl restart; the
+  Python pipeline switched to atomic rename for safe hot-swapping. The
+  per-instance deploy shell scripts were removed — wranglers use
+  `sspsygene load-db` directly, and code deploys go through `sspsygene deploy`.

@@ -72,36 +72,30 @@ any of these change (e.g. after the Python `load-db` pipeline atomically
 swaps in a new `.db` file via `Path.replace()`), the process closes the old
 handle and opens the new file — no service restart needed.
 
-This means `./deploy-*.sh --load-db` works without sudo; pass `--restart`
-only when JS code has changed and needs to be reloaded.
+This means wranglers updating data just run `sspsygene load-db` on the
+server with the right env vars — no restart, no sudo.
 
 ## Deployment
 
 Three independent server instances run on psygene, each with its own code
 checkout and database on `/hive`:
 
-| Instance | URL | Deploy script | Directory |
-|----------|-----|---------------|-----------|
-| **Internal** | https://psypheno-int.gi.ucsc.edu | `deploy-int.sh` | `sspsygene_website_int` |
-| **Production** | https://psypheno.gi.ucsc.edu | `deploy-prod.sh` | `sspsygene_website` |
-| **Dev** | https://psypheno-dev.gi.ucsc.edu | `deploy-dev.sh` | `sspsygene_website_dev` |
+| Instance | URL | Directory |
+|----------|-----|-----------|
+| **Internal** | https://psypheno-int.gi.ucsc.edu | `sspsygene_website_int` |
+| **Dev** | https://psypheno-dev.gi.ucsc.edu | `sspsygene_website_dev` |
+| **Production** | https://psypheno.gi.ucsc.edu | `sspsygene_website` |
 
-Deploy scripts are run directly on the server (hgwdev or psygene):
+Two deployment paths:
 
-```bash
-# Data-only deploy (no sudo — web auto-detects the new DB):
-./deploy-prod.sh --load-db
-
-# Code + data deploy (needs sudo for the service restart):
-./deploy-prod.sh --load-db --restart
-
-# Code-only deploy:
-./deploy-prod.sh --restart
-```
-
-The same `--load-db` / `--restart` flags apply to `deploy-int.sh` and
-`deploy-dev.sh`. See [server-architecture.md](server-architecture.md) for
-full details.
+- **Data-only updates** (wranglers, run on the server): `git pull` and
+  `sspsygene load-db` in the target site's directory with `SSPSYGENE_*`
+  env vars pointing at it. The web process auto-detects the new DB file,
+  no restart. See [adding-datasets.md](adding-datasets.md).
+- **Code deploys** (JS changes, run from your laptop): `sspsygene deploy`
+  orchestrates `git push`, remote `git pull` + `npm run build` on hgwdev,
+  and a kill-to-respawn restart on psygene. See the CLI reference below
+  and [server-architecture.md](server-architecture.md) for details.
 
 ## CLI Reference
 
