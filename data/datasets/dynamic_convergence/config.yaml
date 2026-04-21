@@ -67,7 +67,7 @@ tables:
       hetdf: "Heterogeneity degrees of freedom"
       hetpval: "Heterogeneity p-value"
     links:
-      - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4
+      - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4.supplementary-material
     categories:
       - meta-analysis
       - CRISPR perturbation
@@ -112,7 +112,7 @@ tables:
       Comparing behaviors in stable mutant and background-matched wild-type fish pvalues.
       Mutant behavioral fingerprint across startle-OFF, startle-ON, and sleep-wake parameters.
     links:
-      - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4
+      - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4.supplementary-material
     categories:
       - mutant zebrafish
       - behavioral fingerprints
