@@ -52,7 +52,7 @@ tables:
       lr: "Likelihood ratio test statistic"
       perturbation: "Guide/perturbation identifier"
     links:
-      - https://www.cell.com/cell/fulltext/S0092-8674(24)00476-8
+      - https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
     categories:
       - in vivo Perturb-seq
       - transcription factors
@@ -103,7 +103,7 @@ tables:
       limma_coef: "limma coefficient (effect size)"
       tstatistic: "t-statistic from limma"
     links:
-      - https://www.cell.com/cell/fulltext/S0092-8674(24)00476-8
+      - https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
     categories:
       - in vivo Perturb-seq
       - cell fate

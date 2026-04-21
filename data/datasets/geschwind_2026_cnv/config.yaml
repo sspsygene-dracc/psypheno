@@ -54,7 +54,7 @@ tables:
       gene_biotype: "Gene biotype"
       region_genes: "Genes encompassed by the structural variant"
     links:
-      - https://doi.org/10.1038/s41586-025-10047-5
+      - https://www.nature.com/articles/s41586-025-10047-5#data-availability
     categories:
       - ASD
       - CNV deletion

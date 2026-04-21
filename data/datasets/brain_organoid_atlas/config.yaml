@@ -57,8 +57,6 @@ tables:
       diameter_of_hbos_div28_and_80_in_mm_: "Brain organoid diameter at DIV28 and DIV80 (mm)"
       neural_rosettes: "Neural rosette formation"
       lamination_layers_: "Cortical layer lamination"
-    links:
-      - https://www.biorxiv.org/content/10.1101/2025.09.12.675864v1
     categories:
       - patient metadata
       - neurodevelopmental disorders
@@ -91,8 +89,6 @@ tables:
     disease: ["ndd"]
     fieldLabels:
       disease: "NDD disease category"
-    links:
-      - https://www.biorxiv.org/content/10.1101/2025.09.12.675864v1
     categories:
       - differential expression
       - scRNA-seq
@@ -129,8 +125,6 @@ tables:
     disease: ["ndd"]
     fieldLabels:
       disease: "NDD disease category"
-    links:
-      - https://www.biorxiv.org/content/10.1101/2025.09.12.675864v1
     categories:
       - differential expression
       - scRNA-seq
@@ -167,8 +161,6 @@ tables:
     disease: ["ndd"]
     fieldLabels:
       disease: "NDD disease category"
-    links:
-      - https://www.biorxiv.org/content/10.1101/2025.09.12.675864v1
     categories:
       - differential expression
       - scRNA-seq
@@ -211,8 +203,6 @@ tables:
       statistic: "Wilcoxon test statistic"
       p: "Nominal p-value"
       p_adjust: "Adjusted p-value"
-    links:
-      - https://www.biorxiv.org/content/10.1101/2025.09.12.675864v1
     categories:
       - differential expression
       - pseudobulk RNA-seq

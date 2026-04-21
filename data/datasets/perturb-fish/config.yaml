@@ -41,7 +41,7 @@ tables:
       - perturbation
     disease: ["asd", "ndd"]
     links:
-      - https://www.cell.com/cell/fulltext/S0092-8674(25)00197-7
+      - https://download.brainimagelibrary.org/0c/bd/0cbd479c521afff9/astrocytes/processed/finaltables/
     categories:
       - spatial transcriptomics
       - CRISPR screening

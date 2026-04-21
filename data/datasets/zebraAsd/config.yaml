@@ -67,7 +67,7 @@ tables:
       habenula: "Habenula pERK/tERK activity ratio"
       posterior_tuberculum: "Posterior tuberculum pERK/tERK activity ratio"
     links:
-      - https://www.cell.com/cell-reports/fulltext/S2211-1247(23)00254-1
+      - https://www.sciencedirect.com/science/article/pii/S2211124723002541?via%3Dihub#app2
     categories:
       - functional genomics
       - behavior
