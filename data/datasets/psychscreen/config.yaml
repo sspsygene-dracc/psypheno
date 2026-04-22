@@ -24,7 +24,7 @@ tables:
       - date: "2025-10-14"
         message: "Initial data load"
     shortLabel: psychscreen_age_degs
-    mediumLabel: PsychScreen Age DEGs
+    mediumLabel: Pratt 2024 - PsychScreen Age DEGs
     longLabel: Age-related differential expression in psychiatric disorders
     description:
       Differentially expressed genes associated with aging in brain tissue from large psychiatric
@@ -57,7 +57,7 @@ tables:
       - date: "2025-10-14"
         message: "Initial data load"
     shortLabel: psychscreen_asd_degs
-    mediumLabel: PsychScreen ASD DEGs
+    mediumLabel: Pratt 2024 - PsychScreen ASD DEGs
     longLabel: Autism spectrum disorder differential expression signatures
     description:
       Differentially expressed genes in autism spectrum disorder from aggregated postmortem brain
@@ -90,7 +90,7 @@ tables:
       - date: "2025-10-14"
         message: "Initial data load"
     shortLabel: psychscreen_bipolar_degs
-    mediumLabel: PsychScreen Bipolar DEGs
+    mediumLabel: Pratt 2024 - PsychScreen Bipolar DEGs
     longLabel: Bipolar disorder differential expression signatures
     description:
       Differentially expressed genes in bipolar disorder from aggregated postmortem brain transcriptomic
@@ -123,7 +123,7 @@ tables:
       - date: "2025-10-14"
         message: "Initial data load"
     shortLabel: psychscreen_schizophrenia_degs
-    mediumLabel: PsychScreen Schizophrenia DEGs
+    mediumLabel: Pratt 2024 - PsychScreen Schizophrenia DEGs
     longLabel: Schizophrenia differential expression signatures
     description:
       Differentially expressed genes in schizophrenia from aggregated postmortem brain transcriptomic
