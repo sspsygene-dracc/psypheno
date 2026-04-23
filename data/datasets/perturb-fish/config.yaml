@@ -42,6 +42,12 @@ tables:
     disease: ["asd", "ndd"]
     links:
       - https://download.brainimagelibrary.org/0c/bd/0cbd479c521afff9/astrocytes/processed/finaltables/
+      - https://dx.doi.org/10.17504/protocols.io.6qpvr356bvmk/v1
+      - https://github.com/lbinan/Perturb-FISH
+      - https://github.com/douglasyao/FR-Perturb
+      - https://api.brainimagelibrary.org/web/view?bildid=ace-gem-get
+      - https://download.brainimagelibrary.org/0c/bd/0cbd479c521afff9/
+      - https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE221321
     categories:
       - spatial transcriptomics
       - CRISPR screening
