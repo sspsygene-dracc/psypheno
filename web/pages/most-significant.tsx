@@ -234,6 +234,9 @@ export default function MostSignificantPage() {
   const [totalRows, setTotalRows] = useState(0);
   const [page, setPage] = useState(1);
   const [method, setMethod] = useState<Method>("fisher");
+  const [direction, setDirection] = useState<"global" | "target" | "perturbed">(
+    "global",
+  );
   const [loading, setLoading] = useState(true);
   const [noTable, setNoTable] = useState<{ numSourceTables: number } | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -304,6 +307,9 @@ export default function MostSignificantPage() {
     if (typeof q.method === "string" && ["fisher", "stouffer", "cauchy", "hmp"].includes(q.method)) {
       setMethod(q.method as Method);
     }
+    if (typeof q.dir === "string" && ["global", "target", "perturbed"].includes(q.dir)) {
+      setDirection(q.dir as "global" | "target" | "perturbed");
+    }
     if (typeof q.assay === "string") setAssayFilter(q.assay);
     if (typeof q.disease === "string") setDiseaseFilter(q.disease);
     if (typeof q.gene === "string") setGeneSearch(q.gene);
@@ -333,6 +339,7 @@ export default function MostSignificantPage() {
     }
     const params: Record<string, string> = {};
     if (method !== "fisher") params.method = method;
+    if (direction !== "global") params.dir = direction;
     if (assayFilter) params.assay = assayFilter;
     if (diseaseFilter) params.disease = diseaseFilter;
     if (geneSearch) params.gene = geneSearch;
@@ -346,7 +353,7 @@ export default function MostSignificantPage() {
     if (!showOther) params.showOther = "0";
     router.replace({ pathname: router.pathname, query: params }, undefined, { shallow: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [method, assayFilter, diseaseFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady]);
+  }, [method, direction, assayFilter, diseaseFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady]);
 
   useEffect(() => {
     fetch("/api/dataset-tables-with-pvalues")
@@ -376,6 +383,7 @@ export default function MostSignificantPage() {
         page,
         pageSize: PAGE_SIZE,
         method,
+        direction,
         hideFlags,
         showFlags,
         showOther,
@@ -402,6 +410,7 @@ export default function MostSignificantPage() {
   }, [
     page,
     method,
+    direction,
     hideFlags,
     showFlags,
     showOther,
@@ -552,6 +561,84 @@ export default function MostSignificantPage() {
           >
             Full methods documentation &rarr;
           </Link>
+        </div>
+
+        {/* Direction selector — Global / Target / Perturbed */}
+        <div
+          style={{
+            marginBottom: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ fontWeight: 600, fontSize: 14, color: "#374151" }}>
+            Treat each gene as:
+          </span>
+          <div
+            role="group"
+            aria-label="Search direction"
+            style={{
+              display: "flex",
+              gap: 4,
+              background: "#ffffff",
+              border: "1px solid #d1d5db",
+              borderRadius: 10,
+              padding: 3,
+            }}
+          >
+            {(
+              [
+                { key: "global", label: "Global" },
+                { key: "target", label: "Target" },
+                { key: "perturbed", label: "Perturbed" },
+              ] as const
+            ).map((opt) => {
+              const active = direction === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  aria-pressed={active}
+                  disabled={!!assayFilter || !!diseaseFilter}
+                  onClick={() => {
+                    setDirection(opt.key);
+                    setPage(1);
+                  }}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 8,
+                    border: "none",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor:
+                      assayFilter || diseaseFilter
+                        ? "not-allowed"
+                        : "pointer",
+                    background: active ? "#dbeafe" : "transparent",
+                    color: active ? "#1e40af" : "#4b5563",
+                    opacity: assayFilter || diseaseFilter ? 0.5 : 1,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <span
+            style={{ fontSize: 12, color: "#6b7280", maxWidth: 480 }}
+            title={
+              "Global: legacy default. Drops perturbed only when both target and perturbed exist in the same source table.\n" +
+              "Target: ranks each gene as if it were the gene whose response was measured in each study.\n" +
+              "Perturbed: ranks each gene as if it were the gene that was experimentally manipulated.\n" +
+              "Disabled when an assay or disease filter is set (only the global pre-computed table exists for those subsets)."
+            }
+          >
+            {assayFilter || diseaseFilter
+              ? "(direction not applied while filters are active)"
+              : "what does this mean?"}
+          </span>
         </div>
 
         {/* Assay type and disease radio buttons */}

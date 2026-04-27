@@ -43,7 +43,13 @@ const bodySchema = z.object({
   assayFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
   diseaseFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
   geneSearch: z.string().max(50).regex(/^[A-Za-z0-9._-]*$/).default(""),
+  direction: z.enum(["global", "target", "perturbed"]).default("global"),
 });
+
+const DIRECTION_TABLE: Record<string, string> = {
+  target: "gene_combined_pvalues_target",
+  perturbed: "gene_combined_pvalues_perturbed",
+};
 
 /** Check whether a table exists in the database. */
 function tableExists(db: ReturnType<typeof getDb>, name: string): boolean {
@@ -68,7 +74,7 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { page, pageSize, method, hideFlags, showFlags, showOther, assayFilter, diseaseFilter, geneSearch } =
+  const { page, pageSize, method, hideFlags, showFlags, showOther, assayFilter, diseaseFilter, geneSearch, direction } =
     parse.data;
   const methodCol = METHOD_COLUMNS[method];
 
@@ -78,7 +84,15 @@ export default async function handler(
     const hasLlm = tableExists(db, "llm_gene_results");
     const hasDesc = tableExists(db, "gene_descriptions");
 
-    // Determine which combined p-values table to query via combined_pvalue_groups
+    // Determine which combined p-values table to query.
+    //
+    // Priority:
+    //   1. assay/disease filter -> combined_pvalue_groups lookup (direction
+    //      is silently ignored for those filtered views — separate ticket).
+    //   2. direction == "target" / "perturbed" -> the matching pre-computed
+    //      direction-aware table.
+    //   3. default -> the global gene_combined_pvalues table (legacy rule:
+    //      drop perturbed only when both sides exist in the same source).
     let cpTable = "gene_combined_pvalues";
     let noTable = false;
     let numSourceTables = 0;
@@ -106,6 +120,13 @@ export default async function handler(
       } else {
         noTable = true;
       }
+    } else if (direction !== "global" && DIRECTION_TABLE[direction]) {
+      const candidate = DIRECTION_TABLE[direction];
+      if (tableExists(db, candidate)) {
+        cpTable = candidate;
+      }
+      // If the direction-specific table doesn't exist, silently fall back
+      // to the global table — keeps the page working before load-db reruns.
     }
 
     if (noTable) {
