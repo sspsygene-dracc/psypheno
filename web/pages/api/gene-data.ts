@@ -63,6 +63,7 @@ export default async function handler(
       fieldLabels: Record<string, string> | null;
       displayColumns: string[];
       scalarColumns: string[];
+      geneColumns: string[];
       pvalueColumn: string | null;
       fdrColumn: string | null;
       publicationFirstAuthor: string | null;
@@ -115,6 +116,10 @@ export default async function handler(
           fieldLabels,
           displayColumns: displayCols,
           scalarColumns: (t.scalar_columns || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          geneColumns: (t.gene_columns || "")
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean),

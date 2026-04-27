@@ -1,6 +1,43 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import InfoTooltip from "@/components/InfoTooltip";
+
+const ENSEMBL_ID_RE = /\b(ENS(?:MUS|DAR)?G\d+(?:\.\d+)?)\b/g;
+
+function normalizeColName(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+function renderCellWithEnsemblLinks(text: string): ReactNode {
+  if (!text) return text;
+  ENSEMBL_ID_RE.lastIndex = 0;
+  if (!ENSEMBL_ID_RE.test(text)) return text;
+  ENSEMBL_ID_RE.lastIndex = 0;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+  while ((match = ENSEMBL_ID_RE.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const id = match[1];
+    parts.push(
+      <a
+        key={`ens-${key++}`}
+        href={`https://www.ensembl.org/id/${id}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: "#2563eb", textDecoration: "underline" }}
+      >
+        {id}
+      </a>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+}
 
 /** Format a numeric value to avoid floating-point display artifacts. */
 function formatNumber(n: number): string {
@@ -180,6 +217,31 @@ export default function DataTable({
     ? `Significant: ${sigSourceColumn} < ${SIGNIFICANCE_THRESHOLD}`
     : undefined;
 
+  // Priority-based render-side column reorder:
+  //   tier 1 = gene columns, tier 2 = significance columns, tier 3 = the rest.
+  // Source order is preserved within each tier. Row data is keyed by name,
+  // so cell lookups don't depend on column order.
+  const effectiveColumns = useMemo(() => {
+    const t1Names = new Set((geneColumns ?? []).map(normalizeColName));
+    const sigNamesAll = [
+      ...parseSignificanceColumns(pvalueColumn),
+      ...parseSignificanceColumns(fdrColumn),
+    ].map(normalizeColName);
+    const t2Names = new Set(
+      sigNamesAll.filter((c) => !t1Names.has(c)),
+    );
+    const inT1: string[] = [];
+    const inT2: string[] = [];
+    const inT3: string[] = [];
+    for (const c of columns) {
+      const n = normalizeColName(c);
+      if (t1Names.has(n)) inT1.push(c);
+      else if (t2Names.has(n)) inT2.push(c);
+      else inT3.push(c);
+    }
+    return [...inT1, ...inT2, ...inT3];
+  }, [columns, geneColumns, pvalueColumn, fdrColumn]);
+
   const isActive = (col: string) =>
     col === effectiveSortColumn && effectiveSortMode !== "none";
 
@@ -194,7 +256,7 @@ export default function DataTable({
       >
         <thead>
           <tr style={{ background: "#f9fafb" }}>
-            {columns.map((col) => {
+            {effectiveColumns.map((col) => {
               const active = isActive(col);
               return (
                 <th
@@ -242,9 +304,12 @@ export default function DataTable({
               }}
               title={significant ? sigTitle : undefined}
             >
-              {columns.map((col) => {
+              {effectiveColumns.map((col) => {
                 const val = row[col];
-                const isGeneCol = geneColumns?.includes(col);
+                const colNorm = normalizeColName(col);
+                const isGeneCol = geneColumns?.some(
+                  (g) => normalizeColName(g) === colNorm,
+                );
                 const text = formatCellValue(val);
                 return (
                   <td
@@ -266,7 +331,7 @@ export default function DataTable({
                         {text}
                       </Link>
                     ) : (
-                      text
+                      renderCellWithEnsemblLinks(text)
                     )}
                   </td>
                 );

@@ -632,6 +632,7 @@ export default function GeneResults({
                       totalRows={effectiveTotalRows}
                       scalarColumns={section.scalarColumns}
                       fieldLabels={section.fieldLabels}
+                      geneColumns={section.geneColumns}
                       pvalueColumn={section.pvalueColumn}
                       fdrColumn={section.fdrColumn}
                       showSummary={false}
