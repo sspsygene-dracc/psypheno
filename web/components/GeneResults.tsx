@@ -6,28 +6,13 @@ import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
 import InfoTooltip from "@/components/InfoTooltip";
 import GeneSignificanceSummary from "@/components/GeneSignificanceSummary";
 import { ROW_LIMIT } from "@/lib/gene-query";
+import { formatAuthors } from "@/lib/format-authors";
 
 const formatTableName = (section: TableResult) =>
   section.mediumLabel ??
   section.tableName
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
-
-const formatAuthors = (
-  first: string | null | undefined,
-  last: string | null | undefined,
-  count: number | null | undefined,
-) => {
-  if (!first && !last) return "";
-  if (first && last) {
-    if (first === last) return first;
-    return count != null && count > 2
-      ? `${first}, ..., ${last}`
-      : `${first} & ${last}`;
-  }
-  if (first) return `${first} et al.`;
-  return last ?? "";
-};
 
 type AssayGroup = {
   assayKey: string;

@@ -206,6 +206,7 @@ def load_data_tables(
         publication_first_author TEXT,
         publication_last_author TEXT,
         publication_author_count INTEGER,
+        publication_authors TEXT,
         publication_year INTEGER,
         publication_journal TEXT,
         publication_doi TEXT,
@@ -265,10 +266,10 @@ def load_data_tables(
             gene_species, display_columns,
             scalar_columns, link_tables,
             links, categories, source, assay, disease, field_labels, organism,
-            publication_first_author, publication_last_author, publication_author_count, publication_year,
+            publication_first_author, publication_last_author, publication_author_count, publication_authors, publication_year,
             publication_journal, publication_doi, publication_pmid,
             pvalue_column, fdr_column)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -293,6 +294,9 @@ def load_data_tables(
                 table_config.publication_first_author,
                 table_config.publication_last_author,
                 table_config.publication_author_count,
+                json.dumps(table_config.publication_authors)
+                if table_config.publication_authors
+                else None,
                 table_config.publication_year,
                 table_config.publication_journal,
                 table_config.publication_doi,

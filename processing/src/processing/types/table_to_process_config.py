@@ -64,6 +64,7 @@ class TableToProcessConfig:
     publication_first_author: str | None = None
     publication_last_author: str | None = None
     publication_author_count: int | None = None
+    publication_authors: list[str] = field(default_factory=list)
     publication_year: int | None = None
     publication_journal: str | None = None
     publication_doi: str | None = None
@@ -200,6 +201,7 @@ class TableToProcessConfig:
             publication_first_author=first_author,
             publication_last_author=last_author,
             publication_author_count=author_count,
+            publication_authors=authors,
             publication_year=year_int,
             publication_journal=publication.get("journal"),
             publication_doi=publication.get("doi"),

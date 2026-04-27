@@ -86,6 +86,20 @@ export default function AllDatasets() {
     fetchAssayTypes();
   }, []);
 
+  // After datasets render, honor the URL fragment (e.g. coming from /publications
+  // links like #ds-<table>) by scrolling the target into view.
+  useEffect(() => {
+    if (loading) return;
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    const id = hash.slice(1);
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [loading]);
+
   // Hydrate selected dataset from ?select= URL param once datasets are loaded
   useEffect(() => {
     if (!router.isReady || hydratedFromQuery.current || loading) return;
