@@ -98,6 +98,11 @@ class TableToProcessConfig:
                 f"table {self.table}: A table cannot have more than one target central gene conversion"
             )
         if num_perturbed != num_target:
+            # Permitting pure-target-only or pure-perturbed-only tables would
+            # also require softening the pair-mode query in
+            # web/lib/gene-query.ts (it currently requires exactly one
+            # perturbed AND one target link table per data table). No current
+            # dataset needs this; revisit when a wrangler does.
             raise ValueError(
                 f"table {self.table}: A table must have exactly one perturbed and one target central gene conversion, or none"
             )

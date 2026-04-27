@@ -22,12 +22,103 @@ import tempfile
 from collections import defaultdict
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import click
 import mpmath
 
 from processing.sql_utils import sanitize_identifier
+
+
+@dataclass
+class CollectedPvalues:
+    """P-values gathered for one compute group, keyed by central_gene_id.
+
+    `per_table` keeps p-values bucketed by source table so the per-gene
+    Bonferroni pre-collapse can run per-table; `all_pvalues` is the flat
+    list used by methods (Cauchy, HMP) that consume raw p-values directly.
+    """
+
+    per_table: defaultdict[int, defaultdict[str, list[float]]] = field(
+        default_factory=lambda: defaultdict(lambda: defaultdict(list))
+    )
+    all_pvalues: defaultdict[int, list[float]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+
+    def is_empty(self) -> bool:
+        return not self.all_pvalues
+
+    @classmethod
+    def from_dicts(
+        cls,
+        per_table: dict[int, dict[str, list[float]]],
+        all_pvalues: dict[int, list[float]],
+    ) -> "CollectedPvalues":
+        """Build a CollectedPvalues from plain nested dicts (test convenience)."""
+        out = cls()
+        for gid, tbl_dict in per_table.items():
+            for tbl, pvals in tbl_dict.items():
+                out.per_table[gid][tbl] = list(pvals)
+        for gid, pvals in all_pvalues.items():
+            out.all_pvalues[gid] = list(pvals)
+        return out
+
+
+@dataclass
+class GeneCombinedPvalues:
+    """Combined-p-value record for one gene as returned by the R script."""
+
+    fisher_p: float | None
+    fisher_fdr: float | None
+    stouffer_p: float | None
+    stouffer_fdr: float | None
+    cauchy_p: float | None
+    cauchy_fdr: float | None
+    hmp_p: float | None
+    hmp_fdr: float | None
+
+
+@dataclass
+class ComputeGroup:
+    """Spec for one pre-computed combined-p-values output table.
+
+    `direction` is None for legacy groups (drop perturbed only when a single
+    table has both sides) and "target" / "perturbed" for the direction-aware
+    groups that drive the gene-search flip toggle.
+    """
+
+    tables: list[tuple[str, str, str]]
+    out_table: str
+    label: str
+    assay_filter: str | None = None
+    disease_filter: str | None = None
+    use_gene_flags: bool = True
+    min_tables: int = 1
+    direction: str | None = None
+
+
+@dataclass
+class CollectedGroup:
+    """A ComputeGroup paired with its collected p-values, ready for R."""
+
+    pvalues: CollectedPvalues
+    out_table: str
+    label: str
+    assay_filter: str | None
+    disease_filter: str | None
+    use_gene_flags: bool
+
+
+@dataclass
+class RJobInput:
+    """Input to one R meta-analysis job submitted to the thread pool."""
+
+    idx: int
+    pvalues: CollectedPvalues
+    label: str
 
 # Path to the R script that computes combined p-values
 _R_SCRIPT = Path(__file__).parent / "r" / "compute_combined.R"
@@ -190,6 +281,43 @@ def _parse_link_tables(link_tables_raw: str) -> list[str]:
     return [name for name, _ in entries]
 
 
+def _parse_link_tables_for_direction(
+    link_tables_raw: str, direction: str
+) -> list[str]:
+    """Extract link tables for a specific search direction.
+
+    direction must be "target" or "perturbed".
+
+    Selection rule per link-table entry "col:lt:is_perturbed:is_target":
+      target    -> include if is_target == 1 OR (both flags 0)
+      perturbed -> include if is_perturbed == 1 OR (both flags 0)
+
+    Generic gene tables (both flags 0, e.g. SFARI/MGI) appear in both
+    directions. Pure-target tables only appear in target mode; pure-perturbed
+    tables only appear in perturbed mode. Mixed-direction tables contribute
+    only the matching side.
+    """
+    if direction not in ("target", "perturbed"):
+        raise ValueError(f"direction must be 'target' or 'perturbed', got {direction!r}")
+    out: list[str] = []
+    for entry in link_tables_raw.split(","):
+        entry = entry.strip()
+        if not entry:
+            continue
+        parts = entry.split(":")
+        link_table_name = parts[1] if len(parts) >= 2 else parts[0]
+        is_perturbed = parts[2] == "1" if len(parts) >= 3 else False
+        is_target = parts[3] == "1" if len(parts) >= 4 else False
+        is_generic = (not is_perturbed) and (not is_target)
+        keep = (
+            (direction == "target" and (is_target or is_generic))
+            or (direction == "perturbed" and (is_perturbed or is_generic))
+        )
+        if keep:
+            out.append(sanitize_identifier(link_table_name))
+    return out
+
+
 def _precollapse(pvalues: list[float]) -> float:
     """Bonferroni pre-collapse: min(p) * n, capped at 1.0.
 
@@ -287,16 +415,15 @@ def _ensure_r_packages(rscript: str) -> bool:
 
 
 def _call_r_combine(
-    per_table_pvalues: dict[int, dict[str, list[float]]],
-    all_pvalues: dict[int, list[float]],
-) -> dict[int, dict[str, float | None]] | None:
+    pvalues: CollectedPvalues,
+) -> dict[int, GeneCombinedPvalues] | None:
     """Call R to compute combined p-values and FDR corrections.
 
-    Writes input CSVs, invokes Rscript, reads result CSV.
-    Returns {gene_id: {fisher_p, stouffer_p, cauchy_p, hmp_p,
-                       fisher_fdr, stouffer_fdr, cauchy_fdr, hmp_fdr}},
-    or None if R is unavailable.
+    Writes input CSVs, invokes Rscript, reads result CSV. Returns the
+    per-gene combined p-values, or None if R is unavailable.
     """
+    per_table_pvalues = pvalues.per_table
+    all_pvalues = pvalues.all_pvalues
     rscript = shutil.which("Rscript")
     if rscript is None:
         click.echo(click.style(
@@ -370,25 +497,29 @@ def _call_r_combine(
         if not results_path.exists():
             raise RuntimeError(f"R script did not produce {results_path}")
 
-        gene_results: dict[int, dict[str, float | None]] = {}
+        def _parse_cell(val_str: str) -> float | None:
+            if val_str in ("NA", "", "NaN", "Inf", "-Inf"):
+                return None
+            val = float(val_str)
+            if math.isnan(val) or math.isinf(val):
+                return None
+            return val
+
+        gene_results: dict[int, GeneCombinedPvalues] = {}
         with open(results_path, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 gene_id = int(row["gene_id"])
-                gene_results[gene_id] = {}
-                for key in [
-                    "fisher_p", "stouffer_p", "cauchy_p", "hmp_p",
-                    "fisher_fdr", "stouffer_fdr", "cauchy_fdr", "hmp_fdr",
-                ]:
-                    val_str = row[key]
-                    if val_str in ("NA", "", "NaN", "Inf", "-Inf"):
-                        gene_results[gene_id][key] = None
-                    else:
-                        val = float(val_str)
-                        if math.isnan(val) or math.isinf(val):
-                            gene_results[gene_id][key] = None
-                        else:
-                            gene_results[gene_id][key] = val
+                gene_results[gene_id] = GeneCombinedPvalues(
+                    fisher_p=_parse_cell(row["fisher_p"]),
+                    fisher_fdr=_parse_cell(row["fisher_fdr"]),
+                    stouffer_p=_parse_cell(row["stouffer_p"]),
+                    stouffer_fdr=_parse_cell(row["stouffer_fdr"]),
+                    cauchy_p=_parse_cell(row["cauchy_p"]),
+                    cauchy_fdr=_parse_cell(row["cauchy_fdr"]),
+                    hmp_p=_parse_cell(row["hmp_p"]),
+                    hmp_fdr=_parse_cell(row["hmp_fdr"]),
+                )
 
         return gene_results
 
@@ -400,20 +531,25 @@ def _collect_pvalues_for_tables(
     conn: sqlite3.Connection,
     tables_with_pvalues: list[tuple[str, str, str]],
     label: str = "",
-) -> tuple[dict[int, dict[str, list[float]]], dict[int, list[float]]]:
+    direction: str | None = None,
+) -> CollectedPvalues:
     """Collect p-values from the database for the given tables.
 
-    Returns (per_table_pvalues, all_pvalues).
+    direction: if "target" or "perturbed", uses _parse_link_tables_for_direction;
+    if None, uses the legacy _parse_link_tables (drop perturbed only when both
+    sides exist in the same table).
     """
-    per_table_pvalues: dict[int, dict[str, list[float]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
-    all_pvalues: dict[int, list[float]] = defaultdict(list)
+    collected = CollectedPvalues()
 
     for table_name, pvalue_cols_raw, link_tables_raw in tables_with_pvalues:
         table_name = sanitize_identifier(table_name)
         pvalue_cols = [sanitize_identifier(c) for c in pvalue_cols_raw.split(",")]
-        link_table_names = _parse_link_tables(link_tables_raw or "")
+        if direction is None:
+            link_table_names = _parse_link_tables(link_tables_raw or "")
+        else:
+            link_table_names = _parse_link_tables_for_direction(
+                link_tables_raw or "", direction
+            )
 
         if not link_table_names:
             continue
@@ -441,21 +577,20 @@ def _collect_pvalues_for_tables(
                     if gene_id is None:
                         continue
                     pval_float = float(pval)
-                    per_table_pvalues[gene_id][table_name].append(pval_float)
-                    all_pvalues[gene_id].append(pval_float)
+                    collected.per_table[gene_id][table_name].append(pval_float)
+                    collected.all_pvalues[gene_id].append(pval_float)
 
         col_label = ", ".join(pvalue_cols) if len(pvalue_cols) > 1 else pvalue_cols[0]
         click.echo(f"  {label}Processed {table_name}.{col_label}")
 
-    return per_table_pvalues, all_pvalues
+    return collected
 
 
 def _write_combined_results(
     conn: sqlite3.Connection,
     output_table: str,
-    per_table_pvalues: dict[int, dict[str, list[float]]],
-    all_pvalues: dict[int, list[float]],
-    r_results: dict[int, dict[str, float | None]],
+    pvalues: CollectedPvalues,
+    r_results: dict[int, GeneCombinedPvalues],
     no_index: bool,
     gene_flags_fn: Callable[[int], str | None] | None = None,
     label: str = "",
@@ -479,10 +614,10 @@ def _write_combined_results(
         )"""
     )
 
-    for gene_id in sorted(all_pvalues.keys()):
-        num_tables = len(per_table_pvalues[gene_id])
-        num_pvalues = len(all_pvalues[gene_id])
-        r = r_results.get(gene_id, {})
+    for gene_id in sorted(pvalues.all_pvalues.keys()):
+        num_tables = len(pvalues.per_table[gene_id])
+        num_pvalues = len(pvalues.all_pvalues[gene_id])
+        r = r_results.get(gene_id)
         gene_flag = gene_flags_fn(gene_id) if gene_flags_fn else None
 
         conn.execute(
@@ -493,14 +628,14 @@ def _write_combined_results(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 gene_id,
-                r.get("fisher_p"),
-                r.get("fisher_fdr"),
-                r.get("stouffer_p"),
-                r.get("stouffer_fdr"),
-                r.get("cauchy_p"),
-                r.get("cauchy_fdr"),
-                r.get("hmp_p"),
-                r.get("hmp_fdr"),
+                r.fisher_p if r else None,
+                r.fisher_fdr if r else None,
+                r.stouffer_p if r else None,
+                r.stouffer_fdr if r else None,
+                r.cauchy_p if r else None,
+                r.cauchy_fdr if r else None,
+                r.hmp_p if r else None,
+                r.hmp_fdr if r else None,
                 num_tables,
                 num_pvalues,
                 gene_flag,
@@ -514,7 +649,7 @@ def _write_combined_results(
         )
     conn.commit()
 
-    n_with_results = sum(1 for r in r_results.values() if r)
+    n_with_results = len(r_results)
     if n_with_results > 0:
         click.echo(
             f"  {label}Computed combined p-values for "
@@ -612,81 +747,118 @@ def compute_combined_pvalues(
                 combo_to_tables[(ak, dk)].append(entry)
 
     # 3. Build list of all groups to compute
-    # Each group: (tables, out_table, label, assay_filter, disease_filter, use_gene_flags, min_tables)
-    groups: list[tuple[
-        list[tuple[str, str, str]], str, str, str | None, str | None, bool, int
-    ]] = []
+    #   direction == None: legacy "drop perturbed only when both sides exist" rule
+    #   direction == "target" / "perturbed": direction-aware filter (drives the
+    #   gene-search flip toggle; see issues #65 / #66)
+    groups: list[ComputeGroup] = []
 
     # Global group (min_tables=1: always compute even with a single source table)
-    groups.append((tables_3col, "gene_combined_pvalues", "[global] ", None, None, True, 1))
+    groups.append(ComputeGroup(
+        tables=tables_3col,
+        out_table="gene_combined_pvalues",
+        label="[global] ",
+        min_tables=1,
+    ))
+
+    # Direction-specific globals (drive the target/perturbed flip toggle).
+    groups.append(ComputeGroup(
+        tables=tables_3col,
+        out_table="gene_combined_pvalues_target",
+        label="[target] ",
+        min_tables=1,
+        direction="target",
+    ))
+    groups.append(ComputeGroup(
+        tables=tables_3col,
+        out_table="gene_combined_pvalues_perturbed",
+        label="[perturbed] ",
+        min_tables=1,
+        direction="perturbed",
+    ))
 
     # Per-assay groups (min_tables=2: skip if only 1 source table)
     for assay_key in sorted(assay_to_tables.keys()):
-        groups.append((
-            assay_to_tables[assay_key],
-            f"gene_combined_pvalues_{assay_key}",
-            f"[assay={assay_key}] ",
-            assay_key, None, True, 2,
+        groups.append(ComputeGroup(
+            tables=assay_to_tables[assay_key],
+            out_table=f"gene_combined_pvalues_{assay_key}",
+            label=f"[assay={assay_key}] ",
+            assay_filter=assay_key,
+            min_tables=2,
         ))
 
     # Per-disease groups
     for disease_key in sorted(disease_to_tables.keys()):
-        groups.append((
-            disease_to_tables[disease_key],
-            f"gene_combined_pvalues_d_{disease_key}",
-            f"[disease={disease_key}] ",
-            None, disease_key, True, 2,
+        groups.append(ComputeGroup(
+            tables=disease_to_tables[disease_key],
+            out_table=f"gene_combined_pvalues_d_{disease_key}",
+            label=f"[disease={disease_key}] ",
+            disease_filter=disease_key,
+            min_tables=2,
         ))
 
     # Per-(assay × disease) groups
     for (assay_key, disease_key) in sorted(combo_to_tables.keys()):
-        groups.append((
-            combo_to_tables[(assay_key, disease_key)],
-            f"gene_combined_pvalues_{assay_key}_d_{disease_key}",
-            f"[assay={assay_key}, disease={disease_key}] ",
-            assay_key, disease_key, True, 2,
+        groups.append(ComputeGroup(
+            tables=combo_to_tables[(assay_key, disease_key)],
+            out_table=f"gene_combined_pvalues_{assay_key}_d_{disease_key}",
+            label=f"[assay={assay_key}, disease={disease_key}] ",
+            assay_filter=assay_key,
+            disease_filter=disease_key,
+            min_tables=2,
         ))
 
     # Phase 1: Collect p-values from DB for all groups (sequential — fast)
     click.echo(f"\n  Collecting p-values for {len(groups)} group(s)...")
-    collected: list[tuple[
-        dict[int, dict[str, list[float]]],
-        dict[int, list[float]],
-        str, str, str | None, str | None, bool,
-    ]] = []
+    collected: list[CollectedGroup] = []
 
-    for tables, out_table, label, assay_filter, disease_filter, use_flags, min_tables in groups:
+    for group in groups:
         # Deduplicate tables
-        unique_tables = list({t[0]: t for t in tables}.values())
-        if len(unique_tables) < min_tables:
-            click.echo(f"  {label}Skipping — only {len(unique_tables)} source table(s)")
-            collected.append(({}, {}, out_table, label, assay_filter, disease_filter, use_flags))
+        unique_tables = list({t[0]: t for t in group.tables}.values())
+        if len(unique_tables) < group.min_tables:
+            click.echo(
+                f"  {group.label}Skipping — only {len(unique_tables)} source table(s)"
+            )
+            collected.append(CollectedGroup(
+                pvalues=CollectedPvalues(),
+                out_table=group.out_table,
+                label=group.label,
+                assay_filter=group.assay_filter,
+                disease_filter=group.disease_filter,
+                use_gene_flags=group.use_gene_flags,
+            ))
             continue
 
-        click.echo(f"  {label}Collecting from {len(unique_tables)} tables...")
-        per_table, all_pvals = _collect_pvalues_for_tables(
-            conn, unique_tables, label
+        click.echo(f"  {group.label}Collecting from {len(unique_tables)} tables...")
+        pvals = _collect_pvalues_for_tables(
+            conn, unique_tables, group.label, direction=group.direction,
         )
-        collected.append((per_table, all_pvals, out_table, label, assay_filter, disease_filter, use_flags))
+        collected.append(CollectedGroup(
+            pvalues=pvals,
+            out_table=group.out_table,
+            label=group.label,
+            assay_filter=group.assay_filter,
+            disease_filter=group.disease_filter,
+            use_gene_flags=group.use_gene_flags,
+        ))
 
     # Phase 2: Run R meta-analyses in parallel (slow — this is the bottleneck)
-    r_jobs = [
-        (i, per_table, all_pvals, label)
-        for i, (per_table, all_pvals, _out, label, _af, _df, _uf) in enumerate(collected)
-        if all_pvals
+    r_jobs: list[RJobInput] = [
+        RJobInput(idx=i, pvalues=cg.pvalues, label=cg.label)
+        for i, cg in enumerate(collected)
+        if not cg.pvalues.is_empty()
     ]
 
     max_workers = min(len(r_jobs), os.cpu_count() or 4) if r_jobs else 1
     click.echo(f"\n  Launching {len(r_jobs)} R meta-analysis job(s) with {max_workers} parallel workers...")
 
-    r_results_by_idx: dict[int, dict[int, dict[str, float | None]]] = {}
+    r_results_by_idx: dict[int, dict[int, GeneCombinedPvalues]] = {}
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_idx = {}
-        for idx, per_table, all_pvals, label in r_jobs:
-            click.echo(f"  {label}Submitting R job...")
-            future = executor.submit(_call_r_combine, per_table, all_pvals)
-            future_to_idx[future] = (idx, label)
+        future_to_idx: dict[Any, tuple[int, str]] = {}
+        for job in r_jobs:
+            click.echo(f"  {job.label}Submitting R job...")
+            future = executor.submit(_call_r_combine, job.pvalues)
+            future_to_idx[future] = (job.idx, job.label)
 
         for future in as_completed(future_to_idx):
             idx, label = future_to_idx[future]
@@ -701,7 +873,7 @@ def compute_combined_pvalues(
                 r_results_by_idx[idx] = {}
 
     # Phase 3: Write results to DB (sequential — fast)
-    click.echo(f"\n  Writing results to database...")
+    click.echo("\n  Writing results to database...")
 
     # Create metadata table
     conn.execute(
@@ -714,30 +886,31 @@ def compute_combined_pvalues(
         )"""
     )
 
-    for i, (per_table, all_pvals, out_table, label, assay_filter, disease_filter, use_flags) in enumerate(collected):
-        if not all_pvals:
-            # Group was skipped (< 2 source tables)
+    for i, cg in enumerate(collected):
+        if cg.pvalues.is_empty():
+            # Group was skipped (< min_tables source tables)
             conn.execute(
                 "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, table_name, num_source_tables) "
                 "VALUES (?, ?, NULL, ?)",
-                (assay_filter, disease_filter, len(per_table)),
+                (cg.assay_filter, cg.disease_filter, len(cg.pvalues.per_table)),
             )
             conn.commit()
             continue
 
         r_results = r_results_by_idx.get(i, {})
-        flags_fn = get_gene_flags if use_flags else None
+        flags_fn = get_gene_flags if cg.use_gene_flags else None
 
         _write_combined_results(
-            conn, out_table, per_table, all_pvals,
-            r_results, no_index, flags_fn, label,
+            conn, cg.out_table, cg.pvalues, r_results, no_index, flags_fn, cg.label,
         )
 
         # Count source tables for metadata
-        num_source = len({tbl for gene_tbls in per_table.values() for tbl in gene_tbls})
+        num_source = len({
+            tbl for gene_tbls in cg.pvalues.per_table.values() for tbl in gene_tbls
+        })
         conn.execute(
             "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, table_name, num_source_tables) "
             "VALUES (?, ?, ?, ?)",
-            (assay_filter, disease_filter, out_table, num_source),
+            (cg.assay_filter, cg.disease_filter, cg.out_table, num_source),
         )
         conn.commit()

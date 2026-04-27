@@ -15,6 +15,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from processing.combined_pvalues import (
+    CollectedPvalues,
+    GeneCombinedPvalues,
     _call_r_combine,  # pyright: ignore[reportPrivateUsage]
     _load_hgnc_gene_flags,  # pyright: ignore[reportPrivateUsage]
     _parse_link_tables,  # pyright: ignore[reportPrivateUsage]
@@ -254,7 +256,9 @@ class TestLoadHgncGeneFlags:
 class TestCallRCombine:
     def test_rscript_not_found_returns_none(self):
         with patch("shutil.which", return_value=None):
-            result = _call_r_combine({1: {"t": [0.01]}}, {1: [0.01]})
+            result = _call_r_combine(
+                CollectedPvalues.from_dicts({1: {"t": [0.01]}}, {1: [0.01]})
+            )
         assert result is None
 
     def test_parse_valid_results(self, tmp_path: Path):
@@ -304,14 +308,14 @@ class TestCallRCombine:
             patch("processing.combined_pvalues._ensure_r_packages", return_value=True),
             patch("subprocess.run", side_effect=fake_run),
         ):
-            result = _call_r_combine(per_table, all_pvals)
+            result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
 
         assert result is not None
-        assert result[1]["fisher_p"] == pytest.approx(1e-3)
-        assert result[1]["stouffer_p"] == pytest.approx(2e-3)
-        assert result[1]["cauchy_p"] == pytest.approx(3e-3)
-        assert result[1]["hmp_p"] == pytest.approx(4e-3)
-        assert result[1]["fisher_fdr"] == pytest.approx(5e-3)
+        assert result[1].fisher_p == pytest.approx(1e-3)
+        assert result[1].stouffer_p == pytest.approx(2e-3)
+        assert result[1].cauchy_p == pytest.approx(3e-3)
+        assert result[1].hmp_p == pytest.approx(4e-3)
+        assert result[1].fisher_fdr == pytest.approx(5e-3)
 
     def test_parse_na_nan_inf(self, tmp_path: Path):
         """NA, NaN, Inf, -Inf in R output → None in Python."""
@@ -358,17 +362,17 @@ class TestCallRCombine:
             patch("processing.combined_pvalues._ensure_r_packages", return_value=True),
             patch("subprocess.run", side_effect=fake_run),
         ):
-            result = _call_r_combine(per_table, all_pvals)
+            result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
 
         assert result is not None
-        assert result[1]["fisher_p"] is None  # NA
-        assert result[1]["stouffer_p"] is None  # NaN
-        assert result[1]["cauchy_p"] is None  # Inf
-        assert result[1]["hmp_p"] is None  # -Inf
-        assert result[1]["fisher_fdr"] == pytest.approx(0.01)
-        assert result[1]["stouffer_fdr"] is None  # empty string
-        assert result[1]["cauchy_fdr"] is None  # NA
-        assert result[1]["hmp_fdr"] is None  # NaN
+        assert result[1].fisher_p is None  # NA
+        assert result[1].stouffer_p is None  # NaN
+        assert result[1].cauchy_p is None  # Inf
+        assert result[1].hmp_p is None  # -Inf
+        assert result[1].fisher_fdr == pytest.approx(0.01)
+        assert result[1].stouffer_fdr is None  # empty string
+        assert result[1].cauchy_fdr is None  # NA
+        assert result[1].hmp_fdr is None  # NaN
 
     def test_precision_roundtrip(self):
         """Verify .17e format preserves extreme values through CSV writing."""
@@ -440,10 +444,9 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(
-            per_table: dict[int, dict[str, list[float]]],
-            all_pvals: dict[int, list[float]],
-        ) -> dict[int, dict[str, float | None]]:
+        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+            per_table = pvalues.per_table
+            all_pvals = pvalues.all_pvalues
             captured["per_table"] = {k: dict(v) for k, v in per_table.items()}
             captured["all_pvals"] = dict(all_pvals)
             return {}
@@ -472,10 +475,8 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(
-            per_table: dict[int, dict[str, list[float]]],
-            all_pvals: dict[int, list[float]],
-        ) -> dict[int, dict[str, float | None]]:
+        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+            all_pvals = pvalues.all_pvalues
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
@@ -500,10 +501,8 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(
-            per_table: dict[int, dict[str, list[float]]],
-            all_pvals: dict[int, list[float]],
-        ) -> dict[int, dict[str, float | None]]:
+        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+            all_pvals = pvalues.all_pvalues
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
@@ -528,10 +527,8 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(
-            per_table: dict[int, dict[str, list[float]]],
-            all_pvals: dict[int, list[float]],
-        ) -> dict[int, dict[str, float | None]]:
+        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+            all_pvals = pvalues.all_pvalues
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
@@ -556,10 +553,8 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(
-            per_table: dict[int, dict[str, list[float]]],
-            all_pvals: dict[int, list[float]],
-        ) -> dict[int, dict[str, float | None]]:
+        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+            all_pvals = pvalues.all_pvalues
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
@@ -592,10 +587,8 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(
-            per_table: dict[int, dict[str, list[float]]],
-            all_pvals: dict[int, list[float]],
-        ) -> dict[int, dict[str, float | None]]:
+        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+            per_table = pvalues.per_table
             captured["per_table"] = {k: dict(v) for k, v in per_table.items()}
             return {}
 
@@ -631,10 +624,9 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(
-            per_table: dict[int, dict[str, list[float]]],
-            all_pvals: dict[int, list[float]],
-        ) -> dict[int, dict[str, float | None]]:
+        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+            per_table = pvalues.per_table
+            all_pvals = pvalues.all_pvalues
             captured["per_table"] = {k: dict(v) for k, v in per_table.items()}
             captured["all_pvals"] = dict(all_pvals)
             return {}
@@ -670,23 +662,21 @@ class TestPvalueCollection:
         )
         conn.commit()
 
-        captured = {}
+        captures: list[dict[int, list[float]]] = []
 
-        def mock_r(
-            per_table: dict[int, dict[str, list[float]]],
-            all_pvals: dict[int, list[float]],
-        ) -> dict[int, dict[str, float | None]]:
-            captured["all_pvals"] = dict(all_pvals)
+        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+            captures.append(dict(pvalues.all_pvalues))
             return {}
 
         with patch("processing.combined_pvalues._call_r_combine", side_effect=mock_r):
             compute_combined_pvalues(conn)
 
-        # Gene 1 gets p-value from target link only
-        assert 1 in captured["all_pvals"]
-        assert captured["all_pvals"][1] == [0.01]
-        # Gene 2 should NOT appear (perturbed link filtered out)
-        assert 2 not in captured["all_pvals"]
+        # The legacy "global" group filters perturbed when both sides exist:
+        # gene 1 is collected via the target link, gene 2 is filtered out.
+        global_call = captures[0]
+        assert 1 in global_call
+        assert global_call[1] == [0.01]
+        assert 2 not in global_call
 
 
 # ===================================================================
@@ -702,12 +692,10 @@ class TestIntegrationWithR:
             1: {"tbl_a": [0.01], "tbl_b": [0.05], "tbl_c": [0.1]},
         }
         all_pvals = {1: [0.01, 0.05, 0.1]}
-        result = _call_r_combine(per_table, all_pvals)
+        result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
-        assert result[1]["fisher_p"] == pytest.approx(2.99715102020775949e-03, rel=1e-6)
-        assert result[1]["stouffer_p"] == pytest.approx(
-            1.21196887876184683e-03, rel=1e-6
-        )
+        assert result[1].fisher_p == pytest.approx(2.99715102020775949e-03, rel=1e-6)
+        assert result[1].stouffer_p == pytest.approx(1.21196887876184683e-03, rel=1e-6)
 
     @requires_r
     def test_known_pvalues_cct_hmp(self):
@@ -716,10 +704,10 @@ class TestIntegrationWithR:
             1: {"tbl_a": [0.01], "tbl_b": [0.05], "tbl_c": [0.1]},
         }
         all_pvals = {1: [0.01, 0.05, 0.1]}
-        result = _call_r_combine(per_table, all_pvals)
+        result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
-        assert result[1]["cauchy_p"] == pytest.approx(2.31303843937040905e-02, rel=1e-6)
-        assert result[1]["hmp_p"] == pytest.approx(2.58759065818898529e-02, rel=1e-6)
+        assert result[1].cauchy_p == pytest.approx(2.31303843937040905e-02, rel=1e-6)
+        assert result[1].hmp_p == pytest.approx(2.58759065818898529e-02, rel=1e-6)
 
     @requires_r
     def test_all_collapsed_one_fisher_stouffer_na(self):
@@ -734,37 +722,39 @@ class TestIntegrationWithR:
             },
         }
         all_pvals = {1: [0.4, 0.5, 0.6, 0.4, 0.5, 0.6, 0.4, 0.5, 0.6]}
-        result = _call_r_combine(per_table, all_pvals)
+        result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
         # Fisher and Stouffer: all collapsed values are 1.0, so NA
-        assert result[1]["fisher_p"] is None
-        assert result[1]["stouffer_p"] is None
+        assert result[1].fisher_p is None
+        assert result[1].stouffer_p is None
         # CCT and HMP use raw p-values — should still compute
-        assert result[1]["cauchy_p"] is not None
-        assert result[1]["hmp_p"] is not None
+        assert result[1].cauchy_p is not None
+        assert result[1].hmp_p is not None
 
     @requires_r
     def test_single_raw_pvalue_cct_identity(self):
         """ACAT with a single p-value returns approximately that value."""
         per_table = {1: {"tbl_a": [0.03]}}
         all_pvals = {1: [0.03]}
-        result = _call_r_combine(per_table, all_pvals)
+        result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
-        assert result[1]["cauchy_p"] == pytest.approx(0.03, rel=1e-6)
+        assert result[1].cauchy_p == pytest.approx(0.03, rel=1e-6)
 
     @requires_r
     def test_extreme_pvalue_survives_roundtrip(self):
         """A very small p-value (1e-200) survives the full pipeline."""
         per_table = {1: {"tbl_a": [1e-200], "tbl_b": [1e-100]}}
         all_pvals = {1: [1e-200, 1e-100]}
-        result = _call_r_combine(per_table, all_pvals)
+        result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
         # Fisher should produce a very small combined p-value
-        assert result[1]["fisher_p"] is not None
-        assert result[1]["fisher_p"] < 1e-50
+        fisher_p = result[1].fisher_p
+        assert fisher_p is not None
+        assert fisher_p < 1e-50
         # CCT should also be very small
-        assert result[1]["cauchy_p"] is not None
-        assert result[1]["cauchy_p"] < 1e-50
+        cauchy_p = result[1].cauchy_p
+        assert cauchy_p is not None
+        assert cauchy_p < 1e-50
 
 
 # ===================================================================
