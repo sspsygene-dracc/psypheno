@@ -318,7 +318,7 @@ export default function Home() {
               href="/most-significant"
               style={{ color: "#2563eb", textDecoration: "none" }}
             >
-              Gene ranking by functional significance across all datasets now available!
+              Gene ranking by cross-study significance across all datasets now available!
             </a>
           </div>
           {/* Mode toggle */}

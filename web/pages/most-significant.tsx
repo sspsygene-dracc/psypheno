@@ -450,7 +450,7 @@ export default function MostSignificantPage() {
   return (
     <>
       <Head>
-        <title>Gene Ranking by Functional Significance &mdash; SSPsyGene</title>
+        <title>Gene Ranking by Cross-Study Significance &mdash; SSPsyGene</title>
       </Head>
       <Header />
       {/* Mobile font overrides */}
@@ -478,7 +478,7 @@ export default function MostSignificantPage() {
         }}
       >
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-          Gene Ranking by Functional Significance Across All Datasets
+          Gene Ranking by Cross-Study Significance Across All Datasets
         </h1>
         <p
           style={{
@@ -488,7 +488,7 @@ export default function MostSignificantPage() {
             marginBottom: 20,
           }}
         >
-          This page ranks genes by their aggregate functional significance
+          This page ranks genes by their aggregate cross-study significance
           across all assays in SSPsyGene. It identifies genes with the strongest
           cumulative functional evidence across multiple experiments,
           highlighting candidates for follow-up analysis, cross-study
