@@ -110,6 +110,8 @@ tables:
           HSPA14.1: HSPA14
           TMSB15B.1: TMSB15B
           CYB561D2.1: CYB561D2
+    pvalue_column: pvalue
+    fdr_column: FDR
   - table: brain_organoid_atlas_nebula_gene_0_2_FDR
     changelog:
       - date: "2025-11-05"
@@ -146,6 +148,8 @@ tables:
           HSPA14.1: HSPA14
           TMSB15B.1: TMSB15B
           CYB561D2.1: CYB561D2
+    pvalue_column: pvalue
+    fdr_column: FDR
   - table: brain_organoid_atlas_S10
     changelog:
       - date: "2025-11-05"
