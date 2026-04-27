@@ -9,6 +9,8 @@ export interface TableResult {
   fieldLabels?: Record<string, string> | null;
   displayColumns: string[];
   scalarColumns?: string[];
+  pvalueColumn?: string | null;
+  fdrColumn?: string | null;
   publicationFirstAuthor?: string | null;
   publicationLastAuthor?: string | null;
   publicationAuthorCount?: number | null;

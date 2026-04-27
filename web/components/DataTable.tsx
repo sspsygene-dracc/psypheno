@@ -27,6 +27,26 @@ function formatColumnHeader(col: string): string {
 
 export type SortMode = "none" | "asc" | "desc" | "asc_abs" | "desc_abs";
 
+export const SIGNIFICANCE_THRESHOLD = 0.05;
+
+function parseSignificanceColumns(spec?: string | null): string[] {
+  if (!spec) return [];
+  return spec.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function isRowSignificant(
+  row: Record<string, unknown>,
+  cols: string[],
+): boolean {
+  for (const col of cols) {
+    const v = row[col];
+    if (v == null) continue;
+    const n = typeof v === "number" ? v : Number(v);
+    if (Number.isFinite(n) && n < SIGNIFICANCE_THRESHOLD) return true;
+  }
+  return false;
+}
+
 function sortIndicator(mode: SortMode): string {
   switch (mode) {
     case "asc": return " \u25B2";
@@ -61,6 +81,8 @@ export default function DataTable({
   scalarColumns,
   fieldLabels,
   geneColumns,
+  pvalueColumn,
+  fdrColumn,
   sortColumn: controlledSortColumn,
   sortMode: controlledSortMode,
   onSort,
@@ -73,6 +95,8 @@ export default function DataTable({
   scalarColumns?: string[];
   fieldLabels?: Record<string, string> | null;
   geneColumns?: string[];
+  pvalueColumn?: string | null;
+  fdrColumn?: string | null;
   sortColumn?: string | null;
   sortMode?: SortMode;
   onSort?: (column: string, mode: SortMode) => void;
@@ -146,6 +170,16 @@ export default function DataTable({
 
   const rowsToDisplay = maxRows ? sortedRows.slice(0, maxRows) : sortedRows;
 
+  // Prefer FDR (already multiple-testing corrected) over raw p-value.
+  const sigSourceColumn = fdrColumn ?? pvalueColumn ?? null;
+  const sigCols = useMemo(
+    () => parseSignificanceColumns(sigSourceColumn),
+    [sigSourceColumn],
+  );
+  const sigTitle = sigSourceColumn
+    ? `Significant: ${sigSourceColumn} < ${SIGNIFICANCE_THRESHOLD}`
+    : undefined;
+
   const isActive = (col: string) =>
     col === effectiveSortColumn && effectiveSortMode !== "none";
 
@@ -196,8 +230,18 @@ export default function DataTable({
           </tr>
         </thead>
         <tbody>
-          {rowsToDisplay.map((row, idx) => (
-            <tr key={idx} style={{ borderTop: "1px solid #e5e7eb" }}>
+          {rowsToDisplay.map((row, idx) => {
+            const significant =
+              sigCols.length > 0 && isRowSignificant(row, sigCols);
+            return (
+            <tr
+              key={idx}
+              style={{
+                borderTop: "1px solid #e5e7eb",
+                background: significant ? "#f0fdf4" : undefined,
+              }}
+              title={significant ? sigTitle : undefined}
+            >
               {columns.map((col) => {
                 const val = row[col];
                 const isGeneCol = geneColumns?.includes(col);
@@ -228,7 +272,8 @@ export default function DataTable({
                 );
               })}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
       {showSummary && (

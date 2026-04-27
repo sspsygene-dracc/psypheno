@@ -27,7 +27,7 @@ export default async function handler(
     const db = getDb();
     const tables = db
       .prepare(
-        `SELECT table_name, short_label, medium_label, long_label, description, source, assay, field_labels, display_columns, scalar_columns, link_tables FROM data_tables ORDER BY id ASC`
+        `SELECT table_name, short_label, medium_label, long_label, description, source, assay, field_labels, display_columns, scalar_columns, link_tables, pvalue_column, fdr_column FROM data_tables ORDER BY id ASC`
       )
       .all() as Array<{
         table_name: string;
@@ -41,6 +41,8 @@ export default async function handler(
         display_columns: string;
         scalar_columns: string | null;
         link_tables: string | null;
+        pvalue_column: string | null;
+        fdr_column: string | null;
       }>;
 
     const results: Array<{
@@ -54,6 +56,8 @@ export default async function handler(
       fieldLabels: Record<string, string> | null;
       displayColumns: string[];
       scalarColumns: string[];
+      pvalueColumn: string | null;
+      fdrColumn: string | null;
       rows: Record<string, unknown>[];
       totalRows: number;
     }> = [];
@@ -102,6 +106,8 @@ export default async function handler(
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean),
+          pvalueColumn: t.pvalue_column ?? null,
+          fdrColumn: t.fdr_column ?? null,
           rows: result.rows,
           totalRows: result.totalRows,
         });

@@ -27,7 +27,7 @@ export default async function handler(
 
     const tables = db
       .prepare(
-        `SELECT table_name, short_label, medium_label, long_label, description, source, assay, field_labels, gene_columns, display_columns, scalar_columns, link_tables, publication_first_author, publication_last_author, publication_author_count, publication_year, publication_journal, publication_doi FROM data_tables ORDER BY id ASC`
+        `SELECT table_name, short_label, medium_label, long_label, description, source, assay, field_labels, gene_columns, display_columns, scalar_columns, link_tables, pvalue_column, fdr_column, publication_first_author, publication_last_author, publication_author_count, publication_year, publication_journal, publication_doi FROM data_tables ORDER BY id ASC`
       )
       .all() as Array<{
         table_name: string;
@@ -42,6 +42,8 @@ export default async function handler(
         display_columns: string;
         scalar_columns: string | null;
         link_tables: string | null;
+        pvalue_column: string | null;
+        fdr_column: string | null;
         publication_first_author: string | null;
         publication_last_author: string | null;
         publication_author_count: number | null;
@@ -61,6 +63,8 @@ export default async function handler(
       fieldLabels: Record<string, string> | null;
       displayColumns: string[];
       scalarColumns: string[];
+      pvalueColumn: string | null;
+      fdrColumn: string | null;
       publicationFirstAuthor: string | null;
       publicationLastAuthor: string | null;
       publicationAuthorCount: number | null;
@@ -114,6 +118,8 @@ export default async function handler(
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean),
+          pvalueColumn: t.pvalue_column ?? null,
+          fdrColumn: t.fdr_column ?? null,
           publicationFirstAuthor: t.publication_first_author ?? null,
           publicationLastAuthor: t.publication_last_author ?? null,
           publicationAuthorCount: t.publication_author_count ?? null,
