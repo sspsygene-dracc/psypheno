@@ -14,6 +14,7 @@ export default function Home() {
   const [perturbed, setPerturbed] = useState<SearchSuggestion | null>(null);
   const [target, setTarget] = useState<SearchSuggestion | null>(null);
   const [searchMode, setSearchMode] = useState<"general" | "pair">("general");
+  const [direction, setDirection] = useState<"target" | "perturbed">("target");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [generalData, setGeneralData] = useState<TableResult[]>([]);
@@ -74,10 +75,13 @@ export default function Home() {
     typeof router.query.target === "string" ? router.query.target : null;
   const qMode: "general" | "pair" =
     router.query.searchmode === "pair" ? "pair" : "general";
+  const qDirection: "target" | "perturbed" =
+    router.query.direction === "perturbed" ? "perturbed" : "target";
 
   useEffect(() => {
     if (!router.isReady) return;
     if (qMode !== searchMode) setSearchMode(qMode);
+    if (qDirection !== direction) setDirection(qDirection);
 
     let cancelled = false;
     const hydrate = async () => {
@@ -114,7 +118,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [router.isReady, qMode, qSelected, qPerturbed, qTarget]);
+  }, [router.isReady, qMode, qSelected, qPerturbed, qTarget, qDirection]);
 
   // Keep URL in sync with UI state
   useEffect(() => {
@@ -125,6 +129,8 @@ export default function Home() {
     const nextQuery: Record<string, string> = { searchmode: searchMode };
     if (searchMode === "general") {
       if (selected?.humanSymbol) nextQuery.selected = selected.humanSymbol;
+      // Default 'target' is omitted from the URL to keep it clean.
+      if (direction === "perturbed") nextQuery.direction = "perturbed";
     } else {
       if (perturbed?.humanSymbol) nextQuery.perturbed = perturbed.humanSymbol;
       if (target?.humanSymbol) nextQuery.target = target.humanSymbol;
@@ -147,7 +153,7 @@ export default function Home() {
     router.replace({ pathname: router.pathname, query: nextQuery }, undefined, {
       shallow: true,
     });
-  }, [searchMode, selected, perturbed, target, router.isReady]);
+  }, [searchMode, selected, perturbed, target, direction, router.isReady]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -165,7 +171,10 @@ export default function Home() {
         const res = await fetch("/api/gene-data", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ centralGeneId: selected.centralGeneId }),
+          body: JSON.stringify({
+            centralGeneId: selected.centralGeneId,
+            direction,
+          }),
         });
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const payload = await res.json();
@@ -180,7 +189,7 @@ export default function Home() {
       }
     };
     fetchData();
-  }, [selected]);
+  }, [selected, direction]);
 
   // Fetch pair data when both perturbed and target are selected in pair mode
   useEffect(() => {
@@ -449,6 +458,8 @@ export default function Home() {
                     data={searchMode === "general" ? generalData : pairData}
                     assayTypeLabels={assayTypeLabels}
                     centralGeneId={searchMode === "general" ? selected?.centralGeneId : undefined}
+                    direction={direction}
+                    onDirectionChange={setDirection}
                     perturbedCentralGeneId={searchMode === "pair" ? (perturbed?.centralGeneId ?? null) : undefined}
                     targetCentralGeneId={searchMode === "pair" ? (target?.centralGeneId ?? null) : undefined}
                     geneDescription={searchMode === "general" ? geneDescription : undefined}

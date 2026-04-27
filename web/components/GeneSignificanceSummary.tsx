@@ -45,9 +45,11 @@ const formatTableName = (tableName: string, mediumLabel: string | null) =>
 
 export default function GeneSignificanceSummary({
   centralGeneId,
+  direction = "target",
   assayTypeLabels = {},
 }: {
   centralGeneId: number;
+  direction?: "target" | "perturbed";
   assayTypeLabels?: Record<string, string>;
 }) {
   const [data, setData] = useState<SummaryData | null>(null);
@@ -59,7 +61,7 @@ export default function GeneSignificanceSummary({
     fetch("/api/combined-pvalues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ centralGeneId }),
+      body: JSON.stringify({ centralGeneId, direction }),
     })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -70,7 +72,7 @@ export default function GeneSignificanceSummary({
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [centralGeneId]);
+  }, [centralGeneId, direction]);
 
   if (loading) return null;
   if (!data?.combinedPvalues) return null;

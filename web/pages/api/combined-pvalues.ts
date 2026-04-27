@@ -1,11 +1,20 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { sanitizeIdentifier, parseNonPerturbedLinkTables } from "@/lib/gene-query";
+import {
+  sanitizeIdentifier,
+  parseLinkTablesForDirection,
+} from "@/lib/gene-query";
 
 const bodySchema = z.object({
   centralGeneId: z.number().min(0),
+  direction: z.enum(["target", "perturbed"]).optional(),
 });
+
+const COMBINED_TABLE_BY_DIRECTION = {
+  target: "gene_combined_pvalues_target",
+  perturbed: "gene_combined_pvalues_perturbed",
+} as const;
 
 export default async function handler(
   req: NextApiRequest,
@@ -21,17 +30,19 @@ export default async function handler(
   }
 
   const centralGeneId = parse.data.centralGeneId;
+  const direction = parse.data.direction ?? "target";
+  const combinedTable = COMBINED_TABLE_BY_DIRECTION[direction];
 
   try {
     const db = getDb();
 
-    // Fetch pre-computed combined p-values
+    // Fetch pre-computed combined p-values for this direction.
     const combined = db
       .prepare(
         `SELECT fisher_pvalue, fisher_fdr, stouffer_pvalue, stouffer_fdr,
                 cauchy_pvalue, cauchy_fdr, hmp_pvalue, hmp_fdr,
                 num_tables, num_pvalues
-         FROM gene_combined_pvalues WHERE central_gene_id = ?`
+         FROM ${combinedTable} WHERE central_gene_id = ?`
       )
       .get(centralGeneId) as {
         fisher_pvalue: number | null;
@@ -84,7 +95,10 @@ export default async function handler(
     }> = [];
 
     for (const t of tablesWithPvalues) {
-      const linkTableNames = parseNonPerturbedLinkTables(t.link_tables || "");
+      const linkTableNames = parseLinkTablesForDirection(
+        t.link_tables || "",
+        direction,
+      );
       if (linkTableNames.length === 0) continue;
 
       const subqueries = linkTableNames.map((lt) => {

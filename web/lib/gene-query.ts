@@ -41,12 +41,12 @@ export function sanitizeIdentifier(id: string): string {
   return id;
 }
 
+export type SearchDirection = "target" | "perturbed";
+
 /**
- * Parse link table names from the data_tables.link_tables column,
- * skipping perturbed link tables in tables that have both perturbed
- * and target mappings (perturbed genes appear in every row they were
- * knocked down in, so their p-values don't represent evidence about
- * the perturbed gene itself).
+ * Legacy "drop perturbed only when both sides exist" parser. Used by callers
+ * that pre-date the direction-aware flip toggle (#65 / #66) — currently only
+ * /api/significant-rows. New code should use parseLinkTablesForDirection.
  */
 export function parseNonPerturbedLinkTables(linkTablesRaw: string): string[] {
   const entries = (linkTablesRaw || "")
@@ -69,6 +69,43 @@ export function parseNonPerturbedLinkTables(linkTablesRaw: string): string[] {
   return entries.map((e) => e.name);
 }
 
+/**
+ * Parse link table names for a specific search direction. Mirrors the Python
+ * helper of the same name in processing/src/processing/combined_pvalues.py.
+ *
+ * For each link-table entry "col:lt:is_perturbed:is_target":
+ *   target    -> include if is_target == 1 OR (both flags 0)
+ *   perturbed -> include if is_perturbed == 1 OR (both flags 0)
+ *
+ * Generic gene tables (both flags 0) appear in both directions; pure-direction
+ * link tables only in the matching mode; mixed tables contribute only the
+ * matching side.
+ */
+export function parseLinkTablesForDirection(
+  linkTablesRaw: string,
+  direction: SearchDirection,
+): string[] {
+  return (linkTablesRaw || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const parts = entry.split(":");
+      return {
+        name: sanitizeIdentifier(parts.length >= 2 ? parts[1] : parts[0]),
+        isPerturbed: parts[2] === "1",
+        isTarget: parts[3] === "1",
+      };
+    })
+    .filter((e) => {
+      const isGeneric = !e.isPerturbed && !e.isTarget;
+      return direction === "target"
+        ? e.isTarget || isGeneric
+        : e.isPerturbed || isGeneric;
+    })
+    .map((e) => e.name);
+}
+
 export function parseDisplayColumns(raw: string): string[] {
   return (raw || "")
     .split(",")
@@ -80,18 +117,20 @@ export function parseDisplayColumns(raw: string): string[] {
 /**
  * Build the SELECT columns and FROM...WHERE clause for a gene query.
  *
- * General mode: pass centralGeneId. Link tables are combined with UNION.
+ * General mode: pass centralGeneId and a `direction` ("target" or
+ *   "perturbed"). Link tables are filtered by direction and combined with UNION.
  * Pair mode: pass perturbedCentralGeneId and/or targetCentralGeneId.
  *   Link tables are parsed for isPerturbed/isTarget flags and combined with INTERSECT.
  *
- * Returns null if the table cannot be queried (no link tables, or pair mode
- * with missing perturbed/target link tables).
+ * Returns null if the table cannot be queried (no link tables for the
+ * requested direction, or pair mode with missing perturbed/target link tables).
  */
 export function buildGeneQuery(opts: {
   baseTable: string;
   displayCols: string[];
   linkTablesRaw: string;
   centralGeneId?: number;
+  direction?: SearchDirection;
   perturbedCentralGeneId?: number | null;
   targetCentralGeneId?: number | null;
 }): { selectCols: string; fromAndWhere: string; params: string[] } | null {
@@ -101,15 +140,9 @@ export function buildGeneQuery(opts: {
   const isPairMode = opts.centralGeneId === undefined;
 
   if (!isPairMode) {
-    // General mode: extract link table names, combine with UNION
-    const linkTables = (linkTablesRaw || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .map((entry) => {
-        const parts = entry.split(":");
-        return sanitizeIdentifier(parts.length >= 2 ? parts[1] : parts[0]);
-      });
+    // General mode: filter link tables by direction, combine with UNION.
+    const direction: SearchDirection = opts.direction ?? "target";
+    const linkTables = parseLinkTablesForDirection(linkTablesRaw || "", direction);
 
     if (linkTables.length === 0) return null;
 

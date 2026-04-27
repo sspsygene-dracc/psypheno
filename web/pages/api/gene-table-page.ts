@@ -15,6 +15,7 @@ const bodySchema = z.object({
   tableName: z.string().min(1),
   page: z.number().min(1),
   centralGeneId: z.number().min(0).optional(),
+  direction: z.enum(["target", "perturbed"]).optional(),
   perturbedCentralGeneId: z.number().nullable().optional(),
   targetCentralGeneId: z.number().nullable().optional(),
   sortBy: z.string().optional(),
@@ -66,9 +67,10 @@ export default async function handler(
       return res.status(400).json({ error: "Table has no display columns" });
     }
 
+    const direction = parse.data.direction ?? "target";
     const query = isPairMode
       ? buildGeneQuery({ baseTable, displayCols, linkTablesRaw: t.link_tables || "", perturbedCentralGeneId, targetCentralGeneId })
-      : buildGeneQuery({ baseTable, displayCols, linkTablesRaw: t.link_tables || "", centralGeneId });
+      : buildGeneQuery({ baseTable, displayCols, linkTablesRaw: t.link_tables || "", centralGeneId, direction });
 
     if (!query) {
       return res.status(400).json({ error: "Cannot query this table with the given parameters" });

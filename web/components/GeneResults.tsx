@@ -39,6 +39,8 @@ export default function GeneResults({
   data,
   assayTypeLabels = {},
   centralGeneId,
+  direction = "target",
+  onDirectionChange,
   perturbedCentralGeneId,
   targetCentralGeneId,
   geneDescription,
@@ -48,11 +50,14 @@ export default function GeneResults({
   data: TableResult[];
   assayTypeLabels?: Record<string, string>;
   centralGeneId?: number;
+  direction?: "target" | "perturbed";
+  onDirectionChange?: (d: "target" | "perturbed") => void;
   perturbedCentralGeneId?: number | null;
   targetCentralGeneId?: number | null;
   geneDescription?: string | null;
   llmResult?: LlmResult | null;
 }) {
+  const isPairMode = centralGeneId === undefined;
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(),
   );
@@ -124,6 +129,7 @@ export default function GeneResults({
       const body: Record<string, unknown> = { tableName, page };
       if (centralGeneId !== undefined) {
         body.centralGeneId = centralGeneId;
+        body.direction = direction;
       } else {
         body.perturbedCentralGeneId = perturbedCentralGeneId ?? null;
         body.targetCentralGeneId = targetCentralGeneId ?? null;
@@ -387,6 +393,13 @@ export default function GeneResults({
         }}
       >
         <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
+        {!isPairMode && onDirectionChange && (
+          <DirectionToggle
+            direction={direction}
+            onChange={onDirectionChange}
+            geneDisplayName={geneDisplayName}
+          />
+        )}
         {hasSignificanceColumns && (
           <div
             style={{
@@ -433,10 +446,43 @@ export default function GeneResults({
           !targetCentralGeneId && (
             <GeneSignificanceSummary
               centralGeneId={centralGeneId}
+              direction={direction}
               assayTypeLabels={assayTypeLabels}
             />
           )}
-        {data.length === 0 && (
+        {data.length === 0 && !isPairMode && (
+          <div style={{ opacity: 0.8 }}>
+            No results in <strong>{direction}</strong> mode for{" "}
+            {geneDisplayName ?? "this gene"}.
+            {onDirectionChange && (
+              <>
+                {" "}
+                Try{" "}
+                <button
+                  type="button"
+                  onClick={() =>
+                    onDirectionChange(
+                      direction === "target" ? "perturbed" : "target",
+                    )
+                  }
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#2563eb",
+                    cursor: "pointer",
+                    padding: 0,
+                    font: "inherit",
+                    textDecoration: "underline",
+                  }}
+                >
+                  flipping to {direction === "target" ? "perturbed" : "target"}
+                </button>
+                .
+              </>
+            )}
+          </div>
+        )}
+        {data.length === 0 && isPairMode && (
           <div style={{ opacity: 0.8 }}>No results found in any dataset.</div>
         )}
         {groups.map((group) => (
@@ -774,6 +820,92 @@ export default function GeneResults({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function DirectionToggle({
+  direction,
+  onChange,
+  geneDisplayName,
+}: {
+  direction: "target" | "perturbed";
+  onChange: (d: "target" | "perturbed") => void;
+  geneDisplayName: string | null;
+}) {
+  const tooltip =
+    "Target = the gene whose response was measured. " +
+    "Perturbed = the gene that was experimentally knocked down or up-regulated.";
+  const optionStyle = (active: boolean): React.CSSProperties => ({
+    flex: 1,
+    padding: "8px 16px",
+    borderRadius: 8,
+    border: "none",
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: "pointer",
+    background: active ? "#dbeafe" : "transparent",
+    color: active ? "#1e40af" : "#4b5563",
+    transition: "background 0.15s",
+  });
+  return (
+    <div
+      role="group"
+      aria-label="Search direction"
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 12,
+        marginBottom: 16,
+        padding: "10px 12px",
+        border: "1px solid #e5e7eb",
+        borderRadius: 12,
+        background: "#f9fafb",
+      }}
+    >
+      <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
+        Searching {geneDisplayName ?? "this gene"} as:
+      </span>
+      <div
+        style={{
+          display: "flex",
+          gap: 4,
+          background: "#ffffff",
+          border: "1px solid #d1d5db",
+          borderRadius: 10,
+          padding: 3,
+        }}
+      >
+        <button
+          type="button"
+          aria-pressed={direction === "target"}
+          onClick={() => onChange("target")}
+          style={optionStyle(direction === "target")}
+        >
+          Target
+        </button>
+        <button
+          type="button"
+          aria-pressed={direction === "perturbed"}
+          onClick={() => onChange("perturbed")}
+          style={optionStyle(direction === "perturbed")}
+        >
+          Perturbed
+        </button>
+      </div>
+      <span
+        title={tooltip}
+        aria-label={tooltip}
+        style={{
+          fontSize: 12,
+          color: "#6b7280",
+          cursor: "help",
+          borderBottom: "1px dotted #9ca3af",
+        }}
+      >
+        what does this mean?
+      </span>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { sanitizeIdentifier, parseDisplayColumns, buildGeneQuery, queryFirstPage
 
 const bodySchema = z.object({
   centralGeneId: z.number().min(0),
+  direction: z.enum(["target", "perturbed"]).optional(),
 });
 
 export default async function handler(
@@ -21,6 +22,7 @@ export default async function handler(
   }
 
   const centralGeneId = parse.data.centralGeneId;
+  const direction = parse.data.direction ?? "target";
 
   try {
     const db = getDb();
@@ -86,6 +88,7 @@ export default async function handler(
         displayCols,
         linkTablesRaw: t.link_tables || "",
         centralGeneId,
+        direction,
       });
       if (!query) continue;
 
