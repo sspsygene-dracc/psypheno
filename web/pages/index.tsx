@@ -62,36 +62,59 @@ export default function Home() {
     }
   };
 
-  // Initialize state from URL query on first ready
-  useEffect(() => {
-    if (!router.isReady || hydratedFromQuery.current) return;
-    const q = router.query || {};
-    const qMode = (q.searchmode as string) === "pair" ? "pair" : "general";
-    setSearchMode(qMode);
+  // Sync state from URL: runs on initial ready and whenever query params
+  // change externally (e.g. clicking a gene-cell Link in a result table or
+  // navigating via Back/Forward). Idempotent — skips re-resolving when the
+  // current state already matches the URL.
+  const qSelected =
+    typeof router.query.selected === "string" ? router.query.selected : null;
+  const qPerturbed =
+    typeof router.query.perturbed === "string" ? router.query.perturbed : null;
+  const qTarget =
+    typeof router.query.target === "string" ? router.query.target : null;
+  const qMode: "general" | "pair" =
+    router.query.searchmode === "pair" ? "pair" : "general";
 
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (qMode !== searchMode) setSearchMode(qMode);
+
+    let cancelled = false;
     const hydrate = async () => {
       if (qMode === "general") {
-        const sel = typeof q.selected === "string" ? q.selected : undefined;
-        if (sel) {
-          const s = await resolveSymbol(sel);
-          if (s) setSelected(s);
+        if (qSelected) {
+          if (selected?.humanSymbol !== qSelected) {
+            const s = await resolveSymbol(qSelected);
+            if (!cancelled && s) setSelected(s);
+          }
+        } else if (selected) {
+          setSelected(null);
         }
       } else {
-        const p = typeof q.perturbed === "string" ? q.perturbed : undefined;
-        const t = typeof q.target === "string" ? q.target : undefined;
-        if (p) {
-          const sp = await resolveSymbol(p);
-          if (sp) setPerturbed(sp);
+        if (qPerturbed) {
+          if (perturbed?.humanSymbol !== qPerturbed) {
+            const sp = await resolveSymbol(qPerturbed);
+            if (!cancelled && sp) setPerturbed(sp);
+          }
+        } else if (perturbed) {
+          setPerturbed(null);
         }
-        if (t) {
-          const st = await resolveSymbol(t);
-          if (st) setTarget(st);
+        if (qTarget) {
+          if (target?.humanSymbol !== qTarget) {
+            const st = await resolveSymbol(qTarget);
+            if (!cancelled && st) setTarget(st);
+          }
+        } else if (target) {
+          setTarget(null);
         }
       }
       hydratedFromQuery.current = true;
     };
     hydrate();
-  }, [router.isReady]);
+    return () => {
+      cancelled = true;
+    };
+  }, [router.isReady, qMode, qSelected, qPerturbed, qTarget]);
 
   // Keep URL in sync with UI state
   useEffect(() => {

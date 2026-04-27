@@ -321,7 +321,7 @@ export default function DataTable({
                   >
                     {isGeneCol && text ? (
                       <Link
-                        href={`/?searchMode=general&selected=${encodeURIComponent(text)}`}
+                        href={`/?searchmode=general&selected=${encodeURIComponent(text)}`}
                         style={{
                           color: "#2563eb",
                           textDecoration: "none",
