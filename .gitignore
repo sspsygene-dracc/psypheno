@@ -18,3 +18,5 @@ TODOs.md
 docs/post-sab-feedback-context.md
 docs/db-size-analysis.md
 docs/db-region-gene-optimization.md
+.claude/
+.playwright-mcp/

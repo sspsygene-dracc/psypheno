@@ -12,11 +12,12 @@ export default async function handler(
   try {
     const db = getDb();
 
-    const datasets = db
+    const rows = db
       .prepare(
         `SELECT table_name, short_label, medium_label, long_label, description, gene_columns, gene_species, display_columns, scalar_columns, link_tables,
                 links, categories, source, assay, organism,
-                publication_first_author, publication_last_author, publication_author_count, publication_year, publication_journal, publication_doi
+                publication_first_author, publication_last_author, publication_author_count, publication_authors,
+                publication_year, publication_journal, publication_doi, publication_sspsygene_grants
          FROM data_tables
          ORDER BY table_name ASC`
       )
@@ -39,14 +40,43 @@ export default async function handler(
       publication_first_author: string | null;
       publication_last_author: string | null;
       publication_author_count: number | null;
+      publication_authors: string | null;
       publication_year: number | null;
       publication_journal: string | null;
       publication_doi: string | null;
+      publication_sspsygene_grants: string | null;
     }>;
+
+    const datasets = rows.map((r) => {
+      const { publication_authors, publication_sspsygene_grants, ...rest } = r;
+      let authors: string[] = [];
+      if (publication_authors) {
+        try {
+          const parsed = JSON.parse(publication_authors);
+          if (Array.isArray(parsed)) authors = parsed.map(String);
+        } catch {
+          // ignore malformed JSON
+        }
+      }
+      let grants: string[] = [];
+      if (publication_sspsygene_grants) {
+        try {
+          const parsed = JSON.parse(publication_sspsygene_grants);
+          if (Array.isArray(parsed)) grants = parsed.map(String);
+        } catch {
+          // ignore malformed JSON
+        }
+      }
+      return {
+        ...rest,
+        publication_authors: authors,
+        publication_sspsygene_grants: grants,
+      };
+    });
 
     return res.status(200).json({ datasets });
   } catch (err) {
-    console.error("all-datasets handler error", err);
+    console.error("full-datasets handler error", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
