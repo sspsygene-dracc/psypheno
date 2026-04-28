@@ -112,6 +112,7 @@ tables:
           CYB561D2.1: CYB561D2
     pvalue_column: pvalue
     fdr_column: FDR
+    effect_column: logFC
   - table: brain_organoid_atlas_nebula_gene_0_2_FDR
     changelog:
       - date: "2025-11-05"
@@ -150,6 +151,7 @@ tables:
           CYB561D2.1: CYB561D2
     pvalue_column: pvalue
     fdr_column: FDR
+    effect_column: logFC
   - table: brain_organoid_atlas_S10
     changelog:
       - date: "2025-11-05"
@@ -189,6 +191,7 @@ tables:
           ARMCX5-GPRASP2.1: ARMCX5-GPRASP2
     pvalue_column: pvalue
     fdr_column: FDR
+    effect_column: logFC
   - table: brain_organoid_atlas_S11
     changelog:
       - date: "2025-11-05"

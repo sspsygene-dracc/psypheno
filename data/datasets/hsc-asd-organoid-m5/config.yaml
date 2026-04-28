@@ -60,6 +60,7 @@ tables:
         is_target: false
     pvalue_column: P_Value
     fdr_column: Adjusted_P_Value
+    effect_column: log2FC
   - table: hsc_asd_organoid_m5_DE_results
     shortLabel: asd_organoid_de_results
     mediumLabel: Gordon 2026 - DEGs of Cortical Organoids with ASD Perturbations
@@ -106,4 +107,5 @@ tables:
         multi_gene_separator: ","
     pvalue_column: P-Value
     fdr_column: Adjusted_P-Value
+    effect_column: logFC
 

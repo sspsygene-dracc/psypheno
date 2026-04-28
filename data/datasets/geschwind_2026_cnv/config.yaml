@@ -80,3 +80,4 @@ tables:
         multi_gene_separator: ","
     pvalue_column: p
     fdr_column: fdr
+    effect_column: logFC

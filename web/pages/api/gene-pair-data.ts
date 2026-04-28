@@ -27,7 +27,7 @@ export default async function handler(
     const db = getDb();
     const tables = db
       .prepare(
-        `SELECT table_name, short_label, medium_label, long_label, description, source, assay, field_labels, gene_columns, display_columns, scalar_columns, link_tables, pvalue_column, fdr_column FROM data_tables ORDER BY id ASC`
+        `SELECT table_name, short_label, medium_label, long_label, description, source, assay, organism, field_labels, gene_columns, display_columns, scalar_columns, link_tables, pvalue_column, fdr_column, effect_column FROM data_tables ORDER BY id ASC`
       )
       .all() as Array<{
         table_name: string;
@@ -37,6 +37,7 @@ export default async function handler(
         description: string | null;
         source: string | null;
         assay: string | null;
+        organism: string | null;
         field_labels: string | null;
         display_columns: string;
         scalar_columns: string | null;
@@ -44,6 +45,7 @@ export default async function handler(
         gene_columns: string;
         pvalue_column: string | null;
         fdr_column: string | null;
+        effect_column: string | null;
       }>;
 
     const results: Array<{
@@ -54,12 +56,14 @@ export default async function handler(
       description: string | null;
       source: string | null;
       assay: string[];
+      organism: string | null;
       fieldLabels: Record<string, string> | null;
       displayColumns: string[];
       scalarColumns: string[];
       geneColumns: string[];
       pvalueColumn: string | null;
       fdrColumn: string | null;
+      effectColumn: string | null;
       rows: Record<string, unknown>[];
       totalRows: number;
     }> = [];
@@ -102,6 +106,7 @@ export default async function handler(
           description: t.description ?? null,
           source: t.source ?? null,
           assay,
+          organism: t.organism ?? null,
           fieldLabels,
           displayColumns: displayCols,
           scalarColumns: (t.scalar_columns || "")
@@ -114,6 +119,7 @@ export default async function handler(
             .filter(Boolean),
           pvalueColumn: t.pvalue_column ?? null,
           fdrColumn: t.fdr_column ?? null,
+          effectColumn: t.effect_column ?? null,
           rows: result.rows,
           totalRows: result.totalRows,
         });

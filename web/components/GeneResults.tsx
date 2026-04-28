@@ -5,6 +5,8 @@ import DatasetToc from "@/components/DatasetToc";
 import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
 import InfoTooltip from "@/components/InfoTooltip";
 import GeneSignificanceSummary from "@/components/GeneSignificanceSummary";
+import CrossTableEffectBars from "@/components/CrossTableEffectBars";
+import EffectDistributionChart from "@/components/EffectDistributionChart";
 import { ROW_LIMIT } from "@/lib/gene-query";
 import { formatAuthors } from "@/lib/format-authors";
 
@@ -61,6 +63,16 @@ export default function GeneResults({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(),
   );
+  const [expandedDistributions, setExpandedDistributions] = useState<
+    Set<string>
+  >(new Set());
+  const toggleDistribution = (tableName: string) =>
+    setExpandedDistributions((prev) => {
+      const next = new Set(prev);
+      if (next.has(tableName)) next.delete(tableName);
+      else next.add(tableName);
+      return next;
+    });
   const [showToc, setShowToc] = useState(false);
   const [tablePageOverrides, setTablePageOverrides] = useState<
     Record<string, TablePageState>
@@ -450,6 +462,12 @@ export default function GeneResults({
               assayTypeLabels={assayTypeLabels}
             />
           )}
+        {!isPairMode && (
+          <CrossTableEffectBars
+            data={data}
+            geneSymbol={geneDisplayName ?? undefined}
+          />
+        )}
         {data.length === 0 && !isPairMode && (
           <div style={{ opacity: 0.8 }}>
             No results in <strong>{direction}</strong> mode for{" "}
@@ -703,6 +721,57 @@ export default function GeneResults({
                       }}
                     >
                       Failed to load page. {pageError}
+                    </div>
+                  )}
+                  {section.effectColumn && (
+                    <div
+                      style={{
+                        borderTop: "1px solid #e5e7eb",
+                        background: "#f8fafc",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleDistribution(section.tableName)}
+                        style={{
+                          width: "100%",
+                          padding: "8px 14px",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "#1e40af",
+                        }}
+                      >
+                        <span>
+                          Effect-size distribution ({section.effectColumn})
+                        </span>
+                        <span style={{ fontSize: 12, color: "#6b7280" }}>
+                          {expandedDistributions.has(section.tableName)
+                            ? "▲ Hide"
+                            : "▼ Show"}
+                        </span>
+                      </button>
+                      {expandedDistributions.has(section.tableName) && (
+                        <div style={{ padding: "0 14px 14px" }}>
+                          <EffectDistributionChart
+                            tableName={section.tableName}
+                            centralGeneId={centralGeneId}
+                            perturbedCentralGeneId={
+                              perturbedCentralGeneId ?? undefined
+                            }
+                            targetCentralGeneId={
+                              targetCentralGeneId ?? undefined
+                            }
+                            direction={isPairMode ? undefined : direction}
+                            geneSymbol={geneDisplayName ?? undefined}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                   {(() => {

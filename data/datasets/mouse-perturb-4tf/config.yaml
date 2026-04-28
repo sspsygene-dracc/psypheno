@@ -81,6 +81,7 @@ tables:
         is_target: false
     pvalue_column: PValue
     fdr_column: padj
+    effect_column: logFC
   - table: mouse_perturb_clusterprop
     changelog:
       - date: "2025-10-06"
@@ -128,3 +129,4 @@ tables:
         is_target: false
     pvalue_column: P.Value
     fdr_column: FDR
+    effect_column: limma_coef

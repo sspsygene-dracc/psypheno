@@ -19,6 +19,7 @@
     "react": "^19",
     "react-dom": "^19",
     "react-highlight-words": "^0.21.0",
+    "recharts": "^3.8.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.0.2",
     "zod": "^4.1.13"

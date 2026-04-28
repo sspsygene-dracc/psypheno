@@ -131,3 +131,4 @@ tables:
         is_perturbed: false
         is_target: false
     pvalue_column: Pvalue
+    effect_column: Beta

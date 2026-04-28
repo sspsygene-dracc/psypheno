@@ -50,6 +50,7 @@ tables:
     disease: ["scz", "ndd"]
     pvalue_column: P.Value
     fdr_column: adj.P.Val
+    effect_column: logFC
     organism: Homo sapiens (iPSC-derived neurons)
     in_path: Supp_1_all.csv
     separator: ","
@@ -82,6 +83,7 @@ tables:
     disease: ["scz", "ndd"]
     pvalue_column: pval
     fdr_column: padj
+    effect_column: logFC
     organism: Homo sapiens (iPSC-derived neurons)
     in_path: Supp_2_all.csv
     separator: ","

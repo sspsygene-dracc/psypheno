@@ -8,6 +8,7 @@ import click
 
 from processing.central_gene_table import get_central_gene_table
 from processing.combined_pvalues import compute_combined_pvalues
+from processing.effect_distributions import compute_effect_distributions
 from processing.gene_descriptions import copy_gene_descriptions
 from processing.new_sqlite3 import NewSqlite3
 from processing.sql_utils import sanitize_identifier
@@ -212,7 +213,8 @@ def load_data_tables(
         publication_doi TEXT,
         publication_pmid TEXT,
         pvalue_column TEXT,
-        fdr_column TEXT)"""
+        fdr_column TEXT,
+        effect_column TEXT)"""
     )
     loaded: list[str] = []
     skipped: list[str] = []
@@ -268,8 +270,8 @@ def load_data_tables(
             links, categories, source, assay, disease, field_labels, organism,
             publication_first_author, publication_last_author, publication_author_count, publication_authors, publication_year,
             publication_journal, publication_doi, publication_pmid,
-            pvalue_column, fdr_column)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            pvalue_column, fdr_column, effect_column)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -303,6 +305,7 @@ def load_data_tables(
                 table_config.publication_pmid,
                 table_config.pvalue_column,
                 table_config.fdr_column,
+                table_config.effect_column,
             ),
         )
     # Create changelog_entries table
@@ -503,6 +506,7 @@ def load_db(
                 nimh_csv_path=nimh_csv_path,
                 tf_list_path=tf_list_path,
             )
+        compute_effect_distributions(conn, no_index=no_index)
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)
 

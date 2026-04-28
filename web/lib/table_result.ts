@@ -6,12 +6,14 @@ export interface TableResult {
   description: string | null;
   source?: string | null;
   assay?: string[] | null;
+  organism?: string | null;
   fieldLabels?: Record<string, string> | null;
   displayColumns: string[];
   scalarColumns?: string[];
   geneColumns?: string[];
   pvalueColumn?: string | null;
   fdrColumn?: string | null;
+  effectColumn?: string | null;
   publicationFirstAuthor?: string | null;
   publicationLastAuthor?: string | null;
   publicationAuthorCount?: number | null;

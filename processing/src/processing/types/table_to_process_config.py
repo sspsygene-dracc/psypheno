@@ -61,6 +61,7 @@ class TableToProcessConfig:
     organism: str | None = None
     pvalue_column: str | None = None
     fdr_column: str | None = None
+    effect_column: str | None = None
     publication_first_author: str | None = None
     publication_last_author: str | None = None
     publication_author_count: int | None = None
@@ -178,6 +179,11 @@ class TableToProcessConfig:
         else:
             fdr_column = None
 
+        raw_effect_col = json_data.get("effect_column")
+        effect_column = (
+            normalize_column_name(raw_effect_col) if raw_effect_col else None
+        )
+
         return cls(
             table=json_data["table"],
             description=json_data["description"],
@@ -203,6 +209,7 @@ class TableToProcessConfig:
             organism=json_data.get("organism"),
             pvalue_column=pvalue_column,
             fdr_column=fdr_column,
+            effect_column=effect_column,
             publication_first_author=first_author,
             publication_last_author=last_author,
             publication_author_count=author_count,
@@ -269,6 +276,11 @@ class TableToProcessConfig:
                         f"table {self.table}: fdr_column '{fc}' "
                         f"not found in data columns: {sorted(col_set)}"
                     )
+        if self.effect_column and self.effect_column not in col_set:
+            raise ValueError(
+                f"table {self.table}: effect_column '{self.effect_column}' "
+                f"not found in data columns: {sorted(col_set)}"
+            )
         scalar_columns: list[str] = [
             x
             for x in display_columns

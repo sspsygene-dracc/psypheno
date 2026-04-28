@@ -266,6 +266,17 @@ tables:
                                     # Same rules as pvalue_column.
                                     # Also optional — omit if not applicable.
 
+    effect_column: logFC            # Which column contains the signed effect
+                                    # size (logFC, log2FC, beta, limma_coef,
+                                    # etc.). When set, the gene-search page
+                                    # renders a histogram + volcano plot for
+                                    # this table at load-db time, with the
+                                    # queried gene marked.
+                                    #
+                                    # OPTIONAL — omit if your table has no
+                                    # signed effect-size column. Single value
+                                    # only (no list).
+
     # --- Gene mappings (CRITICAL — read carefully) ---
 
     gene_mappings:                  # This tells the pipeline which column(s)
@@ -375,6 +386,7 @@ tables:
     split_column_map: []
     pvalue_column: pvalue            # omit if no p-value column
     fdr_column: padj                 # omit if no FDR column
+    effect_column: logFC             # omit if no signed effect-size column
     gene_mappings:
       - column_name: gene
         link_table_name: gene
