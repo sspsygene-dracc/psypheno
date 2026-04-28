@@ -158,9 +158,10 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
         {compact && dataset.long_label && (
           <div
             style={{
-              fontSize: 15,
-              color: "#4b5563",
-              lineHeight: 1.3,
+              fontSize: 16,
+              fontWeight: 500,
+              color: "#111827",
+              lineHeight: 1.35,
             }}
           >
             {dataset.long_label}
@@ -236,14 +237,31 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
 
         {/* Description */}
         {dataset.description && (
-          <div
-            style={{
-              fontSize: 15,
-              color: "#4b5563",
-              marginTop: 4,
-            }}
-          >
-            {dataset.description}
+          <div style={{ marginTop: compact ? 6 : 4 }}>
+            {compact && (
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  color: "#6b7280",
+                  marginBottom: 4,
+                }}
+              >
+                Description
+              </div>
+            )}
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 400,
+                color: "#4b5563",
+                lineHeight: 1.55,
+              }}
+            >
+              {dataset.description}
+            </div>
           </div>
         )}
 
@@ -331,31 +349,33 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
           </div>
         )}
       </div>
-      <div
-        style={{
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          marginLeft: 16,
-        }}
-      >
-        <button
-          onClick={() => onSelect(dataset.table_name)}
+      {!compact && (
+        <div
           style={{
-            background: "#ffffff",
-            color: "#1f2937",
-            border: "1px solid #d1d5db",
-            borderRadius: 8,
-            padding: "9px 16px",
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-            fontSize: 14,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            marginLeft: 16,
           }}
-          aria-label={`Show data for ${dataset.table_name}`}
         >
-          Show data
-        </button>
-      </div>
+          <button
+            onClick={() => onSelect(dataset.table_name)}
+            style={{
+              background: "#ffffff",
+              color: "#1f2937",
+              border: "1px solid #d1d5db",
+              borderRadius: 8,
+              padding: "9px 16px",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              fontSize: 14,
+            }}
+            aria-label={`Show data for ${dataset.table_name}`}
+          >
+            Show data
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -630,73 +630,105 @@ function CollapsibleDatasetCard({
         overflow: "hidden",
       }}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
+      <div
         style={{
           display: "flex",
-          alignItems: "center",
-          gap: 10,
-          width: "100%",
-          padding: "10px 12px",
+          alignItems: "stretch",
           background: open ? "#f3f4f6" : "#fafafa",
-          border: "none",
           borderBottom: open ? "1px solid #e5e7eb" : "none",
-          textAlign: "left",
-          cursor: "pointer",
-          fontFamily: "inherit",
-          color: "inherit",
         }}
       >
-        <span
-          aria-hidden
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
           style={{
-            display: "inline-block",
-            transform: open ? "rotate(90deg)" : "rotate(0deg)",
-            transition: "transform 0.15s ease",
-            color: "#6b7280",
-            fontSize: 12,
-            width: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flex: 1,
+            minWidth: 0,
+            padding: "10px 12px",
+            background: "transparent",
+            border: "none",
+            textAlign: "left",
+            cursor: "pointer",
+            fontFamily: "inherit",
+            color: "inherit",
           }}
         >
-          ▶
-        </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
           <span
+            aria-hidden
             style={{
-              fontWeight: 600,
-              fontSize: 15,
-              color: "#111827",
-              display: "block",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {entry.label}
-            {ds.source && (
-              <InfoTooltip text={`Source: ${ds.source}`} size={13} />
-            )}
-          </span>
-          <span
-            style={{
-              fontSize: 12,
+              display: "inline-block",
+              transform: open ? "rotate(90deg)" : "rotate(0deg)",
+              transition: "transform 0.15s ease",
               color: "#6b7280",
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 8,
-              marginTop: 2,
+              fontSize: 12,
+              width: 12,
+              flexShrink: 0,
             }}
           >
-            {entry.organism && <span>{entry.organism}</span>}
-            {assays.length > 0 && (
-              <span>{assays.map((a) => assayTypeLabels[a] ?? a).join(", ")}</span>
-            )}
-            <span>{colCount} columns</span>
+            ▶
           </span>
-        </span>
-      </button>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span
+              style={{
+                fontWeight: 600,
+                fontSize: 15,
+                color: "#111827",
+                display: "block",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {entry.label}
+              {ds.source && (
+                <InfoTooltip text={`Source: ${ds.source}`} size={13} />
+              )}
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                color: "#6b7280",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                marginTop: 2,
+              }}
+            >
+              {entry.organism && <span>{entry.organism}</span>}
+              {assays.length > 0 && (
+                <span>{assays.map((a) => assayTypeLabels[a] ?? a).join(", ")}</span>
+              )}
+              <span>{colCount} columns</span>
+            </span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenDataset(ds);
+          }}
+          aria-label={`Show data for ${ds.table_name}`}
+          style={{
+            flexShrink: 0,
+            background: "transparent",
+            border: "none",
+            borderLeft: "1px solid #e5e7eb",
+            color: "#2563eb",
+            fontSize: 13,
+            fontWeight: 500,
+            padding: "0 14px",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Show data →
+        </button>
+      </div>
       {open && (
         <div style={{ background: "#ffffff" }}>
           <DatasetItem
