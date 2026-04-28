@@ -23,18 +23,23 @@ export function clearEnsemblSymbolCache(): void {
 export function getEnsemblSymbolMap(
   db: Database.Database,
 ): Map<string, string> {
-  if (cachedMap) return cachedMap;
+  // Only memoize *populated* maps. An empty result usually means we hit the
+  // DB before load-db built the table; caching it would freeze the API in
+  // pass-through mode for the lifetime of the process. Re-querying until we
+  // see a non-empty table is cheap (one SELECT) and self-heals after rebuild.
+  if (cachedMap && cachedMap.size > 0) return cachedMap;
   try {
     const rows = db
       .prepare("SELECT ensembl_id, symbol FROM ensembl_to_symbol")
       .all() as Array<{ ensembl_id: string; symbol: string }>;
-    cachedMap = new Map(rows.map((r) => [r.ensembl_id, r.symbol]));
+    if (rows.length > 0) {
+      cachedMap = new Map(rows.map((r) => [r.ensembl_id, r.symbol]));
+      return cachedMap;
+    }
   } catch {
-    // Table may not exist yet (running against an older DB); behave as if
-    // the map is empty so callers no-op gracefully.
-    cachedMap = new Map();
+    // Table may not exist yet (running against an older DB) — fall through.
   }
-  return cachedMap;
+  return new Map();
 }
 
 /**
