@@ -251,9 +251,8 @@ def load_data_tables(
         )
         for link_table in data_and_meta.link_tables:
             link_table.write_to_sqlite(conn)
-            create_indexes(
-                conn, link_table.link_table_name, ["central_gene_id"], skip=no_index
-            )
+            # No separate index — the WITHOUT ROWID PRIMARY KEY (central_gene_id, id)
+            # in LinkTable.write_to_sqlite already serves `WHERE central_gene_id = ?`.
         assert "id" in data_and_meta.data.columns, "id column not found in data"
         create_indexes(conn, table_config.table, ["id"], skip=no_index)
 
