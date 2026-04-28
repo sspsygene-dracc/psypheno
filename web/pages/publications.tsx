@@ -13,6 +13,17 @@ import type {
 
 const TITLE_CASE_RE = /\w\S*/g;
 
+// Brian Lee's institutional mapping for SSPsyGene consortium grants (GH #59).
+const GRANT_INSTITUTIONS: Record<string, string> = {
+  RM1MH132651: "UCLA",
+  R01MH131296: "Rutgers",
+  RM1MH132648: "Yale",
+  R01MH128366: "Broad",
+  U24MH132628: "UCSC",
+  R01HG012819: "Scripps",
+  RM1MH138313: "WUSTL",
+};
+
 function titleCase(s: string): string {
   return s.replace(TITLE_CASE_RE, (t) => t.charAt(0).toUpperCase() + t.slice(1));
 }
@@ -45,6 +56,11 @@ export default function PublicationsPage() {
   const [authorQuery, setAuthorQuery] = useState("");
   const [yearFilter, setYearFilter] = useState<Set<number>>(new Set());
   const [organismFilter, setOrganismFilter] = useState<Set<string>>(new Set());
+  const [assayFilter, setAssayFilter] = useState<Set<string>>(new Set());
+  const [fundingFilter, setFundingFilter] = useState<"any" | "funded" | "not_funded">(
+    "any",
+  );
+  const [grantFilter, setGrantFilter] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -90,9 +106,13 @@ export default function PublicationsPage() {
 
   // Build facet options from the data.
   const yearOptions = useMemo(() => {
-    const set = new Set<number>();
-    for (const p of publications) if (p.year != null) set.add(p.year);
-    return Array.from(set).sort((a, b) => b - a);
+    const counts = new Map<number, number>();
+    for (const p of publications) {
+      if (p.year != null) counts.set(p.year, (counts.get(p.year) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([year, count]) => ({ year, count }))
+      .sort((a, b) => b.year - a.year);
   }, [publications]);
 
   const organismOptions = useMemo(() => {
@@ -112,6 +132,41 @@ export default function PublicationsPage() {
       .map(([key, { display, count }]) => ({ key, display, count }))
       .sort((a, b) => a.display.localeCompare(b.display));
   }, [publications]);
+
+  const assayOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of publications) {
+      for (const a of p.assays) counts.set(a, (counts.get(a) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([key, count]) => ({
+        key,
+        display: assayTypeLabels[key] ?? titleCase(key),
+        count,
+      }))
+      .sort((a, b) => a.display.localeCompare(b.display));
+  }, [publications, assayTypeLabels]);
+
+  const grantOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of publications) {
+      for (const g of p.sspsygeneGrants) counts.set(g, (counts.get(g) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([key, count]) => ({
+        key,
+        display: GRANT_INSTITUTIONS[key]
+          ? `${key} (${GRANT_INSTITUTIONS[key]})`
+          : key,
+        count,
+      }))
+      .sort((a, b) => a.display.localeCompare(b.display));
+  }, [publications]);
+
+  const fundedCount = useMemo(
+    () => publications.filter((p) => p.sspsygeneGrants.length > 0).length,
+    [publications],
+  );
 
   const filtered = useMemo(() => {
     const q = authorQuery.trim().toLowerCase();
@@ -134,32 +189,57 @@ export default function PublicationsPage() {
         }
         if (!any) return false;
       }
+      if (assayFilter.size > 0) {
+        if (!p.assays.some((a) => assayFilter.has(a))) return false;
+      }
+      if (fundingFilter === "funded" && p.sspsygeneGrants.length === 0)
+        return false;
+      if (fundingFilter === "not_funded" && p.sspsygeneGrants.length > 0)
+        return false;
+      if (grantFilter.size > 0) {
+        if (!p.sspsygeneGrants.some((g) => grantFilter.has(g))) return false;
+      }
       return true;
     });
-  }, [publications, authorQuery, yearFilter, organismFilter]);
+  }, [
+    publications,
+    authorQuery,
+    yearFilter,
+    organismFilter,
+    assayFilter,
+    fundingFilter,
+    grantFilter,
+  ]);
 
-  const toggleYear = (y: number) => {
-    setYearFilter((prev) => {
-      const next = new Set(prev);
-      if (next.has(y)) next.delete(y);
-      else next.add(y);
-      return next;
-    });
+  const toggleSetValue = <T,>(set: Set<T>, value: T): Set<T> => {
+    const next = new Set(set);
+    if (next.has(value)) next.delete(value);
+    else next.add(value);
+    return next;
   };
-  const toggleOrganism = (key: string) => {
-    setOrganismFilter((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+
+  const facetsActive =
+    authorQuery.trim().length > 0 ||
+    yearFilter.size > 0 ||
+    organismFilter.size > 0 ||
+    assayFilter.size > 0 ||
+    fundingFilter !== "any" ||
+    grantFilter.size > 0;
+
+  const clearAllFilters = () => {
+    setAuthorQuery("");
+    setYearFilter(new Set());
+    setOrganismFilter(new Set());
+    setAssayFilter(new Set());
+    setFundingFilter("any");
+    setGrantFilter(new Set());
   };
 
   const goToDataset = (dataset: Dataset) => {
     const slug = dataset.short_label
       ? slugFromLabel(dataset.short_label)
       : dataset.table_name;
-    router.push(`/all-datasets?open=${encodeURIComponent(slug)}`);
+    router.push(`/full-datasets?open=${encodeURIComponent(slug)}`);
   };
 
   return (
@@ -189,8 +269,9 @@ export default function PublicationsPage() {
         >
           Papers contributing data to the SSPsyGene knowledge base, with their
           source datasets shown beneath each publication. Filter by author,
-          publication year, or experimental organism. Click a dataset to expand
-          its metadata, or jump straight to its full data table.
+          SSPsyGene funding, grant number, year, organism, or experiment type.
+          Click a dataset to expand its metadata, or jump straight to its full
+          data table.
         </p>
 
         <style>{`
@@ -244,13 +325,45 @@ export default function PublicationsPage() {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>Year</div>
-              {yearOptions.length === 0 ? (
-                <div style={{ color: "#9ca3af" }}>—</div>
-              ) : (
-                yearOptions.map((y) => (
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                SSPsyGene-funded
+              </div>
+              {(["any", "funded", "not_funded"] as const).map((opt) => (
+                <label
+                  key={opt}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "2px 0",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="pubs-funding"
+                    checked={fundingFilter === opt}
+                    onChange={() => setFundingFilter(opt)}
+                  />
+                  <span>
+                    {opt === "any"
+                      ? `Any (${publications.length})`
+                      : opt === "funded"
+                        ? `Yes (${fundedCount})`
+                        : `No (${publications.length - fundedCount})`}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            {grantOptions.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                  Grant number
+                </div>
+                {grantOptions.map((g) => (
                   <label
-                    key={y}
+                    key={g.key}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -261,16 +374,53 @@ export default function PublicationsPage() {
                   >
                     <input
                       type="checkbox"
-                      checked={yearFilter.has(y)}
-                      onChange={() => toggleYear(y)}
+                      checked={grantFilter.has(g.key)}
+                      onChange={() =>
+                        setGrantFilter((s) => toggleSetValue(s, g.key))
+                      }
                     />
-                    <span>{y}</span>
+                    <span style={{ flex: 1 }}>{g.display}</span>
+                    <span style={{ color: "#6b7280", fontSize: 12 }}>
+                      {g.count}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Year</div>
+              {yearOptions.length === 0 ? (
+                <div style={{ color: "#9ca3af" }}>—</div>
+              ) : (
+                yearOptions.map((y) => (
+                  <label
+                    key={y.year}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "2px 0",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={yearFilter.has(y.year)}
+                      onChange={() =>
+                        setYearFilter((s) => toggleSetValue(s, y.year))
+                      }
+                    />
+                    <span style={{ flex: 1 }}>{y.year}</span>
+                    <span style={{ color: "#6b7280", fontSize: 12 }}>
+                      {y.count}
+                    </span>
                   </label>
                 ))
               )}
             </div>
 
-            <div>
+            <div style={{ marginBottom: 16 }}>
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Organism</div>
               {organismOptions.length === 0 ? (
                 <div style={{ color: "#9ca3af" }}>—</div>
@@ -289,7 +439,9 @@ export default function PublicationsPage() {
                     <input
                       type="checkbox"
                       checked={organismFilter.has(opt.key)}
-                      onChange={() => toggleOrganism(opt.key)}
+                      onChange={() =>
+                        setOrganismFilter((s) => toggleSetValue(s, opt.key))
+                      }
                     />
                     <span style={{ flex: 1 }}>{opt.display}</span>
                     <span style={{ color: "#6b7280", fontSize: 12 }}>
@@ -300,14 +452,44 @@ export default function PublicationsPage() {
               )}
             </div>
 
-            {(authorQuery || yearFilter.size > 0 || organismFilter.size > 0) && (
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                Experiment / assay
+              </div>
+              {assayOptions.length === 0 ? (
+                <div style={{ color: "#9ca3af" }}>—</div>
+              ) : (
+                assayOptions.map((a) => (
+                  <label
+                    key={a.key}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "2px 0",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={assayFilter.has(a.key)}
+                      onChange={() =>
+                        setAssayFilter((s) => toggleSetValue(s, a.key))
+                      }
+                    />
+                    <span style={{ flex: 1 }}>{a.display}</span>
+                    <span style={{ color: "#6b7280", fontSize: 12 }}>
+                      {a.count}
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+
+            {facetsActive && (
               <button
                 type="button"
-                onClick={() => {
-                  setAuthorQuery("");
-                  setYearFilter(new Set());
-                  setOrganismFilter(new Set());
-                }}
+                onClick={clearAllFilters}
                 style={{
                   marginTop: 16,
                   width: "100%",
@@ -448,7 +630,7 @@ function PublicationCard({
         </div>
       </header>
 
-      {pub.organisms.length > 0 && (
+      {(pub.organisms.length > 0 || pub.sspsygeneGrants.length > 0) && (
         <div
           style={{
             display: "flex",
@@ -457,6 +639,53 @@ function PublicationCard({
             marginBottom: 12,
           }}
         >
+          {pub.sspsygeneGrants.length > 0 && (
+            <span
+              title={
+                pub.sspsygeneGrants
+                  .map(
+                    (g) =>
+                      `${g}${GRANT_INSTITUTIONS[g] ? ` (${GRANT_INSTITUTIONS[g]})` : ""}`,
+                  )
+                  .join(", ")
+              }
+              style={{
+                fontSize: 12,
+                color: "#065f46",
+                background: "#d1fae5",
+                borderRadius: 9999,
+                padding: "2px 10px",
+                fontWeight: 600,
+              }}
+            >
+              SSPsyGene
+            </span>
+          )}
+          {pub.sspsygeneGrants.map((g) => (
+            <span
+              key={g}
+              title={
+                GRANT_INSTITUTIONS[g]
+                  ? `Consortium grant: ${GRANT_INSTITUTIONS[g]}`
+                  : "Consortium grant"
+              }
+              style={{
+                fontSize: 12,
+                color: "#065f46",
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                borderRadius: 9999,
+                padding: "2px 10px",
+              }}
+            >
+              {g}
+              {GRANT_INSTITUTIONS[g] && (
+                <span style={{ color: "#047857", marginLeft: 4 }}>
+                  ({GRANT_INSTITUTIONS[g]})
+                </span>
+              )}
+            </span>
+          ))}
           {pub.organisms.map((o) => (
             <span
               key={o}

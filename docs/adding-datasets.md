@@ -173,6 +173,18 @@ publication:
   journal: "Nature Neuroscience"    # Journal name
   doi: "10.1038/s41593-025-12345-6" # DOI (without https://doi.org/ prefix)
   pmid: "12345678"                  # PubMed ID as a string, or null if not yet indexed
+  sspsygene_grants:                 # SSPsyGene consortium grants acknowledged in the
+    - "RM1MH132648"                 #   paper. Empty list `[]` = checked, not consortium-funded.
+                                    # Drives the "SSPsyGene-funded" / "Grant number"
+                                    # facets on /publications. Look up the paper's
+                                    # funding section against this table:
+                                    #   UCLA    RM1MH132651
+                                    #   Rutgers R01MH131296
+                                    #   Yale    RM1MH132648
+                                    #   Broad   R01MH128366
+                                    #   UCSC    U24MH132628
+                                    #   Scripps R01HG012819
+                                    #   WUSTL   RM1MH138313
 
 # ============================================================================
 # Who loaded this dataset and when

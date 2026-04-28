@@ -197,7 +197,7 @@ export default function DatasetChangelog() {
                         </td>
                         <td style={tdStyle}>
                           <Link
-                            href={`/all-datasets?select=${encodeURIComponent(slug)}`}
+                            href={`/full-datasets?select=${encodeURIComponent(slug)}`}
                             style={{
                               color: "#2563eb",
                               textDecoration: "none",

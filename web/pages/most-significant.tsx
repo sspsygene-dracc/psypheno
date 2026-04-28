@@ -883,7 +883,7 @@ export default function MostSignificantPage() {
                 <span key={t.tableName}>
                   {i > 0 && ", "}
                   <Link
-                    href={`/all-datasets?select=${encodeURIComponent(t.shortLabel ? t.shortLabel.replace(/\s+/g, "_") : t.tableName)}`}
+                    href={`/full-datasets?select=${encodeURIComponent(t.shortLabel ? t.shortLabel.replace(/\s+/g, "_") : t.tableName)}`}
                     style={{ color: "#2563eb", textDecoration: "none" }}
                   >
                     {formatName(t)}

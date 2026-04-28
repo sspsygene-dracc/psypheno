@@ -20,6 +20,8 @@ export type PublicationEntry = {
   authorCount: number | null;
   authors: string[];
   organisms: string[];
+  assays: string[];
+  sspsygeneGrants: string[];
   tables: PublicationTableEntry[];
 };
 
@@ -38,7 +40,7 @@ export default async function handler(
            link_tables, links, categories, source, assay, organism,
            publication_doi, publication_pmid, publication_year, publication_journal,
            publication_first_author, publication_last_author, publication_author_count,
-           publication_authors
+           publication_authors, publication_sspsygene_grants
          FROM data_tables
          WHERE publication_doi IS NOT NULL
          ORDER BY publication_year DESC, publication_first_author ASC, table_name ASC`,
@@ -67,24 +69,28 @@ export default async function handler(
       publication_last_author: string | null;
       publication_author_count: number | null;
       publication_authors: string | null;
+      publication_sspsygene_grants: string | null;
     }>;
 
     const byDoi = new Map<string, PublicationEntry>();
 
+    const parseStringArray = (raw: string | null): string[] => {
+      if (!raw) return [];
+      try {
+        const v = JSON.parse(raw);
+        return Array.isArray(v)
+          ? v.filter((x): x is string => typeof x === "string")
+          : [];
+      } catch {
+        return [];
+      }
+    };
+
     for (const r of rows) {
-      let entry = byDoi.get(r.publication_doi);
-      if (!entry) {
-        let parsedAuthors: string[] = [];
-        if (r.publication_authors) {
-          try {
-            const v = JSON.parse(r.publication_authors);
-            if (Array.isArray(v))
-              parsedAuthors = v.filter((x): x is string => typeof x === "string");
-          } catch {
-            // leave empty
-          }
-        }
-        entry = {
+      const existing = byDoi.get(r.publication_doi);
+      const entry: PublicationEntry =
+        existing ??
+        {
           doi: r.publication_doi,
           pmid: r.publication_pmid,
           year: r.publication_year,
@@ -92,11 +98,20 @@ export default async function handler(
           firstAuthor: r.publication_first_author,
           lastAuthor: r.publication_last_author,
           authorCount: r.publication_author_count,
-          authors: parsedAuthors,
+          authors: parseStringArray(r.publication_authors),
           organisms: [],
+          assays: [],
+          sspsygeneGrants: parseStringArray(r.publication_sspsygene_grants),
           tables: [],
         };
-        byDoi.set(r.publication_doi, entry);
+      if (!existing) byDoi.set(r.publication_doi, entry);
+      // Merge per-table assays into the publication-level set.
+      const tableAssays = (r.assay || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      for (const a of tableAssays) {
+        if (!entry.assays.includes(a)) entry.assays.push(a);
       }
       const tableLinks = (r.links || "")
         .split(",")

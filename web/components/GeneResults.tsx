@@ -582,7 +582,7 @@ export default function GeneResults({
                       )}
                     </div>
                     <Link
-                      href={`/all-datasets?open=${encodeURIComponent(
+                      href={`/full-datasets?open=${encodeURIComponent(
                         section.shortLabel
                           ? section.shortLabel.replace(/\s+/g, "_")
                           : section.tableName,

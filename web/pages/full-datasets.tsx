@@ -44,7 +44,7 @@ function normalizeSlug(s: string): string {
   return s.replace(/[\s_]+/g, "_").toLowerCase();
 }
 
-export default function AllDatasets() {
+export default function FullDatasets() {
   const router = useRouter();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +63,7 @@ export default function AllDatasets() {
   useEffect(() => {
     const fetchDatasets = async () => {
       try {
-        const res = await fetch("/api/all-datasets");
+        const res = await fetch("/api/full-datasets");
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const data = await res.json();
         setDatasets(data.datasets);
@@ -342,8 +342,8 @@ export default function AllDatasets() {
           </h1>
           <p style={{ color: "#4b5563", marginBottom: 20, lineHeight: 1.5 }}>
             Pick a dataset to view its full row-level data with sorting,
-            filtering, and pagination. To browse datasets grouped by source
-            paper with summaries, descriptions, and column metadata, see the{" "}
+            filtering, and pagination. To browse and filter datasets by author,
+            year, organism, assay, or SSPsyGene funding, see the{" "}
             <Link
               href="/publications"
               style={{ color: "#2563eb", textDecoration: "underline" }}

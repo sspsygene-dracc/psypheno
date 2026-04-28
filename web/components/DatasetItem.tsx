@@ -23,6 +23,8 @@ export type Dataset = {
   publication_year: number | null;
   publication_journal: string | null;
   publication_doi: string | null;
+  publication_authors?: string[];
+  publication_sspsygene_grants?: string[];
 };
 
 type DatasetItemProps = {
