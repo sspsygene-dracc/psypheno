@@ -246,7 +246,7 @@ class TableToProcessConfig:
         link_tables: list[LinkTable] = []
         for conversion in self.gene_mappings:
             if not conversion.multi_gene_separator:
-                gene_columns.append(conversion.column_name.lower())
+                gene_columns.append(normalize_column_name(conversion.column_name))
             species_list.append(conversion.species)
             link_table = conversion.resolve_to_central_gene_table(
                 primary_table_name=self.table,
