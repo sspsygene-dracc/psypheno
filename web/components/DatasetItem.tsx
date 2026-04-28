@@ -31,9 +31,10 @@ type DatasetItemProps = {
   assayTypeLabels?: Record<string, string>;
   id?: string;
   showPublicationLink?: boolean;
+  compact?: boolean;
 };
 
-export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, id, showPublicationLink = false }: DatasetItemProps) {
+export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, id, showPublicationLink = false, compact = false }: DatasetItemProps) {
   const prettifiedName = dataset.table_name
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
@@ -125,33 +126,46 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
           gap: 6,
         }}
       >
-        {/* Title + subtitle */}
-        <div style={{ marginBottom: 2 }}>
-          <div
-            style={{
-              fontWeight: 600,
-              fontSize: 17,
-              marginBottom: 2,
-              color: "#111827",
-            }}
-          >
-            {heading}
-            {dataset.source && (
-              <InfoTooltip text={`Source: ${dataset.source}`} size={14} />
-            )}
-          </div>
-          {dataset.long_label && (
+        {/* Title + subtitle (suppressed in compact mode — already in collapsible bar) */}
+        {!compact && (
+          <div style={{ marginBottom: 2 }}>
             <div
               style={{
-                fontSize: 15,
-                color: "#4b5563",
-                lineHeight: 1.3,
+                fontWeight: 600,
+                fontSize: 17,
+                marginBottom: 2,
+                color: "#111827",
               }}
             >
-              {dataset.long_label}
+              {heading}
+              {dataset.source && (
+                <InfoTooltip text={`Source: ${dataset.source}`} size={14} />
+              )}
             </div>
-          )}
-        </div>
+            {dataset.long_label && (
+              <div
+                style={{
+                  fontSize: 15,
+                  color: "#4b5563",
+                  lineHeight: 1.3,
+                }}
+              >
+                {dataset.long_label}
+              </div>
+            )}
+          </div>
+        )}
+        {compact && dataset.long_label && (
+          <div
+            style={{
+              fontSize: 15,
+              color: "#4b5563",
+              lineHeight: 1.3,
+            }}
+          >
+            {dataset.long_label}
+          </div>
+        )}
 
         {/* High‑level tags: organism/species + categories */}
         <div
@@ -162,7 +176,7 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
             marginTop: 2,
           }}
         >
-          {(dataset.organism || dataset.gene_species) && (
+          {!compact && (dataset.organism || dataset.gene_species) && (
             <span
               style={{
                 fontSize: 13,
@@ -178,7 +192,8 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
               {dataset.organism ?? dataset.gene_species}
             </span>
           )}
-          {dataset.assay &&
+          {!compact &&
+            dataset.assay &&
             dataset.assay
               .split(",")
               .map((c) => c.trim())
@@ -241,8 +256,9 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
           totalGeneCols={geneCount}
         />
 
-        {/* Publication line */}
-        {(authorText ||
+        {/* Publication line (suppressed in compact mode — parent pub card already shows it) */}
+        {!compact &&
+          (authorText ||
           dataset.publication_year ||
           dataset.publication_journal ||
           dataset.publication_doi) && (
@@ -287,8 +303,8 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
           </div>
         )}
 
-        {/* Dataset links */}
-        {parsedLinks.length > 0 && (
+        {/* Dataset links (suppressed in compact mode — parent pub card aggregates them) */}
+        {!compact && parsedLinks.length > 0 && (
           <div
             style={{
               fontSize: 14,

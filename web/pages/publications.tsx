@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DatasetItem, { type Dataset } from "@/components/DatasetItem";
+import InfoTooltip from "@/components/InfoTooltip";
 import { formatAuthors } from "@/lib/format-authors";
 import type {
   PublicationEntry,
@@ -674,6 +675,9 @@ function CollapsibleDatasetCard({
             }}
           >
             {entry.label}
+            {ds.source && (
+              <InfoTooltip text={`Source: ${ds.source}`} size={13} />
+            )}
           </span>
           <span
             style={{
@@ -699,6 +703,7 @@ function CollapsibleDatasetCard({
             dataset={ds}
             onSelect={() => onOpenDataset(ds)}
             assayTypeLabels={assayTypeLabels}
+            compact
           />
         </div>
       )}
