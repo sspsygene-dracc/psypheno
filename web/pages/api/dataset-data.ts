@@ -5,6 +5,7 @@ import {
   sanitizeIdentifier,
   validateSortColumn,
   buildOrderByClause,
+  buildFilterClause,
   type ApiSortMode,
 } from "@/lib/gene-query";
 import {
@@ -19,7 +20,23 @@ const querySchema = z.object({
   page: z.coerce.number().min(1).optional(),
   sortBy: z.string().optional(),
   sortMode: z.string().optional(),
+  filters: z.string().optional(),
 });
+
+function parseFilters(raw: string | undefined): Record<string, string> | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof v === "string" && v.trim()) out[k] = v;
+    }
+    return Object.keys(out).length > 0 ? out : null;
+  } catch {
+    return null;
+  }
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -86,10 +103,27 @@ export default async function handler(
 
     const selectCols = displayCols.join(", ");
 
-    // Get total row count
+    const scalarCols = new Set(
+      (metadata.scalar_columns || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    );
+
+    // Build WHERE clause from per-column filters (if any)
+    const filterMap = parseFilters(parse.data.filters);
+    const filterSpec = buildFilterClause({
+      filters: filterMap,
+      displayColumns: displayCols,
+      scalarColumns: scalarCols,
+    });
+    const whereClause = filterSpec.clause ? `WHERE ${filterSpec.clause}` : "";
+    const filterParams = filterSpec.params;
+
+    // Get total row count (after filtering)
     const totalRowResult = db
-      .prepare(`SELECT COUNT(*) as count FROM ${tableName}`)
-      .get() as { count: number };
+      .prepare(`SELECT COUNT(*) as count FROM ${tableName} ${whereClause}`)
+      .get(...filterParams) as { count: number };
     const totalRows = totalRowResult?.count ?? 0;
     const totalPages = Math.max(1, Math.ceil(totalRows / DATASET_PAGE_LIMIT));
     const effectivePage = Math.min(page, totalPages);
@@ -102,9 +136,6 @@ export default async function handler(
       if (validModes.has(parse.data.sortMode)) {
         const validCol = validateSortColumn(parse.data.sortBy, displayCols);
         if (validCol) {
-          const scalarCols = new Set(
-            (metadata.scalar_columns || "").split(",").map((s) => s.trim()).filter(Boolean)
-          );
           let mode = parse.data.sortMode as ApiSortMode;
           const isAbsMode = mode === "asc_abs" || mode === "desc_abs";
           if (isAbsMode && !scalarCols.has(validCol)) {
@@ -115,8 +146,8 @@ export default async function handler(
       }
     }
 
-    const sql = `SELECT ${selectCols} FROM ${tableName} ${orderByClause} LIMIT ${DATASET_PAGE_LIMIT} OFFSET ${offset}`;
-    const rawRows = db.prepare(sql).all() as Record<string, unknown>[];
+    const sql = `SELECT ${selectCols} FROM ${tableName} ${whereClause} ${orderByClause} LIMIT ${DATASET_PAGE_LIMIT} OFFSET ${offset}`;
+    const rawRows = db.prepare(sql).all(...filterParams) as Record<string, unknown>[];
     const rows = resolveEnsgsInRows(rawRows, getEnsemblSymbolMap(db));
 
     const links =
@@ -168,10 +199,7 @@ export default async function handler(
         pmid: metadata.publication_pmid,
       },
       displayColumns: displayCols,
-      scalarColumns: (metadata.scalar_columns || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      scalarColumns: Array.from(scalarCols),
       rows,
       totalRows,
     });

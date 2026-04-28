@@ -90,6 +90,8 @@ export default function DataTable({
   sortColumn: controlledSortColumn,
   sortMode: controlledSortMode,
   onSort,
+  columnFilters,
+  onColumnFilterChange,
 }: {
   columns: string[];
   rows: Record<string, unknown>[];
@@ -104,6 +106,8 @@ export default function DataTable({
   sortColumn?: string | null;
   sortMode?: SortMode;
   onSort?: (column: string, mode: SortMode) => void;
+  columnFilters?: Record<string, string>;
+  onColumnFilterChange?: (column: string, value: string) => void;
 }) {
   const isControlled = onSort !== undefined;
 
@@ -212,6 +216,10 @@ export default function DataTable({
   const isActive = (col: string) =>
     col === effectiveSortColumn && effectiveSortMode !== "none";
 
+  const showFilterRow = onColumnFilterChange !== undefined;
+  const filterPlaceholder = (col: string) =>
+    scalarSet.has(col) ? "e.g. >0.5" : "Filter...";
+
   return (
     <div style={{ overflowX: "auto" }}>
       <table
@@ -257,6 +265,41 @@ export default function DataTable({
               );
             })}
           </tr>
+          {showFilterRow && (
+            <tr style={{ background: "#ffffff" }}>
+              {effectiveColumns.map((col) => (
+                <th
+                  key={col}
+                  style={{
+                    padding: "6px 16px 8px",
+                    borderTop: "1px solid #f3f4f6",
+                    fontWeight: 400,
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={columnFilters?.[col] ?? ""}
+                    onChange={(e) =>
+                      onColumnFilterChange!(col, e.target.value)
+                    }
+                    placeholder={filterPlaceholder(col)}
+                    aria-label={`Filter ${formatColumnHeader(col)}`}
+                    style={{
+                      width: "100%",
+                      minWidth: 80,
+                      padding: "4px 8px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: 6,
+                      fontSize: 13,
+                      color: "#1f2937",
+                      background: "#ffffff",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </th>
+              ))}
+            </tr>
+          )}
         </thead>
         <tbody>
           {rowsToDisplay.map((row, idx) => {

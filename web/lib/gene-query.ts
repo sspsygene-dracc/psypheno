@@ -41,6 +41,79 @@ export function sanitizeIdentifier(id: string): string {
   return id;
 }
 
+/**
+ * Build a WHERE-clause fragment from a per-column filter map.
+ *
+ * Scalar columns accept an optional leading comparison operator
+ * (`>`, `>=`, `<`, `<=`, `=`, `!=`) followed by a number; without an operator,
+ * a numeric value falls back to substring match on the text representation
+ * (so users can still type partial values like "1.2" and see matches).
+ * Non-scalar columns always use case-insensitive substring (LIKE %v%).
+ *
+ * Column names are validated against `displayColumns` and re-sanitized via
+ * `sanitizeIdentifier`. Values are bound as parameters.
+ *
+ * Returns "" + [] when there are no usable filters.
+ */
+export function buildFilterClause(opts: {
+  filters: Record<string, string> | null | undefined;
+  displayColumns: string[];
+  scalarColumns: Set<string>;
+  tableAlias?: string;
+}): { clause: string; params: (string | number)[] } {
+  const { filters, displayColumns, scalarColumns, tableAlias } = opts;
+  if (!filters) return { clause: "", params: [] };
+
+  const allowed = new Set(displayColumns);
+  const prefix = tableAlias ? `${tableAlias}.` : "";
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
+
+  // Numbers: optional sign, then either digits-with-optional-fraction
+  // (`12`, `12.3`) or a leading-dot fraction (`.03`); optional exponent.
+  const cmpRe = /^\s*(>=|<=|!=|>|<|=)\s*(-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*$/;
+
+  for (const [rawCol, rawVal] of Object.entries(filters)) {
+    if (typeof rawVal !== "string") continue;
+    const val = rawVal.trim();
+    if (!val) continue;
+    if (!allowed.has(rawCol)) continue;
+    let col: string;
+    try {
+      col = sanitizeIdentifier(rawCol);
+    } catch {
+      continue;
+    }
+    const ref = `${prefix}${col}`;
+
+    if (scalarColumns.has(col)) {
+      const m = cmpRe.exec(val);
+      if (m) {
+        const op = m[1] === "=" ? "=" : m[1];
+        const num = Number(m[2]);
+        if (Number.isFinite(num)) {
+          conditions.push(`${ref} ${op} ?`);
+          params.push(num);
+          continue;
+        }
+      }
+      // No operator (or unparseable) — substring match against text repr.
+      conditions.push(`CAST(${ref} AS TEXT) LIKE ? ESCAPE '\\'`);
+      params.push(`%${escapeLike(val)}%`);
+    } else {
+      conditions.push(`${ref} LIKE ? ESCAPE '\\' COLLATE NOCASE`);
+      params.push(`%${escapeLike(val)}%`);
+    }
+  }
+
+  if (conditions.length === 0) return { clause: "", params: [] };
+  return { clause: conditions.join(" AND "), params };
+}
+
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 export type SearchDirection = "target" | "perturbed";
 
 /**
