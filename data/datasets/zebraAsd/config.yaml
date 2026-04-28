@@ -58,15 +58,15 @@ tables:
     assay: behavior
     disease: ["asd", "ndd"]
     fieldLabels:
-      mutant_experiment_sample: "Mutant/experiment/genotype/replicate identifier"
-      forebrain: "Forebrain pERK/tERK activity ratio"
-      optic_tectum: "Optic tectum pERK/tERK activity ratio"
-      thalamus: "Thalamus pERK/tERK activity ratio"
-      hypothalamus: "Hypothalamus pERK/tERK activity ratio"
-      cerebellum: "Cerebellum pERK/tERK activity ratio"
-      hindbrain: "Hindbrain pERK/tERK activity ratio"
-      habenula: "Habenula pERK/tERK activity ratio"
-      posterior_tuberculum: "Posterior tuberculum pERK/tERK activity ratio"
+      mutant_experiment_sample: "Combined identifier: mutant gene + experiment + genotype (HOM/HET/WT) + larva replicate"
+      forebrain: "Forebrain pERK/tERK ratio — neural-activity readout (phosphorylated ERK normalized by total ERK) at 6 dpf"
+      optic_tectum: "Optic tectum pERK/tERK ratio (neural activity at 6 dpf)"
+      thalamus: "Thalamus pERK/tERK ratio (neural activity at 6 dpf)"
+      hypothalamus: "Hypothalamus pERK/tERK ratio (neural activity at 6 dpf)"
+      cerebellum: "Cerebellum pERK/tERK ratio (neural activity at 6 dpf)"
+      hindbrain: "Hindbrain pERK/tERK ratio (neural activity at 6 dpf)"
+      habenula: "Habenula pERK/tERK ratio (neural activity at 6 dpf)"
+      posterior_tuberculum: "Posterior tuberculum pERK/tERK ratio (neural activity at 6 dpf; dopaminergic region)"
     links:
       - https://www.sciencedirect.com/science/article/pii/S2211124723002541?via%3Dihub#app2
     categories:
@@ -112,15 +112,15 @@ tables:
     assay: behavior
     disease: ["asd", "ndd"]
     fieldLabels:
-      human_gene_name: "Human Gene Name"
-      mutant_line: "Mutant Zebrafish line"
-      behavioral_parameter: "Behavioral data captured in either rest-wake or visual-startle tests"
-      wt_mean: "Mean for Wild-type Data"
-      wt_sd: "Standard Deviation for Wild-type Data"
-      mutant_mean: "Mean for Mutant Data"
-      mutant_sd: "Standard Deviation for Mutant Data"
-      beta: "The change in the outcome variable (phenotype/expression) associated with having the mutation"
-      pvalue: "Nominal p-value"
+      human_gene_name: "Human ortholog gene symbol (the ASD risk gene whose zebrafish ortholog was mutated)"
+      mutant_line: "Zebrafish mutant line and genotype (e.g. 'HET: chd8_del5' = heterozygous chd8 deletion line del5)"
+      behavioral_parameter: "Behavioral assay parameter: 'Rest-Wake:…' for sleep-wake measurements at 5–7 dpf; 'Visual-Startle:…' for response to flashes at 5 dpf"
+      wt_mean: "Mean of the behavioral parameter across background-matched wild-type larvae"
+      wt_sd: "Standard deviation of the behavioral parameter across wild-type larvae"
+      mutant_mean: "Mean of the behavioral parameter across mutant larvae"
+      mutant_sd: "Standard deviation of the behavioral parameter across mutant larvae"
+      beta: "Linear mixed-model regression coefficient for the mutation effect on this behavior (mutant minus wild-type, on the parameter's native scale)"
+      pvalue: "Nominal p-value for the mutation effect from the linear mixed model"
     organism: Danio rerio (crispant mutants)
     organism_key: zebrafish
     in_path: RestWake_VisStart_byGene.csv

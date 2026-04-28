@@ -45,7 +45,9 @@ tables:
       epilepsy, and intellectual disability cases.
     source: "Table S1"
     fieldLabels:
-      category: "NDD disease category (MIC/PMG/EPI/ID)"
+      ipsc_line: "Identifier for the patient-derived induced pluripotent stem cell line used to grow the organoid"
+      sex: "Patient biological sex (M = male, F = female)"
+      category: "NDD disease category (MIC=microcephaly, PMG=polymicrogyria, EPI=epilepsy, ID=intellectual disability)"
       pathologic_causative_mutation: "Causative gene mutation"
       mutation_genome_information_hg19_: "Genomic coordinates (hg19)"
       hc_at_birth_sd_: "Head circumference at birth (SD)"
@@ -90,7 +92,12 @@ tables:
     assay: expression
     disease: ["ndd"]
     fieldLabels:
-      disease: "NDD disease category"
+      cell_type: "Brain organoid cell type cluster (e.g. oRG = outer radial glia, GABA neurons, Astroglia, vGlut-1 neurons)"
+      gene_symbol: "Gene symbol (HGNC)"
+      disease: "NDD disease category: MIC=microcephaly, PMG=polymicrogyria, EPI=epilepsy, ID=intellectual disability"
+      pvalue: "Nominal p-value from the NEBULA negative-binomial mixed-model test (patient organoids vs neurotypical control organoids)"
+      fdr: "Benjamini–Hochberg FDR-adjusted p-value"
+      logfc: "Natural-log fold change in expression: NDD-patient organoids vs neurotypical control organoids, in this cell type. Positive = upregulated in patients."
     categories:
       - differential expression
       - scRNA-seq
@@ -130,7 +137,12 @@ tables:
     assay: expression
     disease: ["ndd"]
     fieldLabels:
-      disease: "NDD disease category"
+      cell_type: "Brain organoid cell type cluster (e.g. oRG = outer radial glia, GABA neurons, Astroglia, vGlut-1 neurons)"
+      gene_symbol: "Gene symbol (HGNC)"
+      disease: "NDD disease category: MIC=microcephaly, PMG=polymicrogyria, EPI=epilepsy, ID=intellectual disability"
+      pvalue: "Nominal p-value from the NEBULA negative-binomial mixed-model test (patient organoids vs neurotypical control organoids)"
+      fdr: "Benjamini–Hochberg FDR-adjusted p-value"
+      logfc: "Natural-log fold change in expression: NDD-patient organoids vs neurotypical control organoids, in this cell type. Positive = upregulated in patients."
     categories:
       - differential expression
       - scRNA-seq
@@ -170,7 +182,12 @@ tables:
     assay: expression
     disease: ["ndd"]
     fieldLabels:
-      disease: "NDD disease category"
+      cell_type: "Brain organoid cell type cluster (e.g. oRG = outer radial glia, GABA neurons, Astroglia, vGlut-1 neurons)"
+      gene_symbol: "Gene symbol (HGNC)"
+      disease: "NDD disease category: MIC=microcephaly, PMG=polymicrogyria, EPI=epilepsy, ID=intellectual disability"
+      pvalue: "Nominal p-value from the NEBULA negative-binomial mixed-model test (patient organoids vs neurotypical control organoids)"
+      fdr: "Benjamini–Hochberg FDR-adjusted p-value"
+      logfc: "Natural-log fold change in expression: NDD-patient organoids vs neurotypical control organoids, in this cell type. Positive = upregulated in patients."
     categories:
       - differential expression
       - scRNA-seq
@@ -211,10 +228,12 @@ tables:
     assay: expression
     disease: ["ndd"]
     fieldLabels:
-      diagnosis: "NDD diagnosis category"
-      statistic: "Wilcoxon test statistic"
-      p: "Nominal p-value"
-      p_adjust: "Adjusted p-value"
+      gene: "Gene symbol (HGNC)"
+      diagnosis: "NDD diagnosis category: MIC=microcephaly, PMG=polymicrogyria, EPI=epilepsy, ID=intellectual disability"
+      cell_type: "Brain organoid cell type cluster"
+      statistic: "Wilcoxon rank-sum test statistic (pseudobulk: patient samples vs neurotypical control samples)"
+      p: "Nominal p-value from the Wilcoxon rank-sum test"
+      p_adjust: "Benjamini–Hochberg FDR-adjusted p-value"
     categories:
       - differential expression
       - pseudobulk RNA-seq

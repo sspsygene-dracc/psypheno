@@ -1,18 +1,89 @@
 publication:
   authors:
-    - Henry E Pratt
-    - Gregory Andrews
-    - Nicole Shedd
-    - Nishigandha Phalke
-    - Tongyu Li
-    - Anusri Pampari
+    - Prashant S Emani
+    - Jason J Liu
+    - Declan Clarke
     - Matthew Jensen
-    - Chengyu Wen
+    - Jonathan Warrell
+    - Chirag Gupta
+    - Ran Meng
+    - Che Yu Lee
+    - Siwei Xu
+    - Cagatay Dursun
+    - Shaoke Lou
+    - Yuhang Chen
+    - Zhiyuan Chu
+    - Timur Galeev
+    - Ahyeon Hwang
+    - Yunyang Li
+    - Pengyu Ni
+    - Xiao Zhou
+    - Trygve E Bakken
+    - Jaroslav Bendl
+    - Lucy Bicks
+    - Tanima Chatterjee
+    - Lijun Cheng
+    - Yuyan Cheng
+    - Yi Dai
+    - Ziheng Duan
+    - Mary Flaherty
+    - John F Fullard
+    - Michael Gancz
+    - Diego Garrido-Martín
+    - Sophia Gaynor-Gillett
+    - Jennifer Grundman
+    - Natalie Hawken
+    - Ella Henry
+    - Gabriel E Hoffman
+    - Ao Huang
+    - Yunzhe Jiang
+    - Ting Jin
+    - Nikolas L Jorstad
+    - Riki Kawaguchi
+    - Saniya Khullar
+    - Jianyin Liu
+    - Junhao Liu
+    - Shuang Liu
+    - Shaojie Ma
+    - Michael Margolis
+    - Samantha Mazariegos
+    - Jill Moore
+    - Jennifer R Moran
+    - Eric Nguyen
+    - Nishigandha Phalke
+    - Milos Pjanic
+    - Henry Pratt
+    - Diana Quintero
+    - Ananya S Rajagopalan
+    - Tiernon R Riesenmy
+    - Nicole Shedd
+    - Manman Shi
+    - Megan Spector
+    - Rosemarie Terwilliger
+    - Kyle J Travaglini
+    - Brie Wamsley
+    - Gaoyuan Wang
+    - Yan Xia
+    - Shaohua Xiao
+    - Andrew C Yang
+    - Suchen Zheng
+    - Michael J Gandal
+    - Donghoon Lee
+    - Ed S Lein
+    - Panos Roussos
+    - Nenad Sestan
     - Zhiping Weng
+    - Kevin P White
+    - Hyejung Won
+    - Matthew J Girgenti
+    - Jing Zhang
+    - Daifeng Wang
+    - Daniel Geschwind
+    - Mark Gerstein
   year: 2024
-  journal: Science Advances
-  doi: 10.1126/sciadv.adj4452
-  pmid: null
+  journal: Science
+  doi: 10.1126/science.adi5199
+  pmid: "38781369"
   sspsygene_grants: []
 maintainers:
   - name: Johannes Birgmeier
@@ -30,7 +101,7 @@ tables:
     description:
       Differentially expressed genes associated with aging in brain tissue from large psychiatric
       cohorts. Aggregates transcriptomic signatures across age-related comparisons.
-    source: "PsychScreen download (psychscreen.org)"
+    source: "Emani 2024 (PsychENCODE2 brainSCOPE) DEG analysis, downloaded via PsychSCREEN (Pratt 2024, psychscreen.org)"
     assay: expression
     disease: []
     links:
@@ -55,6 +126,15 @@ tables:
     pvalue_column: pvalue
     fdr_column: padj
     effect_column: log2FoldChange
+    fieldLabels:
+      gene: "Gene symbol (or Ensembl ID for unnamed transcripts)"
+      basemean: "Mean of normalized read counts across all donors"
+      log2foldchange: "log2 fold change in expression: old (70–90y) vs young (25–70y) healthy donors. Positive = upregulated in old. Pseudobulk DESeq2 (likelihood-ratio test) per cell type."
+      lfcse: "Standard error of the log2 fold change"
+      stat: "Likelihood-ratio test statistic for the old-vs-young contrast"
+      pvalue: "Nominal p-value from the DESeq2 likelihood-ratio test"
+      padj: "Benjamini–Hochberg FDR-adjusted p-value"
+      cell_type: "Brain cell type from snRNA-seq clustering (cortical neurons and glia)"
   - table: psychscreen_asd_deg
     changelog:
       - date: "2025-10-14"
@@ -65,7 +145,7 @@ tables:
     description:
       Differentially expressed genes in autism spectrum disorder from aggregated postmortem brain
       transcriptomic studies. Provides ASD-specific gene expression changes across brain regions.
-    source: "PsychScreen download (psychscreen.org)"
+    source: "Emani 2024 (PsychENCODE2 brainSCOPE) DEG analysis, downloaded via PsychSCREEN (Pratt 2024, psychscreen.org)"
     assay: expression
     disease: ["asd", "ndd"]
     links:
@@ -90,6 +170,15 @@ tables:
     pvalue_column: pvalue
     fdr_column: padj
     effect_column: log2FoldChange
+    fieldLabels:
+      gene: "Gene symbol (or Ensembl ID for unnamed transcripts)"
+      basemean: "Mean of normalized read counts across all donors"
+      log2foldchange: "log2 fold change in expression: ASD vs neurotypical control. Positive = upregulated in ASD. Pseudobulk DESeq2 (likelihood-ratio test) per cell type."
+      lfcse: "Standard error of the log2 fold change"
+      stat: "Likelihood-ratio test statistic for the ASD-vs-control contrast"
+      pvalue: "Nominal p-value from the DESeq2 likelihood-ratio test"
+      padj: "Benjamini–Hochberg FDR-adjusted p-value"
+      cell_type: "Brain cell type from snRNA-seq clustering (cortical neurons and glia)"
   - table: psychscreen_bipolar_deg
     changelog:
       - date: "2025-10-14"
@@ -100,7 +189,7 @@ tables:
     description:
       Differentially expressed genes in bipolar disorder from aggregated postmortem brain transcriptomic
       studies. Captures transcriptional alterations associated with bipolar disorder.
-    source: "PsychScreen download (psychscreen.org)"
+    source: "Emani 2024 (PsychENCODE2 brainSCOPE) DEG analysis, downloaded via PsychSCREEN (Pratt 2024, psychscreen.org)"
     assay: expression
     disease: ["bipolar", "ndd"]
     links:
@@ -125,6 +214,15 @@ tables:
     pvalue_column: pvalue
     fdr_column: padj
     effect_column: log2FoldChange
+    fieldLabels:
+      gene: "Gene symbol (or Ensembl ID for unnamed transcripts)"
+      basemean: "Mean of normalized read counts across all donors"
+      log2foldchange: "log2 fold change in expression: bipolar disorder vs neurotypical control. Positive = upregulated in bipolar. Pseudobulk DESeq2 (likelihood-ratio test) per cell type."
+      lfcse: "Standard error of the log2 fold change"
+      stat: "Likelihood-ratio test statistic for the bipolar-vs-control contrast"
+      pvalue: "Nominal p-value from the DESeq2 likelihood-ratio test"
+      padj: "Benjamini–Hochberg FDR-adjusted p-value"
+      cell_type: "Brain cell type from snRNA-seq clustering (cortical neurons and glia)"
   - table: psychscreen_schizophrenia_deg
     changelog:
       - date: "2025-10-14"
@@ -135,7 +233,7 @@ tables:
     description:
       Differentially expressed genes in schizophrenia from aggregated postmortem brain transcriptomic
       studies. Provides schizophrenia-specific transcriptional changes across brain regions.
-    source: "PsychScreen download (psychscreen.org)"
+    source: "Emani 2024 (PsychENCODE2 brainSCOPE) DEG analysis, downloaded via PsychSCREEN (Pratt 2024, psychscreen.org)"
     assay: expression
     disease: ["scz", "ndd"]
     links:
@@ -160,3 +258,12 @@ tables:
     pvalue_column: pvalue
     fdr_column: padj
     effect_column: log2FoldChange
+    fieldLabels:
+      gene: "Gene symbol (or Ensembl ID for unnamed transcripts)"
+      basemean: "Mean of normalized read counts across all donors"
+      log2foldchange: "log2 fold change in expression: schizophrenia vs neurotypical control. Positive = upregulated in schizophrenia. Pseudobulk DESeq2 (likelihood-ratio test) per cell type."
+      lfcse: "Standard error of the log2 fold change"
+      stat: "Likelihood-ratio test statistic for the schizophrenia-vs-control contrast"
+      pvalue: "Nominal p-value from the DESeq2 likelihood-ratio test"
+      padj: "Benjamini–Hochberg FDR-adjusted p-value"
+      cell_type: "Brain cell type from snRNA-seq clustering (cortical neurons and glia)"

@@ -63,6 +63,21 @@ tables:
     pvalue_column: P_Value
     fdr_column: Adjusted_P_Value
     effect_column: log2FC
+    fieldLabels:
+      perturbed_gene: "Gene targeted by CRISPRi gRNA in this group of cells (vs non-targeting control gRNA cells)"
+      cell_type: "Cell-type cluster from scRNA-seq (NPC = neural progenitor; Cycling Progenitors = proliferating neural progenitors)"
+      target_gene: "Gene whose expression was measured (one row per perturbed_gene × cell_type × target_gene)"
+      avg_logfc: "Average natural-log fold change: target-gRNA cells vs non-targeting-control cells (single-cell-level)"
+      target_pct: "Fraction of target-gRNA cells expressing the gene (proportion with > 0 counts)"
+      ntc_pct: "Fraction of non-targeting-control cells expressing the gene"
+      target_exp: "Average log-normalized expression of the gene in target-gRNA cells"
+      ntc_exp: "Average log-normalized expression of the gene in non-targeting-control cells"
+      p_value: "Nominal p-value from pseudobulk edgeR quasi-likelihood F-test (target vs non-targeting controls)"
+      adjusted_p_value: "Benjamini–Hochberg FDR-adjusted p-value"
+      de_family: "DE pipeline category (always 'pseudobulk' — counts aggregated per cell-type × replicate before testing)"
+      de_method: "DE testing software (always 'edgeR')"
+      de_type: "edgeR test variant (always 'QLF' = quasi-likelihood F-test)"
+      log2fc: "log2 fold change: target-gRNA cells vs non-targeting-control cells (same effect as Avg_logFC, on log2 scale)"
   - table: hsc_asd_organoid_m5_DE_results
     shortLabel: asd_organoid_de_results
     mediumLabel: Gordon 2026 - DEGs of Cortical Organoids with ASD Perturbations
@@ -76,12 +91,16 @@ tables:
     assay: expression
     disease: ["asd", "ndd"]
     fieldLabels:
-      organoid_age_(days): "Organoid age (days)"
-      logFC: "Log fold change"
-      Avg_Expr: "Average expression (log2 counts per million)"
-      t: "Moderated t-statistic (limma)"
-      z_std: "Standardized z-score"
-      region_genes: "Genes in CNV region"
+      perturbation: "ASD-associated genetic mutation modeled in the organoid (CNV labels like 16p11del/dup, 22q11del; point-mutation lines for SHANK3, PCDH19, TS=Timothy syndrome; or IdiopathicASD)"
+      organoid_age_(days): "Organoid age in days post-differentiation. Empty value = meta-analysis combined across all timepoints."
+      target_gene: "Gene whose expression was measured (Ensembl ID)"
+      logFC: "log2 fold change in expression: ASD-mutation organoids vs control organoids. Pseudobulk DE via the dream (limma) mixed linear model."
+      Avg_Expr: "Average log2 counts-per-million expression across all samples (TMM-normalized)"
+      t: "Moderated t-statistic from the dream (limma) DE contrast"
+      P-Value: "Nominal p-value from the moderated t-test"
+      Adjusted_P-Value: "Benjamini–Hochberg FDR-adjusted p-value"
+      z_std: "Effect-size z-score (t-statistic on the standard-normal scale; used for cross-timepoint meta-analysis via metafor)"
+      region_genes: "Genes within the affected CNV region (for CNV-type perturbations) or the perturbed gene itself (for single-gene perturbations like SHANK3, PCDH19, Timothy syndrome/CACNA1C). Empty for IdiopathicASD."
     links:
       - https://www.nature.com/articles/s41586-025-10047-5#data-availability
     categories:

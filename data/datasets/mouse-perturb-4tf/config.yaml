@@ -49,9 +49,14 @@ tables:
     source: "Table S8"
     assay: perturbation
     fieldLabels:
-      logcpm: "Log counts per million"
-      lr: "Likelihood ratio test statistic"
-      perturbation: "Guide/perturbation identifier"
+      gene: "Mouse gene symbol (MGI)"
+      logfc: "log2 fold change in expression: target-gRNA cells vs non-targeting-control cells. Positive = upregulated when perturbed. Computed by edgeR pseudobulk likelihood-ratio test per cell type."
+      logcpm: "Average log2 counts-per-million expression of the gene across cells (edgeR scale)"
+      lr: "Likelihood-ratio test statistic (edgeR glmLRT)"
+      pvalue: "Nominal p-value from the edgeR likelihood-ratio test"
+      padj: "Benjamini–Hochberg FDR-adjusted p-value"
+      cell_type: "Cell-type cluster from scRNA-seq of developing mouse cortex (excitatory and inhibitory neuron subtypes; glia)"
+      perturbation: "CRISPR perturbation identifier (target gene name + replicate index, e.g. Foxg1_1; NonTarget1/SafeTarget for controls)"
     links:
       - https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
     categories:
@@ -98,13 +103,15 @@ tables:
     source: "Table S8"
     assay: perturbation
     fieldLabels:
-      subcluster: "Cell subcluster identity"
-      guide: "Guide RNA identifier"
-      propmean_treatnontarget2: "Mean cell proportion in non-targeting control"
-      propmean_treatguide: "Mean cell proportion in guide-treated condition"
-      propratio: "Ratio of proportions (guide/control)"
-      limma_coef: "limma coefficient (effect size)"
-      tstatistic: "t-statistic from limma"
+      subcluster: "Cell-subcluster identity from scRNA-seq clustering of developing mouse cortex"
+      guide: "gRNA identifier (target gene name + replicate index, e.g. Foxg1_1; NonTarget1/SafeTarget/GFP for controls)"
+      propmean_treatnontarget2: "Mean fraction of cells in the non-targeting-control condition (NonTarget2 gRNA) belonging to this subcluster, averaged across replicates"
+      propmean_treatguide: "Mean fraction of cells in the target-gRNA condition belonging to this subcluster, averaged across replicates"
+      propratio: "Ratio of cell-fraction means: target-gRNA / non-targeting control. >1 = subcluster expanded under perturbation; <1 = subcluster reduced."
+      limma_coef: "limma model coefficient: effect of perturbation on the cell-fraction in this subcluster"
+      tstatistic: "Moderated t-statistic from the limma test (target-gRNA vs non-targeting control)"
+      p_value: "Nominal p-value from the limma moderated t-test"
+      fdr: "Benjamini–Hochberg FDR-adjusted p-value"
     links:
       - https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
     categories:

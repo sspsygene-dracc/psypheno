@@ -35,8 +35,10 @@ tables:
       phenotypes to link genetic perturbations with transcriptional and functional profiles.
     source: "Extracted from supplemental LFC and q-value matrices"
     fieldLabels:
-      perturbgene: "CRISPR-targeted gene (perturbation)"
-      gene: "Differentially expressed target gene"
+      perturbgene: "Gene targeted by CRISPRi knockdown in this row (vs non-targeting control gRNA cells)"
+      gene: "Gene whose expression was measured (one row per perturbation × measured gene)"
+      lfc: "Natural-log fold change in expression, perturbed vs non-targeting control cells. Positive = upregulated when perturbed. Computed by FR-Perturb."
+      qval: "FDR-adjusted p-value (Benjamini–Hochberg) from 10,000 permutations of the perturbation labels"
     assay:
       - spatial
       - perturbation
