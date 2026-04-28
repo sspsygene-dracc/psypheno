@@ -26,6 +26,7 @@ publication:
   journal: Nature Communications
   doi: 10.1038/s41467-025-67959-z
   pmid: "41519853"
+  sspsygene_grants: []
 maintainers:
   - name: Brian Lee
     email: brianlee@ucsc.edu
@@ -52,6 +53,7 @@ tables:
     fdr_column: adj.P.Val
     effect_column: logFC
     organism: Homo sapiens (iPSC-derived neurons)
+    organism_key: human
     in_path: Supp_1_all.csv
     separator: ","
     split_column_map: []
@@ -66,6 +68,18 @@ tables:
         species: human
         is_perturbed: true
         is_target: false
+    fieldLabels:
+      perturbed_gene: "Gene targeted by CRISPRa or shRNA in this sample (compared to scramble non-targeting controls)"
+      target_gene: "Gene whose expression was measured (DE result row)"
+      description: "Gene annotation from HGNC/Ensembl Biomart"
+      logfc: "log2 fold change in expression: perturbed sample vs. scramble (non-targeting) control. Positive = upregulated in perturbed. Computed by limma::voom + eBayes moderated t-test."
+      ci_l: "Lower bound of the 95% confidence interval on log2 fold change (limma::topTable)"
+      ci_r: "Upper bound of the 95% confidence interval on log2 fold change (limma::topTable)"
+      aveexpr: "Average log2-CPM expression of the gene across all bulk RNA-seq samples (limma::voom scale)"
+      t: "Moderated t-statistic from limma's eBayes-shrunk DE contrast (perturbed vs. scramble)"
+      p_value: "Nominal p-value from limma's moderated t-test (perturbed vs. scramble)"
+      adj_p_val: "Benjamini–Hochberg FDR-adjusted p-value (limma::topTable)"
+      b: "Empirical-Bayes log-odds that the gene is differentially expressed (limma B-statistic)"
   - table: SCZ_Risk_Pooled_ECCITEseq_supp_2
     shortLabel: scz_risk_pooled_eccite_seq
     mediumLabel: "Deans 2026 - pooled CRISPRa/shRNA ECCITE-seq in iGLUT Neurons"
@@ -85,6 +99,7 @@ tables:
     fdr_column: padj
     effect_column: logFC
     organism: Homo sapiens (iPSC-derived neurons)
+    organism_key: human
     in_path: Supp_2_all.csv
     separator: ","
     split_column_map: []
@@ -94,8 +109,19 @@ tables:
         species: human
         is_perturbed: false
         is_target: true
-      - column_name: perturbed_gene 
+      - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
         species: human
         is_perturbed: true
         is_target: false
+    fieldLabels:
+      perturbed_gene: "Gene targeted by the gRNA carried by these single cells (compared to scramble non-targeting cells)"
+      target_gene: "Gene whose expression was measured (single-cell DE result row)"
+      avgexpr: "Average log-normalized expression of the gene in cells of the perturbed group (Seurat NormalizeData scale)"
+      logfc: "Log fold change in expression: perturbed cells vs. scramble (non-targeting) cells. Positive = upregulated in perturbed. Computed by presto::wilcoxauc on Seurat-normalized data."
+      statistic: "Wilcoxon rank-sum (Mann–Whitney U) test statistic (presto::wilcoxauc)"
+      auc: "Area under the ROC curve from the Wilcoxon test (presto::wilcoxauc); 1.0 = perfect marker of perturbed cells, 0.5 = no discrimination"
+      pval: "Nominal p-value from the Wilcoxon rank-sum test (presto::wilcoxauc)"
+      padj: "Benjamini–Hochberg FDR-adjusted p-value (presto::wilcoxauc)"
+      pct_in: "Percent of perturbed cells (target gRNA group) expressing the gene"
+      pct_out: "Percent of scramble (non-targeting) control cells expressing the gene"

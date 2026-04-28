@@ -14,7 +14,7 @@ export default async function handler(
 
     const rows = db
       .prepare(
-        `SELECT table_name, short_label, medium_label, long_label, pvalue_column, fdr_column, assay, disease
+        `SELECT table_name, short_label, medium_label, long_label, pvalue_column, fdr_column, assay, disease, organism_key
          FROM data_tables
          WHERE pvalue_column IS NOT NULL OR fdr_column IS NOT NULL
          ORDER BY id ASC`
@@ -28,6 +28,7 @@ export default async function handler(
         fdr_column: string | null;
         assay: string | null;
         disease: string | null;
+        organism_key: string | null;
       }>;
 
     // Also fetch assay type labels
@@ -56,25 +57,41 @@ export default async function handler(
       // disease_types table may not exist
     }
 
+    // Fetch organism type labels
+    let organismTypeLabels: Record<string, string> = {};
+    try {
+      const organismRows = db
+        .prepare("SELECT key, label FROM organism_types")
+        .all() as Array<{ key: string; label: string }>;
+      organismTypeLabels = Object.fromEntries(
+        organismRows.map((r) => [r.key, r.label])
+      );
+    } catch {
+      // organism_types table may not exist
+    }
+
     // Fetch available filter combinations from combined_pvalue_groups
     let combinedPvalueGroups: Array<{
       assayFilter: string | null;
       diseaseFilter: string | null;
+      organismFilter: string | null;
       tableName: string | null;
       numSourceTables: number;
     }> = [];
     try {
       const rawGroups = db
-        .prepare("SELECT assay_filter, disease_filter, table_name, num_source_tables FROM combined_pvalue_groups")
+        .prepare("SELECT assay_filter, disease_filter, organism_filter, table_name, num_source_tables FROM combined_pvalue_groups")
         .all() as Array<{
           assay_filter: string | null;
           disease_filter: string | null;
+          organism_filter: string | null;
           table_name: string | null;
           num_source_tables: number;
         }>;
       combinedPvalueGroups = rawGroups.map((g) => ({
         assayFilter: g.assay_filter,
         diseaseFilter: g.disease_filter,
+        organismFilter: g.organism_filter,
         tableName: g.table_name,
         numSourceTables: g.num_source_tables,
       }));
@@ -92,9 +109,11 @@ export default async function handler(
         fdrColumn: r.fdr_column,
         assay: r.assay ? r.assay.split(",").map((s) => s.trim()).filter(Boolean) : null,
         disease: r.disease ? r.disease.split(",").map((s) => s.trim()).filter(Boolean) : null,
+        organismKey: r.organism_key ? r.organism_key.split(",").map((s) => s.trim()).filter(Boolean) : null,
       })),
       assayTypeLabels,
       diseaseTypeLabels,
+      organismTypeLabels,
       combinedPvalueGroups,
     });
   } catch (err) {

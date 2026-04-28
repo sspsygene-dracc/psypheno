@@ -20,6 +20,7 @@ publication:
   journal: Nature
   doi: "10.1038/s41586-025-10047-5"
   pmid: null
+  sspsygene_grants: ["RM1MH132651"]
 maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
@@ -61,6 +62,7 @@ tables:
       - cortical organoids
       - developmental transcriptomics
     organism: "Homo sapiens (iPSC-derived cortical organoids)"
+    organism_key: human
     in_path: de_results.tsv
     split_column_map: []
     separator: "\t"

@@ -95,6 +95,7 @@ class ComputeGroup:
     label: str
     assay_filter: str | None = None
     disease_filter: str | None = None
+    organism_filter: str | None = None
     use_gene_flags: bool = True
     min_tables: int = 1
     direction: str | None = None
@@ -109,6 +110,7 @@ class CollectedGroup:
     label: str
     assay_filter: str | None
     disease_filter: str | None
+    organism_filter: str | None
     use_gene_flags: bool
 
 
@@ -684,9 +686,9 @@ def compute_combined_pvalues(
     then separately per assay type."""
     click.echo("\nComputing combined p-values...")
 
-    # 1. Find all tables with pvalue_column (include assay and disease for splits)
+    # 1. Find all tables with pvalue_column (include assay/disease/organism_key for splits)
     tables_with_pvalues = conn.execute(
-        "SELECT table_name, pvalue_column, link_tables, assay, disease FROM data_tables "
+        "SELECT table_name, pvalue_column, link_tables, assay, disease, organism_key FROM data_tables "
         "WHERE pvalue_column IS NOT NULL"
     ).fetchall()
 
@@ -738,17 +740,22 @@ def compute_combined_pvalues(
             flags.add("nimh_priority")
         return ",".join(sorted(flags)) if flags else None
 
-    # Strip assay/disease columns for the core computation (expects 3-tuples)
+    # Strip filter columns for the core computation (expects 3-tuples)
     tables_3col = [(t[0], t[1], t[2]) for t in tables_with_pvalues]
 
-    # 2. Build assay and disease groupings for 2D split
+    # 2. Build assay/disease/organism groupings, plus their pairwise and 3D combos.
     assay_to_tables: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
     disease_to_tables: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
-    combo_to_tables: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
+    organism_to_tables: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
+    ad_combo: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
+    ao_combo: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
+    do_combo: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
+    ado_combo: dict[tuple[str, str, str], list[tuple[str, str, str]]] = defaultdict(list)
 
-    for table_name, pvalue_col, link_tables, assay_raw, disease_raw in tables_with_pvalues:
+    for table_name, pvalue_col, link_tables, assay_raw, disease_raw, organism_raw in tables_with_pvalues:
         assay_keys = [a.strip() for a in (assay_raw or "").split(",") if a.strip()]
         disease_keys = [d.strip() for d in (disease_raw or "").split(",") if d.strip()]
+        organism_keys = [o.strip() for o in (organism_raw or "").split(",") if o.strip()]
 
         entry = (table_name, pvalue_col, link_tables)
 
@@ -756,9 +763,21 @@ def compute_combined_pvalues(
             assay_to_tables[ak].append(entry)
         for dk in disease_keys:
             disease_to_tables[dk].append(entry)
+        for ok in organism_keys:
+            organism_to_tables[ok].append(entry)
         for ak in assay_keys:
             for dk in disease_keys:
-                combo_to_tables[(ak, dk)].append(entry)
+                ad_combo[(ak, dk)].append(entry)
+        for ak in assay_keys:
+            for ok in organism_keys:
+                ao_combo[(ak, ok)].append(entry)
+        for dk in disease_keys:
+            for ok in organism_keys:
+                do_combo[(dk, ok)].append(entry)
+        for ak in assay_keys:
+            for dk in disease_keys:
+                for ok in organism_keys:
+                    ado_combo[(ak, dk, ok)].append(entry)
 
     # 3. Build list of all groups to compute
     #   direction == None: legacy "drop perturbed only when both sides exist" rule
@@ -810,14 +829,58 @@ def compute_combined_pvalues(
             min_tables=2,
         ))
 
-    # Per-(assay × disease) groups
-    for (assay_key, disease_key) in sorted(combo_to_tables.keys()):
+    # Per-organism groups
+    for organism_key in sorted(organism_to_tables.keys()):
         groups.append(ComputeGroup(
-            tables=combo_to_tables[(assay_key, disease_key)],
+            tables=organism_to_tables[organism_key],
+            out_table=f"gene_combined_pvalues_o_{organism_key}",
+            label=f"[organism={organism_key}] ",
+            organism_filter=organism_key,
+            min_tables=2,
+        ))
+
+    # Per-(assay × disease) groups
+    for (assay_key, disease_key) in sorted(ad_combo.keys()):
+        groups.append(ComputeGroup(
+            tables=ad_combo[(assay_key, disease_key)],
             out_table=f"gene_combined_pvalues_{assay_key}_d_{disease_key}",
             label=f"[assay={assay_key}, disease={disease_key}] ",
             assay_filter=assay_key,
             disease_filter=disease_key,
+            min_tables=2,
+        ))
+
+    # Per-(assay × organism) groups
+    for (assay_key, organism_key) in sorted(ao_combo.keys()):
+        groups.append(ComputeGroup(
+            tables=ao_combo[(assay_key, organism_key)],
+            out_table=f"gene_combined_pvalues_{assay_key}_o_{organism_key}",
+            label=f"[assay={assay_key}, organism={organism_key}] ",
+            assay_filter=assay_key,
+            organism_filter=organism_key,
+            min_tables=2,
+        ))
+
+    # Per-(disease × organism) groups
+    for (disease_key, organism_key) in sorted(do_combo.keys()):
+        groups.append(ComputeGroup(
+            tables=do_combo[(disease_key, organism_key)],
+            out_table=f"gene_combined_pvalues_d_{disease_key}_o_{organism_key}",
+            label=f"[disease={disease_key}, organism={organism_key}] ",
+            disease_filter=disease_key,
+            organism_filter=organism_key,
+            min_tables=2,
+        ))
+
+    # Per-(assay × disease × organism) groups
+    for (assay_key, disease_key, organism_key) in sorted(ado_combo.keys()):
+        groups.append(ComputeGroup(
+            tables=ado_combo[(assay_key, disease_key, organism_key)],
+            out_table=f"gene_combined_pvalues_{assay_key}_d_{disease_key}_o_{organism_key}",
+            label=f"[assay={assay_key}, disease={disease_key}, organism={organism_key}] ",
+            assay_filter=assay_key,
+            disease_filter=disease_key,
+            organism_filter=organism_key,
             min_tables=2,
         ))
 
@@ -868,6 +931,7 @@ def compute_combined_pvalues(
             label=group.label,
             assay_filter=group.assay_filter,
             disease_filter=group.disease_filter,
+            organism_filter=group.organism_filter,
             use_gene_flags=group.use_gene_flags,
         )
         for i, group in enumerate(groups)
@@ -912,9 +976,10 @@ def compute_combined_pvalues(
         """CREATE TABLE IF NOT EXISTS combined_pvalue_groups (
         assay_filter TEXT,
         disease_filter TEXT,
+        organism_filter TEXT,
         table_name TEXT,
         num_source_tables INTEGER,
-        PRIMARY KEY (assay_filter, disease_filter)
+        PRIMARY KEY (assay_filter, disease_filter, organism_filter)
         )"""
     )
 
@@ -922,9 +987,14 @@ def compute_combined_pvalues(
         if cg.pvalues.is_empty():
             # Group was skipped (< min_tables source tables)
             conn.execute(
-                "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, table_name, num_source_tables) "
-                "VALUES (?, ?, NULL, ?)",
-                (cg.assay_filter, cg.disease_filter, len(cg.pvalues.per_table)),
+                "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, organism_filter, table_name, num_source_tables) "
+                "VALUES (?, ?, ?, NULL, ?)",
+                (
+                    cg.assay_filter,
+                    cg.disease_filter,
+                    cg.organism_filter,
+                    len(cg.pvalues.per_table),
+                ),
             )
             conn.commit()
             continue
@@ -941,8 +1011,14 @@ def compute_combined_pvalues(
             tbl for gene_tbls in cg.pvalues.per_table.values() for tbl in gene_tbls
         })
         conn.execute(
-            "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, table_name, num_source_tables) "
-            "VALUES (?, ?, ?, ?)",
-            (cg.assay_filter, cg.disease_filter, cg.out_table, num_source),
+            "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, organism_filter, table_name, num_source_tables) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (
+                cg.assay_filter,
+                cg.disease_filter,
+                cg.organism_filter,
+                cg.out_table,
+                num_source,
+            ),
         )
         conn.commit()

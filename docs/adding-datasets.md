@@ -222,7 +222,26 @@ tables:
 
     # --- Metadata tags ---
 
-    organism: "Homo sapiens (iPSC-derived neurons)"  # Species and sample type
+    organism: "Homo sapiens (iPSC-derived neurons)"  # Free-form description shown in dataset cards.
+
+    organism_key: human             # Controlled-vocab tag used by the
+                                    # /most-significant breakdown radio buttons.
+                                    # Must be one of these exact values:
+                                    #   human       — Human
+                                    #   mouse       — Mouse
+                                    #   zebrafish   — Zebrafish
+                                    #
+                                    # You can use a list if a table genuinely
+                                    # mixes organisms (e.g. cross-species
+                                    # comparison): organism_key: [human, mouse]
+                                    # Omit entirely (or use []) for tables that
+                                    # don't fit a single organism — they will
+                                    # be excluded from the per-organism
+                                    # meta-analysis.
+                                    #
+                                    # New organism keys are added in
+                                    # data/datasets/globals.yaml under
+                                    # organismTypes.
 
     assay: expression               # What type of assay produced this data.
                                     # Must be one of these exact values:
@@ -381,6 +400,7 @@ tables:
     categories:
       - bulk RNA-seq
     organism: "Homo sapiens"
+    organism_key: human
     in_path: results.csv
     separator: ","
     split_column_map: []

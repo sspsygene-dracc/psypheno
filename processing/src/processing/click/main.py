@@ -89,6 +89,7 @@ def load_db(
             config.tables_config.tables,
             assay_types=config.global_config.get("assayTypes", {}),
             disease_types=config.global_config.get("diseaseTypes", {}),
+            organism_types=config.global_config.get("organismTypes", {}),
             skip_missing=skip_missing_datasets,
             hgnc_path=config.gene_map_config.hgnc_file,
             no_index=no_index,

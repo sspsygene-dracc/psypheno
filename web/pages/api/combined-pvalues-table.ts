@@ -42,6 +42,7 @@ const bodySchema = z.object({
   showOther: z.boolean().default(true),
   assayFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
   diseaseFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
+  organismFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
   geneSearch: z.string().max(50).regex(/^[A-Za-z0-9._-]*$/).default(""),
   direction: z.enum(["global", "target", "perturbed"]).default("global"),
 });
@@ -74,7 +75,7 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { page, pageSize, method, hideFlags, showFlags, showOther, assayFilter, diseaseFilter, geneSearch, direction } =
+  const { page, pageSize, method, hideFlags, showFlags, showOther, assayFilter, diseaseFilter, organismFilter, geneSearch, direction } =
     parse.data;
   const methodCol = METHOD_COLUMNS[method];
 
@@ -87,8 +88,9 @@ export default async function handler(
     // Determine which combined p-values table to query.
     //
     // Priority:
-    //   1. assay/disease filter -> combined_pvalue_groups lookup (direction
-    //      is silently ignored for those filtered views — separate ticket).
+    //   1. assay/disease/organism filter -> combined_pvalue_groups lookup
+    //      (direction is silently ignored for those filtered views —
+    //      separate ticket).
     //   2. direction == "target" / "perturbed" -> the matching pre-computed
     //      direction-aware table.
     //   3. default -> the global gene_combined_pvalues table (legacy rule:
@@ -96,15 +98,15 @@ export default async function handler(
     let cpTable = "gene_combined_pvalues";
     let noTable = false;
     let numSourceTables = 0;
-    if (assayFilter || diseaseFilter) {
+    if (assayFilter || diseaseFilter || organismFilter) {
       const hasGroups = tableExists(db, "combined_pvalue_groups");
       if (hasGroups) {
         const group = db
           .prepare(
             `SELECT table_name, num_source_tables FROM combined_pvalue_groups
-             WHERE assay_filter IS ? AND disease_filter IS ?`
+             WHERE assay_filter IS ? AND disease_filter IS ? AND organism_filter IS ?`
           )
-          .get(assayFilter ?? null, diseaseFilter ?? null) as
+          .get(assayFilter ?? null, diseaseFilter ?? null, organismFilter ?? null) as
           | { table_name: string | null; num_source_tables: number }
           | undefined;
         if (group && group.table_name) {

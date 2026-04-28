@@ -13,6 +13,7 @@ publication:
   journal: Science Advances
   doi: 10.1126/sciadv.adj4452
   pmid: null
+  sspsygene_grants: []
 maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
@@ -40,6 +41,7 @@ tables:
       - aging
       - psychiatric disorders
     organism: Homo sapiens (postmortem brain)
+    organism_key: human
     in_path: Age_DEGcombined.csv
     split_column_map: []
     separator: ","
@@ -74,6 +76,7 @@ tables:
       - autism
       - psychiatric disorders
     organism: Homo sapiens (postmortem brain)
+    organism_key: human
     in_path: ASD_DEGcombined.csv
     split_column_map: []
     separator: ","
@@ -108,6 +111,7 @@ tables:
       - bipolar disorder
       - psychiatric disorders
     organism: Homo sapiens (postmortem brain)
+    organism_key: human
     in_path: Bipolar_DEGcombined.csv
     split_column_map: []
     separator: ","
@@ -142,6 +146,7 @@ tables:
       - schizophrenia
       - psychiatric disorders
     organism: Homo sapiens (postmortem brain)
+    organism_key: human
     in_path: Schizophrenia_DEGcombined.csv
     split_column_map: []
     separator: ","

@@ -34,6 +34,7 @@ class GlobalConfig(TypedDict, total=False):
     fieldLabels: dict[str, str]
     assayTypes: dict[str, str]
     diseaseTypes: dict[str, str]
+    organismTypes: dict[str, str]
 
 
 class YamlTablesFile(TypedDict, total=False):

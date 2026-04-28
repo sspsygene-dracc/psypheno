@@ -59,6 +59,7 @@ class TableToProcessConfig:
     disease: list[str] = field(default_factory=list)
     field_labels: dict[str, str] = field(default_factory=dict)
     organism: str | None = None
+    organism_key: list[str] = field(default_factory=list)
     pvalue_column: str | None = None
     fdr_column: str | None = None
     effect_column: str | None = None
@@ -70,6 +71,7 @@ class TableToProcessConfig:
     publication_journal: str | None = None
     publication_doi: str | None = None
     publication_pmid: str | None = None
+    publication_sspsygene_grants: list[str] = field(default_factory=list)
     changelog: list[dict[str, str]] = field(default_factory=list)
 
     # short_label is a code/link identifier: lowercase letters, digits, underscores only
@@ -132,6 +134,11 @@ class TableToProcessConfig:
         except (TypeError, ValueError):
             year_int = None
 
+        raw_grants = publication.get("sspsygene_grants", [])
+        sspsygene_grants: list[str] = (
+            [str(g) for g in raw_grants] if isinstance(raw_grants, list) else []
+        )
+
         # Assay: normalize string to list
         raw_assay = json_data.get("assay", [])
         if isinstance(raw_assay, str):
@@ -145,6 +152,14 @@ class TableToProcessConfig:
             disease = [raw_disease]
         else:
             disease = list(raw_disease)
+
+        # Organism key: controlled vocabulary (e.g. "human", "mouse"); separate
+        # from the free-form `organism` description. Normalize string to list.
+        raw_organism_key = json_data.get("organism_key", [])
+        if isinstance(raw_organism_key, str):
+            organism_key = [raw_organism_key]
+        else:
+            organism_key = list(raw_organism_key)
 
         # Field labels: merge global defaults with per-table overrides
         # Keys are normalized (lowercased, sanitized) to match column names
@@ -207,6 +222,7 @@ class TableToProcessConfig:
             disease=disease,
             field_labels=merged_field_labels,
             organism=json_data.get("organism"),
+            organism_key=organism_key,
             pvalue_column=pvalue_column,
             fdr_column=fdr_column,
             effect_column=effect_column,
@@ -218,6 +234,7 @@ class TableToProcessConfig:
             publication_journal=publication.get("journal"),
             publication_doi=publication.get("doi"),
             publication_pmid=publication.get("pmid"),
+            publication_sspsygene_grants=sspsygene_grants,
             changelog=list(json_data.get("changelog", [])),
         )
 

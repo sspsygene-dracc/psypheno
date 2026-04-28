@@ -37,6 +37,7 @@ publication:
   journal: bioRxiv
   doi: 10.1101/2024.08.23.609190
   pmid: "39229156"
+  sspsygene_grants: ["RM1MH132648"]
 maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
@@ -73,6 +74,7 @@ tables:
       - CRISPR perturbation
       - developmental transcriptomics
     organism: Homo sapiens (hiPSC-derived neurons)
+    organism_key: human
     in_path: Supplemental_Data_2(META_DEGs).csv
     split_column_map: []
     separator: ","
@@ -147,6 +149,7 @@ tables:
        off_avg_stimvpost: "Startle-Off Average Difference between response to stimuli versus activity after stimulus"
        off_avg_stim5: "Startle-Off Average Response to Stimulus #5"
     organism: Danio rerio (crispant mutants)
+    organism_key: zebrafish
     in_path: HumanName_Baseline_behavior_pvalues.csv
     separator: ","
     split_column_map: []

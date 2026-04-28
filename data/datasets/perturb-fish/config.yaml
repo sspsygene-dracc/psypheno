@@ -15,6 +15,7 @@ publication:
   journal: Cell
   doi: 10.1016/j.cell.2025.02.012
   pmid: "40081369"
+  sspsygene_grants: ["R01MH128366"]
 maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
@@ -54,6 +55,7 @@ tables:
       - astrocyte function
       - autism genetics
     organism: Homo sapiens (iPSC-derived astrocytes)
+    organism_key: human
     in_path: perturbfish-astro.csv
     split_column_map: []
     separator: "\t"

@@ -20,6 +20,7 @@ publication:
   journal: Nature
   doi: 10.1038/s41586-025-10047-5
   pmid: "41611887"
+  sspsygene_grants: ["RM1MH132651"]
 maintainers:
   - name: Brittney Wick
     email: bwick@ucsc.edu
@@ -44,6 +45,7 @@ tables:
       - autism spectrum disorder
       - human cortical organoids
     organism: Homo sapiens (hiPSC-derived neural progenitors)
+    organism_key: human
     in_path: supplementary_table_12_DE_targets_M5_TFs.tsv
     split_column_map: []
     separator: "\t"
@@ -88,6 +90,7 @@ tables:
       - autism spectrum disorder
       - human cortical organoids
     organism: Homo sapiens (hiPSC-derived cortical organoids)
+    organism_key: human
     in_path: supplementary_table_3_DE_results.tsv
     split_column_map: []
     separator: "\t"

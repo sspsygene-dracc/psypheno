@@ -6,6 +6,7 @@ publication:
   journal: Disease Models & Mechanisms
   doi: 10.1242/dmm.005439
   pmid: "20212079"
+  sspsygene_grants: []
 maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
@@ -111,6 +112,7 @@ tables:
       - autism genetics
       - human genetics
     organism: Homo sapiens
+    organism_key: human
     in_path: SFARI-Gene_genes_07-08-2025release_10-03-2025export.csv
     split_column_map: []
     separator: ","

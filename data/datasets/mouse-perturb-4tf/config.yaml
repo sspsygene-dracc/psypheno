@@ -28,6 +28,7 @@ publication:
   journal: Cell
   doi: 10.1016/j.cell.2024.04.050
   pmid: "38772369"
+  sspsygene_grants: ["R01HG012819"]
 maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
@@ -58,6 +59,7 @@ tables:
       - transcription factors
       - cortical development
     organism: Mus musculus (embryonic cortex)
+    organism_key: mouse
     in_path: deg.txt
     split_column_map:
       - source_col: perturbation
@@ -110,6 +112,7 @@ tables:
       - cell fate
       - cortical development
     organism: Mus musculus (embryonic cortex)
+    organism_key: mouse
     in_path: clusterprop.txt
     split_column_map:
       - source_col: guide

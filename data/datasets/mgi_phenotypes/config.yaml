@@ -9,6 +9,7 @@ publication:
   journal: Genetics
   doi: 10.1093/genetics/iyae031
   pmid: "38531069"
+  sspsygene_grants: []
 maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
@@ -47,6 +48,7 @@ tables:
       - model organism
       - curated database
     organism: Mus musculus
+    organism_key: mouse
     in_path: MGI_PhenotypicAllele_annotated.rpt
     split_column_map: []
     separator: "\t"

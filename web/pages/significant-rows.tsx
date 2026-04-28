@@ -18,6 +18,7 @@ type DatasetTableMeta = {
   fdrColumn: string | null;
   assay: string[] | null;
   disease: string[] | null;
+  organismKey: string[] | null;
 };
 
 type DatasetSigResult = {
@@ -284,8 +285,12 @@ export default function SignificantRowsPage() {
   const [diseaseTypeLabels, setDiseaseTypeLabels] = useState<
     Record<string, string>
   >({});
+  const [organismTypeLabels, setOrganismTypeLabels] = useState<
+    Record<string, string>
+  >({});
   const [assayFilter, setAssayFilter] = useState<string | null>(null);
   const [diseaseFilter, setDiseaseFilter] = useState<string | null>(null);
+  const [organismFilter, setOrganismFilter] = useState<string | null>(null);
   const [datasetsLoading, setDatasetsLoading] = useState(true);
   const [showToc, setShowToc] = useState(false);
   const router = useRouter();
@@ -294,9 +299,10 @@ export default function SignificantRowsPage() {
   const [initializedFromUrl, setInitializedFromUrl] = useState(false);
   useEffect(() => {
     if (!router.isReady || initializedFromUrl) return;
-    const { assay, disease } = router.query;
+    const { assay, disease, organism } = router.query;
     if (typeof assay === "string") setAssayFilter(assay);
     if (typeof disease === "string") setDiseaseFilter(disease);
+    if (typeof organism === "string") setOrganismFilter(organism);
     setInitializedFromUrl(true);
   }, [router.isReady, initializedFromUrl, router.query]);
 
@@ -318,6 +324,7 @@ export default function SignificantRowsPage() {
         setDatasetTables(data.tables);
         setAssayTypeLabels(data.assayTypeLabels ?? {});
         setDiseaseTypeLabels(data.diseaseTypeLabels ?? {});
+        setOrganismTypeLabels(data.organismTypeLabels ?? {});
         setDatasetsLoading(false);
       })
       .catch(() => setDatasetsLoading(false));
@@ -337,6 +344,13 @@ export default function SignificantRowsPage() {
     ...new Set(
       datasetTables
         .flatMap((t) => t.disease ?? [])
+        .filter(Boolean),
+    ),
+  ].sort();
+  const availableOrganisms = [
+    ...new Set(
+      datasetTables
+        .flatMap((t) => t.organismKey ?? [])
         .filter(Boolean),
     ),
   ].sort();
@@ -387,8 +401,10 @@ export default function SignificantRowsPage() {
           </Link>
         </p>
 
-        {/* Assay type and disease filters */}
-        {(availableAssays.length > 0 || availableDiseases.length > 0) && (
+        {/* Assay type, disease, and organism filters */}
+        {(availableAssays.length > 0 ||
+          availableDiseases.length > 0 ||
+          availableOrganisms.length > 0) && (
           <div
             style={{
               marginBottom: 12,
@@ -406,7 +422,11 @@ export default function SignificantRowsPage() {
                   alignItems: "center",
                   gap: 14,
                   flexWrap: "wrap",
-                  marginBottom: availableDiseases.length > 0 ? 8 : 0,
+                  marginBottom:
+                    availableDiseases.length > 0 ||
+                    availableOrganisms.length > 0
+                      ? 8
+                      : 0,
                 }}
               >
                 <span
@@ -447,6 +467,7 @@ export default function SignificantRowsPage() {
                   alignItems: "center",
                   gap: 14,
                   flexWrap: "wrap",
+                  marginBottom: availableOrganisms.length > 0 ? 8 : 0,
                 }}
               >
                 <span
@@ -476,6 +497,46 @@ export default function SignificantRowsPage() {
                       onChange={() => setDiseaseFilter(key)}
                     />
                     {diseaseTypeLabels[key] || key}
+                  </label>
+                ))}
+              </div>
+            )}
+            {availableOrganisms.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  flexWrap: "wrap",
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: 600,
+                    color: "#374151",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Organism:
+                </span>
+                <label style={radioLabelStyle}>
+                  <input
+                    type="radio"
+                    name="organismFilter"
+                    checked={organismFilter === null}
+                    onChange={() => setOrganismFilter(null)}
+                  />
+                  All
+                </label>
+                {availableOrganisms.map((key) => (
+                  <label key={key} style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      name="organismFilter"
+                      checked={organismFilter === key}
+                      onChange={() => setOrganismFilter(key)}
+                    />
+                    {organismTypeLabels[key] || key}
                   </label>
                 ))}
               </div>
@@ -557,6 +618,11 @@ export default function SignificantRowsPage() {
                     if (
                       diseaseFilter &&
                       !(t.disease ?? []).includes(diseaseFilter)
+                    )
+                      return false;
+                    if (
+                      organismFilter &&
+                      !(t.organismKey ?? []).includes(organismFilter)
                     )
                       return false;
                     return true;

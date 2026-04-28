@@ -26,3 +26,8 @@ diseaseTypes:
   scz: "Schizophrenia"
   bipolar: "Bipolar Disorder"
   ndd: "Neurodevelopmental Disorders"
+
+organismTypes:
+  human: "Human"
+  mouse: "Mouse"
+  zebrafish: "Zebrafish"

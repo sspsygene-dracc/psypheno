@@ -36,6 +36,7 @@ publication:
   journal: Cell Reports
   doi: 10.1016/j.celrep.2023.112243
   pmid: "36933215"
+  sspsygene_grants: []
 maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
@@ -74,6 +75,7 @@ tables:
       - whole-organism screening
       - autism genetics
     organism: Danio rerio
+    organism_key: zebrafish
     in_path: 1-s2.0-S2211124723002541-mmc5.txt
     split_column_map:
       - source_col: Mutant_Experiment_Sample
@@ -120,6 +122,7 @@ tables:
       beta: "The change in the outcome variable (phenotype/expression) associated with having the mutation"
       pvalue: "Nominal p-value"
     organism: Danio rerio (crispant mutants)
+    organism_key: zebrafish
     in_path: RestWake_VisStart_byGene.csv
     separator: ","
     split_column_map: []

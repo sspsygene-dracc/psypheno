@@ -205,6 +205,7 @@ def load_data_tables(
         disease TEXT,
         field_labels TEXT,
         organism TEXT,
+        organism_key TEXT,
         publication_first_author TEXT,
         publication_last_author TEXT,
         publication_author_count INTEGER,
@@ -213,6 +214,7 @@ def load_data_tables(
         publication_journal TEXT,
         publication_doi TEXT,
         publication_pmid TEXT,
+        publication_sspsygene_grants TEXT,
         pvalue_column TEXT,
         fdr_column TEXT,
         effect_column TEXT)"""
@@ -267,11 +269,11 @@ def load_data_tables(
             table_name, short_label, medium_label, long_label, description, gene_columns,
             gene_species, display_columns,
             scalar_columns, link_tables,
-            links, categories, source, assay, disease, field_labels, organism,
+            links, categories, source, assay, disease, field_labels, organism, organism_key,
             publication_first_author, publication_last_author, publication_author_count, publication_authors, publication_year,
-            publication_journal, publication_doi, publication_pmid,
+            publication_journal, publication_doi, publication_pmid, publication_sspsygene_grants,
             pvalue_column, fdr_column, effect_column)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -293,6 +295,7 @@ def load_data_tables(
                 ",".join(table_config.disease) if table_config.disease else None,
                 json.dumps(filtered_field_labels) if filtered_field_labels else None,
                 table_config.organism,
+                ",".join(table_config.organism_key) if table_config.organism_key else None,
                 table_config.publication_first_author,
                 table_config.publication_last_author,
                 table_config.publication_author_count,
@@ -303,6 +306,9 @@ def load_data_tables(
                 table_config.publication_journal,
                 table_config.publication_doi,
                 table_config.publication_pmid,
+                json.dumps(table_config.publication_sspsygene_grants)
+                if table_config.publication_sspsygene_grants
+                else None,
                 table_config.pvalue_column,
                 table_config.fdr_column,
                 table_config.effect_column,
@@ -401,6 +407,23 @@ def load_disease_types(conn: sqlite3.Connection, disease_types: dict[str, str]) 
     conn.commit()
 
 
+def load_organism_types(
+    conn: sqlite3.Connection, organism_types: dict[str, str]
+) -> None:
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE organism_types (
+        key TEXT PRIMARY KEY,
+        label TEXT)"""
+    )
+    for key, label in organism_types.items():
+        cur.execute(
+            "INSERT INTO organism_types (key, label) VALUES (?, ?)",
+            (key, label),
+        )
+    conn.commit()
+
+
 def load_llm_search_results(
     conn: sqlite3.Connection,
     data_dir: Path,
@@ -464,6 +487,7 @@ def load_db(
     table_configs: list[TableToProcessConfig],
     assay_types: dict[str, str] | None = None,
     disease_types: dict[str, str] | None = None,
+    organism_types: dict[str, str] | None = None,
     skip_missing: bool = False,
     hgnc_path: Path | None = None,
     no_index: bool = False,
@@ -497,6 +521,7 @@ def load_db(
         compute_ensembl_to_symbol(conn, no_index=no_index)
         load_assay_types(conn, assay_types or {})
         load_disease_types(conn, disease_types or {})
+        load_organism_types(conn, organism_types or {})
         if data_dir and not skip_gene_descriptions:
             copy_gene_descriptions(conn, data_dir, no_index=no_index)
         if not skip_meta_analysis:
