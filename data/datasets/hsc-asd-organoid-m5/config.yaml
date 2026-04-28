@@ -94,11 +94,11 @@ tables:
     assay: expression
     disease: ["asd", "ndd"]
     fieldLabels:
-      perturbation: "ASD-associated genetic mutation modeled in the organoid (CNV labels like 16p11del/dup, 22q11del; point-mutation lines for SHANK3, PCDH19, TS=Timothy syndrome; or IdiopathicASD)"
+      perturbation: "ASD-associated CNV or point-mutation modeled in the organoid"
       organoid_age_(days): "Organoid age in days post-differentiation. 'all timepoints' = meta-analysis combined across all timepoints."
       target_gene: "Gene whose expression was measured (HGNC symbol)"
       Ensembl_Gene_Id: "Ensembl gene ID"
-      logFC: "log2 fold change in expression: ASD-mutation organoids vs control organoids. Pseudobulk DE via the dream (limma) mixed linear model."
+      logFC: "log2 fold change: ASD-mutation organoids vs control organoids"
       Avg_Expr: "Average log2 counts-per-million expression across all samples (TMM-normalized)"
       t: "Moderated t-statistic from the dream (limma) DE contrast"
       P-Value: "Nominal p-value from the moderated t-test"
@@ -107,7 +107,7 @@ tables:
       chromosome_name: "Chromosome"
       band: "Cytogenetic band"
       gene_biotype: "Gene biotype"
-      region_genes: "Genes within the affected CNV region (for CNV-type perturbations) or the perturbed gene itself (for single-gene perturbations like SHANK3, PCDH19, Timothy syndrome/CACNA1C). Empty for IdiopathicASD."
+      region_genes: "Genes in the affected CNV region or the perturbed gene for single-gene mutations"
     links:
       - https://www.nature.com/articles/s41586-025-10047-5#data-availability
     categories:
