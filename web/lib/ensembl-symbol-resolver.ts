@@ -7,32 +7,36 @@ import type Database from "better-sqlite3";
  * IDs when a symbol is known; fall back to the raw ENSG when no mapping
  * exists.
  *
- * The cache is module-level so we only hit SQLite once per process. Tests or
- * load-db retries that swap the database in place will need to call
- * `clearEnsemblSymbolCache()` (or restart the process).
+ * Cache invalidation: the map is keyed by Database instance identity. When
+ * `getDb()` swaps the connection after the SQLite file is rebuilt (atomic
+ * rename → new inode → new instance), reference equality fails and we
+ * reload — no manual invalidation needed.
  */
 
 const ENSG_PATTERN_GLOBAL = /\b(ENS(?:MUS|DAR)?G\d+)(?:\.\d+)?\b/g;
 
+let cachedDb: Database.Database | null = null;
 let cachedMap: Map<string, string> | null = null;
 
 export function clearEnsemblSymbolCache(): void {
+  cachedDb = null;
   cachedMap = null;
 }
 
 export function getEnsemblSymbolMap(
   db: Database.Database,
 ): Map<string, string> {
-  // Only memoize *populated* maps. An empty result usually means we hit the
-  // DB before load-db built the table; caching it would freeze the API in
-  // pass-through mode for the lifetime of the process. Re-querying until we
-  // see a non-empty table is cheap (one SELECT) and self-heals after rebuild.
-  if (cachedMap && cachedMap.size > 0) return cachedMap;
+  // Identity check pins the cache to *this* DB connection. Also gate on a
+  // populated map: an empty result usually means we hit the DB before
+  // load-db built the table; caching that would freeze the API in
+  // pass-through mode until the next rebuild.
+  if (cachedDb === db && cachedMap && cachedMap.size > 0) return cachedMap;
   try {
     const rows = db
       .prepare("SELECT ensembl_id, symbol FROM ensembl_to_symbol")
       .all() as Array<{ ensembl_id: string; symbol: string }>;
     if (rows.length > 0) {
+      cachedDb = db;
       cachedMap = new Map(rows.map((r) => [r.ensembl_id, r.symbol]));
       return cachedMap;
     }

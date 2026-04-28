@@ -5,7 +5,6 @@ import DatasetToc from "@/components/DatasetToc";
 import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
 import InfoTooltip from "@/components/InfoTooltip";
 import GeneSignificanceSummary from "@/components/GeneSignificanceSummary";
-import CrossTableEffectBars from "@/components/CrossTableEffectBars";
 import EffectDistributionChart from "@/components/EffectDistributionChart";
 import { ROW_LIMIT } from "@/lib/gene-query";
 import { formatAuthors } from "@/lib/format-authors";
@@ -462,12 +461,6 @@ export default function GeneResults({
               assayTypeLabels={assayTypeLabels}
             />
           )}
-        {!isPairMode && (
-          <CrossTableEffectBars
-            data={data}
-            geneSymbol={geneDisplayName ?? undefined}
-          />
-        )}
         {data.length === 0 && !isPairMode && (
           <div style={{ opacity: 0.8 }}>
             No results in <strong>{direction}</strong> mode for{" "}
@@ -748,7 +741,7 @@ export default function GeneResults({
                         }}
                       >
                         <span>
-                          Effect-size distribution ({section.effectColumn})
+                          Volcano plot ({section.effectColumn} vs p-value)
                         </span>
                         <span style={{ fontSize: 12, color: "#6b7280" }}>
                           {expandedDistributions.has(section.tableName)

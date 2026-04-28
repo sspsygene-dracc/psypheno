@@ -15,11 +15,12 @@ const bodySchema = z.object({
   direction: z.enum(["target", "perturbed"]).optional(),
 });
 
-type StoredVolcano = { e: number; l: number; t: boolean };
+type StoredVolcano = { e: number; l: number; f: number | null; t: boolean };
 
 type GeneRow = {
   effect: number | null;
   pvalue: number | null;
+  fdr: number | null;
   rowKey: string;
 };
 
@@ -47,18 +48,17 @@ export default async function handler(
 
     const dist = db
       .prepare(
-        `SELECT effect_column, pvalue_column, n_total, n_nonnull,
-                bin_edges_json, bin_counts_json, volcano_points_json
+        `SELECT effect_column, pvalue_column, fdr_column, n_total, n_nonnull,
+                volcano_points_json
          FROM table_effect_distributions WHERE table_name = ?`,
       )
       .get(tableName) as
       | {
           effect_column: string;
           pvalue_column: string;
+          fdr_column: string | null;
           n_total: number;
           n_nonnull: number;
-          bin_edges_json: string;
-          bin_counts_json: string;
           volcano_points_json: string;
         }
       | undefined;
@@ -67,14 +67,13 @@ export default async function handler(
       return res.status(404).json({ error: "No distribution for this table" });
     }
 
-    const binEdges = JSON.parse(dist.bin_edges_json) as number[];
-    const binCounts = JSON.parse(dist.bin_counts_json) as number[];
     const volcanoStored = JSON.parse(
       dist.volcano_points_json,
     ) as StoredVolcano[];
     const volcanoPoints = volcanoStored.map((p) => ({
       effect: p.e,
       negLog10P: p.l,
+      fdr: p.f,
       topByP: p.t,
     }));
 
@@ -94,6 +93,9 @@ export default async function handler(
       const displayCols = parseDisplayColumns(tableMeta.display_columns);
       const effectCol = sanitizeIdentifier(dist.effect_column);
       const pvalueCol = sanitizeIdentifier(dist.pvalue_column.split(",")[0]);
+      const fdrCol = dist.fdr_column
+        ? sanitizeIdentifier(dist.fdr_column.split(",")[0])
+        : null;
       if (
         displayCols.includes(effectCol) &&
         displayCols.includes(pvalueCol)
@@ -108,16 +110,19 @@ export default async function handler(
           targetCentralGeneId,
         });
         if (query) {
-          const sql = `SELECT DISTINCT b.id, b.${effectCol} AS effect, b.${pvalueCol} AS pvalue ${query.fromAndWhere}`;
+          const fdrSelect = fdrCol ? `, b.${fdrCol} AS fdr` : `, NULL AS fdr`;
+          const sql = `SELECT DISTINCT b.id, b.${effectCol} AS effect, b.${pvalueCol} AS pvalue${fdrSelect} ${query.fromAndWhere}`;
           const rows = db.prepare(sql).all(...query.params) as Array<{
             id: number;
             effect: number | null;
             pvalue: number | null;
+            fdr: number | null;
           }>;
           for (const r of rows) {
             geneRows.push({
               effect: r.effect == null ? null : Number(r.effect),
               pvalue: r.pvalue == null ? null : Number(r.pvalue),
+              fdr: r.fdr == null ? null : Number(r.fdr),
               rowKey: String(r.id),
             });
           }
@@ -128,9 +133,9 @@ export default async function handler(
     return res.status(200).json({
       effectColumn: dist.effect_column,
       pvalueColumn: dist.pvalue_column,
+      fdrColumn: dist.fdr_column,
       nTotal: dist.n_total,
       nNonNull: dist.n_nonnull,
-      histogram: { binEdges, binCounts },
       volcanoPoints,
       geneRows,
     });

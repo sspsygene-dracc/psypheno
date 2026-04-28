@@ -1,14 +1,15 @@
-"""Pre-compute per-table effect-size distributions for the volcano/histogram UI.
+"""Pre-compute per-table volcano-plot scatter samples.
 
 For each ``data_tables`` row that declares both ``effect_column`` and
-``pvalue_column``, we materialize:
+``pvalue_column``, we materialize a downsampled volcano scatter (top-200
+by smallest p-value + random 800) — that's what the gene-search page renders
+in each per-table card. Each point carries the effect, the p-value, and the
+FDR (when the table has an FDR column), so the frontend can color by the
+FDR≤0.05 (falling back to p-value≤0.05) significance threshold.
 
-- a 40-bin histogram of effect sizes between p1 and p99 (with extreme values
-  clipped into the edge bins), and
-- a downsampled volcano scatter (top-200 by smallest p-value + random 800).
-
-Results are written to ``table_effect_distributions``; the API serves them as a
-single SELECT, with the queried gene's effect/p value joined in at request time.
+The histogram view that originally accompanied the volcano was removed per
+Max's 2026-04-28 feedback — the gene's marker on the volcano already answers
+"where does my gene fall in this study's distribution".
 """
 
 import json
@@ -21,7 +22,6 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-HIST_BINS = 40
 VOLCANO_TOP_BY_P = 200
 VOLCANO_RANDOM = 800
 VOLCANO_RANDOM_SEED = 42
@@ -29,17 +29,10 @@ PVALUE_FLOOR = 1e-300  # avoid -log10(0) = inf
 
 
 @dataclass
-class EffectHistogram:
-    """Histogram bins shared by the API + frontend."""
-
-    bin_edges: list[float]
-    bin_counts: list[int]
-
-
-@dataclass
 class VolcanoPoint:
     effect: float
     neg_log10_p: float
+    fdr: float | None
     top_by_p: bool
 
 
@@ -48,9 +41,9 @@ class TableDistribution:
     table_name: str
     effect_column: str
     pvalue_column: str
+    fdr_column: str | None
     n_total: int
     n_nonnull: int
-    histogram: EffectHistogram
     volcano_points: list[VolcanoPoint]
 
 
@@ -63,26 +56,27 @@ def compute_effect_distributions(
             table_name TEXT PRIMARY KEY,
             effect_column TEXT NOT NULL,
             pvalue_column TEXT NOT NULL,
+            fdr_column TEXT,
             n_total INTEGER NOT NULL,
             n_nonnull INTEGER NOT NULL,
-            bin_edges_json TEXT NOT NULL,
-            bin_counts_json TEXT NOT NULL,
             volcano_points_json TEXT NOT NULL
         )"""
     )
     rows = cur.execute(
-        """SELECT table_name, effect_column, pvalue_column
+        """SELECT table_name, effect_column, pvalue_column, fdr_column
            FROM data_tables
            WHERE effect_column IS NOT NULL AND pvalue_column IS NOT NULL"""
     ).fetchall()
     logger.info("Pre-computing effect-size distributions for %d table(s)", len(rows))
-    for table_name, effect_col, pval_col in rows:
+    for table_name, effect_col, pval_col, fdr_col in rows:
         pval_col_first = pval_col.split(",")[0]
+        fdr_col_first = (fdr_col or "").split(",")[0] or None
         dist = _compute_for_table(
             conn=conn,
             table_name=table_name,
             effect_column=effect_col,
             pvalue_column=pval_col_first,
+            fdr_column=fdr_col_first,
         )
         if dist is None:
             logger.warning(
@@ -91,22 +85,22 @@ def compute_effect_distributions(
             continue
         cur.execute(
             """INSERT INTO table_effect_distributions
-               (table_name, effect_column, pvalue_column, n_total, n_nonnull,
-                bin_edges_json, bin_counts_json, volcano_points_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               (table_name, effect_column, pvalue_column, fdr_column,
+                n_total, n_nonnull, volcano_points_json)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 dist.table_name,
                 dist.effect_column,
                 dist.pvalue_column,
+                dist.fdr_column,
                 dist.n_total,
                 dist.n_nonnull,
-                json.dumps(dist.histogram.bin_edges),
-                json.dumps(dist.histogram.bin_counts),
                 json.dumps(
                     [
                         {
                             "e": p.effect,
                             "l": p.neg_log10_p,
+                            "f": p.fdr,
                             "t": p.top_by_p,
                         }
                         for p in dist.volcano_points
@@ -123,15 +117,18 @@ def _compute_for_table(
     table_name: str,
     effect_column: str,
     pvalue_column: str,
+    fdr_column: str | None,
 ) -> TableDistribution | None:
-    # Column names are stored lowercased & SQL-sanitized in data_tables, and the
-    # underlying per-dataset tables have the same convention, so a quoted
-    # identifier lookup is safe. SQLite quotes are double-quote.
-    sql = (
-        f'SELECT "{effect_column}" AS effect, "{pvalue_column}" AS pvalue '
-        f'FROM "{table_name}"'
-    )
+    select_cols = [
+        f'"{effect_column}" AS effect',
+        f'"{pvalue_column}" AS pvalue',
+    ]
+    if fdr_column:
+        select_cols.append(f'"{fdr_column}" AS fdr')
+    sql = f'SELECT {", ".join(select_cols)} FROM "{table_name}"'
     df = pd.read_sql_query(sql, conn)
+    if "fdr" not in df.columns:
+        df["fdr"] = pd.NA
     n_total = len(df)
     df_clean = df.dropna(subset=["effect"]).copy()
     df_clean["effect"] = pd.to_numeric(df_clean["effect"], errors="coerce")
@@ -139,45 +136,19 @@ def _compute_for_table(
     n_nonnull = len(df_clean)
     if n_nonnull == 0:
         return None
-    histogram = _compute_histogram(df_clean["effect"].to_numpy(dtype=float))
     df_with_pval = df_clean.copy()
     df_with_pval["pvalue"] = pd.to_numeric(df_with_pval["pvalue"], errors="coerce")
     df_with_pval = df_with_pval.dropna(subset=["pvalue"])
+    df_with_pval["fdr"] = pd.to_numeric(df_with_pval["fdr"], errors="coerce")
     volcano = _compute_volcano(df_with_pval)
     return TableDistribution(
         table_name=table_name,
         effect_column=effect_column,
         pvalue_column=pvalue_column,
+        fdr_column=fdr_column,
         n_total=n_total,
         n_nonnull=n_nonnull,
-        histogram=histogram,
         volcano_points=volcano,
-    )
-
-
-def _compute_histogram(
-    effects: np.ndarray[float, np.dtype[np.float64]],
-) -> EffectHistogram:
-    if len(effects) == 0:
-        return EffectHistogram(bin_edges=[-0.5, 0.5], bin_counts=[0])
-    p_low, p_high = np.percentile(effects, [1, 99])
-    if p_low == p_high:
-        # Distribution dominated by a single value (e.g. all-zero column);
-        # fall back to min/max so we still produce a meaningful range.
-        p_low_v, p_high_v = float(effects.min()), float(effects.max())
-        if p_low_v == p_high_v:
-            return EffectHistogram(
-                bin_edges=[p_low_v - 0.5, p_low_v + 0.5],
-                bin_counts=[int(len(effects))],
-            )
-        p_low, p_high = p_low_v, p_high_v
-    clipped = np.clip(effects, p_low, p_high)
-    counts, edges = np.histogram(
-        clipped, bins=HIST_BINS, range=(float(p_low), float(p_high))
-    )
-    return EffectHistogram(
-        bin_edges=[float(e) for e in edges],
-        bin_counts=[int(c) for c in counts],
     )
 
 
@@ -195,20 +166,20 @@ def _compute_volcano(df: pd.DataFrame) -> list[VolcanoPoint]:
     else:
         rest = rest_pool.iloc[:0]
     out: list[VolcanoPoint] = []
-    for _, row in top.iterrows():
-        out.append(
-            VolcanoPoint(
-                effect=float(row["effect"]),
-                neg_log10_p=float(row["neg_log10p"]),
-                top_by_p=True,
+    for chunk, top_flag in ((top, True), (rest, False)):
+        for _, row in chunk.iterrows():
+            fdr_raw = row.get("fdr")
+            fdr_val = (
+                None
+                if fdr_raw is None or pd.isna(fdr_raw)
+                else float(fdr_raw)
             )
-        )
-    for _, row in rest.iterrows():
-        out.append(
-            VolcanoPoint(
-                effect=float(row["effect"]),
-                neg_log10_p=float(row["neg_log10p"]),
-                top_by_p=False,
+            out.append(
+                VolcanoPoint(
+                    effect=float(row["effect"]),
+                    neg_log10_p=float(row["neg_log10p"]),
+                    fdr=fdr_val,
+                    top_by_p=top_flag,
+                )
             )
-        )
     return out

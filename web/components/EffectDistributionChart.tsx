@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   ReferenceLine,
   ResponsiveContainer,
@@ -16,30 +14,50 @@ import {
 type GeneRow = {
   effect: number | null;
   pvalue: number | null;
+  fdr: number | null;
   rowKey: string;
+};
+
+type VolcanoPoint = {
+  effect: number;
+  negLog10P: number;
+  fdr: number | null;
+  topByP: boolean;
 };
 
 type DistributionResponse = {
   effectColumn: string;
   pvalueColumn: string;
+  fdrColumn: string | null;
   nTotal: number;
   nNonNull: number;
-  histogram: { binEdges: number[]; binCounts: number[] };
-  volcanoPoints: Array<{ effect: number; negLog10P: number; topByP: boolean }>;
+  volcanoPoints: VolcanoPoint[];
   geneRows: GeneRow[];
 };
 
-const POSITIVE = "#2563eb";
-const NEGATIVE = "#ef4444";
-const MARKER = "#f59e0b";
-const BACKGROUND_DOT = "#cbd5e1";
+const SIG_THRESHOLD = 0.05;
 
-function fmt(n: number, digits = 2): string {
-  if (!Number.isFinite(n)) return "—";
+const COLOR_UP = "#dc2626"; // red
+const COLOR_DOWN = "#2563eb"; // blue
+const COLOR_NS = "#cbd5e1"; // light grey
+const COLOR_GENE = "#f59e0b"; // amber for queried gene
+const COLOR_GENE_OUTLINE = "#111827";
+
+type Category = "up" | "down" | "ns";
+
+function classify(effect: number, fdr: number | null, p: number | null): Category {
+  // Per Max (2026-04-28): use FDR ≤ 0.05; fall back to p-value when no FDR.
+  const sig = fdr != null ? fdr <= SIG_THRESHOLD : p != null && p <= SIG_THRESHOLD;
+  if (!sig) return "ns";
+  return effect > 0 ? "up" : "down";
+}
+
+function fmt(n: number | null | undefined, digits = 2): string {
+  if (n == null || !Number.isFinite(n)) return "—";
   if (Math.abs(n) >= 1000 || (Math.abs(n) > 0 && Math.abs(n) < 0.01)) {
     return n.toExponential(digits);
   }
-  return n.toFixed(digits);
+  return n.toPrecision(digits + 1);
 }
 
 export default function EffectDistributionChart({
@@ -60,7 +78,6 @@ export default function EffectDistributionChart({
   const [data, setData] = useState<DistributionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"histogram" | "volcano">("histogram");
 
   useEffect(() => {
     let cancelled = false;
@@ -104,208 +121,236 @@ export default function EffectDistributionChart({
     direction,
   ]);
 
+  // Hooks must run unconditionally; compute on whatever data we have, even
+  // when null, and gate the render below.
+  const seriesByCategory = useMemo(() => {
+    const byCat: Record<Category, VolcanoPoint[]> = { up: [], down: [], ns: [] };
+    if (!data) return byCat;
+    for (const p of data.volcanoPoints) {
+      const cat = classify(p.effect, p.fdr, null);
+      byCat[cat].push(p);
+    }
+    return byCat;
+  }, [data]);
+
+  const geneScatter = useMemo(() => {
+    if (!data) return [];
+    return data.geneRows
+      .filter(
+        (r) =>
+          r.effect != null &&
+          r.pvalue != null &&
+          Number.isFinite(r.effect) &&
+          Number.isFinite(r.pvalue),
+      )
+      .map((r) => ({
+        effect: r.effect as number,
+        negLog10P: -Math.log10(Math.max(r.pvalue as number, 1e-300)),
+        pvalue: r.pvalue,
+        fdr: r.fdr,
+        rowKey: r.rowKey,
+      }));
+  }, [data]);
+
   if (loading) {
     return (
       <div style={{ padding: 12, fontSize: 13, color: "#6b7280" }}>
-        Loading distribution…
+        Loading volcano…
       </div>
     );
   }
   if (error || !data) {
     return (
       <div style={{ padding: 12, fontSize: 13, color: "#dc2626" }}>
-        Could not load distribution{error ? `: ${error}` : "."}
+        Could not load volcano{error ? `: ${error}` : "."}
       </div>
     );
   }
 
-  const histBars = data.histogram.binCounts.map((count, i) => {
-    const lo = data.histogram.binEdges[i];
-    const hi = data.histogram.binEdges[i + 1];
-    const mid = (lo + hi) / 2;
-    return {
-      mid,
-      count,
-      label: `${fmt(lo)} – ${fmt(hi)}`,
-      sign: mid >= 0 ? "pos" : "neg",
-    };
-  });
+  const sigLabel = data.fdrColumn
+    ? `${data.fdrColumn} ≤ ${SIG_THRESHOLD}`
+    : `${data.pvalueColumn} ≤ ${SIG_THRESHOLD}`;
 
-  const geneEffects = data.geneRows
-    .map((r) => r.effect)
-    .filter((v): v is number => v != null && Number.isFinite(v));
-  const geneScatter = data.geneRows
-    .filter(
-      (r) =>
-        r.effect != null &&
-        r.pvalue != null &&
-        Number.isFinite(r.effect) &&
-        Number.isFinite(r.pvalue),
-    )
-    .map((r) => ({
-      effect: r.effect as number,
-      negLog10P: -Math.log10(Math.max(r.pvalue as number, 1e-300)),
-    }));
-
-  const tabBtn = (
-    label: string,
-    key: "histogram" | "volcano",
-    active: boolean,
-  ) => (
-    <button
-      key={key}
-      type="button"
-      onClick={() => setTab(key)}
-      style={{
-        padding: "4px 12px",
-        fontSize: 12,
-        fontWeight: 600,
-        background: active ? "#2563eb" : "#fff",
-        color: active ? "#fff" : "#1e40af",
-        border: "1px solid #2563eb",
-        cursor: "pointer",
-      }}
-    >
-      {label}
-    </button>
-  );
+  const upCount = seriesByCategory.up.length;
+  const downCount = seriesByCategory.down.length;
+  const nsCount = seriesByCategory.ns.length;
 
   return (
     <div style={{ padding: "8px 0" }}>
       <div
         style={{
           display: "flex",
-          gap: 0,
-          marginBottom: 8,
-          alignItems: "center",
           justifyContent: "space-between",
+          alignItems: "baseline",
           flexWrap: "wrap",
+          gap: 8,
+          marginBottom: 4,
+          fontSize: 12,
+          color: "#6b7280",
         }}
       >
-        <div style={{ display: "flex" }}>
-          {tabBtn("Histogram", "histogram", tab === "histogram")}
-          {tabBtn("Volcano", "volcano", tab === "volcano")}
+        <div>
+          {data.effectColumn} vs −log<sub>10</sub>({data.pvalueColumn}) · n ={" "}
+          {data.nNonNull.toLocaleString()} · sig: {sigLabel}
         </div>
-        <div style={{ fontSize: 12, color: "#6b7280" }}>
-          {data.effectColumn} vs {data.pvalueColumn} · n = {data.nNonNull}
-          {geneSymbol && geneEffects.length > 0
-            ? ` · ${geneSymbol}: ${geneEffects.map((v) => fmt(v)).join(", ")}`
-            : ""}
+        <div style={{ display: "flex", gap: 12 }}>
+          <LegendDot color={COLOR_DOWN} label={`Down (${downCount})`} />
+          <LegendDot color={COLOR_NS} label={`Not sig. (${nsCount})`} />
+          <LegendDot color={COLOR_UP} label={`Up (${upCount})`} />
+          {geneScatter.length > 0 && (
+            <LegendDot
+              color={COLOR_GENE}
+              outline={COLOR_GENE_OUTLINE}
+              label={`${geneSymbol ?? "gene"} (${geneScatter.length})`}
+            />
+          )}
         </div>
       </div>
 
-      {tab === "histogram" && (
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart
-            data={histBars}
-            margin={{ top: 6, right: 12, bottom: 24, left: 0 }}
-          >
-            <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
-            <XAxis
-              dataKey="mid"
-              type="number"
-              domain={[
-                data.histogram.binEdges[0],
-                data.histogram.binEdges[data.histogram.binEdges.length - 1],
-              ]}
-              tick={{ fontSize: 11 }}
-              label={{
-                value: data.effectColumn,
-                position: "insideBottom",
-                offset: -8,
-                fontSize: 12,
-              }}
-            />
-            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-            <Tooltip
-              formatter={(v) => [String(v), "count"]}
-              labelFormatter={(_, payload) => {
-                const p = payload?.[0]?.payload as
-                  | { label: string }
-                  | undefined;
-                return p?.label ?? "";
-              }}
-            />
-            <Bar dataKey="count" isAnimationActive={false}>
-              {histBars.map((b, i) => (
-                <Bar
-                  key={`b-${i}`}
-                  dataKey="count"
-                  fill={b.sign === "pos" ? POSITIVE : NEGATIVE}
-                />
-              ))}
-            </Bar>
-            {geneEffects.map((e, i) => (
-              <ReferenceLine
-                key={`marker-${i}`}
-                x={e}
-                stroke={MARKER}
-                strokeWidth={2}
-                label={{
-                  value: geneSymbol ?? "gene",
-                  position: "top",
-                  fontSize: 11,
-                  fill: MARKER,
-                }}
-              />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
-      )}
-
-      {tab === "volcano" && (
-        <ResponsiveContainer width="100%" height={260}>
-          <ScatterChart margin={{ top: 6, right: 12, bottom: 24, left: 0 }}>
-            <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
-            <XAxis
-              type="number"
-              dataKey="effect"
-              tick={{ fontSize: 11 }}
-              label={{
-                value: data.effectColumn,
-                position: "insideBottom",
-                offset: -8,
-                fontSize: 12,
-              }}
-            />
-            <YAxis
-              type="number"
-              dataKey="negLog10P"
-              tick={{ fontSize: 11 }}
-              label={{
-                value: `-log10(${data.pvalueColumn})`,
-                angle: -90,
-                position: "insideLeft",
-                fontSize: 12,
-              }}
-            />
-            <ZAxis range={[24, 24]} />
-            <Tooltip
-              formatter={(v, name) => [
-                typeof v === "number" ? fmt(v, 3) : String(v),
-                String(name),
-              ]}
-              cursor={{ strokeDasharray: "3 3" }}
-            />
+      <ResponsiveContainer width="100%" height={280}>
+        <ScatterChart margin={{ top: 6, right: 16, bottom: 28, left: 8 }}>
+          <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
+          <XAxis
+            type="number"
+            dataKey="effect"
+            tick={{ fontSize: 11 }}
+            label={{
+              value: data.effectColumn,
+              position: "insideBottom",
+              offset: -10,
+              fontSize: 12,
+            }}
+          />
+          <YAxis
+            type="number"
+            dataKey="negLog10P"
+            tick={{ fontSize: 11 }}
+            label={{
+              value: `-log10(${data.pvalueColumn})`,
+              angle: -90,
+              position: "insideLeft",
+              fontSize: 12,
+            }}
+          />
+          <ZAxis range={[20, 20]} />
+          <ReferenceLine x={0} stroke="#9ca3af" strokeDasharray="4 4" />
+          <Tooltip
+            content={(props) => {
+              const payload = (
+                props as unknown as {
+                  payload?: Array<{ payload?: Record<string, unknown> }>;
+                }
+              ).payload;
+              const p = payload?.[0]?.payload as
+                | (VolcanoPoint & {
+                    pvalue?: number | null;
+                    rowKey?: string;
+                  })
+                | undefined;
+              if (!p) return null;
+              const isGene = "rowKey" in p && p.rowKey != null;
+              return (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #d1d5db",
+                    borderRadius: 6,
+                    padding: "8px 10px",
+                    fontSize: 12,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                  }}
+                >
+                  {isGene && (
+                    <div
+                      style={{ fontWeight: 600, marginBottom: 4 }}
+                    >
+                      {geneSymbol ?? "queried gene"}
+                    </div>
+                  )}
+                  <div>
+                    {data.effectColumn}:{" "}
+                    <strong>{fmt(p.effect, 3)}</strong>
+                  </div>
+                  <div>
+                    {data.pvalueColumn}:{" "}
+                    <strong>
+                      {fmt(
+                        (p as { pvalue?: number | null }).pvalue ??
+                          (p.negLog10P != null
+                            ? Math.pow(10, -p.negLog10P)
+                            : null),
+                        2,
+                      )}
+                    </strong>
+                  </div>
+                  {data.fdrColumn && (
+                    <div>
+                      {data.fdrColumn}: <strong>{fmt(p.fdr, 2)}</strong>
+                    </div>
+                  )}
+                </div>
+              );
+            }}
+            cursor={{ strokeDasharray: "3 3" }}
+          />
+          <Scatter
+            name="ns"
+            data={seriesByCategory.ns}
+            fill={COLOR_NS}
+            isAnimationActive={false}
+          />
+          <Scatter
+            name="down"
+            data={seriesByCategory.down}
+            fill={COLOR_DOWN}
+            isAnimationActive={false}
+          />
+          <Scatter
+            name="up"
+            data={seriesByCategory.up}
+            fill={COLOR_UP}
+            isAnimationActive={false}
+          />
+          {geneScatter.length > 0 && (
             <Scatter
-              name="background"
-              data={data.volcanoPoints}
-              fill={BACKGROUND_DOT}
-              fillOpacity={0.6}
+              name="gene"
+              data={geneScatter}
+              fill={COLOR_GENE}
+              stroke={COLOR_GENE_OUTLINE}
+              strokeWidth={1.5}
               isAnimationActive={false}
+              shape="circle"
+              legendType="circle"
             />
-            {geneScatter.length > 0 && (
-              <Scatter
-                name={geneSymbol ?? "gene"}
-                data={geneScatter}
-                fill={MARKER}
-                shape="cross"
-                isAnimationActive={false}
-              />
-            )}
-          </ScatterChart>
-        </ResponsiveContainer>
-      )}
+          )}
+        </ScatterChart>
+      </ResponsiveContainer>
     </div>
+  );
+}
+
+function LegendDot({
+  color,
+  outline,
+  label,
+}: {
+  color: string;
+  outline?: string;
+  label: string;
+}) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <span
+        style={{
+          display: "inline-block",
+          width: 10,
+          height: 10,
+          background: color,
+          border: outline ? `1.5px solid ${outline}` : "none",
+          borderRadius: 9999,
+        }}
+      />
+      {label}
+    </span>
   );
 }
