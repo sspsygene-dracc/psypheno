@@ -52,6 +52,7 @@ tables:
         is_target: false
     pvalue_column: pvalue
     fdr_column: padj
+    effect_column: log2FoldChange
   - table: psychscreen_asd_deg
     changelog:
       - date: "2025-10-14"
@@ -85,6 +86,7 @@ tables:
         is_target: false
     pvalue_column: pvalue
     fdr_column: padj
+    effect_column: log2FoldChange
   - table: psychscreen_bipolar_deg
     changelog:
       - date: "2025-10-14"
@@ -118,6 +120,7 @@ tables:
         is_target: false
     pvalue_column: pvalue
     fdr_column: padj
+    effect_column: log2FoldChange
   - table: psychscreen_schizophrenia_deg
     changelog:
       - date: "2025-10-14"
@@ -151,3 +154,4 @@ tables:
         is_target: false
     pvalue_column: pvalue
     fdr_column: padj
+    effect_column: log2FoldChange
