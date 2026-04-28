@@ -1,5 +1,6 @@
 import { TableResult } from "@/lib/table_result";
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
+import Link from "next/link";
 import DataTable, { type SortMode } from "@/components/DataTable";
 import DatasetToc from "@/components/DatasetToc";
 import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
@@ -565,15 +566,39 @@ export default function GeneResults({
                       padding: "12px 14px",
                       borderBottom: "1px solid #e5e7eb",
                       fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
                     }}
                   >
-                    {formatTableName(section)}
-                    {section.source && (
-                      <InfoTooltip
-                        text={`Source: ${section.source}`}
-                        size={14}
-                      />
-                    )}
+                    <div style={{ minWidth: 0 }}>
+                      {formatTableName(section)}
+                      {section.source && (
+                        <InfoTooltip
+                          text={`Source: ${section.source}`}
+                          size={14}
+                        />
+                      )}
+                    </div>
+                    <Link
+                      href={`/all-datasets?open=${encodeURIComponent(
+                        section.shortLabel
+                          ? section.shortLabel.replace(/\s+/g, "_")
+                          : section.tableName,
+                      )}`}
+                      style={{
+                        flexShrink: 0,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: "#2563eb",
+                        textDecoration: "none",
+                        whiteSpace: "nowrap",
+                      }}
+                      title="Open the full data table for this dataset"
+                    >
+                      View full data table →
+                    </Link>
                   </div>
                   {section.description && (
                     <div

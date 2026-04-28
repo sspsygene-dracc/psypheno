@@ -102,25 +102,38 @@ export default function AllDatasets() {
     }
   }, [loading]);
 
-  // Hydrate selected dataset from ?select= URL param once datasets are loaded
+  // Hydrate selected dataset from ?select= or ?open= URL param once datasets
+  // are loaded. ?select= scrolls to the dataset in the list (used by
+  // publications/most-significant). ?open= additionally auto-selects it so
+  // its full data table loads (used when linking from gene search results).
   useEffect(() => {
     if (!router.isReady || hydratedFromQuery.current || loading) return;
     hydratedFromQuery.current = true;
+    const openParam = router.query.open;
     const selectParam = router.query.select;
-    if (typeof selectParam !== "string") return;
-    const normalized = normalizeSlug(selectParam);
+    const param =
+      typeof openParam === "string"
+        ? openParam
+        : typeof selectParam === "string"
+          ? selectParam
+          : null;
+    if (param === null) return;
+    const normalized = normalizeSlug(param);
     const match = datasets.find(
       (d) =>
         (d.short_label && normalizeSlug(d.short_label) === normalized) ||
         normalizeSlug(d.table_name) === normalized
     );
     if (match) {
-      // Just scroll to the dataset in the list — don't auto-select/load data
-      requestAnimationFrame(() => {
-        document
-          .getElementById(`ds-${match.table_name}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
+      if (typeof openParam === "string") {
+        setSelectedDataset(match.table_name);
+      } else {
+        requestAnimationFrame(() => {
+          document
+            .getElementById(`ds-${match.table_name}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
     }
   }, [router.isReady, loading, datasets]);
 
