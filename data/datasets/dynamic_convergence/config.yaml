@@ -33,10 +33,10 @@ publication:
     - Laura M Huckins
     - Ellen J Hoffman
     - Kristen Brennand
-  year: 2025
-  journal: bioRxiv
-  doi: 10.1101/2024.08.23.609190
-  pmid: "39229156"
+  year: 2026
+  journal: Nat Neurosci.
+  doi: 10.1038/s41593-026-02247-7
+  pmid: "42032432"
   sspsygene_grants: ["RM1MH132648"]
 maintainers:
   - name: Johannes Birgmeier
@@ -70,6 +70,7 @@ tables:
       hetpval: "Heterogeneity p-value (Cochran's Q test)"
     links:
       - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4.supplementary-material
+      - https://www.nature.com/articles/s41593-026-02247-7#Sec47
     categories:
       - meta-analysis
       - CRISPR perturbation
@@ -117,6 +118,7 @@ tables:
       Mutant behavioral fingerprint across startle-OFF, startle-ON, and sleep-wake parameters.
     links:
       - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4.supplementary-material
+      - https://www.nature.com/articles/s41593-026-02247-7#Sec47
     categories:
       - mutant zebrafish
       - behavioral fingerprints
