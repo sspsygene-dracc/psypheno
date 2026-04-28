@@ -586,6 +586,18 @@ def _collect_pvalues_for_tables(
     return collected
 
 
+def _collect_pvalues_for_tables_from_path(
+    db_path: Path,
+    tables_with_pvalues: list[tuple[str, str, str]],
+    label: str = "",
+    direction: str | None = None,
+) -> CollectedPvalues:
+    with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
+        return _collect_pvalues_for_tables(
+            conn, tables_with_pvalues, label, direction=direction,
+        )
+
+
 def _write_combined_results(
     conn: sqlite3.Connection,
     output_table: str,
@@ -661,6 +673,7 @@ def _write_combined_results(
 
 def compute_combined_pvalues(
     conn: sqlite3.Connection,
+    db_path: Path | None = None,
     hgnc_path: Path | None = None,
     no_index: bool = False,
     nimh_csv_path: Path | None = None,
@@ -807,39 +820,69 @@ def compute_combined_pvalues(
             min_tables=2,
         ))
 
-    # Phase 1: Collect p-values from DB for all groups (sequential — fast)
+    # Phase 1: Collect p-values from DB for all groups in parallel.
+    # SQLite WAL mode allows concurrent readers; each worker opens its own
+    # read-only connection.
     click.echo(f"\n  Collecting p-values for {len(groups)} group(s)...")
-    collected: list[CollectedGroup] = []
 
-    for group in groups:
-        # Deduplicate tables
+    collect_jobs: list[tuple[int, ComputeGroup, list[tuple[str, str, str]]]] = []
+    collected_pvals_by_idx: dict[int, CollectedPvalues] = {}
+    for i, group in enumerate(groups):
         unique_tables = list({t[0]: t for t in group.tables}.values())
         if len(unique_tables) < group.min_tables:
             click.echo(
                 f"  {group.label}Skipping — only {len(unique_tables)} source table(s)"
             )
-            collected.append(CollectedGroup(
-                pvalues=CollectedPvalues(),
-                out_table=group.out_table,
-                label=group.label,
-                assay_filter=group.assay_filter,
-                disease_filter=group.disease_filter,
-                use_gene_flags=group.use_gene_flags,
-            ))
+            collected_pvals_by_idx[i] = CollectedPvalues()
             continue
+        click.echo(f"  {group.label}Queued — {len(unique_tables)} tables")
+        collect_jobs.append((i, group, unique_tables))
 
-        click.echo(f"  {group.label}Collecting from {len(unique_tables)} tables...")
-        pvals = _collect_pvalues_for_tables(
-            conn, unique_tables, group.label, direction=group.direction,
+    if collect_jobs and db_path is not None:
+        max_collect_workers = min(len(collect_jobs), os.cpu_count() or 4)
+        click.echo(
+            f"  Running {len(collect_jobs)} collection job(s) "
+            f"with {max_collect_workers} parallel workers..."
         )
-        collected.append(CollectedGroup(
-            pvalues=pvals,
+        with ThreadPoolExecutor(max_workers=max_collect_workers) as executor:
+            future_to_job: dict[Any, tuple[int, str]] = {}
+            for idx, grp, unique_tables in collect_jobs:
+                future = executor.submit(
+                    _collect_pvalues_for_tables_from_path,
+                    db_path,
+                    unique_tables,
+                    grp.label,
+                    grp.direction,
+                )
+                future_to_job[future] = (idx, grp.label)
+
+            for future in as_completed(future_to_job):
+                idx, label = future_to_job[future]
+                try:
+                    collected_pvals_by_idx[idx] = future.result()
+                except Exception as e:
+                    click.echo(click.style(
+                        f"  {label}Collection failed: {e}", fg="red",
+                    ))
+                    collected_pvals_by_idx[idx] = CollectedPvalues()
+    else:
+        # Sequential fallback (e.g. tests using :memory: SQLite without a path).
+        for idx, grp, unique_tables in collect_jobs:
+            collected_pvals_by_idx[idx] = _collect_pvalues_for_tables(
+                conn, unique_tables, grp.label, direction=grp.direction,
+            )
+
+    collected: list[CollectedGroup] = [
+        CollectedGroup(
+            pvalues=collected_pvals_by_idx[i],
             out_table=group.out_table,
             label=group.label,
             assay_filter=group.assay_filter,
             disease_filter=group.disease_filter,
             use_gene_flags=group.use_gene_flags,
-        ))
+        )
+        for i, group in enumerate(groups)
+    ]
 
     # Phase 2: Run R meta-analyses in parallel (slow — this is the bottleneck)
     r_jobs: list[RJobInput] = [

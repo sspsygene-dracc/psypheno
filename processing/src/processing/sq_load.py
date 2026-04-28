@@ -503,6 +503,7 @@ def load_db(
         if not skip_meta_analysis:
             compute_combined_pvalues(
                 conn,
+                db_path=staging,
                 hgnc_path=hgnc_path,
                 no_index=no_index,
                 nimh_csv_path=nimh_csv_path,
