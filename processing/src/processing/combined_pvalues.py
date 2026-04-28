@@ -586,16 +586,18 @@ def _collect_pvalues_for_tables(
     return collected
 
 
-def _collect_pvalues_for_tables_from_path(
-    db_path: Path,
-    tables_with_pvalues: list[tuple[str, str, str]],
-    label: str = "",
-    direction: str | None = None,
+def _filter_collected(
+    master: CollectedPvalues, table_names: set[str]
 ) -> CollectedPvalues:
-    with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
-        return _collect_pvalues_for_tables(
-            conn, tables_with_pvalues, label, direction=direction,
-        )
+    """Restrict master to per_table entries whose table_name is in table_names,
+    rebuilding all_pvalues from the surviving per_table entries."""
+    out = CollectedPvalues()
+    for gene_id, tbl_dict in master.per_table.items():
+        for tbl, pvals in tbl_dict.items():
+            if tbl in table_names:
+                out.per_table[gene_id][tbl] = list(pvals)
+                out.all_pvalues[gene_id].extend(pvals)
+    return out
 
 
 def _write_combined_results(
@@ -673,7 +675,6 @@ def _write_combined_results(
 
 def compute_combined_pvalues(
     conn: sqlite3.Connection,
-    db_path: Path | None = None,
     hgnc_path: Path | None = None,
     no_index: bool = False,
     nimh_csv_path: Path | None = None,
@@ -820,12 +821,22 @@ def compute_combined_pvalues(
             min_tables=2,
         ))
 
-    # Phase 1: Collect p-values from DB for all groups in parallel.
-    # SQLite WAL mode allows concurrent readers; each worker opens its own
-    # read-only connection.
-    click.echo(f"\n  Collecting p-values for {len(groups)} group(s)...")
+    # Phase 1: Collect p-values once per direction, then derive each group's
+    # CollectedPvalues by filtering. Per-assay/disease/combo groups all use
+    # direction=None and are subsets of tables_3col, so the direction=None
+    # master IS the [global] group's pvalues; the [target] / [perturbed]
+    # groups consume their direction's master directly.
+    click.echo("\n  Collecting p-values (3 master scans by direction)...")
+    master_none = _collect_pvalues_for_tables(
+        conn, tables_3col, "[direction=None] ", direction=None,
+    )
+    master_target = _collect_pvalues_for_tables(
+        conn, tables_3col, "[direction=target] ", direction="target",
+    )
+    master_perturbed = _collect_pvalues_for_tables(
+        conn, tables_3col, "[direction=perturbed] ", direction="perturbed",
+    )
 
-    collect_jobs: list[tuple[int, ComputeGroup, list[tuple[str, str, str]]]] = []
     collected_pvals_by_idx: dict[int, CollectedPvalues] = {}
     for i, group in enumerate(groups):
         unique_tables = list({t[0]: t for t in group.tables}.values())
@@ -835,41 +846,19 @@ def compute_combined_pvalues(
             )
             collected_pvals_by_idx[i] = CollectedPvalues()
             continue
-        click.echo(f"  {group.label}Queued — {len(unique_tables)} tables")
-        collect_jobs.append((i, group, unique_tables))
 
-    if collect_jobs and db_path is not None:
-        max_collect_workers = min(len(collect_jobs), os.cpu_count() or 4)
-        click.echo(
-            f"  Running {len(collect_jobs)} collection job(s) "
-            f"with {max_collect_workers} parallel workers..."
-        )
-        with ThreadPoolExecutor(max_workers=max_collect_workers) as executor:
-            future_to_job: dict[Any, tuple[int, str]] = {}
-            for idx, grp, unique_tables in collect_jobs:
-                future = executor.submit(
-                    _collect_pvalues_for_tables_from_path,
-                    db_path,
-                    unique_tables,
-                    grp.label,
-                    grp.direction,
-                )
-                future_to_job[future] = (idx, grp.label)
-
-            for future in as_completed(future_to_job):
-                idx, label = future_to_job[future]
-                try:
-                    collected_pvals_by_idx[idx] = future.result()
-                except Exception as e:
-                    click.echo(click.style(
-                        f"  {label}Collection failed: {e}", fg="red",
-                    ))
-                    collected_pvals_by_idx[idx] = CollectedPvalues()
-    else:
-        # Sequential fallback (e.g. tests using :memory: SQLite without a path).
-        for idx, grp, unique_tables in collect_jobs:
-            collected_pvals_by_idx[idx] = _collect_pvalues_for_tables(
-                conn, unique_tables, grp.label, direction=grp.direction,
+        if group.direction == "target":
+            collected_pvals_by_idx[i] = master_target
+        elif group.direction == "perturbed":
+            collected_pvals_by_idx[i] = master_perturbed
+        elif len(unique_tables) == len(tables_3col):
+            collected_pvals_by_idx[i] = master_none
+        else:
+            table_set = {t[0] for t in unique_tables}
+            collected_pvals_by_idx[i] = _filter_collected(master_none, table_set)
+            click.echo(
+                f"  {group.label}Derived from direction=None master "
+                f"({len(table_set)} tables)"
             )
 
     collected: list[CollectedGroup] = [
