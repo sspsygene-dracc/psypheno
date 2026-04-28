@@ -110,7 +110,7 @@ tables:
         message: "Initial data load"
     shortLabel: mutant_behavior_fingerprints
     mediumLabel: Garcia 2025 - Mutant behavior fingerprints
-    source: "Supplemental Data 3 download media-5.xlsx"
+    source: "Supplemental Data 3 download media-5.xlsx ; log10(pvalue) Baseline comparison behaviors of stable mutant to background-matched wild-type fish"
     longLabel: Mutant zebrafish baseline behavioral fingerprint pvalues
     description:
       Comparing behaviors in stable mutant and background-matched wild-type fish pvalues.
