@@ -81,11 +81,29 @@ export default async function handler(
     // tables — uses the same logic as the main gene-data query.
     const tableMeta = db
       .prepare(
-        `SELECT display_columns, link_tables FROM data_tables WHERE table_name = ?`,
+        `SELECT display_columns, link_tables, field_labels FROM data_tables WHERE table_name = ?`,
       )
       .get(tableName) as
-      | { display_columns: string; link_tables: string | null }
+      | {
+          display_columns: string;
+          link_tables: string | null;
+          field_labels: string | null;
+        }
       | undefined;
+
+    let fieldLabels: Record<string, string> = {};
+    if (tableMeta?.field_labels) {
+      try {
+        const parsed = JSON.parse(tableMeta.field_labels);
+        if (parsed && typeof parsed === "object") {
+          for (const [k, v] of Object.entries(parsed)) {
+            if (typeof v === "string") fieldLabels[k.toLowerCase()] = v;
+          }
+        }
+      } catch {
+        fieldLabels = {};
+      }
+    }
 
     const geneRows: GeneRow[] = [];
     if (tableMeta) {
@@ -138,6 +156,7 @@ export default async function handler(
       nNonNull: dist.n_nonnull,
       volcanoPoints,
       geneRows,
+      fieldLabels,
     });
   } catch (err) {
     // eslint-disable-next-line no-console
