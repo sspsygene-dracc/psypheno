@@ -31,6 +31,7 @@ PVALUE_FLOOR = 1e-300  # avoid -log10(0) = inf
 @dataclass
 class EffectHistogram:
     """Histogram bins shared by the API + frontend."""
+
     bin_edges: list[float]
     bin_counts: list[int]
 
@@ -74,9 +75,7 @@ def compute_effect_distributions(
            FROM data_tables
            WHERE effect_column IS NOT NULL AND pvalue_column IS NOT NULL"""
     ).fetchall()
-    logger.info(
-        "Pre-computing effect-size distributions for %d table(s)", len(rows)
-    )
+    logger.info("Pre-computing effect-size distributions for %d table(s)", len(rows))
     for table_name, effect_col, pval_col in rows:
         pval_col_first = pval_col.split(",")[0]
         dist = _compute_for_table(
@@ -156,7 +155,9 @@ def _compute_for_table(
     )
 
 
-def _compute_histogram(effects: np.ndarray) -> EffectHistogram:
+def _compute_histogram(
+    effects: np.ndarray[float, np.dtype[np.float64]],
+) -> EffectHistogram:
     if len(effects) == 0:
         return EffectHistogram(bin_edges=[-0.5, 0.5], bin_counts=[0])
     p_low, p_high = np.percentile(effects, [1, 99])
@@ -171,7 +172,9 @@ def _compute_histogram(effects: np.ndarray) -> EffectHistogram:
             )
         p_low, p_high = p_low_v, p_high_v
     clipped = np.clip(effects, p_low, p_high)
-    counts, edges = np.histogram(clipped, bins=HIST_BINS, range=(float(p_low), float(p_high)))
+    counts, edges = np.histogram(
+        clipped, bins=HIST_BINS, range=(float(p_low), float(p_high))
+    )
     return EffectHistogram(
         bin_edges=[float(e) for e in edges],
         bin_counts=[int(c) for c in counts],
@@ -185,7 +188,7 @@ def _compute_volcano(df: pd.DataFrame) -> list[VolcanoPoint]:
     df = df.assign(neg_log10p=-np.log10(pvals))
     top_n = min(VOLCANO_TOP_BY_P, len(df))
     top = df.nlargest(top_n, "neg_log10p")
-    rest_pool = df.drop(top.index)
+    rest_pool = df.drop(top.index)  # type: ignore
     rest_n = min(VOLCANO_RANDOM, len(rest_pool))
     if rest_n > 0:
         rest = rest_pool.sample(n=rest_n, random_state=VOLCANO_RANDOM_SEED)

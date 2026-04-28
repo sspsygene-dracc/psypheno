@@ -7,6 +7,10 @@ import {
   buildOrderByClause,
   type ApiSortMode,
 } from "@/lib/gene-query";
+import {
+  getEnsemblSymbolMap,
+  resolveEnsgsInRows,
+} from "@/lib/ensembl-symbol-resolver";
 
 const DATASET_PAGE_LIMIT = 25;
 
@@ -112,7 +116,8 @@ export default async function handler(
     }
 
     const sql = `SELECT ${selectCols} FROM ${tableName} ${orderByClause} LIMIT ${DATASET_PAGE_LIMIT} OFFSET ${offset}`;
-    const rows = db.prepare(sql).all() as Record<string, unknown>[];
+    const rawRows = db.prepare(sql).all() as Record<string, unknown>[];
+    const rows = resolveEnsgsInRows(rawRows, getEnsemblSymbolMap(db));
 
     const links =
       metadata.links

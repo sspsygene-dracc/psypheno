@@ -2,6 +2,10 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { sanitizeIdentifier, parseDisplayColumns } from "@/lib/gene-query";
+import {
+  getEnsemblSymbolMap,
+  resolveEnsgsInRows,
+} from "@/lib/ensembl-symbol-resolver";
 
 const bodySchema = z.object({
   tableName: z.string(),
@@ -91,7 +95,7 @@ export default async function handler(
     const selectCols = displayCols.map((c) => sanitizeIdentifier(c)).join(", ");
     const offset = (page - 1) * pageSize;
 
-    const rows = db
+    const rawRows = db
       .prepare(
         `SELECT ${selectCols} FROM ${baseTable}
          WHERE ${filterWhere}
@@ -99,6 +103,7 @@ export default async function handler(
          LIMIT ? OFFSET ?`
       )
       .all(pageSize, offset) as Record<string, unknown>[];
+    const rows = resolveEnsgsInRows(rawRows, getEnsemblSymbolMap(db));
 
     const countResult = db
       .prepare(

@@ -9,6 +9,7 @@ import click
 from processing.central_gene_table import get_central_gene_table
 from processing.combined_pvalues import compute_combined_pvalues
 from processing.effect_distributions import compute_effect_distributions
+from processing.ensembl_symbol_table import compute_ensembl_to_symbol
 from processing.gene_descriptions import copy_gene_descriptions
 from processing.new_sqlite3 import NewSqlite3
 from processing.sql_utils import sanitize_identifier
@@ -494,6 +495,7 @@ def load_db(
             conn, table_configs, skip_missing=skip_missing, no_index=no_index
         )
         load_gene_tables(conn, no_index=no_index)
+        compute_ensembl_to_symbol(conn, no_index=no_index)
         load_assay_types(conn, assay_types or {})
         load_disease_types(conn, disease_types or {})
         if data_dir and not skip_gene_descriptions:

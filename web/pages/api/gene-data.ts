@@ -2,6 +2,10 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { sanitizeIdentifier, parseDisplayColumns, buildGeneQuery, queryFirstPage } from "@/lib/gene-query";
+import {
+  getEnsemblSymbolMap,
+  resolveEnsgsInRows,
+} from "@/lib/ensembl-symbol-resolver";
 
 const bodySchema = z.object({
   centralGeneId: z.number().min(0),
@@ -26,6 +30,7 @@ export default async function handler(
 
   try {
     const db = getDb();
+    const symbolMap = getEnsemblSymbolMap(db);
 
     const tables = db
       .prepare(
@@ -140,7 +145,7 @@ export default async function handler(
           publicationYear: t.publication_year ?? null,
           publicationJournal: t.publication_journal ?? null,
           publicationDoi: t.publication_doi ?? null,
-          rows: result.rows,
+          rows: resolveEnsgsInRows(result.rows, symbolMap),
           totalRows: result.totalRows,
         });
       } catch (innerErr) {

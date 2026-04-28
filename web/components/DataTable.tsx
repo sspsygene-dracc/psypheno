@@ -1,42 +1,9 @@
-import { useState, useMemo, useEffect, type ReactNode } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import InfoTooltip from "@/components/InfoTooltip";
 
-const ENSEMBL_ID_RE = /\b(ENS(?:MUS|DAR)?G\d+(?:\.\d+)?)\b/g;
-
 function normalizeColName(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, "_");
-}
-
-function renderCellWithEnsemblLinks(text: string): ReactNode {
-  if (!text) return text;
-  ENSEMBL_ID_RE.lastIndex = 0;
-  if (!ENSEMBL_ID_RE.test(text)) return text;
-  ENSEMBL_ID_RE.lastIndex = 0;
-  const parts: ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let key = 0;
-  while ((match = ENSEMBL_ID_RE.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    const id = match[1];
-    parts.push(
-      <a
-        key={`ens-${key++}`}
-        href={`https://www.ensembl.org/id/${id}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: "#2563eb", textDecoration: "underline" }}
-      >
-        {id}
-      </a>,
-    );
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-  return parts;
 }
 
 /** Format a numeric value to avoid floating-point display artifacts. */
@@ -331,7 +298,7 @@ export default function DataTable({
                         {text}
                       </Link>
                     ) : (
-                      renderCellWithEnsemblLinks(text)
+                      text
                     )}
                   </td>
                 );

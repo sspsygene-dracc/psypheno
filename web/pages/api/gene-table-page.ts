@@ -10,6 +10,10 @@ import {
   buildOrderByClause,
   type ApiSortMode,
 } from "@/lib/gene-query";
+import {
+  getEnsemblSymbolMap,
+  resolveEnsgsInRows,
+} from "@/lib/ensembl-symbol-resolver";
 
 const bodySchema = z.object({
   tableName: z.string().min(1),
@@ -95,8 +99,13 @@ export default async function handler(
     }
 
     const result = queryPage(db, query.selectCols, query.fromAndWhere, query.params, page, orderBy);
+    const symbolMap = getEnsemblSymbolMap(db);
+    const translatedResult = {
+      ...result,
+      rows: resolveEnsgsInRows(result.rows, symbolMap),
+    };
 
-    return res.status(200).json({ tableName, ...result });
+    return res.status(200).json({ tableName, ...translatedResult });
   } catch (err) {
     console.error("gene-table-page handler error", err);
     return res.status(500).json({ error: "Internal server error" });

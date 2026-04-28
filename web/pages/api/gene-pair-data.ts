@@ -2,6 +2,10 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { sanitizeIdentifier, parseDisplayColumns, buildGeneQuery, queryFirstPage } from "@/lib/gene-query";
+import {
+  getEnsemblSymbolMap,
+  resolveEnsgsInRows,
+} from "@/lib/ensembl-symbol-resolver";
 
 const bodySchema = z.object({
   perturbedCentralGeneId: z.number().nullable(),
@@ -25,6 +29,7 @@ export default async function handler(
 
   try {
     const db = getDb();
+    const symbolMap = getEnsemblSymbolMap(db);
     const tables = db
       .prepare(
         `SELECT table_name, short_label, medium_label, long_label, description, source, assay, organism, field_labels, gene_columns, display_columns, scalar_columns, link_tables, pvalue_column, fdr_column, effect_column FROM data_tables ORDER BY id ASC`
@@ -120,7 +125,7 @@ export default async function handler(
           pvalueColumn: t.pvalue_column ?? null,
           fdrColumn: t.fdr_column ?? null,
           effectColumn: t.effect_column ?? null,
-          rows: result.rows,
+          rows: resolveEnsgsInRows(result.rows, symbolMap),
           totalRows: result.totalRows,
         });
       } catch (innerErr) {
