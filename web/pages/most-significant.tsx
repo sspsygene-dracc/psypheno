@@ -1298,8 +1298,24 @@ export default function MostSignificantPage() {
                             className="mostsig-gene-info"
                             style={{ padding: "10px 14px" }}
                           >
+                            {direction === "global" && (
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: "#6b7280",
+                                  fontStyle: "italic",
+                                  marginBottom: 8,
+                                }}
+                              >
+                                Per-dataset breakdown shows the target-direction
+                                view of this gene. Counts here may differ from
+                                the global ranked-list totals above, which use
+                                the legacy mixed-direction rule.
+                              </div>
+                            )}
                             <GeneSignificanceSummary
                               centralGeneId={row.central_gene_id}
+                              direction={direction === "global" ? "target" : direction}
                               assayTypeLabels={assayTypeLabels}
                             />
                             <GeneInfoBox
