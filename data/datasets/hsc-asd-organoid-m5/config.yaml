@@ -79,6 +79,9 @@ tables:
       de_type: "edgeR test variant (always 'QLF' = quasi-likelihood F-test)"
       log2fc: "log2 fold change: target-gRNA cells vs non-targeting-control cells (same effect as Avg_logFC, on log2 scale)"
   - table: hsc_asd_organoid_m5_DE_results
+    changelog:
+      - date: "2026-04-28"
+        message: "Converted ENSG IDs to HGNC gene symbols. Added chromosome_name, band, gene_biotype columns."
     shortLabel: asd_organoid_de_results
     mediumLabel: Gordon 2026 - DEGs of Cortical Organoids with ASD Perturbations
     longLabel: Differential expression results across ASD genetic perturbations and developmental timepoints
@@ -92,14 +95,18 @@ tables:
     disease: ["asd", "ndd"]
     fieldLabels:
       perturbation: "ASD-associated genetic mutation modeled in the organoid (CNV labels like 16p11del/dup, 22q11del; point-mutation lines for SHANK3, PCDH19, TS=Timothy syndrome; or IdiopathicASD)"
-      organoid_age_(days): "Organoid age in days post-differentiation. Empty value = meta-analysis combined across all timepoints."
-      target_gene: "Gene whose expression was measured (Ensembl ID)"
+      organoid_age_(days): "Organoid age in days post-differentiation. 'all timepoints' = meta-analysis combined across all timepoints."
+      target_gene: "Gene whose expression was measured (HGNC symbol)"
+      Ensembl_Gene_Id: "Ensembl gene ID"
       logFC: "log2 fold change in expression: ASD-mutation organoids vs control organoids. Pseudobulk DE via the dream (limma) mixed linear model."
       Avg_Expr: "Average log2 counts-per-million expression across all samples (TMM-normalized)"
       t: "Moderated t-statistic from the dream (limma) DE contrast"
       P-Value: "Nominal p-value from the moderated t-test"
       Adjusted_P-Value: "Benjamini–Hochberg FDR-adjusted p-value"
       z_std: "Effect-size z-score (t-statistic on the standard-normal scale; used for cross-timepoint meta-analysis via metafor)"
+      chromosome_name: "Chromosome"
+      band: "Cytogenetic band"
+      gene_biotype: "Gene biotype"
       region_genes: "Genes within the affected CNV region (for CNV-type perturbations) or the perturbed gene itself (for single-gene perturbations like SHANK3, PCDH19, Timothy syndrome/CACNA1C). Empty for IdiopathicASD."
     links:
       - https://www.nature.com/articles/s41586-025-10047-5#data-availability
@@ -115,7 +122,7 @@ tables:
     separator: "\t"
     gene_mappings:
       - column_name: target_gene
-        link_table_name: Target_Gene
+        link_table_name: gene
         species: human
         is_perturbed: false
         is_target: true
