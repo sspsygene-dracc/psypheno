@@ -1,11 +1,13 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "@/lib/db";
+import type { Dataset } from "@/components/DatasetItem";
 
 export type PublicationTableEntry = {
   tableName: string;
   label: string;
   organism: string | null;
   links: string[];
+  dataset: Dataset;
 };
 
 export type PublicationEntry = {
@@ -31,7 +33,9 @@ export default async function handler(
     const rows = db
       .prepare(
         `SELECT
-           table_name, medium_label, organism, links,
+           table_name, short_label, medium_label, long_label, description,
+           gene_columns, gene_species, display_columns, scalar_columns,
+           link_tables, links, categories, source, assay, organism,
            publication_doi, publication_pmid, publication_year, publication_journal,
            publication_first_author, publication_last_author, publication_author_count,
            publication_authors
@@ -41,9 +45,20 @@ export default async function handler(
       )
       .all() as Array<{
       table_name: string;
+      short_label: string | null;
       medium_label: string | null;
-      organism: string | null;
+      long_label: string | null;
+      description: string | null;
+      gene_columns: string;
+      gene_species: string;
+      display_columns: string;
+      scalar_columns: string;
+      link_tables: string | null;
       links: string | null;
+      categories: string | null;
+      source: string | null;
+      assay: string | null;
+      organism: string | null;
       publication_doi: string;
       publication_pmid: string | null;
       publication_year: number | null;
@@ -87,11 +102,35 @@ export default async function handler(
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+      const dataset: Dataset = {
+        table_name: r.table_name,
+        short_label: r.short_label,
+        medium_label: r.medium_label,
+        long_label: r.long_label,
+        description: r.description,
+        gene_columns: r.gene_columns,
+        gene_species: r.gene_species,
+        display_columns: r.display_columns,
+        scalar_columns: r.scalar_columns,
+        link_tables: r.link_tables,
+        links: r.links,
+        categories: r.categories,
+        source: r.source,
+        assay: r.assay,
+        organism: r.organism,
+        publication_first_author: r.publication_first_author,
+        publication_last_author: r.publication_last_author,
+        publication_author_count: r.publication_author_count,
+        publication_year: r.publication_year,
+        publication_journal: r.publication_journal,
+        publication_doi: r.publication_doi,
+      };
       entry.tables.push({
         tableName: r.table_name,
         label: r.medium_label || r.table_name,
         organism: r.organism,
         links: tableLinks,
+        dataset,
       });
       if (r.organism && !entry.organisms.includes(r.organism)) {
         entry.organisms.push(r.organism);

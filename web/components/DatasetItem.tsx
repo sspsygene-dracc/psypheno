@@ -1,4 +1,4 @@
-import React from "react";
+import { useState } from "react";
 import InfoTooltip from "@/components/InfoTooltip";
 
 export type Dataset = {
@@ -30,9 +30,10 @@ type DatasetItemProps = {
   onSelect: (tableName: string) => void;
   assayTypeLabels?: Record<string, string>;
   id?: string;
+  showPublicationLink?: boolean;
 };
 
-export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, id }: DatasetItemProps) {
+export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, id, showPublicationLink = false }: DatasetItemProps) {
   const prettifiedName = dataset.table_name
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
@@ -44,9 +45,20 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
     .map((c) => c.trim())
     .filter(Boolean);
 
-  const maxColumnsToShow = 4;
-  const visibleColumns = displayColumns.slice(0, maxColumnsToShow);
-  const remainingColumnCount = displayColumns.length - visibleColumns.length;
+  const scalarSet = new Set(
+    (dataset.scalar_columns ?? "")
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean),
+  );
+  const geneColumnSet = new Set(
+    (dataset.gene_columns ?? "")
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean),
+  );
+  const scalarCount = scalarSet.size;
+  const geneCount = geneColumnSet.size;
 
   const parsedLinks =
     dataset.links
@@ -220,38 +232,14 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
           </div>
         )}
 
-        {/* Structured meta rows */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 12,
-            marginTop: 6,
-            fontSize: 14,
-            color: "#6b7280",
-          }}
-        >
-          {/* Columns summary */}
-          <div style={{ minWidth: 0 }}>
-            <span style={{ fontWeight: 500 }}>
-              Columns ({displayColumns.length}):
-            </span>{" "}
-            <span>
-              {visibleColumns.join(", ")}
-              {remainingColumnCount > 0
-                ? `, +${remainingColumnCount} more`
-                : ""}
-            </span>
-          </div>
-
-          {/* Scalar columns, if present */}
-          {dataset.scalar_columns && (
-            <div style={{ minWidth: 0 }}>
-              <span style={{ fontWeight: 500 }}>Scalars:</span>{" "}
-              <span>{dataset.scalar_columns}</span>
-            </div>
-          )}
-        </div>
+        {/* Columns / scalars display */}
+        <ColumnsList
+          columns={displayColumns}
+          scalarSet={scalarSet}
+          geneColumnSet={geneColumnSet}
+          totalScalars={scalarCount}
+          totalGeneCols={geneCount}
+        />
 
         {/* Publication line */}
         {(authorText ||
@@ -280,6 +268,19 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
                   style={{ color: "#2563eb", textDecoration: "underline" }}
                 >
                   DOI: {dataset.publication_doi}
+                </a>
+              </>
+            )}
+            {showPublicationLink && dataset.publication_doi && (
+              <>
+                {" · "}
+                <a
+                  href={`/publications#pub-${encodeURIComponent(
+                    dataset.publication_doi,
+                  )}`}
+                  style={{ color: "#2563eb", textDecoration: "underline" }}
+                >
+                  See on Publications page
                 </a>
               </>
             )}
@@ -340,5 +341,170 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
         </button>
       </div>
     </div>
+  );
+}
+
+const COL_PREVIEW_LIMIT = 6;
+
+type ColumnsListProps = {
+  columns: string[];
+  scalarSet: Set<string>;
+  geneColumnSet: Set<string>;
+  totalScalars: number;
+  totalGeneCols: number;
+};
+
+function ColumnsList({
+  columns,
+  scalarSet,
+  geneColumnSet,
+  totalScalars,
+  totalGeneCols,
+}: ColumnsListProps) {
+  const [expanded, setExpanded] = useState(false);
+  const total = columns.length;
+  const overflow = total > COL_PREVIEW_LIMIT;
+  const visible = expanded || !overflow ? columns : columns.slice(0, COL_PREVIEW_LIMIT);
+  const hidden = overflow && !expanded ? total - COL_PREVIEW_LIMIT : 0;
+
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          fontSize: 14,
+          color: "#374151",
+          marginBottom: 6,
+        }}
+      >
+        <span style={{ fontWeight: 500 }}>Columns ({total})</span>
+        {totalGeneCols > 0 && (
+          <ColumnLegendDot
+            color="#2563eb"
+            bg="#dbeafe"
+            label={`${totalGeneCols} gene`}
+          />
+        )}
+        {totalScalars > 0 && (
+          <ColumnLegendDot
+            color="#92400e"
+            bg="#fef3c7"
+            label={`${totalScalars} numeric`}
+          />
+        )}
+        {overflow && (
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            style={{
+              marginLeft: "auto",
+              background: "transparent",
+              border: "none",
+              color: "#2563eb",
+              cursor: "pointer",
+              fontSize: 13,
+              padding: 0,
+              fontWeight: 500,
+            }}
+          >
+            {expanded ? "Show less" : `Show all ${total}`}
+          </button>
+        )}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+        {visible.map((c) => {
+          const isGene = geneColumnSet.has(c);
+          const isScalar = scalarSet.has(c);
+          return (
+            <span
+              key={c}
+              title={
+                isGene
+                  ? "Gene identifier column"
+                  : isScalar
+                    ? "Numeric (scalar) column"
+                    : undefined
+              }
+              style={{
+                fontSize: 12,
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace',
+                padding: "2px 8px",
+                borderRadius: 4,
+                background: isGene
+                  ? "#dbeafe"
+                  : isScalar
+                    ? "#fef3c7"
+                    : "#f3f4f6",
+                color: isGene ? "#1e40af" : isScalar ? "#92400e" : "#374151",
+                border: "1px solid",
+                borderColor: isGene
+                  ? "#bfdbfe"
+                  : isScalar
+                    ? "#fde68a"
+                    : "#e5e7eb",
+              }}
+            >
+              {c}
+            </span>
+          );
+        })}
+        {hidden > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            style={{
+              fontSize: 12,
+              fontFamily: "inherit",
+              padding: "2px 8px",
+              borderRadius: 4,
+              background: "transparent",
+              color: "#6b7280",
+              border: "1px dashed #d1d5db",
+              cursor: "pointer",
+            }}
+          >
+            +{hidden} more
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ColumnLegendDot({
+  color,
+  bg,
+  label,
+}: {
+  color: string;
+  bg: string;
+  label: string;
+}) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        fontSize: 12,
+        color: "#6b7280",
+      }}
+    >
+      <span
+        style={{
+          width: 9,
+          height: 9,
+          borderRadius: 2,
+          background: bg,
+          border: `1px solid ${color}33`,
+          display: "inline-block",
+        }}
+      />
+      {label}
+    </span>
   );
 }

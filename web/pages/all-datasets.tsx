@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DataTable, { type SortMode } from "@/components/DataTable";
 import InfoTooltip from "@/components/InfoTooltip";
-import DatasetItem, { Dataset } from "@/components/DatasetItem";
+import type { Dataset } from "@/components/DatasetItem";
 
 type DatasetData = {
   tableName: string;
@@ -51,7 +52,6 @@ export default function AllDatasets() {
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
   const [datasetData, setDatasetData] = useState<DatasetData | null>(null);
   const [loadingData, setLoadingData] = useState(false);
-  const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
   const [loadingPage, setLoadingPage] = useState(false);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("none");
@@ -73,39 +73,12 @@ export default function AllDatasets() {
         setLoading(false);
       }
     };
-    const fetchAssayTypes = async () => {
-      try {
-        const res = await fetch("/api/assay-types");
-        if (res.ok) {
-          const data = await res.json();
-          setAssayTypeLabels(data.assayTypes ?? {});
-        }
-      } catch {
-        // Non-critical, assay keys will be shown as-is
-      }
-    };
     fetchDatasets();
-    fetchAssayTypes();
   }, []);
 
-  // After datasets render, honor the URL fragment (e.g. coming from /publications
-  // links like #ds-<table>) by scrolling the target into view.
-  useEffect(() => {
-    if (loading) return;
-    if (typeof window === "undefined") return;
-    const hash = window.location.hash;
-    if (!hash) return;
-    const id = hash.slice(1);
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [loading]);
-
   // Hydrate selected dataset from ?select= or ?open= URL param once datasets
-  // are loaded. ?select= scrolls to the dataset in the list (used by
-  // publications/most-significant). ?open= additionally auto-selects it so
-  // its full data table loads (used when linking from gene search results).
+  // are loaded. Both params now have the same effect: select the dataset and
+  // show its full data table.
   useEffect(() => {
     if (!router.isReady || hydratedFromQuery.current || loading) return;
     hydratedFromQuery.current = true;
@@ -124,17 +97,7 @@ export default function AllDatasets() {
         (d.short_label && normalizeSlug(d.short_label) === normalized) ||
         normalizeSlug(d.table_name) === normalized
     );
-    if (match) {
-      if (typeof openParam === "string") {
-        setSelectedDataset(match.table_name);
-      } else {
-        requestAnimationFrame(() => {
-          document
-            .getElementById(`ds-${match.table_name}`)
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-      }
-    }
+    if (match) setSelectedDataset(match.table_name);
   }, [router.isReady, loading, datasets]);
 
   // Keep URL in sync when the user selects a dataset
@@ -347,7 +310,7 @@ export default function AllDatasets() {
   return (
     <>
       <Head>
-        <title>All Datasets &mdash; SSPsyGene</title>
+        <title>Full datasets &mdash; SSPsyGene</title>
       </Head>
       <div
         style={{
@@ -375,193 +338,431 @@ export default function AllDatasets() {
               marginBottom: 8,
             }}
           >
-            All Datasets
+            Full datasets
           </h1>
-          <p style={{ color: "#6b7280", marginBottom: 24 }}>
-            Browse all available datasets in the SSPsyGene database
+          <p style={{ color: "#4b5563", marginBottom: 20, lineHeight: 1.5 }}>
+            Pick a dataset to view its full row-level data with sorting,
+            filtering, and pagination. To browse datasets grouped by source
+            paper with summaries, descriptions, and column metadata, see the{" "}
+            <Link
+              href="/publications"
+              style={{ color: "#2563eb", textDecoration: "underline" }}
+            >
+              Publications page
+            </Link>
+            .
           </p>
 
           {loading && (
-            <div
-              style={{ color: "#6b7280", textAlign: "center", marginTop: 32 }}
-            >
+            <div style={{ color: "#6b7280", marginTop: 16 }}>
               Loading datasets...
             </div>
           )}
 
           {error && (
-            <div
-              style={{ color: "#dc2626", textAlign: "center", marginTop: 32 }}
-            >
-              {error}
-            </div>
+            <div style={{ color: "#dc2626", marginTop: 16 }}>{error}</div>
           )}
 
           {!loading && !error && (
-            <div style={{ display: "grid", gap: 24 }}>
+            <DatasetPicker
+              datasets={datasets}
+              selectedTableName={selectedDataset}
+              onSelect={setSelectedDataset}
+            />
+          )}
+
+          {!loading && !error && selectedDataset && (
+            <div style={{ marginTop: 24 }}>
+              <div id="dataset-table-top" />
               <div
                 style={{
                   background: "#ffffff",
                   border: "1px solid #e5e7eb",
                   borderRadius: 12,
-                  overflowX: "auto",
-                  overflowY: "hidden",
+                  overflow: "hidden",
                 }}
               >
                 <div
                   style={{
                     padding: "16px",
                     background: "#f9fafb",
-                    color: "#6b7280",
+                    color: "#1f2937",
                     fontWeight: 600,
-                    fontSize: 14,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    flexWrap: "wrap",
                   }}
                 >
-                  Available Datasets ({datasets.length})
-                </div>
-                <div>
-                  {datasets.map((dataset) => (
-                    <DatasetItem
-                      key={dataset.table_name}
-                      id={`ds-${dataset.table_name}`}
-                      dataset={dataset}
-                      onSelect={setSelectedDataset}
-                      assayTypeLabels={assayTypeLabels}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {selectedDataset && (
-                <>
-                  <div id="dataset-table-top" />
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 12,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: "16px",
-                        background: "#f9fafb",
-                        color: "#1f2937",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {datasetData?.mediumLabel ?? datasetData?.shortLabel ??
-                        selectedDataset
-                          ?.replace(/_/g, " ")
-                          .replace(
-                            /\w\S*/g,
-                            (txt) => txt.charAt(0).toUpperCase() + txt.slice(1)
-                          )}
-                      {datasetData?.source && (
-                        <InfoTooltip text={`Source: ${datasetData.source}`} size={14} />
-                      )}
-                    </div>
-
-                    {loadingData && !loadingPage && (
-                      <div
-                        style={{
-                          padding: 32,
-                          textAlign: "center",
-                          color: "#6b7280",
-                        }}
-                      >
-                        Loading data...
-                      </div>
-                    )}
-
-                    {datasetData && (
-                      <>
-                        <div style={{
-                          opacity: loadingPage ? 0.5 : 1,
-                          pointerEvents: loadingPage ? "none" : "auto",
-                          position: "relative",
-                          transition: "opacity 0.15s",
-                        }}>
-                          <DataTable
-                            columns={datasetData.displayColumns}
-                            rows={datasetData.rows}
-                            scalarColumns={datasetData.scalarColumns}
-                            fieldLabels={datasetData.fieldLabels}
-                            showSummary={false}
-                            sortColumn={sortBy}
-                            sortMode={sortMode}
-                            onSort={handleSort}
-                            columnFilters={columnFilters}
-                            onColumnFilterChange={handleColumnFilterChange}
-                          />
-                          {loadingPage && (
-                            <div style={{
-                              position: "absolute",
-                              top: "50%",
-                              left: "50%",
-                              transform: "translate(-50%, -50%)",
-                              fontSize: 14,
-                              color: "#6b7280",
-                            }}>
-                              Loading...
-                            </div>
-                          )}
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "10px 14px",
-                            borderTop: "1px solid #e5e7eb",
-                            background: "#f9fafb",
-                            flexWrap: "wrap",
-                            gap: 8,
-                          }}
-                        >
-                          <div style={{ opacity: 0.8, fontSize: 13 }}>
-                            {(() => {
-                              const total = datasetData.totalRows ?? datasetData.rows.length;
-                              if (hasPagination) {
-                                const pageSize = Math.ceil(total / totalPages);
-                                const rangeStart = (currentPage - 1) * pageSize + 1;
-                                const rangeEnd = rangeStart + datasetData.rows.length - 1;
-                                return `Showing rows ${rangeStart.toLocaleString()}\u2013${rangeEnd.toLocaleString()} of ${total.toLocaleString()}`;
-                              }
-                              return `Showing all ${total.toLocaleString()} rows`;
-                            })()}
-                          </div>
-                          {hasPagination && (
-                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                              <button
-                                disabled={currentPage <= 1 || isPageBusy}
-                                onClick={() => fetchPage(currentPage - 1)}
-                                style={pageBtnStyle(currentPage <= 1 || isPageBusy)}
-                              >
-                                Prev
-                              </button>
-                              {renderPageNumbers()}
-                              <button
-                                disabled={currentPage >= totalPages || isPageBusy}
-                                onClick={() => fetchPage(currentPage + 1)}
-                                style={pageBtnStyle(currentPage >= totalPages || isPageBusy)}
-                              >
-                                Next
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </>
+                  <div>
+                    {datasetData?.mediumLabel ?? datasetData?.shortLabel ??
+                      selectedDataset
+                        ?.replace(/_/g, " ")
+                        .replace(
+                          /\w\S*/g,
+                          (txt) => txt.charAt(0).toUpperCase() + txt.slice(1)
+                        )}
+                    {datasetData?.source && (
+                      <InfoTooltip text={`Source: ${datasetData.source}`} size={14} />
                     )}
                   </div>
-                </>
-              )}
+                  {datasetData?.publication?.doi && (
+                    <Link
+                      href={`/publications#pub-${encodeURIComponent(
+                        datasetData.publication.doi,
+                      )}`}
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: "#2563eb",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      See on Publications page
+                    </Link>
+                  )}
+                </div>
+
+                {loadingData && !loadingPage && (
+                  <div
+                    style={{
+                      padding: 32,
+                      textAlign: "center",
+                      color: "#6b7280",
+                    }}
+                  >
+                    Loading data...
+                  </div>
+                )}
+
+                {datasetData && (
+                  <>
+                    <div style={{
+                      opacity: loadingPage ? 0.5 : 1,
+                      pointerEvents: loadingPage ? "none" : "auto",
+                      position: "relative",
+                      transition: "opacity 0.15s",
+                    }}>
+                      <DataTable
+                        columns={datasetData.displayColumns}
+                        rows={datasetData.rows}
+                        scalarColumns={datasetData.scalarColumns}
+                        fieldLabels={datasetData.fieldLabels}
+                        showSummary={false}
+                        sortColumn={sortBy}
+                        sortMode={sortMode}
+                        onSort={handleSort}
+                        columnFilters={columnFilters}
+                        onColumnFilterChange={handleColumnFilterChange}
+                      />
+                      {loadingPage && (
+                        <div style={{
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          transform: "translate(-50%, -50%)",
+                          fontSize: 14,
+                          color: "#6b7280",
+                        }}>
+                          Loading...
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 14px",
+                        borderTop: "1px solid #e5e7eb",
+                        background: "#f9fafb",
+                        flexWrap: "wrap",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ opacity: 0.8, fontSize: 13 }}>
+                        {(() => {
+                          const total = datasetData.totalRows ?? datasetData.rows.length;
+                          if (hasPagination) {
+                            const pageSize = Math.ceil(total / totalPages);
+                            const rangeStart = (currentPage - 1) * pageSize + 1;
+                            const rangeEnd = rangeStart + datasetData.rows.length - 1;
+                            return `Showing rows ${rangeStart.toLocaleString()}–${rangeEnd.toLocaleString()} of ${total.toLocaleString()}`;
+                          }
+                          return `Showing all ${total.toLocaleString()} rows`;
+                        })()}
+                      </div>
+                      {hasPagination && (
+                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                          <button
+                            disabled={currentPage <= 1 || isPageBusy}
+                            onClick={() => fetchPage(currentPage - 1)}
+                            style={pageBtnStyle(currentPage <= 1 || isPageBusy)}
+                          >
+                            Prev
+                          </button>
+                          {renderPageNumbers()}
+                          <button
+                            disabled={currentPage >= totalPages || isPageBusy}
+                            onClick={() => fetchPage(currentPage + 1)}
+                            style={pageBtnStyle(currentPage >= totalPages || isPageBusy)}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </main>
         <Footer />
       </div>
     </>
+  );
+}
+
+function datasetLabel(d: Dataset): string {
+  return d.medium_label ?? d.short_label ?? d.table_name;
+}
+
+function DatasetPicker({
+  datasets,
+  selectedTableName,
+  onSelect,
+}: {
+  datasets: Dataset[];
+  selectedTableName: string | null;
+  onSelect: (tableName: string | null) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const selected = useMemo(
+    () => datasets.find((d) => d.table_name === selectedTableName) ?? null,
+    [datasets, selectedTableName],
+  );
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const sorted = [...datasets].sort((a, b) =>
+      datasetLabel(a).localeCompare(datasetLabel(b)),
+    );
+    if (!q) return sorted;
+    return sorted.filter((d) => {
+      const haystack = [
+        d.medium_label ?? "",
+        d.short_label ?? "",
+        d.long_label ?? "",
+        d.table_name,
+        d.organism ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [datasets, query]);
+
+  useEffect(() => {
+    if (highlight >= matches.length) setHighlight(0);
+  }, [matches.length, highlight]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const pick = (d: Dataset) => {
+    onSelect(d.table_name);
+    setOpen(false);
+    setQuery("");
+    inputRef.current?.blur();
+  };
+
+  const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setOpen(true);
+      setHighlight((h) => Math.min(h + 1, matches.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlight((h) => Math.max(h - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const m = matches[highlight];
+      if (m) pick(m);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div ref={containerRef} style={{ position: "relative", maxWidth: 640 }}>
+      <label
+        htmlFor="dataset-search"
+        style={{
+          display: "block",
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#374151",
+          marginBottom: 6,
+        }}
+      >
+        Find a dataset
+      </label>
+      <div style={{ position: "relative" }}>
+        <input
+          ref={inputRef}
+          id="dataset-search"
+          type="search"
+          autoComplete="off"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            setHighlight(0);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={onKeyDown}
+          placeholder={
+            selected
+              ? `Currently showing: ${datasetLabel(selected)}`
+              : `Search ${datasets.length} datasets by name, organism, or description…`
+          }
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            padding: "10px 12px",
+            border: "1px solid #d1d5db",
+            borderRadius: 8,
+            fontSize: 14,
+            background: "#ffffff",
+            color: "#1f2937",
+          }}
+        />
+        {selected && (
+          <button
+            type="button"
+            onClick={() => onSelect(null)}
+            aria-label="Clear selected dataset"
+            style={{
+              position: "absolute",
+              right: 8,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: "#6b7280",
+              fontSize: 18,
+              lineHeight: 1,
+              padding: "4px 8px",
+            }}
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {open && matches.length > 0 && (
+        <div
+          role="listbox"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 4px)",
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            maxHeight: 360,
+            overflowY: "auto",
+          }}
+        >
+          {matches.map((d, i) => {
+            const isHighlighted = i === highlight;
+            const isSelected = d.table_name === selectedTableName;
+            return (
+              <button
+                key={d.table_name}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                onMouseEnter={() => setHighlight(i)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pick(d);
+                }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "8px 12px",
+                  background: isHighlighted ? "#f3f4f6" : "transparent",
+                  border: "none",
+                  borderBottom: "1px solid #f3f4f6",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  color: "inherit",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "#111827",
+                    display: "flex",
+                    gap: 6,
+                    alignItems: "baseline",
+                  }}
+                >
+                  <span>{datasetLabel(d)}</span>
+                  {isSelected && (
+                    <span style={{ fontSize: 11, color: "#2563eb" }}>
+                      • selected
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+                  {d.organism ?? d.gene_species}
+                  {d.assay && ` · ${d.assay}`}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {open && matches.length === 0 && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 4px)",
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            padding: "10px 12px",
+            color: "#6b7280",
+            fontSize: 13,
+          }}
+        >
+          No matching datasets.
+        </div>
+      )}
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
-  { href: "/all-datasets", label: "All Datasets" },
+  { href: "/all-datasets", label: "Full datasets" },
   { href: "/publications", label: "Publications" },
   { href: "/all-genes", label: "All Genes" },
   { href: "/most-significant", label: "Most Significant Genes" },

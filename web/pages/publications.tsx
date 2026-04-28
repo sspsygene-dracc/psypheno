@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
-import Link from "next/link";
+import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import DatasetItem, { type Dataset } from "@/components/DatasetItem";
 import { formatAuthors } from "@/lib/format-authors";
 import type {
   PublicationEntry,
@@ -29,10 +30,16 @@ function hostFromUrl(url: string): string {
   }
 }
 
+function slugFromLabel(label: string): string {
+  return label.replace(/\s+/g, "_");
+}
+
 export default function PublicationsPage() {
+  const router = useRouter();
   const [publications, setPublications] = useState<PublicationEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
 
   const [authorQuery, setAuthorQuery] = useState("");
   const [yearFilter, setYearFilter] = useState<Set<number>>(new Set());
@@ -54,10 +61,31 @@ export default function PublicationsPage() {
           setLoading(false);
         }
       });
+    fetch("/api/assay-types")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setAssayTypeLabels(data.assayTypes ?? {});
+      })
+      .catch(() => {
+        // non-critical
+      });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // Honor #pub-<doi> URL fragment after content loads.
+  useEffect(() => {
+    if (loading) return;
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    const id = hash.slice(1);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [loading]);
 
   // Build facet options from the data.
   const yearOptions = useMemo(() => {
@@ -126,10 +154,17 @@ export default function PublicationsPage() {
     });
   };
 
+  const goToDataset = (dataset: Dataset) => {
+    const slug = dataset.short_label
+      ? slugFromLabel(dataset.short_label)
+      : dataset.table_name;
+    router.push(`/all-datasets?open=${encodeURIComponent(slug)}`);
+  };
+
   return (
     <>
       <Head>
-        <title>Publications &mdash; SSPsyGene</title>
+        <title>Publications &amp; Datasets &mdash; SSPsyGene</title>
       </Head>
       <Header />
       <main
@@ -141,7 +176,7 @@ export default function PublicationsPage() {
         }}
       >
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-          Publications
+          Publications &amp; Datasets
         </h1>
         <p
           style={{
@@ -151,10 +186,10 @@ export default function PublicationsPage() {
             marginBottom: 20,
           }}
         >
-          Papers contributing data to the SSPsyGene knowledge base. Filter by
-          author, publication year, or experimental organism. Each publication
-          links to its source datasets and any supplementary or raw-data URLs
-          provided by the wranglers.
+          Papers contributing data to the SSPsyGene knowledge base, with their
+          source datasets shown beneath each publication. Filter by author,
+          publication year, or experimental organism. Click a dataset to expand
+          its metadata, or jump straight to its full data table.
         </p>
 
         <style>{`
@@ -312,7 +347,12 @@ export default function PublicationsPage() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {filtered.map((p) => (
-                    <PublicationCard key={p.doi} pub={p} />
+                    <PublicationCard
+                      key={p.doi}
+                      pub={p}
+                      assayTypeLabels={assayTypeLabels}
+                      onOpenDataset={goToDataset}
+                    />
                   ))}
                 </div>
               </>
@@ -325,7 +365,15 @@ export default function PublicationsPage() {
   );
 }
 
-function PublicationCard({ pub }: { pub: PublicationEntry }) {
+function PublicationCard({
+  pub,
+  assayTypeLabels,
+  onOpenDataset,
+}: {
+  pub: PublicationEntry;
+  assayTypeLabels: Record<string, string>;
+  onOpenDataset: (d: Dataset) => void;
+}) {
   const citation = formatAuthors(
     pub.firstAuthor ?? undefined,
     pub.lastAuthor ?? undefined,
@@ -346,11 +394,13 @@ function PublicationCard({ pub }: { pub: PublicationEntry }) {
 
   return (
     <article
+      id={`pub-${encodeURIComponent(pub.doi)}`}
       style={{
         border: "1px solid #e5e7eb",
         borderRadius: 12,
         padding: "16px 18px",
         background: "#ffffff",
+        scrollMarginTop: 16,
       }}
     >
       <header style={{ marginBottom: 10 }}>
@@ -363,6 +413,9 @@ function PublicationCard({ pub }: { pub: PublicationEntry }) {
             </span>
           )}
         </div>
+        {pub.authors.length > 0 && (
+          <AuthorListLine authors={pub.authors} />
+        )}
         <div
           style={{
             marginTop: 4,
@@ -420,22 +473,27 @@ function PublicationCard({ pub }: { pub: PublicationEntry }) {
         </div>
       )}
 
-      <div style={{ marginBottom: pub.tables.length > 0 ? 10 : 0 }}>
+      <div style={{ marginBottom: distinctTableLinks.length > 0 ? 10 : 0 }}>
         <div
           style={{
             fontSize: 13,
             fontWeight: 600,
             color: "#374151",
-            marginBottom: 6,
+            marginBottom: 8,
           }}
         >
           Datasets ({pub.tables.length})
         </div>
-        <ul style={{ margin: 0, paddingLeft: 18, color: "#1f2937", fontSize: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {pub.tables.map((t) => (
-            <PublicationTableRow key={t.tableName} t={t} />
+            <CollapsibleDatasetCard
+              key={t.tableName}
+              entry={t}
+              assayTypeLabels={assayTypeLabels}
+              onOpenDataset={onOpenDataset}
+            />
           ))}
-        </ul>
+        </div>
       </div>
 
       {distinctTableLinks.length > 0 && (
@@ -480,18 +538,170 @@ function PublicationCard({ pub }: { pub: PublicationEntry }) {
   );
 }
 
-function PublicationTableRow({ t }: { t: PublicationTableEntry }) {
+const AUTHOR_LINE_COLLAPSED_LIMIT = 8;
+
+function AuthorListLine({ authors }: { authors: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const overflow = authors.length > AUTHOR_LINE_COLLAPSED_LIMIT;
+  const visible =
+    expanded || !overflow ? authors : authors.slice(0, AUTHOR_LINE_COLLAPSED_LIMIT);
+  const hidden = overflow && !expanded ? authors.length - visible.length : 0;
   return (
-    <li style={{ marginBottom: 2 }}>
-      <Link
-        href={`/all-datasets#ds-${t.tableName}`}
-        style={{ color: "#2563eb", textDecoration: "none", fontWeight: 500 }}
-      >
-        {t.label}
-      </Link>
-      {t.organism && (
-        <span style={{ color: "#6b7280", fontSize: 13 }}> — {t.organism}</span>
+    <div
+      style={{
+        marginTop: 3,
+        fontSize: 13,
+        color: "#9ca3af",
+        lineHeight: 1.5,
+      }}
+    >
+      {visible.join(", ")}
+      {hidden > 0 && (
+        <>
+          {", "}
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#6b7280",
+              cursor: "pointer",
+              padding: 0,
+              fontSize: 13,
+              textDecoration: "underline",
+            }}
+          >
+            +{hidden} more
+          </button>
+        </>
       )}
-    </li>
+      {expanded && overflow && (
+        <>
+          {" · "}
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#6b7280",
+              cursor: "pointer",
+              padding: 0,
+              fontSize: 13,
+              textDecoration: "underline",
+            }}
+          >
+            show fewer
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function CollapsibleDatasetCard({
+  entry,
+  assayTypeLabels,
+  onOpenDataset,
+}: {
+  entry: PublicationTableEntry;
+  assayTypeLabels: Record<string, string>;
+  onOpenDataset: (d: Dataset) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ds = entry.dataset;
+  const colCount = (ds.display_columns || "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean).length;
+  const assays = (ds.assay || "")
+    .split(",")
+    .map((a) => a.trim())
+    .filter(Boolean);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #e5e7eb",
+        borderRadius: 8,
+        background: "#ffffff",
+        overflow: "hidden",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          width: "100%",
+          padding: "10px 12px",
+          background: open ? "#f3f4f6" : "#fafafa",
+          border: "none",
+          borderBottom: open ? "1px solid #e5e7eb" : "none",
+          textAlign: "left",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          color: "inherit",
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            display: "inline-block",
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
+            transition: "transform 0.15s ease",
+            color: "#6b7280",
+            fontSize: 12,
+            width: 12,
+          }}
+        >
+          ▶
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: 15,
+              color: "#111827",
+              display: "block",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {entry.label}
+          </span>
+          <span
+            style={{
+              fontSize: 12,
+              color: "#6b7280",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              marginTop: 2,
+            }}
+          >
+            {entry.organism && <span>{entry.organism}</span>}
+            {assays.length > 0 && (
+              <span>{assays.map((a) => assayTypeLabels[a] ?? a).join(", ")}</span>
+            )}
+            <span>{colCount} columns</span>
+          </span>
+        </span>
+      </button>
+      {open && (
+        <div style={{ background: "#ffffff" }}>
+          <DatasetItem
+            dataset={ds}
+            onSelect={() => onOpenDataset(ds)}
+            assayTypeLabels={assayTypeLabels}
+          />
+        </div>
+      )}
+    </div>
   );
 }
