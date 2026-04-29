@@ -61,6 +61,21 @@ tables:
       - column_name: target_gene
         link_table_name: Target_Gene
         species: human
+        # Retired/withdrawn HGNC symbols across Supp_1 + Supp_2 (per #125
+        # audit). Silences load-db warnings; rows still added to central_gene
+        # as manual entries.
+        ignore_missing:
+          - GATD3B
+          - IQCD
+          - IQCA1
+          - CRIPAK
+          - U2AF1L5
+          - SMC5-AS1
+          - OCLM
+          - SMIM11B
+          - TMEM155
+          - ABALON
+          - SIK1B
         perturbed_or_target: target
       - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
@@ -105,6 +120,21 @@ tables:
       - column_name: target_gene
         link_table_name: Target_Gene
         species: human
+        # Retired/withdrawn HGNC symbols across Supp_1 + Supp_2 (per #125
+        # audit). Silences load-db warnings; rows still added to central_gene
+        # as manual entries.
+        ignore_missing:
+          - GATD3B
+          - IQCD
+          - IQCA1
+          - CRIPAK
+          - U2AF1L5
+          - SMC5-AS1
+          - OCLM
+          - SMIM11B
+          - TMEM155
+          - ABALON
+          - SIK1B
         perturbed_or_target: target
       - column_name: perturbed_gene
         link_table_name: Perturbed_Gene

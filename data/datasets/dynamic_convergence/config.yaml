@@ -86,7 +86,17 @@ tables:
       - column_name: MarkerName
         link_table_name: gene
         species: human
-        ignore_missing: []
+        # Retired/withdrawn HGNC symbols in Supplemental_Data_2 (per #125
+        # audit). Silences load-db warnings; rows still added to central_gene
+        # as manual entries.
+        ignore_missing:
+          - GATD3B
+          - IQCD
+          - IQCA1
+          - U2AF1L5
+          - SMIM11B
+          - ABALON
+          - SIK1B
         perturbed_or_target: target
         replace:
           EMG1.1: EMG1

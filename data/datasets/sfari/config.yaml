@@ -121,5 +121,9 @@ tables:
       - column_name: gene-symbol
         link_table_name: gene
         species: human
-        ignore_missing: []
+        # Retired/withdrawn HGNC symbols (per #125 audit). Silences load-db
+        # warnings; rows still added to central_gene as manual entries.
+        ignore_missing:
+          - MSNP1AS
+          - RPS10P2-AS1
         perturbed_or_target: perturbed

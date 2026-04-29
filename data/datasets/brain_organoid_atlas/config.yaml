@@ -110,7 +110,17 @@ tables:
       - column_name: gene_symbol
         link_table_name: gene
         species: human
-        ignore_missing: []
+        # Retired/withdrawn HGNC symbols that appear in this dataset's data
+        # files but no longer have a current HGNC entry (per #125 audit). Listed
+        # here to silence the load-db warnings; rows for these symbols still
+        # get added to central_gene as manual entries.
+        ignore_missing:
+          - GATD3B
+          - IQCD
+          - IQCA1
+          - CRIPAK
+          - U2AF1L5
+          - SMC5-AS1
         perturbed_or_target: target
         replace:
           TBCE.1: TBCE
@@ -154,7 +164,17 @@ tables:
       - column_name: gene_symbol
         link_table_name: gene
         species: human
-        ignore_missing: []
+        # Retired/withdrawn HGNC symbols that appear in this dataset's data
+        # files but no longer have a current HGNC entry (per #125 audit). Listed
+        # here to silence the load-db warnings; rows for these symbols still
+        # get added to central_gene as manual entries.
+        ignore_missing:
+          - GATD3B
+          - IQCD
+          - IQCA1
+          - CRIPAK
+          - U2AF1L5
+          - SMC5-AS1
         perturbed_or_target: target
         replace:
           TBCE.1: TBCE
@@ -198,7 +218,17 @@ tables:
       - column_name: gene_symbol
         link_table_name: gene
         species: human
-        ignore_missing: []
+        # Retired/withdrawn HGNC symbols that appear in this dataset's data
+        # files but no longer have a current HGNC entry (per #125 audit). Listed
+        # here to silence the load-db warnings; rows for these symbols still
+        # get added to central_gene as manual entries.
+        ignore_missing:
+          - GATD3B
+          - IQCD
+          - IQCA1
+          - CRIPAK
+          - U2AF1L5
+          - SMC5-AS1
         perturbed_or_target: target
         replace:
           TBCE.1: TBCE

@@ -122,7 +122,23 @@ tables:
       - column_name: gene
         link_table_name: gene
         species: human
-        ignore_missing: []
+        # Retired/withdrawn HGNC symbols present across psychscreen DEG tables
+        # (per #125 audit). Silences load-db warnings; rows still added to
+        # central_gene as manual entries.
+        ignore_missing:
+          - GATD3B
+          - IQCD
+          - IQCA1
+          - CRIPAK
+          - U2AF1L5
+          - SMC5-AS1
+          - SMIM11B
+          - TMEM155
+          - CBSL
+          - LINC00283
+          - TEMN3-AS1
+          - FLJ45513
+          - SIK1B
         perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
@@ -167,7 +183,23 @@ tables:
       - column_name: gene
         link_table_name: gene
         species: human
-        ignore_missing: []
+        # Retired/withdrawn HGNC symbols present across psychscreen DEG tables
+        # (per #125 audit). Silences load-db warnings; rows still added to
+        # central_gene as manual entries.
+        ignore_missing:
+          - GATD3B
+          - IQCD
+          - IQCA1
+          - CRIPAK
+          - U2AF1L5
+          - SMC5-AS1
+          - SMIM11B
+          - TMEM155
+          - CBSL
+          - LINC00283
+          - TEMN3-AS1
+          - FLJ45513
+          - SIK1B
         perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
@@ -212,7 +244,23 @@ tables:
       - column_name: gene
         link_table_name: gene
         species: human
-        ignore_missing: []
+        # Retired/withdrawn HGNC symbols present across psychscreen DEG tables
+        # (per #125 audit). Silences load-db warnings; rows still added to
+        # central_gene as manual entries.
+        ignore_missing:
+          - GATD3B
+          - IQCD
+          - IQCA1
+          - CRIPAK
+          - U2AF1L5
+          - SMC5-AS1
+          - SMIM11B
+          - TMEM155
+          - CBSL
+          - LINC00283
+          - TEMN3-AS1
+          - FLJ45513
+          - SIK1B
         perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
@@ -257,7 +305,23 @@ tables:
       - column_name: gene
         link_table_name: gene
         species: human
-        ignore_missing: []
+        # Retired/withdrawn HGNC symbols present across psychscreen DEG tables
+        # (per #125 audit). Silences load-db warnings; rows still added to
+        # central_gene as manual entries.
+        ignore_missing:
+          - GATD3B
+          - IQCD
+          - IQCA1
+          - CRIPAK
+          - U2AF1L5
+          - SMC5-AS1
+          - SMIM11B
+          - TMEM155
+          - CBSL
+          - LINC00283
+          - TEMN3-AS1
+          - FLJ45513
+          - SIK1B
         perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
