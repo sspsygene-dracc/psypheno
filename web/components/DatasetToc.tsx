@@ -93,6 +93,10 @@ export default function DatasetToc({
         top: 16,
         maxHeight: "calc(100vh - 48px)",
         overflowY: "auto",
+        // Without this, wheel events that hit the TOC's scroll limit chain
+        // up to the document and scroll the whole page — surprising when
+        // you're navigating a long dataset list.
+        overscrollBehavior: "contain",
         ...extraStyle,
       }}
     >
