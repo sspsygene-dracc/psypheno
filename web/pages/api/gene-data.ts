@@ -1,7 +1,15 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { sanitizeIdentifier, parseDisplayColumns, buildGeneQuery, queryFirstPage } from "@/lib/gene-query";
+import {
+  sanitizeIdentifier,
+  parseDisplayColumns,
+  buildGeneQuery,
+  queryFirstPage,
+  pickDefaultSortColumn,
+  validateSortColumn,
+  buildOrderByClause,
+} from "@/lib/gene-query";
 import {
   getEnsemblSymbolMap,
   resolveEnsgsInRows,
@@ -101,8 +109,22 @@ export default async function handler(
       });
       if (!query) continue;
 
+      // Default sort: FDR (or pvalue) ascending. Tables without either keep
+      // insertion order. (#86)
+      let orderBy: string | undefined;
+      const defaultSortCol = pickDefaultSortColumn({
+        fdr_column: t.fdr_column,
+        pvalue_column: t.pvalue_column,
+      });
+      if (defaultSortCol) {
+        const validCol = validateSortColumn(defaultSortCol, displayCols);
+        if (validCol) {
+          orderBy = buildOrderByClause({ column: validCol, mode: "asc", tableAlias: "b" });
+        }
+      }
+
       try {
-        const result = queryFirstPage(db, query.selectCols, query.fromAndWhere, query.params);
+        const result = queryFirstPage(db, query.selectCols, query.fromAndWhere, query.params, orderBy);
         if (!result) continue;
 
         let fieldLabels: Record<string, string> | null = null;

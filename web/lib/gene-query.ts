@@ -36,6 +36,23 @@ export function validateSortColumn(
   return sanitizeIdentifier(sortBy);
 }
 
+/**
+ * Pick the default sort column for a per-dataset table.
+ * Prefers FDR over raw p-value (FDR is multiple-testing-corrected). For
+ * comma-separated specs, uses the first listed column. Returns null when
+ * neither column is configured — caller should skip ORDER BY in that case
+ * so insertion order is preserved.
+ */
+export function pickDefaultSortColumn(t: {
+  fdr_column: string | null;
+  pvalue_column: string | null;
+}): string | null {
+  const src = t.fdr_column ?? t.pvalue_column;
+  if (!src) return null;
+  const first = src.split(",")[0]?.trim();
+  return first || null;
+}
+
 export function sanitizeIdentifier(id: string): string {
   if (!/^\w+$/.test(id)) throw new Error(`Invalid identifier: ${id}`);
   return id;

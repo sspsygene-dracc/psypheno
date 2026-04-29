@@ -90,12 +90,36 @@ export default function GeneResults({
     return () => mql.removeEventListener("change", handler);
   }, []);
 
-  // Reset pagination overrides and sort states when data changes (new gene selected)
+  // Reset pagination overrides and seed default expansion + sort state when
+  // data changes (new gene selected).
+  //   #90: expand p-value tables and volcano plots by default.
+  //   #86: mark each table's initial sort to match what the API pre-sorted by
+  //   (FDR or pvalue ascending). Cosmetic — doesn't trigger a re-fetch.
   useEffect(() => {
     Object.values(abortControllers.current).forEach((c) => c.abort());
     abortControllers.current = {};
     setTablePageOverrides({});
-    setTableSortStates({});
+
+    setExpandedSections(
+      new Set(
+        data
+          .filter((s) => s.pvalueColumn || s.fdrColumn)
+          .map((s) => s.tableName),
+      ),
+    );
+
+    setExpandedDistributions(
+      new Set(data.filter((s) => s.effectColumn).map((s) => s.tableName)),
+    );
+
+    const initialSorts: Record<string, TableSortState> = {};
+    for (const s of data) {
+      const src = s.fdrColumn ?? s.pvalueColumn;
+      if (!src) continue;
+      const col = src.split(",")[0]?.trim();
+      if (col) initialSorts[s.tableName] = { sortBy: col, sortMode: "asc" };
+    }
+    setTableSortStates(initialSorts);
   }, [data]);
 
   const scrollToTableTop = (tableName: string) => {
@@ -741,57 +765,6 @@ export default function GeneResults({
                       Failed to load page. {pageError}
                     </div>
                   )}
-                  {section.effectColumn && (
-                    <div
-                      style={{
-                        borderTop: "1px solid #e5e7eb",
-                        background: "#f8fafc",
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleDistribution(section.tableName)}
-                        style={{
-                          width: "100%",
-                          padding: "8px 14px",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: "#1e40af",
-                        }}
-                      >
-                        <span>
-                          Volcano plot ({section.effectColumn} vs p-value)
-                        </span>
-                        <span style={{ fontSize: 12, color: "#6b7280" }}>
-                          {expandedDistributions.has(section.tableName)
-                            ? "▲ Hide"
-                            : "▼ Show"}
-                        </span>
-                      </button>
-                      {expandedDistributions.has(section.tableName) && (
-                        <div style={{ padding: "0 14px 14px" }}>
-                          <EffectDistributionChart
-                            tableName={section.tableName}
-                            centralGeneId={centralGeneId}
-                            perturbedCentralGeneId={
-                              perturbedCentralGeneId ?? undefined
-                            }
-                            targetCentralGeneId={
-                              targetCentralGeneId ?? undefined
-                            }
-                            direction={isPairMode ? undefined : direction}
-                            geneSymbol={geneDisplayName ?? undefined}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
                   {(() => {
                     const showFooter =
                       effectiveRows.length > 5 || hasPagination;
@@ -901,6 +874,57 @@ export default function GeneResults({
                       </div>
                     );
                   })()}
+                  {section.effectColumn && (
+                    <div
+                      style={{
+                        borderTop: "1px solid #e5e7eb",
+                        background: "#f8fafc",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleDistribution(section.tableName)}
+                        style={{
+                          width: "100%",
+                          padding: "8px 14px",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "#1e40af",
+                        }}
+                      >
+                        <span>
+                          Volcano plot ({section.effectColumn} vs p-value)
+                        </span>
+                        <span style={{ fontSize: 12, color: "#6b7280" }}>
+                          {expandedDistributions.has(section.tableName)
+                            ? "▲ Hide"
+                            : "▼ Show"}
+                        </span>
+                      </button>
+                      {expandedDistributions.has(section.tableName) && (
+                        <div style={{ padding: "0 14px 14px" }}>
+                          <EffectDistributionChart
+                            tableName={section.tableName}
+                            centralGeneId={centralGeneId}
+                            perturbedCentralGeneId={
+                              perturbedCentralGeneId ?? undefined
+                            }
+                            targetCentralGeneId={
+                              targetCentralGeneId ?? undefined
+                            }
+                            direction={isPairMode ? undefined : direction}
+                            geneSymbol={geneDisplayName ?? undefined}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
