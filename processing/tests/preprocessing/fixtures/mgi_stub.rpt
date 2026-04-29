@@ -1,0 +1,4 @@
+MGI:98260	Slc30a3	O	solute carrier family 30 member 3	5.0	5	Gene		22785	Znt3	protein coding gene	1	2	+	protein-coding|protein_coding
+MGI:99607	Trp53	O	transformation related protein 53	37.0	11	Gene		22059	p53|bbl|TRP53|tumor protein p53	protein coding gene	1	2	+	protein-coding|protein_coding
+MGI:99607	p53	W	withdrawn, = Trp53	-999.0	11	Gene
+MGI:97276	Mtap	O	methylthioadenosine phosphorylase	0.0	4	Gene		66902	Mtap1	protein coding gene	1	2	+	protein-coding|protein_coding
