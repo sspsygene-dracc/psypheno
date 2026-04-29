@@ -48,6 +48,7 @@ def clean_gene_column(
     *,
     species: Species,
     normalizer: GeneSymbolNormalizer,
+    resolve_hgnc_id: bool = False,
     excel_demangle: bool = False,
     strip_make_unique: bool = False,
     split_symbol_ensg: bool = False,
@@ -89,6 +90,14 @@ def clean_gene_column(
             resolutions.append("passed_through")
             counts["passed_through"] += 1
             continue
+
+        if resolve_hgnc_id and name.startswith("HGNC:"):
+            rescued = normalizer.resolve_hgnc_id(name)
+            if rescued is not None:
+                new_values.append(rescued)
+                resolutions.append("rescued_hgnc_id")
+                counts["rescued_hgnc_id"] += 1
+                continue
 
         if excel_demangle:
             rescued = helpers.excel_demangle(name, normalizer, species)

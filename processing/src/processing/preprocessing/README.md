@@ -45,7 +45,15 @@ The pure helpers handle one rescue category each:
 For most callers, `clean_gene_column(df, column, species=..., normalizer=..., ...)`
 is the right entry point: it threads the helpers above into one pass
 over a column and emits a `_<column>_resolution` annotation column plus
-a `CleanReport` summary.
+a `CleanReport` summary. Available rescue flags:
+
+* `resolve_hgnc_id=True` — convert literal `HGNC:NNNNN` IDs to current
+  symbols (Tier C1).
+* `excel_demangle=True` — Tier A.
+* `strip_make_unique=True` — Tier C2.
+* `split_symbol_ensg=True` — Tier C3.
+* `drop_non_symbols=True` — drop rows whose value matches
+  `is_non_symbol_identifier` (Tier B silencing at preprocessing time).
 
 ## Migration guidance for wranglers
 

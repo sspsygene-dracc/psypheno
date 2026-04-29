@@ -119,6 +119,29 @@ def test_strip_make_unique_guard_b_suffixed_already_real(
     assert strip_make_unique_suffix("RP11-783K16.5", normalizer) is None
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        # Per the comment thread on #124: GENCODE clone names contain a
+        # legitimate `.N` suffix as part of the locus identifier (the
+        # ".5" in RP11-783K16.5 is *not* an R make.unique duplicate).
+        # The C2 helper must never strip it. The library-level guard
+        # protects against this because the un-suffixed form
+        # ("RP11-783K16") is also not a known symbol — but the
+        # combination is the exact regression we need to pin.
+        "RP11-783K16.5",
+        "CTD-2331H12.4",
+        "KB-1239A14.2",
+        "LL0XNC01-7P3.1",
+        "XXbac-BPG252P9.10",
+    ],
+)
+def test_strip_make_unique_does_not_corrupt_gencode_clones(
+    normalizer: GeneSymbolNormalizer, name: str
+) -> None:
+    assert strip_make_unique_suffix(name, normalizer) is None
+
+
 def test_strip_make_unique_no_suffix(normalizer: GeneSymbolNormalizer) -> None:
     assert strip_make_unique_suffix("MATR3", normalizer) is None
     assert strip_make_unique_suffix("", normalizer) is None
