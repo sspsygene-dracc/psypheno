@@ -54,7 +54,7 @@ def get_organoid_age(sheet_name: str) -> str:
     raise ValueError(f"Unexpected sheet name format: {sheet_name}")
 
 
-def build_region_genes_map() -> dict:
+def build_region_genes_map() -> dict[str, str]:
     with open(CNV_GENE_LISTS) as f:
         gene_lists = json.load(f)
 
@@ -86,7 +86,7 @@ def process_supp3() -> None:
         df = df.dropna(subset=["hgnc_symbol"])
         df = df[df["hgnc_symbol"].astype(str).str.strip() != ""]
 
-        df = df.rename(columns={
+        df = df.rename(columns={  # type: ignore
             "hgnc_symbol": "target_gene",
             "ensembl_gene_id": "Ensembl_Gene_Id",
             "AveExpr": "Avg_Expr",
