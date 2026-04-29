@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -10,6 +11,38 @@ from processing.types.gene_mapping import GeneMapping
 from processing.types.entrez_gene import EntrezGene
 from processing.types.link_table import LinkTable
 from processing.types.split_column_entry import SplitColumnEntry
+
+logger = logging.getLogger(__name__)
+
+# Per-table YAML keys that the loader recognizes. Anything else is ignored
+# silently today, which makes typos invisible — log a warning so wranglers
+# notice (e.g. `data_downloads:` from old #80 context, `field_label:` typo).
+_KNOWN_TABLE_KEYS: frozenset[str] = frozenset({
+    "table",
+    "shortLabel",
+    "mediumLabel",
+    "longLabel",
+    "description",
+    "source",
+    "assay",
+    "disease",
+    "organism",
+    "organism_key",
+    "fieldLabels",
+    "categories",
+    "links",
+    "in_path",
+    "separator",
+    "split_column_map",
+    "gene_mappings",
+    "pvalue_column",
+    "fdr_column",
+    "effect_column",
+    "changelog",
+    # Internal: dataset-level publication block, merged in by TablesConfig.
+    "_publication",
+    "publication",
+})
 
 
 def normalize_column_name(name: str) -> str:
@@ -120,6 +153,15 @@ class TableToProcessConfig:
         base_dir: Path,
         global_field_labels: dict[str, str] | None = None,
     ) -> "TableToProcessConfig":
+        unknown = set(json_data.keys()) - _KNOWN_TABLE_KEYS
+        if unknown:
+            table_name = json_data.get("table", "<unknown>")
+            logger.warning(
+                "table %s: unknown YAML key(s) %s — typo? Recognized keys: %s",
+                table_name,
+                sorted(unknown),
+                sorted(_KNOWN_TABLE_KEYS - {"_publication"}),
+            )
         publication: dict[str, Any] = json_data.get("_publication") or json_data.get("publication") or {}
         authors: list[str] = list(publication.get("authors", [])) if isinstance(
             publication.get("authors", []), list

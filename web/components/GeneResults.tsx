@@ -605,24 +605,63 @@ export default function GeneResults({
                         />
                       )}
                     </div>
-                    <Link
-                      href={`/full-datasets?open=${encodeURIComponent(
-                        section.shortLabel
-                          ? section.shortLabel.replace(/\s+/g, "_")
-                          : section.tableName,
-                      )}`}
+                    <div
                       style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
                         flexShrink: 0,
+                        flexWrap: "wrap",
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#2563eb",
-                        textDecoration: "none",
-                        whiteSpace: "nowrap",
                       }}
-                      title="Open the full data table for this dataset"
                     >
-                      View full data table →
-                    </Link>
+                      <a
+                        href={`/api/download/tables/${encodeURIComponent(section.tableName)}.tsv`}
+                        style={{
+                          padding: "3px 8px",
+                          background: "#ffffff",
+                          border: "1px solid #d1d5db",
+                          borderRadius: 6,
+                          color: "#1f2937",
+                          textDecoration: "none",
+                          whiteSpace: "nowrap",
+                        }}
+                        title="Download the full table as TSV"
+                      >
+                        TSV
+                      </a>
+                      <a
+                        href={`/api/download/metadata/${encodeURIComponent(section.tableName)}.yaml`}
+                        style={{
+                          padding: "3px 8px",
+                          background: "#ffffff",
+                          border: "1px solid #d1d5db",
+                          borderRadius: 6,
+                          color: "#1f2937",
+                          textDecoration: "none",
+                          whiteSpace: "nowrap",
+                        }}
+                        title="Download metadata YAML"
+                      >
+                        YAML
+                      </a>
+                      <Link
+                        href={`/full-datasets?open=${encodeURIComponent(
+                          section.shortLabel
+                            ? section.shortLabel.replace(/\s+/g, "_")
+                            : section.tableName,
+                        )}`}
+                        style={{
+                          color: "#2563eb",
+                          textDecoration: "none",
+                          whiteSpace: "nowrap",
+                        }}
+                        title="Open the full data table for this dataset"
+                      >
+                        View full data table →
+                      </Link>
+                    </div>
                   </div>
                   {section.description && (
                     <div

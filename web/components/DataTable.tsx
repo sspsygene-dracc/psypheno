@@ -109,6 +109,8 @@ export default function DataTable({
   columnFilters?: Record<string, string>;
   onColumnFilterChange?: (column: string, value: string) => void;
 }) {
+  // (download buttons are rendered by callers — see full-datasets.tsx and
+  // GeneResults.tsx — this component only owns the table itself.)
   const isControlled = onSort !== undefined;
 
   const [internalSortColumn, setInternalSortColumn] = useState<string | null>(null);

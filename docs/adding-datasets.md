@@ -280,8 +280,14 @@ tables:
       - iPSC-derived neurons        # Use whatever makes sense.
       - cortical development
 
-    links:                          # URLs to the paper or data source
-      - https://doi.org/10.1038/s41593-025-12345-6
+    links:                          # URLs to the paper AND the upstream data
+      - https://doi.org/10.1038/s41593-025-12345-6   # source. Include both: the
+      - https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE12345  # paper DOI
+                                    # and the data download URL (GEO/Zenodo/
+                                    # supplementary spreadsheet/etc.). These
+                                    # surface on the /download page so users
+                                    # can trace processed values back to the
+                                    # original release.
 
     # --- Statistical columns ---
 

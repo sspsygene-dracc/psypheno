@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/most-significant", label: "Most Significant Genes" },
   { href: "/methods", label: "Methods" },
   { href: "/dataset-changelog", label: "Changelog" },
+  { href: "/download", label: "Download" },
 ];
 
 const MOBILE_BREAKPOINT = 700;

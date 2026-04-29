@@ -10,6 +10,7 @@ from processing.central_gene_table import get_central_gene_table
 from processing.combined_pvalues import compute_combined_pvalues
 from processing.effect_distributions import compute_effect_distributions
 from processing.ensembl_symbol_table import compute_ensembl_to_symbol
+from processing.exports import write_exports
 from processing.gene_descriptions import copy_gene_descriptions
 from processing.new_sqlite3 import NewSqlite3
 from processing.sql_utils import sanitize_identifier
@@ -559,3 +560,14 @@ def load_db(
         db_name.with_name(db_name.name + "-shm"),
     ):
         old_sidecar.unlink(missing_ok=True)
+
+    # Build the user-facing download tree (per-table TSVs + metadata YAML +
+    # ensembl↔symbol mapping + manifest + zip + SQLite hardlink). Hosted as
+    # static files via /api/download in the web app.
+    try:
+        write_exports(db_name)
+    except Exception:
+        # Don't let an export hiccup invalidate a successful DB build — the
+        # site still serves fine without exports/, the /download page just
+        # 404s gracefully.
+        logger.exception("write_exports failed — DB is built; downloads will be missing")

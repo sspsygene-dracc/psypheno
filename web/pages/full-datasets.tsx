@@ -407,21 +407,58 @@ export default function FullDatasets() {
                       <InfoTooltip text={`Source: ${datasetData.source}`} size={14} />
                     )}
                   </div>
-                  {datasetData?.publication?.doi && (
-                    <Link
-                      href={`/publications#pub-${encodeURIComponent(
-                        datasetData.publication.doi,
-                      )}`}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      fontSize: 13,
+                      fontWeight: 500,
+                    }}
+                  >
+                    <a
+                      href={`/api/download/tables/${encodeURIComponent(selectedDataset)}.tsv`}
                       style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: "#2563eb",
-                        textDecoration: "underline",
+                        padding: "4px 10px",
+                        background: "#ffffff",
+                        border: "1px solid #d1d5db",
+                        borderRadius: 6,
+                        color: "#1f2937",
+                        textDecoration: "none",
                       }}
+                      title="Download the full table as TSV"
                     >
-                      See on Publications page
-                    </Link>
-                  )}
+                      Download TSV
+                    </a>
+                    <a
+                      href={`/api/download/metadata/${encodeURIComponent(selectedDataset)}.yaml`}
+                      style={{
+                        padding: "4px 10px",
+                        background: "#ffffff",
+                        border: "1px solid #d1d5db",
+                        borderRadius: 6,
+                        color: "#1f2937",
+                        textDecoration: "none",
+                      }}
+                      title="Download the table's metadata as YAML"
+                    >
+                      Metadata YAML
+                    </a>
+                    {datasetData?.publication?.doi && (
+                      <Link
+                        href={`/publications#pub-${encodeURIComponent(
+                          datasetData.publication.doi,
+                        )}`}
+                        style={{
+                          color: "#2563eb",
+                          textDecoration: "underline",
+                        }}
+                      >
+                        See on Publications page
+                      </Link>
+                    )}
+                  </div>
                 </div>
 
                 {loadingData && !loadingPage && (

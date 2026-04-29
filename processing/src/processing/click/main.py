@@ -71,12 +71,21 @@ def cli(
     default=False,
     help="Skip computing combined p-values (meta-analysis). Speeds up loading for test purposes.",
 )
+@click.option(
+    "--export-only",
+    is_flag=True,
+    default=False,
+    help="Skip the DB rebuild and only regenerate the user-facing download "
+    "tree (exports/) from the existing out_db. Useful while iterating on "
+    "the export step.",
+)
 def load_db(
     dataset: str | None,
     skip_missing_datasets: bool,
     no_index: bool,
     skip_gene_descriptions: bool,
     skip_meta_analysis: bool,
+    export_only: bool,
 ) -> None:
     """Load the database"""
     try:
@@ -84,6 +93,25 @@ def load_db(
 
         config = get_sspsygene_config(dataset=dataset)
         config.out_db.parent.mkdir(parents=True, exist_ok=True)
+        if export_only:
+            from processing.exports import write_exports
+
+            if not config.out_db.exists():
+                click.echo(
+                    f"Error: --export-only requires an existing DB at "
+                    f"{config.out_db}; run `sspsygene load-db` first.",
+                    err=True,
+                )
+                sys.exit(1)
+            write_exports(config.out_db)
+            click.echo(
+                click.style(
+                    f"Wrote exports to {config.out_db.parent / 'exports'}",
+                    fg="green",
+                    bold=True,
+                )
+            )
+            return
         load_db(
             config.out_db,
             config.tables_config.tables,
