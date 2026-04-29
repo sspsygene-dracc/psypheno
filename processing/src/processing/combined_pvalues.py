@@ -85,20 +85,19 @@ class GeneCombinedPvalues:
 class ComputeGroup:
     """Spec for one pre-computed combined-p-values output table.
 
-    `direction` is None for legacy groups (drop perturbed only when a single
-    table has both sides) and "target" / "perturbed" for the direction-aware
-    groups that drive the gene-search flip toggle.
+    `direction` is always "target" or "perturbed" — every gene_mapping carries
+    a direction now, so there is no direction-agnostic mode.
     """
 
     tables: list[tuple[str, str, str]]
     out_table: str
     label: str
+    direction: str
     assay_filter: str | None = None
     disease_filter: str | None = None
     organism_filter: str | None = None
     use_gene_flags: bool = True
     min_tables: int = 1
-    direction: str | None = None
 
 
 @dataclass
@@ -108,6 +107,7 @@ class CollectedGroup:
     pvalues: CollectedPvalues
     out_table: str
     label: str
+    direction: str
     assay_filter: str | None
     disease_filter: str | None
     organism_filter: str | None
@@ -252,70 +252,32 @@ def _load_nimh_priority_genes(nimh_csv_path: Path) -> set[str]:
     return symbols
 
 
-def _parse_link_tables(link_tables_raw: str) -> list[str]:
-    """Extract non-perturbed link table names from data_tables.link_tables.
-
-    Format: "col_name:link_table_name:is_perturbed:is_target,..."
-
-    In tables with both perturbed and target gene mappings, we skip the
-    perturbed link table: the perturbed gene appears in every row it was
-    knocked down in, so its p-values reflect target effects, not evidence
-    about the perturbed gene itself.
-    """
-    entries = []
-    for entry in link_tables_raw.split(","):
-        entry = entry.strip()
-        if not entry:
-            continue
-        parts = entry.split(":")
-        link_table_name = parts[1] if len(parts) >= 2 else parts[0]
-        is_perturbed = parts[2] == "1" if len(parts) >= 3 else False
-        entries.append((sanitize_identifier(link_table_name), is_perturbed))
-
-    has_perturbed = any(p for _, p in entries)
-    has_non_perturbed = any(not p for _, p in entries)
-
-    # If table has both perturbed and non-perturbed mappings, skip perturbed
-    if has_perturbed and has_non_perturbed:
-        return [name for name, is_perturbed in entries if not is_perturbed]
-
-    # Otherwise keep all (single-mapping tables, or all-perturbed tables)
-    return [name for name, _ in entries]
-
-
 def _parse_link_tables_for_direction(
     link_tables_raw: str, direction: str
 ) -> list[str]:
-    """Extract link tables for a specific search direction.
+    """Extract link tables matching a specific search direction.
 
     direction must be "target" or "perturbed".
 
-    Selection rule per link-table entry "col:lt:is_perturbed:is_target":
-      target    -> include if is_target == 1 OR (both flags 0)
-      perturbed -> include if is_perturbed == 1 OR (both flags 0)
-
-    Generic gene tables (both flags 0, e.g. SFARI/MGI) appear in both
-    directions. Pure-target tables only appear in target mode; pure-perturbed
-    tables only appear in perturbed mode. Mixed-direction tables contribute
-    only the matching side.
+    Format: "col_name:link_table_name:direction" (direction is the literal
+    string "perturbed" or "target"). Each link-table entry has exactly one
+    direction; we keep only the entries whose direction matches the request.
     """
     if direction not in ("target", "perturbed"):
-        raise ValueError(f"direction must be 'target' or 'perturbed', got {direction!r}")
+        raise ValueError(
+            f"direction must be 'target' or 'perturbed', got {direction!r}"
+        )
     out: list[str] = []
     for entry in link_tables_raw.split(","):
         entry = entry.strip()
         if not entry:
             continue
         parts = entry.split(":")
-        link_table_name = parts[1] if len(parts) >= 2 else parts[0]
-        is_perturbed = parts[2] == "1" if len(parts) >= 3 else False
-        is_target = parts[3] == "1" if len(parts) >= 4 else False
-        is_generic = (not is_perturbed) and (not is_target)
-        keep = (
-            (direction == "target" and (is_target or is_generic))
-            or (direction == "perturbed" and (is_perturbed or is_generic))
-        )
-        if keep:
+        if len(parts) < 3:
+            continue
+        link_table_name = parts[1]
+        entry_direction = parts[2]
+        if entry_direction == direction:
             out.append(sanitize_identifier(link_table_name))
     return out
 
@@ -533,25 +495,21 @@ def _collect_pvalues_for_tables(
     conn: sqlite3.Connection,
     tables_with_pvalues: list[tuple[str, str, str]],
     label: str = "",
-    direction: str | None = None,
+    direction: str = "target",
 ) -> CollectedPvalues:
     """Collect p-values from the database for the given tables.
 
-    direction: if "target" or "perturbed", uses _parse_link_tables_for_direction;
-    if None, uses the legacy _parse_link_tables (drop perturbed only when both
-    sides exist in the same table).
+    direction must be "target" or "perturbed"; tables whose link-table entries
+    don't include the matching direction are silently skipped.
     """
     collected = CollectedPvalues()
 
     for table_name, pvalue_cols_raw, link_tables_raw in tables_with_pvalues:
         table_name = sanitize_identifier(table_name)
         pvalue_cols = [sanitize_identifier(c) for c in pvalue_cols_raw.split(",")]
-        if direction is None:
-            link_table_names = _parse_link_tables(link_tables_raw or "")
-        else:
-            link_table_names = _parse_link_tables_for_direction(
-                link_tables_raw or "", direction
-            )
+        link_table_names = _parse_link_tables_for_direction(
+            link_tables_raw or "", direction
+        )
 
         if not link_table_names:
             continue
@@ -779,120 +737,104 @@ def compute_combined_pvalues(
                 for ok in organism_keys:
                     ado_combo[(ak, dk, ok)].append(entry)
 
-    # 3. Build list of all groups to compute
-    #   direction == None: legacy "drop perturbed only when both sides exist" rule
-    #   direction == "target" / "perturbed": direction-aware filter (drives the
-    #   gene-search flip toggle; see issues #65 / #66)
+    # 3. Build list of all groups to compute. Every group is direction-aware
+    #    ("target" or "perturbed"); the legacy mixed-direction precompute has
+    #    been retired now that every gene_mapping carries a direction.
     groups: list[ComputeGroup] = []
 
-    # Global group (min_tables=1: always compute even with a single source table)
-    groups.append(ComputeGroup(
-        tables=tables_3col,
-        out_table="gene_combined_pvalues",
-        label="[global] ",
-        min_tables=1,
-    ))
+    def _suffix(direction: str) -> str:
+        return "target" if direction == "target" else "perturbed"
 
-    # Direction-specific globals (drive the target/perturbed flip toggle).
-    groups.append(ComputeGroup(
-        tables=tables_3col,
-        out_table="gene_combined_pvalues_target",
-        label="[target] ",
-        min_tables=1,
-        direction="target",
-    ))
-    groups.append(ComputeGroup(
-        tables=tables_3col,
-        out_table="gene_combined_pvalues_perturbed",
-        label="[perturbed] ",
-        min_tables=1,
-        direction="perturbed",
-    ))
-
-    # Per-assay groups (min_tables=2: skip if only 1 source table)
-    for assay_key in sorted(assay_to_tables.keys()):
+    for direction in ("target", "perturbed"):
+        # Global (min_tables=1: always compute even with a single source table)
         groups.append(ComputeGroup(
-            tables=assay_to_tables[assay_key],
-            out_table=f"gene_combined_pvalues_{assay_key}",
-            label=f"[assay={assay_key}] ",
-            assay_filter=assay_key,
-            min_tables=2,
+            tables=tables_3col,
+            out_table=f"gene_combined_pvalues_{_suffix(direction)}",
+            label=f"[{direction}] ",
+            direction=direction,
+            min_tables=1,
         ))
 
-    # Per-disease groups
-    for disease_key in sorted(disease_to_tables.keys()):
-        groups.append(ComputeGroup(
-            tables=disease_to_tables[disease_key],
-            out_table=f"gene_combined_pvalues_d_{disease_key}",
-            label=f"[disease={disease_key}] ",
-            disease_filter=disease_key,
-            min_tables=2,
-        ))
+        for assay_key in sorted(assay_to_tables.keys()):
+            groups.append(ComputeGroup(
+                tables=assay_to_tables[assay_key],
+                out_table=f"gene_combined_pvalues_{assay_key}_{_suffix(direction)}",
+                label=f"[assay={assay_key}, {direction}] ",
+                direction=direction,
+                assay_filter=assay_key,
+                min_tables=2,
+            ))
 
-    # Per-organism groups
-    for organism_key in sorted(organism_to_tables.keys()):
-        groups.append(ComputeGroup(
-            tables=organism_to_tables[organism_key],
-            out_table=f"gene_combined_pvalues_o_{organism_key}",
-            label=f"[organism={organism_key}] ",
-            organism_filter=organism_key,
-            min_tables=2,
-        ))
+        for disease_key in sorted(disease_to_tables.keys()):
+            groups.append(ComputeGroup(
+                tables=disease_to_tables[disease_key],
+                out_table=f"gene_combined_pvalues_d_{disease_key}_{_suffix(direction)}",
+                label=f"[disease={disease_key}, {direction}] ",
+                direction=direction,
+                disease_filter=disease_key,
+                min_tables=2,
+            ))
 
-    # Per-(assay × disease) groups
-    for (assay_key, disease_key) in sorted(ad_combo.keys()):
-        groups.append(ComputeGroup(
-            tables=ad_combo[(assay_key, disease_key)],
-            out_table=f"gene_combined_pvalues_{assay_key}_d_{disease_key}",
-            label=f"[assay={assay_key}, disease={disease_key}] ",
-            assay_filter=assay_key,
-            disease_filter=disease_key,
-            min_tables=2,
-        ))
+        for organism_key in sorted(organism_to_tables.keys()):
+            groups.append(ComputeGroup(
+                tables=organism_to_tables[organism_key],
+                out_table=f"gene_combined_pvalues_o_{organism_key}_{_suffix(direction)}",
+                label=f"[organism={organism_key}, {direction}] ",
+                direction=direction,
+                organism_filter=organism_key,
+                min_tables=2,
+            ))
 
-    # Per-(assay × organism) groups
-    for (assay_key, organism_key) in sorted(ao_combo.keys()):
-        groups.append(ComputeGroup(
-            tables=ao_combo[(assay_key, organism_key)],
-            out_table=f"gene_combined_pvalues_{assay_key}_o_{organism_key}",
-            label=f"[assay={assay_key}, organism={organism_key}] ",
-            assay_filter=assay_key,
-            organism_filter=organism_key,
-            min_tables=2,
-        ))
+        for (assay_key, disease_key) in sorted(ad_combo.keys()):
+            groups.append(ComputeGroup(
+                tables=ad_combo[(assay_key, disease_key)],
+                out_table=f"gene_combined_pvalues_{assay_key}_d_{disease_key}_{_suffix(direction)}",
+                label=f"[assay={assay_key}, disease={disease_key}, {direction}] ",
+                direction=direction,
+                assay_filter=assay_key,
+                disease_filter=disease_key,
+                min_tables=2,
+            ))
 
-    # Per-(disease × organism) groups
-    for (disease_key, organism_key) in sorted(do_combo.keys()):
-        groups.append(ComputeGroup(
-            tables=do_combo[(disease_key, organism_key)],
-            out_table=f"gene_combined_pvalues_d_{disease_key}_o_{organism_key}",
-            label=f"[disease={disease_key}, organism={organism_key}] ",
-            disease_filter=disease_key,
-            organism_filter=organism_key,
-            min_tables=2,
-        ))
+        for (assay_key, organism_key) in sorted(ao_combo.keys()):
+            groups.append(ComputeGroup(
+                tables=ao_combo[(assay_key, organism_key)],
+                out_table=f"gene_combined_pvalues_{assay_key}_o_{organism_key}_{_suffix(direction)}",
+                label=f"[assay={assay_key}, organism={organism_key}, {direction}] ",
+                direction=direction,
+                assay_filter=assay_key,
+                organism_filter=organism_key,
+                min_tables=2,
+            ))
 
-    # Per-(assay × disease × organism) groups
-    for (assay_key, disease_key, organism_key) in sorted(ado_combo.keys()):
-        groups.append(ComputeGroup(
-            tables=ado_combo[(assay_key, disease_key, organism_key)],
-            out_table=f"gene_combined_pvalues_{assay_key}_d_{disease_key}_o_{organism_key}",
-            label=f"[assay={assay_key}, disease={disease_key}, organism={organism_key}] ",
-            assay_filter=assay_key,
-            disease_filter=disease_key,
-            organism_filter=organism_key,
-            min_tables=2,
-        ))
+        for (disease_key, organism_key) in sorted(do_combo.keys()):
+            groups.append(ComputeGroup(
+                tables=do_combo[(disease_key, organism_key)],
+                out_table=f"gene_combined_pvalues_d_{disease_key}_o_{organism_key}_{_suffix(direction)}",
+                label=f"[disease={disease_key}, organism={organism_key}, {direction}] ",
+                direction=direction,
+                disease_filter=disease_key,
+                organism_filter=organism_key,
+                min_tables=2,
+            ))
+
+        for (assay_key, disease_key, organism_key) in sorted(ado_combo.keys()):
+            groups.append(ComputeGroup(
+                tables=ado_combo[(assay_key, disease_key, organism_key)],
+                out_table=f"gene_combined_pvalues_{assay_key}_d_{disease_key}_o_{organism_key}_{_suffix(direction)}",
+                label=f"[assay={assay_key}, disease={disease_key}, organism={organism_key}, {direction}] ",
+                direction=direction,
+                assay_filter=assay_key,
+                disease_filter=disease_key,
+                organism_filter=organism_key,
+                min_tables=2,
+            ))
 
     # Phase 1: Collect p-values once per direction, then derive each group's
-    # CollectedPvalues by filtering. Per-assay/disease/combo groups all use
-    # direction=None and are subsets of tables_3col, so the direction=None
-    # master IS the [global] group's pvalues; the [target] / [perturbed]
-    # groups consume their direction's master directly.
-    click.echo("\n  Collecting p-values (3 master scans by direction)...")
-    master_none = _collect_pvalues_for_tables(
-        conn, tables_3col, "[direction=None] ", direction=None,
-    )
+    # CollectedPvalues by filtering. Filtered (per-assay/disease/organism)
+    # groups consume the matching direction's master, restricted to their
+    # subset of source tables.
+    click.echo("\n  Collecting p-values (2 master scans by direction)...")
     master_target = _collect_pvalues_for_tables(
         conn, tables_3col, "[direction=target] ", direction="target",
     )
@@ -902,26 +844,33 @@ def compute_combined_pvalues(
 
     collected_pvals_by_idx: dict[int, CollectedPvalues] = {}
     for i, group in enumerate(groups):
-        unique_tables = list({t[0]: t for t in group.tables}.values())
-        if len(unique_tables) < group.min_tables:
+        master = master_target if group.direction == "target" else master_perturbed
+        unique_tables = {t[0] for t in group.tables}
+        if unique_tables == {t[0] for t in tables_3col}:
+            candidate = master
+        else:
+            candidate = _filter_collected(master, unique_tables)
+
+        # min_tables must be checked against tables that *actually* contribute
+        # in this direction — a filter group may include tables that all lack
+        # the requested direction (pure-target tables in a perturbed group, or
+        # vice versa), which would otherwise produce an empty R job.
+        contributing: set[str] = set()
+        for gene_tbls in candidate.per_table.values():
+            contributing.update(gene_tbls.keys())
+        if len(contributing) < group.min_tables:
             click.echo(
-                f"  {group.label}Skipping — only {len(unique_tables)} source table(s)"
+                f"  {group.label}Skipping — only {len(contributing)} source "
+                f"table(s) contribute in direction={group.direction}"
             )
             collected_pvals_by_idx[i] = CollectedPvalues()
             continue
 
-        if group.direction == "target":
-            collected_pvals_by_idx[i] = master_target
-        elif group.direction == "perturbed":
-            collected_pvals_by_idx[i] = master_perturbed
-        elif len(unique_tables) == len(tables_3col):
-            collected_pvals_by_idx[i] = master_none
-        else:
-            table_set = {t[0] for t in unique_tables}
-            collected_pvals_by_idx[i] = _filter_collected(master_none, table_set)
+        collected_pvals_by_idx[i] = candidate
+        if candidate is not master:
             click.echo(
-                f"  {group.label}Derived from direction=None master "
-                f"({len(table_set)} tables)"
+                f"  {group.label}Derived from direction={group.direction} master "
+                f"({len(contributing)} tables)"
             )
 
     collected: list[CollectedGroup] = [
@@ -929,6 +878,7 @@ def compute_combined_pvalues(
             pvalues=collected_pvals_by_idx[i],
             out_table=group.out_table,
             label=group.label,
+            direction=group.direction,
             assay_filter=group.assay_filter,
             disease_filter=group.disease_filter,
             organism_filter=group.organism_filter,
@@ -977,9 +927,10 @@ def compute_combined_pvalues(
         assay_filter TEXT,
         disease_filter TEXT,
         organism_filter TEXT,
+        direction TEXT,
         table_name TEXT,
         num_source_tables INTEGER,
-        PRIMARY KEY (assay_filter, disease_filter, organism_filter)
+        PRIMARY KEY (assay_filter, disease_filter, organism_filter, direction)
         )"""
     )
 
@@ -987,12 +938,13 @@ def compute_combined_pvalues(
         if cg.pvalues.is_empty():
             # Group was skipped (< min_tables source tables)
             conn.execute(
-                "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, organism_filter, table_name, num_source_tables) "
-                "VALUES (?, ?, ?, NULL, ?)",
+                "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, organism_filter, direction, table_name, num_source_tables) "
+                "VALUES (?, ?, ?, ?, NULL, ?)",
                 (
                     cg.assay_filter,
                     cg.disease_filter,
                     cg.organism_filter,
+                    cg.direction,
                     len(cg.pvalues.per_table),
                 ),
             )
@@ -1011,12 +963,13 @@ def compute_combined_pvalues(
             tbl for gene_tbls in cg.pvalues.per_table.values() for tbl in gene_tbls
         })
         conn.execute(
-            "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, organism_filter, table_name, num_source_tables) "
-            "VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO combined_pvalue_groups (assay_filter, disease_filter, organism_filter, direction, table_name, num_source_tables) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
             (
                 cg.assay_filter,
                 cg.disease_filter,
                 cg.organism_filter,
+                cg.direction,
                 cg.out_table,
                 num_source,
             ),

@@ -76,8 +76,7 @@ tables:
         ignore_missing:
           - not_available
           - none identified
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: perturbed
   - table: brain_organoid_atlas_nebula_gene_0_05_FDR
     changelog:
       - date: "2025-11-05"
@@ -112,8 +111,7 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
         replace:
           TBCE.1: TBCE
           MATR3.1: MATR3
@@ -157,8 +155,7 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
         replace:
           TBCE.1: TBCE
           MATR3.1: MATR3
@@ -202,8 +199,7 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
         replace:
           TBCE.1: TBCE
           CYB561D2.1: CYB561D2
@@ -248,7 +244,6 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
     pvalue_column: p
     fdr_column: p_adjust

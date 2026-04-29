@@ -263,9 +263,7 @@ export default function AllGenes() {
                       return selectedParam ? (
                         <Link
                           key={`${sug.centralGeneId}-${idx}`}
-                          href={`/?searchMode=general&selected=${encodeURIComponent(
-                            selectedParam
-                          )}`}
+                          href={`/?target=${encodeURIComponent(selectedParam)}`}
                           style={{ textDecoration: "none" }}
                         >
                           {row}

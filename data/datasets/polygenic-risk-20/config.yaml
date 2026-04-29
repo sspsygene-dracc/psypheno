@@ -61,13 +61,11 @@ tables:
       - column_name: target_gene
         link_table_name: Target_Gene
         species: human
-        is_perturbed: false
-        is_target: true
+        perturbed_or_target: target
       - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
         species: human
-        is_perturbed: true
-        is_target: false
+        perturbed_or_target: perturbed
     fieldLabels:
       perturbed_gene: "Gene targeted by CRISPRa or shRNA in this sample (compared to scramble non-targeting controls)"
       target_gene: "Gene whose expression was measured (one row per gene)"
@@ -107,13 +105,11 @@ tables:
       - column_name: target_gene
         link_table_name: Target_Gene
         species: human
-        is_perturbed: false
-        is_target: true
+        perturbed_or_target: target
       - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
         species: human
-        is_perturbed: true
-        is_target: false
+        perturbed_or_target: perturbed
     fieldLabels:
       perturbed_gene: "Gene targeted by the gRNA carried by these single cells (compared to scramble non-targeting cells)"
       target_gene: "Gene whose expression was measured (one row per gene)"

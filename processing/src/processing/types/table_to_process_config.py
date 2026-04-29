@@ -118,13 +118,12 @@ class TableToProcessConfig:
                     f"disallowed characters. Only lowercase letters, digits, "
                     f"and underscores are allowed."
                 )
-        num_perturbed = 0
-        num_target = 0
-        for gene_mapping in self.gene_mappings:
-            if gene_mapping.is_perturbed:
-                num_perturbed += 1
-            if gene_mapping.is_target:
-                num_target += 1
+        num_perturbed = sum(
+            1 for gm in self.gene_mappings if gm.perturbed_or_target == "perturbed"
+        )
+        num_target = sum(
+            1 for gm in self.gene_mappings if gm.perturbed_or_target == "target"
+        )
         if num_perturbed > 1:
             raise ValueError(
                 f"table {self.table}: A table cannot have more than one perturbed central gene conversion"
@@ -133,18 +132,10 @@ class TableToProcessConfig:
             raise ValueError(
                 f"table {self.table}: A table cannot have more than one target central gene conversion"
             )
-        if num_perturbed != num_target:
-            # Permitting pure-target-only or pure-perturbed-only tables would
-            # also require softening the pair-mode query in
-            # web/lib/gene-query.ts (it currently requires exactly one
-            # perturbed AND one target link table per data table). No current
-            # dataset needs this; revisit when a wrangler does.
+        if num_perturbed + num_target == 0 and self.gene_mappings:
             raise ValueError(
-                f"table {self.table}: A table must have exactly one perturbed and one target central gene conversion, or none"
+                f"table {self.table}: At least one gene_mapping must be present"
             )
-        assert (num_perturbed == 0 and num_target == 0) or (
-            num_perturbed == 1 and num_target == 1
-        ), f"for table {self.table}: num_perturbed: {num_perturbed}, num_target: {num_target}"
 
     @classmethod
     def from_json(

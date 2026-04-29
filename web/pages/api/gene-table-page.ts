@@ -18,8 +18,6 @@ import {
 const bodySchema = z.object({
   tableName: z.string().min(1),
   page: z.number().min(1),
-  centralGeneId: z.number().min(0).optional(),
-  direction: z.enum(["target", "perturbed"]).optional(),
   perturbedCentralGeneId: z.number().nullable().optional(),
   targetCentralGeneId: z.number().nullable().optional(),
   sortBy: z.string().optional(),
@@ -39,10 +37,9 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { tableName, page, centralGeneId, perturbedCentralGeneId, targetCentralGeneId } = parse.data;
-  const isPairMode = centralGeneId === undefined;
+  const { tableName, page, perturbedCentralGeneId, targetCentralGeneId } = parse.data;
 
-  if (isPairMode && !perturbedCentralGeneId && !targetCentralGeneId) {
+  if (!perturbedCentralGeneId && !targetCentralGeneId) {
     return res.status(400).json({ error: "At least one gene ID is required" });
   }
 
@@ -71,10 +68,13 @@ export default async function handler(
       return res.status(400).json({ error: "Table has no display columns" });
     }
 
-    const direction = parse.data.direction ?? "target";
-    const query = isPairMode
-      ? buildGeneQuery({ baseTable, displayCols, linkTablesRaw: t.link_tables || "", perturbedCentralGeneId, targetCentralGeneId })
-      : buildGeneQuery({ baseTable, displayCols, linkTablesRaw: t.link_tables || "", centralGeneId, direction });
+    const query = buildGeneQuery({
+      baseTable,
+      displayCols,
+      linkTablesRaw: t.link_tables || "",
+      perturbedCentralGeneId,
+      targetCentralGeneId,
+    });
 
     if (!query) {
       return res.status(400).json({ error: "Cannot query this table with the given parameters" });

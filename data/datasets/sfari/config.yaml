@@ -47,8 +47,7 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: perturbed
   - table: sfari_animal_rescues
     changelog:
       - date: "2025-10-06"
@@ -84,8 +83,7 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: perturbed
   - table: sfari_human_genes
     changelog:
       - date: "2025-10-06"
@@ -121,5 +119,4 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: perturbed

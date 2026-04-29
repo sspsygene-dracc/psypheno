@@ -1,6 +1,6 @@
 """Tests for the combined p-value pipeline.
 
-Covers: _precollapse, _parse_link_tables, _load_hgnc_gene_flags,
+Covers: _precollapse, _parse_link_tables_for_direction, _load_hgnc_gene_flags,
 _call_r_combine, and compute_combined_pvalues.
 """
 
@@ -19,7 +19,7 @@ from processing.combined_pvalues import (
     GeneCombinedPvalues,
     _call_r_combine,  # pyright: ignore[reportPrivateUsage]
     _load_hgnc_gene_flags,  # pyright: ignore[reportPrivateUsage]
-    _parse_link_tables,  # pyright: ignore[reportPrivateUsage]
+    _parse_link_tables_for_direction,  # pyright: ignore[reportPrivateUsage]
     _precollapse,  # pyright: ignore[reportPrivateUsage]
     compute_combined_pvalues,
 )
@@ -120,38 +120,45 @@ class TestPrecollapse:
 # ===================================================================
 
 
-class TestParseLinkTables:
+class TestParseLinkTablesForDirection:
     def test_empty_string(self):
-        assert _parse_link_tables("") == []
+        assert _parse_link_tables_for_direction("", "target") == []
+        assert _parse_link_tables_for_direction("", "perturbed") == []
 
-    def test_single_non_perturbed(self):
-        assert _parse_link_tables("gene:tbl__link:0:1") == ["tbl__link"]
+    def test_target_entry_kept_for_target(self):
+        assert _parse_link_tables_for_direction("gene:tbl__link:target", "target") == [
+            "tbl__link"
+        ]
 
-    def test_single_perturbed_only_kept(self):
-        # Only perturbed, no non-perturbed exists → keep all
-        assert _parse_link_tables("gene:tbl__pert:1:0") == ["tbl__pert"]
+    def test_target_entry_dropped_for_perturbed(self):
+        assert _parse_link_tables_for_direction("gene:tbl__link:target", "perturbed") == []
 
-    def test_both_types_filters_perturbed(self):
-        raw = "gene:tbl__target:0:1,pert:tbl__pert:1:0"
-        assert _parse_link_tables(raw) == ["tbl__target"]
+    def test_perturbed_entry_kept_for_perturbed(self):
+        assert _parse_link_tables_for_direction("gene:tbl__pert:perturbed", "perturbed") == [
+            "tbl__pert"
+        ]
 
-    def test_multiple_non_perturbed(self):
-        raw = "g1:lt1:0:1,g2:lt2:0:1"
-        result = _parse_link_tables(raw)
-        assert result == ["lt1", "lt2"]
+    def test_paired_table_splits_by_direction(self):
+        raw = "gene:tbl__target:target,pert:tbl__pert:perturbed"
+        assert _parse_link_tables_for_direction(raw, "target") == ["tbl__target"]
+        assert _parse_link_tables_for_direction(raw, "perturbed") == ["tbl__pert"]
 
-    def test_all_perturbed_kept(self):
-        raw = "p1:lt1:1:0,p2:lt2:1:0"
-        result = _parse_link_tables(raw)
-        assert result == ["lt1", "lt2"]
+    def test_multiple_target(self):
+        raw = "g1:lt1:target,g2:lt2:target"
+        assert _parse_link_tables_for_direction(raw, "target") == ["lt1", "lt2"]
+        assert _parse_link_tables_for_direction(raw, "perturbed") == []
 
     def test_whitespace_trimmed(self):
-        raw = " gene:tbl__target:0:1 , pert:tbl__pert:1:0 "
-        assert _parse_link_tables(raw) == ["tbl__target"]
+        raw = " gene:tbl__target:target , pert:tbl__pert:perturbed "
+        assert _parse_link_tables_for_direction(raw, "target") == ["tbl__target"]
 
-    def test_short_parts_defaults_not_perturbed(self):
-        # Only 2 parts: is_perturbed defaults to False
-        assert _parse_link_tables("gene:tbl") == ["tbl"]
+    def test_short_parts_skipped(self):
+        # Fewer than 3 parts: entry is malformed and dropped.
+        assert _parse_link_tables_for_direction("gene:tbl", "target") == []
+
+    def test_invalid_direction_raises(self):
+        with pytest.raises(ValueError):
+            _parse_link_tables_for_direction("gene:tbl:target", "global")
 
 
 # ===================================================================
@@ -438,7 +445,7 @@ class TestPvalueCollection:
         conn.execute("INSERT INTO tbl_a__link VALUES (3, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:0:1')"
+            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target')"
         )
         conn.commit()
 
@@ -469,7 +476,7 @@ class TestPvalueCollection:
         conn.execute("INSERT INTO tbl_a__link VALUES (2, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:0:1')"
+            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target')"
         )
         conn.commit()
 
@@ -495,7 +502,7 @@ class TestPvalueCollection:
         conn.execute("INSERT INTO tbl_a__link VALUES (2, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:0:1')"
+            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target')"
         )
         conn.commit()
 
@@ -521,7 +528,7 @@ class TestPvalueCollection:
         conn.execute("INSERT INTO tbl_a__link VALUES (2, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:0:1')"
+            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target')"
         )
         conn.commit()
 
@@ -547,7 +554,7 @@ class TestPvalueCollection:
         conn.execute("INSERT INTO tbl_a__link VALUES (2, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:0:1')"
+            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target')"
         )
         conn.commit()
 
@@ -572,7 +579,7 @@ class TestPvalueCollection:
         conn.execute("INSERT INTO tbl_a__link VALUES (1, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:0:1')"
+            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target')"
         )
         # Table B
         conn.execute("CREATE TABLE tbl_b (id INTEGER, pval REAL)")
@@ -581,7 +588,7 @@ class TestPvalueCollection:
         conn.execute("INSERT INTO tbl_b__link VALUES (1, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_b', 'pval', 'gene:tbl_b__link:0:1')"
+            "VALUES ('tbl_b', 'pval', 'gene:tbl_b__link:target')"
         )
         conn.commit()
 
@@ -774,7 +781,7 @@ class TestEndToEnd:
         conn.execute("INSERT INTO tbl_a__link VALUES (2, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:0:1')"
+            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target')"
         )
         conn.commit()
 
@@ -782,7 +789,7 @@ class TestEndToEnd:
             compute_combined_pvalues(conn)
 
         row = conn.execute(
-            "SELECT * FROM gene_combined_pvalues WHERE central_gene_id = 1"
+            "SELECT * FROM gene_combined_pvalues_target WHERE central_gene_id = 1"
         ).fetchone()
         assert row is not None
         # Column order: gene_id, fisher, fisher_fdr, stouffer, stouffer_fdr,
@@ -808,7 +815,7 @@ class TestEndToEnd:
         conn.execute("INSERT INTO tbl_a__link VALUES (2, 2)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:0:1')"
+            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target')"
         )
         # Table B: gene 1 has row 1
         conn.execute("CREATE TABLE tbl_b (id INTEGER, pval REAL)")
@@ -817,7 +824,7 @@ class TestEndToEnd:
         conn.execute("INSERT INTO tbl_b__link VALUES (1, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_b', 'pval', 'gene:tbl_b__link:0:1')"
+            "VALUES ('tbl_b', 'pval', 'gene:tbl_b__link:target')"
         )
         conn.commit()
 
@@ -826,7 +833,7 @@ class TestEndToEnd:
         # Gene 1: 2 tables, 2 p-values → Fisher/Stouffer should have results
         row1 = conn.execute(
             "SELECT fisher_pvalue, stouffer_pvalue, cauchy_pvalue, hmp_pvalue, "
-            "num_tables, num_pvalues FROM gene_combined_pvalues WHERE central_gene_id = 1"
+            "num_tables, num_pvalues FROM gene_combined_pvalues_target WHERE central_gene_id = 1"
         ).fetchone()
         assert row1 is not None
         assert row1[4] == 2  # num_tables
@@ -840,7 +847,7 @@ class TestEndToEnd:
         # Gene 2: 1 table, 1 p-value → Fisher/Stouffer should be None
         row2 = conn.execute(
             "SELECT fisher_pvalue, stouffer_pvalue, cauchy_pvalue, hmp_pvalue, "
-            "num_tables, num_pvalues FROM gene_combined_pvalues WHERE central_gene_id = 2"
+            "num_tables, num_pvalues FROM gene_combined_pvalues_target WHERE central_gene_id = 2"
         ).fetchone()
         assert row2 is not None
         assert row2[4] == 1  # num_tables
@@ -860,7 +867,7 @@ class TestEndToEnd:
         conn.execute("INSERT INTO tbl_a__link VALUES (1, 3)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:0:1')"
+            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target')"
         )
         conn.commit()
 
@@ -868,7 +875,7 @@ class TestEndToEnd:
             compute_combined_pvalues(conn)
 
         row = conn.execute(
-            "SELECT gene_flags FROM gene_combined_pvalues WHERE central_gene_id = 3"
+            "SELECT gene_flags FROM gene_combined_pvalues_target WHERE central_gene_id = 3"
         ).fetchone()
         assert row is not None
         assert row[0] == "no_hgnc"
@@ -882,7 +889,7 @@ class TestEndToEnd:
         conn.execute("INSERT INTO tbl_a__link VALUES (1, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:0:1')"
+            "VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target')"
         )
         conn.commit()
 
@@ -890,7 +897,7 @@ class TestEndToEnd:
             compute_combined_pvalues(conn)
 
         row = conn.execute(
-            "SELECT gene_flags FROM gene_combined_pvalues WHERE central_gene_id = 1"
+            "SELECT gene_flags FROM gene_combined_pvalues_target WHERE central_gene_id = 1"
         ).fetchone()
         assert row is not None
         assert row[0] is None  # BRCA1 has hgnc_id and no matching gene group

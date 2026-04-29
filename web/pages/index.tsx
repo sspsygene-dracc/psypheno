@@ -11,25 +11,14 @@ import { SearchSuggestion } from "@/state/SearchSuggestion";
 
 export default function Home() {
   const router = useRouter();
-  const [selected, setSelected] = useState<SearchSuggestion | null>(null);
   const [perturbed, setPerturbed] = useState<SearchSuggestion | null>(null);
   const [target, setTarget] = useState<SearchSuggestion | null>(null);
-  const [searchMode, setSearchMode] = useState<"general" | "pair">("general");
-  const [direction, setDirection] = useState<"target" | "perturbed">("target");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [generalData, setGeneralData] = useState<TableResult[]>([]);
   const [pairData, setPairData] = useState<TableResult[]>([]);
   const [assayTypeLabels, setAssayTypeLabels] = useState<
     Record<string, string>
   >({});
-  const [geneDescription, setGeneDescription] = useState<string | null>(null);
-  const [llmResult, setLlmResult] = useState<{
-    pubmedLinks: string | null;
-    summary: string | null;
-    status: string;
-    searchDate: string;
-  } | null>(null);
   const hydratedFromQuery = useRef<boolean>(false);
 
   useEffect(() => {
@@ -66,54 +55,31 @@ export default function Home() {
     }
   };
 
-  // Sync state from URL: runs on initial ready and whenever query params
-  // change externally (e.g. clicking a gene-cell Link in a result table or
-  // navigating via Back/Forward). Idempotent — skips re-resolving when the
-  // current state already matches the URL.
-  const qSelected =
-    typeof router.query.selected === "string" ? router.query.selected : null;
   const qPerturbed =
     typeof router.query.perturbed === "string" ? router.query.perturbed : null;
   const qTarget =
     typeof router.query.target === "string" ? router.query.target : null;
-  const qMode: "general" | "pair" =
-    router.query.searchmode === "pair" ? "pair" : "general";
-  const qDirection: "target" | "perturbed" =
-    router.query.direction === "perturbed" ? "perturbed" : "target";
 
   useEffect(() => {
     if (!router.isReady) return;
-    if (qMode !== searchMode) setSearchMode(qMode);
-    if (qDirection !== direction) setDirection(qDirection);
 
     let cancelled = false;
     const hydrate = async () => {
-      if (qMode === "general") {
-        if (qSelected) {
-          if (selected?.humanSymbol !== qSelected) {
-            const s = await resolveSymbol(qSelected);
-            if (!cancelled && s) setSelected(s);
-          }
-        } else if (selected) {
-          setSelected(null);
+      if (qPerturbed) {
+        if (perturbed?.humanSymbol !== qPerturbed) {
+          const sp = await resolveSymbol(qPerturbed);
+          if (!cancelled && sp) setPerturbed(sp);
         }
-      } else {
-        if (qPerturbed) {
-          if (perturbed?.humanSymbol !== qPerturbed) {
-            const sp = await resolveSymbol(qPerturbed);
-            if (!cancelled && sp) setPerturbed(sp);
-          }
-        } else if (perturbed) {
-          setPerturbed(null);
+      } else if (perturbed) {
+        setPerturbed(null);
+      }
+      if (qTarget) {
+        if (target?.humanSymbol !== qTarget) {
+          const st = await resolveSymbol(qTarget);
+          if (!cancelled && st) setTarget(st);
         }
-        if (qTarget) {
-          if (target?.humanSymbol !== qTarget) {
-            const st = await resolveSymbol(qTarget);
-            if (!cancelled && st) setTarget(st);
-          }
-        } else if (target) {
-          setTarget(null);
-        }
+      } else if (target) {
+        setTarget(null);
       }
       hydratedFromQuery.current = true;
     };
@@ -121,25 +87,17 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [router.isReady, qMode, qSelected, qPerturbed, qTarget, qDirection]);
+  }, [router.isReady, qPerturbed, qTarget]);
 
   // Keep URL in sync with UI state
   useEffect(() => {
     if (!router.isReady) return;
-    // Avoid pushing while we're still hydrating initial state
     if (!hydratedFromQuery.current) return;
 
-    const nextQuery: Record<string, string> = { searchmode: searchMode };
-    if (searchMode === "general") {
-      if (selected?.humanSymbol) nextQuery.selected = selected.humanSymbol;
-      // Default 'target' is omitted from the URL to keep it clean.
-      if (direction === "perturbed") nextQuery.direction = "perturbed";
-    } else {
-      if (perturbed?.humanSymbol) nextQuery.perturbed = perturbed.humanSymbol;
-      if (target?.humanSymbol) nextQuery.target = target.humanSymbol;
-    }
+    const nextQuery: Record<string, string> = {};
+    if (perturbed?.humanSymbol) nextQuery.perturbed = perturbed.humanSymbol;
+    if (target?.humanSymbol) nextQuery.target = target.humanSymbol;
 
-    // Compare with current to avoid unnecessary replaces
     const curr = router.query as Record<string, any>;
     const keys = new Set([...Object.keys(curr), ...Object.keys(nextQuery)]);
     let changed = false;
@@ -156,49 +114,14 @@ export default function Home() {
     router.replace({ pathname: router.pathname, query: nextQuery }, undefined, {
       shallow: true,
     });
-  }, [searchMode, selected, perturbed, target, direction, router.isReady]);
+  }, [perturbed, target, router.isReady]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!selected) {
-        setGeneDescription(null);
-        setLlmResult(null);
-        return;
-      }
-      setLoading(true);
-      setError(null);
-      setGeneralData([]);
-      setGeneDescription(null);
-      setLlmResult(null);
-      try {
-        const res = await fetch("/api/gene-data", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            centralGeneId: selected.centralGeneId,
-            direction,
-          }),
-        });
-        if (!res.ok) throw new Error(`Failed: ${res.status}`);
-        const payload = await res.json();
-        const results = Array.isArray(payload.results) ? payload.results : [];
-        setGeneralData(results);
-        setGeneDescription(payload.geneDescription ?? null);
-        setLlmResult(payload.llmResult ?? null);
-      } catch (e: any) {
-        setError(e?.message || "Failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [selected, direction]);
-
-  // Fetch pair data when both perturbed and target are selected in pair mode
   useEffect(() => {
     const fetchPair = async () => {
-      if (searchMode !== "pair") return;
-      if (!perturbed && !target) return;
+      if (!perturbed && !target) {
+        setPairData([]);
+        return;
+      }
       setLoading(true);
       setError(null);
       setPairData([]);
@@ -224,15 +147,7 @@ export default function Home() {
     fetchPair();
   }, [perturbed, target]);
 
-  const displayResults = () => {
-    if (searchMode === "general" && selected) {
-      return true;
-    }
-    if (searchMode === "pair" && (perturbed || target)) {
-      return true;
-    }
-    return false;
-  };
+  const showResults = perturbed != null || target != null;
 
   const simpleGeneString = (gene: SearchSuggestion | null) => {
     if (!gene) return "Any";
@@ -244,13 +159,8 @@ export default function Home() {
   };
 
   const displayGeneString = () => {
-    if (searchMode === "general" && selected) {
-      return simpleGeneString(selected);
-    }
-    if (searchMode === "pair" && (perturbed || target)) {
-      return `${simpleGeneString(perturbed)} → ${simpleGeneString(target)}`;
-    }
-    return null;
+    if (!showResults) return null;
+    return `${simpleGeneString(perturbed)} → ${simpleGeneString(target)}`;
   };
 
   const maybeLoading = (
@@ -348,7 +258,7 @@ export default function Home() {
           >
             <span style={{ fontWeight: 600 }}>New</span>{" "}
             <span style={{ color: "#6b7280", fontSize: 12 }}>(Mar 2026)</span>
-            {" \u2014 "}
+            {" — "}
             <a
               href="/most-significant"
               style={{ color: "#2563eb", textDecoration: "none" }}
@@ -357,70 +267,22 @@ export default function Home() {
               available!
             </a>
           </div>
-          {/* Mode toggle */}
+
           <div
             style={{
               width: "min(720px, 92%)",
               boxSizing: "border-box",
-              display: "flex",
-              gap: 8,
+              marginTop: 16,
               background: "#f9fafb",
               border: "1px solid #e5e7eb",
               borderRadius: 12,
-              padding: 4,
+              padding: 8,
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 12,
             }}
           >
-            <button
-              onClick={() => setSearchMode("general")}
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                borderRadius: 10,
-                border: "none",
-                cursor: "pointer",
-                background:
-                  searchMode === "general" ? "#ffffff" : "transparent",
-                color: "#1f2937",
-                fontWeight: 600,
-                boxShadow:
-                  searchMode === "general"
-                    ? "0 1px 3px rgba(0,0,0,0.1)"
-                    : "none",
-              }}
-            >
-              General gene search
-            </button>
-            <button
-              onClick={() => setSearchMode("pair")}
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                borderRadius: 10,
-                border: "none",
-                cursor: "pointer",
-                background: searchMode === "pair" ? "#ffffff" : "transparent",
-                color: "#1f2937",
-                fontWeight: 600,
-                boxShadow:
-                  searchMode === "pair" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-              }}
-            >
-              Perturbed/Target search
-            </button>
-          </div>
-
-          {searchMode === "general" && (
-            <div
-              style={{
-                width: "min(720px, 92%)",
-                boxSizing: "border-box",
-                marginTop: 16,
-                background: "#f9fafb",
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                padding: 8,
-              }}
-            >
+            <div>
               <div
                 style={{
                   display: "flex",
@@ -431,84 +293,44 @@ export default function Home() {
                   padding: "4px 6px 6px",
                 }}
               >
-                <span>Gene</span>
+                <span>Perturbed gene</span>
                 <InfoTooltip
                   size={13}
-                  text="Type a gene symbol or synonym in any of human, mouse, or zebrafish. Returns every consortium dataset that has touched this gene — whether it appears as a perturbed gene (the one experimentally manipulated: CRISPRi, CRISPRa, RNAi, knockout, mutant line) or as a target gene (the one whose expression or activity was measured)."
+                  text="The gene that was experimentally manipulated in this dataset's experiment — knocked down (CRISPRi, RNAi/shRNA), upregulated (CRISPRa, overexpression), knocked out (CRISPR-KO), or carried as a mutant allele. Leave blank to skip the perturbation filter."
                 />
               </div>
               <SearchBar
-                placeholder="Search for a gene (e.g., CNTN5, EBF3)"
-                onSelect={(s) => setSelected(s)}
-                value={selected}
+                placeholder="Perturbed gene"
+                onSelect={(s) => setPerturbed(s)}
+                value={perturbed}
               />
             </div>
-          )}
-
-          {searchMode === "pair" && (
-            <div
-              style={{
-                width: "min(720px, 92%)",
-                boxSizing: "border-box",
-                marginTop: 16,
-                background: "#f9fafb",
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                padding: 8,
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "#374151",
-                    padding: "4px 6px 6px",
-                  }}
-                >
-                  <span>Perturbed gene</span>
-                  <InfoTooltip
-                    size={13}
-                    text="The gene that was experimentally manipulated in this dataset's experiment — knocked down (CRISPRi, RNAi/shRNA), upregulated (CRISPRa, overexpression), knocked out (CRISPR-KO), or carried as a mutant allele. The exact perturbation method varies by dataset; see each dataset's description in the results."
-                  />
-                </div>
-                <SearchBar
-                  placeholder="Perturbed gene"
-                  onSelect={(s) => setPerturbed(s)}
-                  value={perturbed}
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#374151",
+                  padding: "4px 6px 6px",
+                }}
+              >
+                <span>Target gene</span>
+                <InfoTooltip
+                  size={13}
+                  text="The gene whose expression or activity was measured as a readout — i.e. how the genome responded. Leave blank to skip the readout filter."
                 />
               </div>
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "#374151",
-                    padding: "4px 6px 6px",
-                  }}
-                >
-                  <span>Target gene</span>
-                  <InfoTooltip
-                    size={13}
-                    text="The gene whose expression or activity was measured as a readout — i.e. how the genome responded to the perturbation. In a CRISPR/RNAi screen this is typically a downstream gene whose differential expression was tested against scramble/non-targeting controls."
-                  />
-                </div>
-                <SearchBar
-                  placeholder="Target gene"
-                  onSelect={(s) => setTarget(s)}
-                  value={target}
-                />
-              </div>
+              <SearchBar
+                placeholder="Target gene"
+                onSelect={(s) => setTarget(s)}
+                value={target}
+              />
             </div>
-          )}
-          {!displayResults() && (
+          </div>
+
+          {!showResults && (
             <div
               style={{
                 width: "min(720px, 92%)",
@@ -536,17 +358,14 @@ export default function Home() {
                 psychiatric disease.
               </p>
               <p style={{ marginTop: 12, marginBottom: 0 }}>
-                Search for a gene to see every consortium dataset that has
-                touched it, with effect sizes and significance shown
-                side-by-side across studies. Switch to{" "}
-                <strong>Perturbed/Target</strong> mode to look up a specific
-                perturbation–readout pair: a <strong>perturbed</strong> gene
-                (the one experimentally manipulated — CRISPRi/CRISPRa,
-                RNAi, knockout, or mutant line, depending on the dataset)
-                and a <strong>target</strong> gene (the readout whose
-                expression or activity was measured) — e.g. &ldquo;what
-                happens to <em>FOXP2</em> when <em>CHD8</em> is knocked
-                out?&rdquo;. Use the{" "}
+                Search for a gene as <strong>perturbed</strong> (the gene that
+                was experimentally manipulated — CRISPRi/CRISPRa, RNAi,
+                knockout, mutant line) or as <strong>target</strong> (the
+                readout whose expression or activity was measured), or fill in
+                both fields to find consortium data on a specific
+                perturbation→readout pair — e.g. &ldquo;what happens to{" "}
+                <em>CNR1</em> when <em>FOXG1</em> is knocked down?&rdquo;. Use
+                the{" "}
                 <a
                   href="/most-significant"
                   style={{ color: "#2563eb", textDecoration: "none" }}
@@ -596,35 +415,16 @@ export default function Home() {
             </div>
           )}
           <div style={{ width: "100%" }}>
-            {displayResults() && (
+            {showResults && (
               <div style={{ width: "100%" }}>
                 {maybeLoading}
                 {!loading && !error && (
                   <GeneResults
                     geneDisplayName={displayGeneString()}
-                    data={searchMode === "general" ? generalData : pairData}
+                    data={pairData}
                     assayTypeLabels={assayTypeLabels}
-                    centralGeneId={
-                      searchMode === "general"
-                        ? selected?.centralGeneId
-                        : undefined
-                    }
-                    direction={direction}
-                    onDirectionChange={setDirection}
-                    perturbedCentralGeneId={
-                      searchMode === "pair"
-                        ? (perturbed?.centralGeneId ?? null)
-                        : undefined
-                    }
-                    targetCentralGeneId={
-                      searchMode === "pair"
-                        ? (target?.centralGeneId ?? null)
-                        : undefined
-                    }
-                    geneDescription={
-                      searchMode === "general" ? geneDescription : undefined
-                    }
-                    llmResult={searchMode === "general" ? llmResult : undefined}
+                    perturbedGene={perturbed}
+                    targetGene={target}
                   />
                 )}
               </div>

@@ -84,14 +84,15 @@ def _parse_link_tables(spec: str | None) -> list[dict[str, object]]:
         return out
     for entry in spec.split(","):
         parts = entry.split(":")
-        if len(parts) != 4:
+        if len(parts) != 3:
             continue
-        col, link_name, perturbed, target = parts
+        col, link_name, direction = parts
+        if direction not in ("perturbed", "target"):
+            continue
         out.append({
             "gene_column": col,
             "link_table": link_name,
-            "is_perturbed": perturbed == "1",
-            "is_target": target == "1",
+            "perturbed_or_target": direction,
         })
     return out
 

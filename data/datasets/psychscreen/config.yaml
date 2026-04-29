@@ -121,8 +121,7 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
     effect_column: log2FoldChange
@@ -165,8 +164,7 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
     effect_column: log2FoldChange
@@ -209,8 +207,7 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
     effect_column: log2FoldChange
@@ -253,8 +250,7 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
     effect_column: log2FoldChange

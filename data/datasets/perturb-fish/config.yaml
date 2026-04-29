@@ -68,12 +68,10 @@ tables:
         species: human
         ignore_missing:
           - Control_ST
-        is_perturbed: true
-        is_target: false
+        perturbed_or_target: perturbed
       - column_name: gene
         link_table_name: gene
         comment: human iPSC-derived astrocyte dataset
         species: human
-        is_perturbed: false
-        is_target: true
+        perturbed_or_target: target
     fdr_column: qVal

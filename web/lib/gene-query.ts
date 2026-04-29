@@ -134,42 +134,12 @@ function escapeLike(s: string): string {
 export type SearchDirection = "target" | "perturbed";
 
 /**
- * Legacy "drop perturbed only when both sides exist" parser. Used by callers
- * that pre-date the direction-aware flip toggle (#65 / #66) — currently only
- * /api/significant-rows. New code should use parseLinkTablesForDirection.
- */
-export function parseNonPerturbedLinkTables(linkTablesRaw: string): string[] {
-  const entries = (linkTablesRaw || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((entry) => {
-      const parts = entry.split(":");
-      const name = sanitizeIdentifier(parts.length >= 2 ? parts[1] : parts[0]);
-      const isPerturbed = parts.length >= 3 && parts[2] === "1";
-      return { name, isPerturbed };
-    });
-
-  const hasPerturbed = entries.some((e) => e.isPerturbed);
-  const hasNonPerturbed = entries.some((e) => !e.isPerturbed);
-
-  if (hasPerturbed && hasNonPerturbed) {
-    return entries.filter((e) => !e.isPerturbed).map((e) => e.name);
-  }
-  return entries.map((e) => e.name);
-}
-
-/**
  * Parse link table names for a specific search direction. Mirrors the Python
  * helper of the same name in processing/src/processing/combined_pvalues.py.
  *
- * For each link-table entry "col:lt:is_perturbed:is_target":
- *   target    -> include if is_target == 1 OR (both flags 0)
- *   perturbed -> include if is_perturbed == 1 OR (both flags 0)
- *
- * Generic gene tables (both flags 0) appear in both directions; pure-direction
- * link tables only in the matching mode; mixed tables contribute only the
- * matching side.
+ * Each link-table entry has the form "col:lt:direction" where direction is
+ * the literal string "perturbed" or "target". An entry contributes to a query
+ * iff its direction matches the requested one.
  */
 export function parseLinkTablesForDirection(
   linkTablesRaw: string,
@@ -182,17 +152,13 @@ export function parseLinkTablesForDirection(
     .map((entry) => {
       const parts = entry.split(":");
       return {
-        name: sanitizeIdentifier(parts.length >= 2 ? parts[1] : parts[0]),
-        isPerturbed: parts[2] === "1",
-        isTarget: parts[3] === "1",
+        name: parts.length >= 2 ? sanitizeIdentifier(parts[1]) : null,
+        direction: parts[2] ?? null,
       };
     })
-    .filter((e) => {
-      const isGeneric = !e.isPerturbed && !e.isTarget;
-      return direction === "target"
-        ? e.isTarget || isGeneric
-        : e.isPerturbed || isGeneric;
-    })
+    .filter((e): e is { name: string; direction: string } =>
+      e.name !== null && e.direction === direction,
+    )
     .map((e) => e.name);
 }
 
@@ -207,81 +173,48 @@ export function parseDisplayColumns(raw: string): string[] {
 /**
  * Build the SELECT columns and FROM...WHERE clause for a gene query.
  *
- * General mode: pass centralGeneId and a `direction` ("target" or
- *   "perturbed"). Link tables are filtered by direction and combined with UNION.
- * Pair mode: pass perturbedCentralGeneId and/or targetCentralGeneId.
- *   Link tables are parsed for isPerturbed/isTarget flags and combined with INTERSECT.
+ * The pair-search form may have 0, 1, or 2 of perturbedCentralGeneId /
+ * targetCentralGeneId set. For each set side, the table must have a
+ * link-table entry with the matching direction; otherwise this returns null
+ * (caller skips the table). When both sides are set, results are the
+ * INTERSECT of both link-table lookups.
  *
- * Returns null if the table cannot be queried (no link tables for the
- * requested direction, or pair mode with missing perturbed/target link tables).
+ * Returns null if no usable subquery can be built (no gene specified, or the
+ * table doesn't carry the required direction).
  */
 export function buildGeneQuery(opts: {
   baseTable: string;
   displayCols: string[];
   linkTablesRaw: string;
-  centralGeneId?: number;
-  direction?: SearchDirection;
   perturbedCentralGeneId?: number | null;
   targetCentralGeneId?: number | null;
 }): { selectCols: string; fromAndWhere: string; params: string[] } | null {
   const { baseTable, displayCols, linkTablesRaw } = opts;
   const selectCols = displayCols.map((c) => `b.${c}`).join(", ");
   const params: string[] = [];
-  const isPairMode = opts.centralGeneId === undefined;
 
-  if (!isPairMode) {
-    // General mode: filter link tables by direction, combine with UNION.
-    const direction: SearchDirection = opts.direction ?? "target";
-    const linkTables = parseLinkTablesForDirection(linkTablesRaw || "", direction);
+  const perturbedLTs = parseLinkTablesForDirection(linkTablesRaw || "", "perturbed");
+  const targetLTs = parseLinkTablesForDirection(linkTablesRaw || "", "target");
 
-    if (linkTables.length === 0) return null;
-
-    const subqueries = linkTables.map((lt) => {
-      params.push(String(opts.centralGeneId));
-      return `SELECT id FROM ${lt} WHERE central_gene_id = ?`;
-    });
-    const idSubquery = subqueries.length === 1
-      ? subqueries[0]
-      : subqueries.join(" UNION ");
-    const fromAndWhere = `FROM ${baseTable} b WHERE b.id IN (${idSubquery})`;
-    return { selectCols, fromAndWhere, params };
-  } else {
-    // Pair mode: parse link tables with isPerturbed/isTarget flags
-    const parsed = (linkTablesRaw || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .map((entry) => {
-        const parts = entry.split(":");
-        return {
-          linkTable: sanitizeIdentifier(parts[1] ?? parts[0] ?? ""),
-          isPerturbed: parts[2] === "1",
-          isTarget: parts[3] === "1",
-        };
-      });
-
-    const perturbedLTs = parsed.filter((p) => p.isPerturbed).map((p) => p.linkTable);
-    const targetLTs = parsed.filter((p) => p.isTarget).map((p) => p.linkTable);
-    if (perturbedLTs.length !== 1 || targetLTs.length !== 1) return null;
-
-    const subqueries: string[] = [];
-    if (opts.perturbedCentralGeneId) {
-      subqueries.push(`SELECT id FROM ${perturbedLTs[0]} WHERE central_gene_id = ?`);
-      params.push(String(opts.perturbedCentralGeneId));
-    }
-    if (opts.targetCentralGeneId) {
-      subqueries.push(`SELECT id FROM ${targetLTs[0]} WHERE central_gene_id = ?`);
-      params.push(String(opts.targetCentralGeneId));
-    }
-
-    if (subqueries.length === 0) return null;
-
-    const idSubquery = subqueries.length === 1
-      ? subqueries[0]
-      : subqueries.join(" INTERSECT ");
-    const fromAndWhere = `FROM ${baseTable} b WHERE b.id IN (${idSubquery})`;
-    return { selectCols, fromAndWhere, params };
+  const subqueries: string[] = [];
+  if (opts.perturbedCentralGeneId) {
+    if (perturbedLTs.length !== 1) return null;
+    subqueries.push(`SELECT id FROM ${perturbedLTs[0]} WHERE central_gene_id = ?`);
+    params.push(String(opts.perturbedCentralGeneId));
   }
+  if (opts.targetCentralGeneId) {
+    if (targetLTs.length !== 1) return null;
+    subqueries.push(`SELECT id FROM ${targetLTs[0]} WHERE central_gene_id = ?`);
+    params.push(String(opts.targetCentralGeneId));
+  }
+
+  if (subqueries.length === 0) return null;
+
+  const idSubquery = subqueries.length === 1
+    ? subqueries[0]
+    : subqueries.join(" INTERSECT ");
+  const fromAndWhere = `FROM ${baseTable} b WHERE b.id IN (${idSubquery})`;
+  return { selectCols, fromAndWhere, params };
 }
 
 /**

@@ -53,13 +53,11 @@ tables:
       - column_name: target_gene
         link_table_name: Target_Gene
         species: human
-        is_perturbed: false
-        is_target: true
+        perturbed_or_target: target
       - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
         species: human
-        is_perturbed: true
-        is_target: false
+        perturbed_or_target: perturbed
     pvalue_column: P_Value
     fdr_column: Adjusted_P_Value
     effect_column: log2FC
@@ -124,14 +122,12 @@ tables:
       - column_name: target_gene
         link_table_name: gene
         species: human
-        is_perturbed: false
-        is_target: true
+        perturbed_or_target: target
         ignore_empty: true
       - column_name: region_genes
         link_table_name: region_gene
         species: human
-        is_perturbed: true
-        is_target: false
+        perturbed_or_target: perturbed
         ignore_empty: true
         multi_gene_separator: ","
     pvalue_column: P-Value

@@ -3,7 +3,10 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import GeneInfoBox from "@/components/GeneInfoBox";
-import GeneSignificanceSummary from "@/components/GeneSignificanceSummary";
+import GeneSignificanceSummary, {
+  type CombinedPvalues,
+  type ContributingTable,
+} from "@/components/GeneSignificanceSummary";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import InfoTooltip from "@/components/InfoTooltip";
@@ -235,9 +238,7 @@ export default function MostSignificantPage() {
   const [totalRows, setTotalRows] = useState(0);
   const [page, setPage] = useState(1);
   const [method, setMethod] = useState<Method>("fisher");
-  const [direction, setDirection] = useState<"global" | "target" | "perturbed">(
-    "global",
-  );
+  const [direction, setDirection] = useState<"target" | "perturbed">("target");
   const [loading, setLoading] = useState(true);
   const [noTable, setNoTable] = useState<{ numSourceTables: number } | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -314,8 +315,8 @@ export default function MostSignificantPage() {
     if (typeof q.method === "string" && ["fisher", "stouffer", "cauchy", "hmp"].includes(q.method)) {
       setMethod(q.method as Method);
     }
-    if (typeof q.dir === "string" && ["global", "target", "perturbed"].includes(q.dir)) {
-      setDirection(q.dir as "global" | "target" | "perturbed");
+    if (typeof q.dir === "string" && ["target", "perturbed"].includes(q.dir)) {
+      setDirection(q.dir as "target" | "perturbed");
     }
     if (typeof q.assay === "string") setAssayFilter(q.assay);
     if (typeof q.disease === "string") setDiseaseFilter(q.disease);
@@ -347,7 +348,7 @@ export default function MostSignificantPage() {
     }
     const params: Record<string, string> = {};
     if (method !== "fisher") params.method = method;
-    if (direction !== "global") params.dir = direction;
+    if (direction !== "target") params.dir = direction;
     if (assayFilter) params.assay = assayFilter;
     if (diseaseFilter) params.disease = diseaseFilter;
     if (organismFilter) params.organism = organismFilter;
@@ -603,93 +604,7 @@ export default function MostSignificantPage() {
           </Link>
         </div>
 
-        {/* Direction selector — Global / Target / Perturbed */}
-        <div
-          style={{
-            marginBottom: 12,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <span style={{ fontWeight: 600, fontSize: 14, color: "#374151" }}>
-            Treat each gene as:
-          </span>
-          <div
-            role="group"
-            aria-label="Search direction"
-            style={{
-              display: "flex",
-              gap: 4,
-              background: "#ffffff",
-              border: "1px solid #d1d5db",
-              borderRadius: 10,
-              padding: 3,
-            }}
-          >
-            {(
-              [
-                { key: "global", label: "Global" },
-                { key: "target", label: "Target" },
-                { key: "perturbed", label: "Perturbed" },
-              ] as const
-            ).map((opt) => {
-              const active = direction === opt.key;
-              return (
-                <button
-                  key={opt.key}
-                  type="button"
-                  aria-pressed={active}
-                  disabled={!!assayFilter || !!diseaseFilter || !!organismFilter}
-                  onClick={() => {
-                    setDirection(opt.key);
-                    setPage(1);
-                  }}
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 8,
-                    border: "none",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor:
-                      assayFilter || diseaseFilter || organismFilter
-                        ? "not-allowed"
-                        : "pointer",
-                    background: active ? "#dbeafe" : "transparent",
-                    color: active ? "#1e40af" : "#4b5563",
-                    opacity: assayFilter || diseaseFilter || organismFilter ? 0.5 : 1,
-                  }}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              fontSize: 12,
-              color: "#6b7280",
-            }}
-          >
-            {assayFilter || diseaseFilter || organismFilter
-              ? "(direction not applied while filters are active)"
-              : "what does this mean?"}
-            <InfoTooltip
-              size={13}
-              text={
-                "Global: legacy default — drops perturbed only when both target and perturbed exist in the same source table. " +
-                "Target: ranks each gene as if it were the readout (the gene whose expression or activity was measured). " +
-                "Perturbed: ranks each gene as if it were the one experimentally manipulated (CRISPRi/CRISPRa knockdown or up-regulation, RNAi/shRNA, CRISPR knockout, or mutant lines, depending on the dataset). " +
-                "Disabled when an assay, disease, or organism filter is set (only the global pre-computed table exists for those subsets)."
-              }
-            />
-          </span>
-        </div>
-
-        {/* Assay type, disease, and organism radio buttons */}
+        {/* Direction + filter radios (assay / disease / organism) */}
         {cpGroups.length > 0 &&
           (() => {
             const availableAssays = [
@@ -722,9 +637,21 @@ export default function MostSignificantPage() {
               whiteSpace: "nowrap",
               fontSize: 14,
             };
-            return availableAssays.length > 0 ||
-              availableDiseases.length > 0 ||
-              availableOrganisms.length > 0 ? (
+            const directionTooltip =
+              "Target: rank each gene by how often its expression or activity is a downstream readout (the gene was measured). " +
+              "Perturbed: rank each gene by how often it is the upstream experimentally manipulated gene (CRISPRi/CRISPRa, RNAi, knockout, mutant line).";
+            const filterRowStyle: React.CSSProperties = {
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              flexWrap: "wrap",
+            };
+            const filterLabelStyle: React.CSSProperties = {
+              fontWeight: 600,
+              color: "#374151",
+              whiteSpace: "nowrap",
+            };
+            return (
               <div
                 style={{
                   marginBottom: 12,
@@ -735,6 +662,46 @@ export default function MostSignificantPage() {
                   fontSize: 13,
                 }}
               >
+                <div
+                  style={{
+                    ...filterRowStyle,
+                    marginBottom:
+                      availableAssays.length > 0 ||
+                      availableDiseases.length > 0 ||
+                      availableOrganisms.length > 0
+                        ? 8
+                        : 0,
+                  }}
+                >
+                  <span style={filterLabelStyle}>
+                    Direction
+                    <InfoTooltip text={directionTooltip} size={13} />:
+                  </span>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      name="direction"
+                      checked={direction === "target"}
+                      onChange={() => {
+                        setDirection("target");
+                        setPage(1);
+                      }}
+                    />
+                    Target
+                  </label>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      name="direction"
+                      checked={direction === "perturbed"}
+                      onChange={() => {
+                        setDirection("perturbed");
+                        setPage(1);
+                      }}
+                    />
+                    Perturbed
+                  </label>
+                </div>
                 {availableAssays.length > 0 && (
                   <div
                     style={{
@@ -880,7 +847,7 @@ export default function MostSignificantPage() {
                   </div>
                 )}
               </div>
-            ) : null;
+            );
           })()}
 
         {/* Datasets included in current filter */}
@@ -1333,7 +1300,7 @@ export default function MostSignificantPage() {
                           }}
                         >
                           <Link
-                            href={`/?searchMode=general&selected=${encodeURIComponent(row.human_symbol)}`}
+                            href={`/?${direction}=${encodeURIComponent(row.human_symbol)}`}
                             style={{
                               color: "#2563eb",
                               textDecoration: "none",
@@ -1410,24 +1377,9 @@ export default function MostSignificantPage() {
                             className="mostsig-gene-info"
                             style={{ padding: "10px 14px" }}
                           >
-                            {direction === "global" && (
-                              <div
-                                style={{
-                                  fontSize: 12,
-                                  color: "#6b7280",
-                                  fontStyle: "italic",
-                                  marginBottom: 8,
-                                }}
-                              >
-                                Per-dataset breakdown shows the target-direction
-                                view of this gene. Counts here may differ from
-                                the global ranked-list totals above, which use
-                                the legacy mixed-direction rule.
-                              </div>
-                            )}
-                            <GeneSignificanceSummary
+                            <GeneSignificanceFetcher
                               centralGeneId={row.central_gene_id}
-                              direction={direction === "global" ? "target" : direction}
+                              direction={direction}
                               assayTypeLabels={assayTypeLabels}
                             />
                             <GeneInfoBox
@@ -1469,5 +1421,50 @@ export default function MostSignificantPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+function GeneSignificanceFetcher({
+  centralGeneId,
+  direction,
+  assayTypeLabels,
+}: {
+  centralGeneId: number;
+  direction: "target" | "perturbed";
+  assayTypeLabels: Record<string, string>;
+}) {
+  const [data, setData] = useState<{
+    combinedPvalues: CombinedPvalues | null;
+    contributingTables: ContributingTable[];
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/combined-pvalues", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ centralGeneId, direction }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        setData({
+          combinedPvalues: d.combinedPvalues ?? null,
+          contributingTables: d.contributingTables ?? [],
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [centralGeneId, direction]);
+
+  if (!data) return null;
+  return (
+    <GeneSignificanceSummary
+      combinedPvalues={data.combinedPvalues}
+      contributingTables={data.contributingTables}
+      assayTypeLabels={assayTypeLabels}
+    />
   );
 }

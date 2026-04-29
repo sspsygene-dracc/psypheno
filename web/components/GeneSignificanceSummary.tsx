@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-type CombinedPvalues = {
+export type CombinedPvalues = {
   fisher: number | null;
   fisherFdr: number | null;
   stouffer: number | null;
@@ -13,7 +13,7 @@ type CombinedPvalues = {
   numPvalues: number;
 };
 
-type ContributingTable = {
+export type ContributingTable = {
   tableName: string;
   shortLabel: string | null;
   mediumLabel: string | null;
@@ -23,11 +23,6 @@ type ContributingTable = {
   bestFdr: number | null;
   rowCount: number;
   assay: string[] | null;
-};
-
-type SummaryData = {
-  combinedPvalues: CombinedPvalues | null;
-  contributingTables: ContributingTable[];
 };
 
 function formatPvalue(p: number | null): string {
@@ -44,41 +39,20 @@ const formatTableName = (tableName: string, mediumLabel: string | null) =>
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1));
 
 export default function GeneSignificanceSummary({
-  centralGeneId,
-  direction = "target",
+  combinedPvalues,
+  contributingTables,
   assayTypeLabels = {},
 }: {
-  centralGeneId: number;
-  direction?: "target" | "perturbed";
+  combinedPvalues: CombinedPvalues | null;
+  contributingTables: ContributingTable[];
   assayTypeLabels?: Record<string, string>;
 }) {
-  const [data, setData] = useState<SummaryData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch("/api/combined-pvalues", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ centralGeneId, direction }),
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [centralGeneId, direction]);
+  if (!combinedPvalues) return null;
 
-  if (loading) return null;
-  if (!data?.combinedPvalues) return null;
-
-  const cp = data.combinedPvalues;
-  const tables = [...data.contributingTables].sort((a, b) => {
+  const cp = combinedPvalues;
+  const tables = [...contributingTables].sort((a, b) => {
     const pa = a.bestPvalue ?? 1;
     const pb = b.bestPvalue ?? 1;
     return pa - pb;

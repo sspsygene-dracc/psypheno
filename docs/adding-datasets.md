@@ -335,19 +335,26 @@ tables:
                                     #   mouse     — Mouse gene symbols (MGI)
                                     #   zebrafish — Zebrafish gene symbols (ZFIN)
 
-        is_perturbed: false         # Is this the gene that was experimentally
-                                    # perturbed (knocked out, overexpressed, etc.)?
-                                    # For most datasets, this is false.
-
-        is_target: false            # Is this the gene whose expression was
-                                    # measured as a result?
-                                    # For most non-perturbation datasets: false.
+        perturbed_or_target: target # Required. Either "perturbed" or "target".
+                                    #   target    — the gene whose expression
+                                    #               or activity was measured as
+                                    #               a readout (most observational
+                                    #               datasets, all DEG tables).
+                                    #   perturbed — the gene that was
+                                    #               experimentally manipulated
+                                    #               (CRISPRi/CRISPRa, RNAi,
+                                    #               knockout, mutant line) or
+                                    #               flagged as the upstream
+                                    #               cause (e.g. patient-mutation
+                                    #               catalogs, SFARI risk genes).
                                     #
-                                    # IMPORTANT RULE: If you set is_perturbed: true
-                                    # on any gene mapping, you MUST also have
-                                    # exactly one mapping with is_target: true
-                                    # (and vice versa). If your dataset is NOT a
-                                    # perturbation experiment, set BOTH to false.
+                                    # A perturbation experiment with both a
+                                    # perturbed gene column and a measured-readout
+                                    # column needs two gene_mappings — one with
+                                    # perturbed_or_target: perturbed, one with
+                                    # perturbed_or_target: target. Tables can
+                                    # also have just one direction (pure-target
+                                    # or pure-perturbed).
 
     # --- Column splitting (usually not needed) ---
 
@@ -429,8 +436,7 @@ tables:
       - column_name: gene
         link_table_name: gene
         species: human
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
 ```
 
 ### Multiple tables from one paper
@@ -464,14 +470,12 @@ gene that was perturbed and one for the gene whose expression was measured:
       - column_name: target_gene      # The measured gene
         link_table_name: Target_Gene
         species: human
-        is_perturbed: false
-        is_target: true               # <-- this is the measured gene
+        perturbed_or_target: target
 
       - column_name: perturbed_gene   # The knocked-out/overexpressed gene
         link_table_name: Perturbed_Gene
         species: human
-        is_perturbed: true            # <-- this is the perturbed gene
-        is_target: false
+        perturbed_or_target: perturbed
 ```
 
 ### Mouse or zebrafish data
@@ -483,8 +487,7 @@ If your gene symbols are from mouse or zebrafish, change the `species` field:
       - column_name: gene_symbol
         link_table_name: gene
         species: mouse        # or: zebrafish
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
 ```
 
 The pipeline will automatically map mouse/zebrafish genes to their human
@@ -506,8 +509,7 @@ These are optional fields you can add to a gene mapping if needed:
       - column_name: gene_symbol
         link_table_name: gene
         species: human
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
 
         # Skip specific values that aren't real gene names:
         ignore_missing: ["NA", "None", "Intergenic"]
@@ -558,9 +560,9 @@ This keeps the original column and adds two new columns.
    exactly match a column header in your CSV/TSV file (case-insensitive, but
    special characters are replaced with underscores internally).
 
-4. **Missing `is_perturbed`/`is_target` pair:** If you set one to `true`, you
-   must set the other on a different gene mapping. You cannot have `is_target: true`
-   without a corresponding `is_perturbed: true` somewhere.
+4. **Wrong `perturbed_or_target` value:** Must be exactly `perturbed` or
+   `target` (lowercase, no quotes needed). Each gene_mapping must include this
+   field — there is no default and no neutral value.
 
 5. **Duplicate `table` names:** The `table` field must be unique across ALL
    datasets in the entire project, not just within your config file.

@@ -6,7 +6,7 @@ from typing import Any, Literal
 import pandas as pd
 from processing.central_gene_table import get_central_gene_table
 from processing.my_logger import get_sspsygene_logger
-from processing.types.link_table import LinkTable
+from processing.types.link_table import LinkTable, PerturbedOrTarget
 
 _CONTIG_REGEX = re.compile(
     r"^(((C[RU]|F[OP]|AUXG|BX|A[CDFJLP])\d{6}\.\d{1,2})|([UZ]\d{5}\.\d))$"
@@ -21,8 +21,7 @@ class GeneMapping:
     ignore_missing: list[str]
     to_upper: bool
     replace: dict[str, str]
-    is_perturbed: bool
-    is_target: bool
+    perturbed_or_target: PerturbedOrTarget
     ignore_empty: bool
     multi_gene_separator: str | None = None
 
@@ -31,6 +30,11 @@ class GeneMapping:
             raise ValueError(f"Invalid species: {self.species}")
         if self.to_upper not in [True, False]:
             raise ValueError(f"Invalid to_upper: {self.to_upper}")
+        if self.perturbed_or_target not in ("perturbed", "target"):
+            raise ValueError(
+                f"Invalid perturbed_or_target: {self.perturbed_or_target!r} "
+                f"(must be 'perturbed' or 'target')"
+            )
         if not isinstance(self.replace, dict):  # type: ignore
             raise ValueError(f"Invalid replace: {self.replace}")
         for key, value in self.replace.items():
@@ -41,6 +45,18 @@ class GeneMapping:
     def from_json(cls, json_data: dict[str, Any]) -> "GeneMapping":
         to_upper = json_data["to_upper"] if "to_upper" in json_data else False
         replace: dict[str, str] = json_data["replace"] if "replace" in json_data else {}
+        if "is_perturbed" in json_data or "is_target" in json_data:
+            raise ValueError(
+                f"Gene mapping for column {json_data.get('column_name')!r}: "
+                "legacy fields 'is_perturbed'/'is_target' are no longer supported. "
+                "Replace with a single 'perturbed_or_target: perturbed|target' field."
+            )
+        if "perturbed_or_target" not in json_data:
+            raise ValueError(
+                f"Gene mapping for column {json_data.get('column_name')!r}: "
+                "missing required field 'perturbed_or_target' (must be "
+                "'perturbed' or 'target')."
+            )
         return cls(
             column_name=json_data["column_name"],
             species=json_data["species"],
@@ -50,8 +66,7 @@ class GeneMapping:
             ),
             to_upper=to_upper,
             replace=replace,
-            is_perturbed=(json_data["is_perturbed"]),
-            is_target=json_data["is_target"],
+            perturbed_or_target=json_data["perturbed_or_target"],
             ignore_empty=(
                 json_data["ignore_empty"] if "ignore_empty" in json_data else False
             ),
@@ -120,6 +135,5 @@ class GeneMapping:
             central_gene_table_links=data_id_to_central_gene_id,
             gene_column_name=self.column_name,
             link_table_name=link_table_full_name,
-            is_perturbed=self.is_perturbed,
-            is_target=self.is_target,
+            perturbed_or_target=self.perturbed_or_target,
         )

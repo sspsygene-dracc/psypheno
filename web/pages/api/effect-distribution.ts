@@ -9,10 +9,8 @@ import {
 
 const bodySchema = z.object({
   tableName: z.string().regex(/^[A-Za-z0-9_]+$/),
-  centralGeneId: z.number().int().min(0).optional(),
   perturbedCentralGeneId: z.number().int().min(0).optional(),
   targetCentralGeneId: z.number().int().min(0).optional(),
-  direction: z.enum(["target", "perturbed"]).optional(),
 });
 
 type StoredVolcano = { e: number; l: number; f: number | null; t: boolean };
@@ -37,10 +35,8 @@ export default async function handler(
   }
   const {
     tableName,
-    centralGeneId,
     perturbedCentralGeneId,
     targetCentralGeneId,
-    direction,
   } = parse.data;
 
   try {
@@ -122,8 +118,6 @@ export default async function handler(
           baseTable,
           displayCols,
           linkTablesRaw: tableMeta.link_tables || "",
-          centralGeneId,
-          direction,
           perturbedCentralGeneId,
           targetCentralGeneId,
         });

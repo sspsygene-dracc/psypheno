@@ -85,8 +85,7 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: target
         replace:
           EMG1.1: EMG1
           SOD2.1: SOD2
@@ -161,5 +160,4 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: perturbed

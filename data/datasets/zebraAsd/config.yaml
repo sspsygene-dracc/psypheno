@@ -90,8 +90,7 @@ tables:
         to_upper: true
         replace:
           SCN1LAB: SCN1A
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: perturbed
   - table: RestWake_VisStart_byGene
     changelog:
       - date: "2026-02-23"
@@ -131,7 +130,6 @@ tables:
         link_table_name: gene
         species: human
         ignore_missing: []
-        is_perturbed: false
-        is_target: false
+        perturbed_or_target: perturbed
     pvalue_column: Pvalue
     effect_column: Beta

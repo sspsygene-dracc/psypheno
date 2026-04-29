@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { sanitizeIdentifier, parseDisplayColumns, parseNonPerturbedLinkTables } from "@/lib/gene-query";
+import { sanitizeIdentifier, parseDisplayColumns, parseLinkTablesForDirection } from "@/lib/gene-query";
 import {
   getEnsemblSymbolMap,
   resolveEnsgsInRows,
@@ -11,6 +11,7 @@ const bodySchema = z.object({
   centralGeneId: z.number().min(0),
   filterBy: z.enum(["pvalue", "fdr"]),
   sortBy: z.enum(["pvalue", "fdr"]),
+  direction: z.enum(["target", "perturbed"]).optional(),
 });
 
 export default async function handler(
@@ -27,6 +28,7 @@ export default async function handler(
   }
 
   const { centralGeneId, filterBy, sortBy } = parse.data;
+  const direction = parse.data.direction ?? "target";
 
   try {
     const db = getDb();
@@ -83,8 +85,10 @@ export default async function handler(
       const displayCols = parseDisplayColumns(t.display_columns);
       if (displayCols.length === 0) continue;
 
-      // Build link table subquery (skip perturbed link tables)
-      const linkTableNames = parseNonPerturbedLinkTables(t.link_tables || "");
+      const linkTableNames = parseLinkTablesForDirection(
+        t.link_tables || "",
+        direction,
+      );
       if (linkTableNames.length === 0) continue;
 
       const subqueries = linkTableNames.map((lt) => {

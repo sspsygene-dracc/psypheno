@@ -5,10 +5,14 @@ import DataTable, { type SortMode } from "@/components/DataTable";
 import DatasetToc from "@/components/DatasetToc";
 import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
 import InfoTooltip from "@/components/InfoTooltip";
-import GeneSignificanceSummary from "@/components/GeneSignificanceSummary";
+import GeneSignificanceSummary, {
+  type CombinedPvalues,
+  type ContributingTable,
+} from "@/components/GeneSignificanceSummary";
 import EffectDistributionChart from "@/components/EffectDistributionChart";
 import { ROW_LIMIT } from "@/lib/gene-query";
 import { formatAuthors } from "@/lib/format-authors";
+import type { SearchSuggestion } from "@/state/SearchSuggestion";
 
 const formatTableName = (section: TableResult) =>
   section.mediumLabel ??
@@ -36,30 +40,90 @@ type TableSortState = {
   sortMode: SortMode;
 };
 
+type GeneInfoData = {
+  geneDescription: string | null;
+  llmResult: LlmResult | null;
+  combinedPvalues: CombinedPvalues | null;
+  contributingTables: ContributingTable[];
+};
+
 export default function GeneResults({
   geneDisplayName,
   data,
   assayTypeLabels = {},
-  centralGeneId,
-  direction = "target",
-  onDirectionChange,
-  perturbedCentralGeneId,
-  targetCentralGeneId,
-  geneDescription,
-  llmResult,
+  perturbedGene,
+  targetGene,
 }: {
   geneDisplayName: string | null;
   data: TableResult[];
   assayTypeLabels?: Record<string, string>;
-  centralGeneId?: number;
-  direction?: "target" | "perturbed";
-  onDirectionChange?: (d: "target" | "perturbed") => void;
-  perturbedCentralGeneId?: number | null;
-  targetCentralGeneId?: number | null;
-  geneDescription?: string | null;
-  llmResult?: LlmResult | null;
+  perturbedGene: SearchSuggestion | null;
+  targetGene: SearchSuggestion | null;
 }) {
-  const isPairMode = centralGeneId === undefined;
+  const perturbedCentralGeneId = perturbedGene?.centralGeneId ?? null;
+  const targetCentralGeneId = targetGene?.centralGeneId ?? null;
+  const [perturbedInfo, setPerturbedInfo] = useState<GeneInfoData | null>(null);
+  const [targetInfo, setTargetInfo] = useState<GeneInfoData | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (perturbedCentralGeneId == null) {
+      setPerturbedInfo(null);
+      return;
+    }
+    fetch("/api/combined-pvalues", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        centralGeneId: perturbedCentralGeneId,
+        direction: "perturbed",
+      }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        setPerturbedInfo({
+          geneDescription: d.geneDescription ?? null,
+          llmResult: d.llmResult ?? null,
+          combinedPvalues: d.combinedPvalues ?? null,
+          contributingTables: d.contributingTables ?? [],
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [perturbedCentralGeneId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (targetCentralGeneId == null) {
+      setTargetInfo(null);
+      return;
+    }
+    fetch("/api/combined-pvalues", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        centralGeneId: targetCentralGeneId,
+        direction: "target",
+      }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        setTargetInfo({
+          geneDescription: d.geneDescription ?? null,
+          llmResult: d.llmResult ?? null,
+          combinedPvalues: d.combinedPvalues ?? null,
+          contributingTables: d.contributingTables ?? [],
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [targetCentralGeneId]);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(),
   );
@@ -162,14 +226,12 @@ export default function GeneResults({
     }));
 
     try {
-      const body: Record<string, unknown> = { tableName, page };
-      if (centralGeneId !== undefined) {
-        body.centralGeneId = centralGeneId;
-        body.direction = direction;
-      } else {
-        body.perturbedCentralGeneId = perturbedCentralGeneId ?? null;
-        body.targetCentralGeneId = targetCentralGeneId ?? null;
-      }
+      const body: Record<string, unknown> = {
+        tableName,
+        page,
+        perturbedCentralGeneId,
+        targetCentralGeneId,
+      };
       // Add sort params if present
       if (sortBy && sortMode && sortMode !== "none") {
         body.sortBy = sortBy;
@@ -429,13 +491,6 @@ export default function GeneResults({
         }}
       >
         <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
-        {!isPairMode && onDirectionChange && (
-          <DirectionToggle
-            direction={direction}
-            onChange={onDirectionChange}
-            geneDisplayName={geneDisplayName}
-          />
-        )}
         {hasSignificanceColumns && (
           <div
             style={{
@@ -464,61 +519,23 @@ export default function GeneResults({
             </span>
           </div>
         )}
-        <div
-          style={{
-            marginBottom: 16,
-            padding: "12px 14px",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-          }}
-        >
-          <GeneInfoBox
-            geneDescription={geneDescription}
-            llmResult={llmResult}
+        {perturbedGene && (
+          <GeneSidePanel
+            label="Perturbed"
+            geneSymbol={perturbedGene.humanSymbol ?? "—"}
+            info={perturbedInfo}
+            assayTypeLabels={assayTypeLabels}
           />
-        </div>
-        {centralGeneId != null &&
-          !perturbedCentralGeneId &&
-          !targetCentralGeneId && (
-            <GeneSignificanceSummary
-              centralGeneId={centralGeneId}
-              direction={direction}
-              assayTypeLabels={assayTypeLabels}
-            />
-          )}
-        {data.length === 0 && !isPairMode && (
-          <div style={{ opacity: 0.8 }}>
-            No results in <strong>{direction}</strong> mode for{" "}
-            {geneDisplayName ?? "this gene"}.
-            {onDirectionChange && (
-              <>
-                {" "}
-                Try{" "}
-                <button
-                  type="button"
-                  onClick={() =>
-                    onDirectionChange(
-                      direction === "target" ? "perturbed" : "target",
-                    )
-                  }
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#2563eb",
-                    cursor: "pointer",
-                    padding: 0,
-                    font: "inherit",
-                    textDecoration: "underline",
-                  }}
-                >
-                  flipping to {direction === "target" ? "perturbed" : "target"}
-                </button>
-                .
-              </>
-            )}
-          </div>
         )}
-        {data.length === 0 && isPairMode && (
+        {targetGene && (
+          <GeneSidePanel
+            label="Target"
+            geneSymbol={targetGene.humanSymbol ?? "—"}
+            info={targetInfo}
+            assayTypeLabels={assayTypeLabels}
+          />
+        )}
+        {data.length === 0 && (
           <div style={{ opacity: 0.8 }}>No results found in any dataset.</div>
         )}
         {groups.map((group) => (
@@ -950,14 +967,12 @@ export default function GeneResults({
                         <div style={{ padding: "0 14px 14px" }}>
                           <EffectDistributionChart
                             tableName={section.tableName}
-                            centralGeneId={centralGeneId}
                             perturbedCentralGeneId={
                               perturbedCentralGeneId ?? undefined
                             }
                             targetCentralGeneId={
                               targetCentralGeneId ?? undefined
                             }
-                            direction={isPairMode ? undefined : direction}
                             geneSymbol={geneDisplayName ?? undefined}
                           />
                         </div>
@@ -974,87 +989,49 @@ export default function GeneResults({
   );
 }
 
-function DirectionToggle({
-  direction,
-  onChange,
-  geneDisplayName,
+function GeneSidePanel({
+  label,
+  geneSymbol,
+  info,
+  assayTypeLabels,
 }: {
-  direction: "target" | "perturbed";
-  onChange: (d: "target" | "perturbed") => void;
-  geneDisplayName: string | null;
+  label: "Perturbed" | "Target";
+  geneSymbol: string;
+  info: GeneInfoData | null;
+  assayTypeLabels: Record<string, string>;
 }) {
-  const tooltip =
-    "Target mode: find datasets where this gene was a measured readout — i.e. its expression or activity changed in response to other genes being perturbed. " +
-    "Perturbed mode: find datasets where this gene was the one experimentally manipulated (CRISPRi/CRISPRa knockdown or up-regulation, RNAi/shRNA, CRISPR knockout, or mutant lines, depending on the dataset).";
-  const optionStyle = (active: boolean): React.CSSProperties => ({
-    flex: 1,
-    padding: "8px 16px",
-    borderRadius: 8,
-    border: "none",
-    fontWeight: 600,
-    fontSize: 14,
-    cursor: "pointer",
-    background: active ? "#dbeafe" : "transparent",
-    color: active ? "#1e40af" : "#4b5563",
-    transition: "background 0.15s",
-  });
   return (
     <div
-      role="group"
-      aria-label="Search direction"
       style={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: 12,
         marginBottom: 16,
-        padding: "10px 12px",
+        padding: "12px 14px",
         border: "1px solid #e5e7eb",
-        borderRadius: 12,
-        background: "#f9fafb",
+        borderRadius: 8,
       }}
     >
-      <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
-        Searching {geneDisplayName ?? "this gene"} as:
-      </span>
       <div
         style={{
-          display: "flex",
-          gap: 4,
-          background: "#ffffff",
-          border: "1px solid #d1d5db",
-          borderRadius: 10,
-          padding: 3,
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#1e40af",
+          marginBottom: 8,
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
         }}
       >
-        <button
-          type="button"
-          aria-pressed={direction === "target"}
-          onClick={() => onChange("target")}
-          style={optionStyle(direction === "target")}
-        >
-          Target
-        </button>
-        <button
-          type="button"
-          aria-pressed={direction === "perturbed"}
-          onClick={() => onChange("perturbed")}
-          style={optionStyle(direction === "perturbed")}
-        >
-          Perturbed
-        </button>
+        {label} gene: {geneSymbol}
       </div>
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          fontSize: 12,
-          color: "#6b7280",
-        }}
-      >
-        what does this mean?
-        <InfoTooltip text={tooltip} size={13} />
-      </span>
+      <GeneInfoBox
+        geneDescription={info?.geneDescription ?? null}
+        llmResult={info?.llmResult ?? null}
+      />
+      {info && info.combinedPvalues && (
+        <GeneSignificanceSummary
+          combinedPvalues={info.combinedPvalues}
+          contributingTables={info.contributingTables}
+          assayTypeLabels={assayTypeLabels}
+        />
+      )}
     </div>
   );
 }

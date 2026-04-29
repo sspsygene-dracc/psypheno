@@ -66,17 +66,13 @@ function fmt(n: number | null | undefined, digits = 2): string {
 
 export default function EffectDistributionChart({
   tableName,
-  centralGeneId,
   perturbedCentralGeneId,
   targetCentralGeneId,
-  direction,
   geneSymbol,
 }: {
   tableName: string;
-  centralGeneId?: number;
   perturbedCentralGeneId?: number;
   targetCentralGeneId?: number;
-  direction?: "target" | "perturbed";
   geneSymbol?: string;
 }) {
   const [data, setData] = useState<DistributionResponse | null>(null);
@@ -92,10 +88,8 @@ export default function EffectDistributionChart({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         tableName,
-        centralGeneId,
         perturbedCentralGeneId,
         targetCentralGeneId,
-        direction,
       }),
     })
       .then((r) => {
@@ -117,13 +111,7 @@ export default function EffectDistributionChart({
     return () => {
       cancelled = true;
     };
-  }, [
-    tableName,
-    centralGeneId,
-    perturbedCentralGeneId,
-    targetCentralGeneId,
-    direction,
-  ]);
+  }, [tableName, perturbedCentralGeneId, targetCentralGeneId]);
 
   // Hooks must run unconditionally; compute on whatever data we have, even
   // when null, and gate the render below.

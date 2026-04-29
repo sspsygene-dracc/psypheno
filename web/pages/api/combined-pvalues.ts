@@ -159,6 +159,47 @@ export default async function handler(
       }
     }
 
+    let geneDescription: string | null = null;
+    try {
+      const descRow = db
+        .prepare(
+          "SELECT description FROM gene_descriptions WHERE central_gene_id = ?"
+        )
+        .get(centralGeneId) as { description: string } | undefined;
+      geneDescription = descRow?.description ?? null;
+    } catch {
+      // gene_descriptions table may not exist yet
+    }
+
+    let llmResult: {
+      pubmedLinks: string | null;
+      summary: string | null;
+      status: string;
+      searchDate: string;
+    } | null = null;
+    try {
+      const llmRow = db
+        .prepare(
+          "SELECT pubmed_links, summary, status, search_date FROM llm_gene_results WHERE central_gene_id = ?"
+        )
+        .get(centralGeneId) as {
+        pubmed_links: string | null;
+        summary: string | null;
+        status: string;
+        search_date: string;
+      } | undefined;
+      if (llmRow) {
+        llmResult = {
+          pubmedLinks: llmRow.pubmed_links,
+          summary: llmRow.summary,
+          status: llmRow.status,
+          searchDate: llmRow.search_date,
+        };
+      }
+    } catch {
+      // llm_gene_results table may not exist yet
+    }
+
     return res.status(200).json({
       centralGeneId,
       combinedPvalues: combined
@@ -176,6 +217,8 @@ export default async function handler(
           }
         : null,
       contributingTables,
+      geneDescription,
+      llmResult,
     });
   } catch (err) {
     console.error("combined-pvalues handler error", err);
