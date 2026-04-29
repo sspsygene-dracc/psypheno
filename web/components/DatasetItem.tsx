@@ -1,5 +1,7 @@
 import { useState } from "react";
 import InfoTooltip from "@/components/InfoTooltip";
+import DatasetLinkAnchor from "@/components/DatasetLinkAnchor";
+import { type DatasetLink } from "@/lib/links";
 
 export type Dataset = {
   table_name: string;
@@ -12,7 +14,7 @@ export type Dataset = {
   display_columns: string;
   scalar_columns: string;
   link_tables: string | null;
-  links: string | null;
+  links: DatasetLink[];
   categories: string | null;
   source: string | null;
   assay: string | null;
@@ -63,11 +65,7 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
   const scalarCount = scalarSet.size;
   const geneCount = geneColumnSet.size;
 
-  const parsedLinks =
-    dataset.links
-      ?.split(",")
-      .map((s) => s.trim())
-      .filter(Boolean) ?? [];
+  const parsedLinks = dataset.links;
 
   const authorText = (() => {
     const first = dataset.publication_first_author;
@@ -337,16 +335,8 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
             }}
           >
             <span style={{ fontWeight: 500 }}>Links:</span>
-            {parsedLinks.map((url) => (
-              <a
-                key={url}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: "#2563eb", textDecoration: "underline" }}
-              >
-                {url}
-              </a>
+            {parsedLinks.map((link) => (
+              <DatasetLinkAnchor key={link.url} link={link} tooltipSize={14} />
             ))}
           </div>
         )}

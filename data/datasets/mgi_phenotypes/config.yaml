@@ -41,8 +41,10 @@ tables:
       high_level_mammalian_phenotype_id_comma_delimited_: "MP ontology term IDs"
       synonyms_delimited_: "Gene/allele synonyms"
     links:
-      - https://www.informatics.jax.org
-      - https://www.informatics.jax.org/downloads/reports/MGI_PhenotypicAllele.rpt
+      - url: https://www.informatics.jax.org
+        label: MGI — Mouse Genome Informatics
+      - url: https://www.informatics.jax.org/downloads/reports/MGI_PhenotypicAllele.rpt
+        label: MGI Phenotypic Allele Report (.rpt)
     categories:
       - phenotype ontology
       - model organism

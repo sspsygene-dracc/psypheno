@@ -105,8 +105,10 @@ tables:
     assay: expression
     disease: []
     links:
-      - https://downloads.wenglab.org/Age_DEGcombined.csv
-      - https://psychscreen.org
+      - url: https://downloads.wenglab.org/Age_DEGcombined.csv
+        label: Age DEGs CSV (Weng Lab)
+      - url: https://psychscreen.org
+        label: PsychSCREEN browser
     categories:
       - bulk RNA-seq
       - aging
@@ -148,8 +150,10 @@ tables:
     assay: expression
     disease: ["asd", "ndd"]
     links:
-      - https://downloads.wenglab.org/ASD_DEGcombined.csv
-      - https://psychscreen.org
+      - url: https://downloads.wenglab.org/ASD_DEGcombined.csv
+        label: ASD DEGs CSV (Weng Lab)
+      - url: https://psychscreen.org
+        label: PsychSCREEN browser
     categories:
       - bulk RNA-seq
       - autism
@@ -191,8 +195,10 @@ tables:
     assay: expression
     disease: ["bipolar", "ndd"]
     links:
-      - https://downloads.wenglab.org/Bipolar_DEGcombined.csv
-      - https://psychscreen.org
+      - url: https://downloads.wenglab.org/Bipolar_DEGcombined.csv
+        label: Bipolar DEGs CSV (Weng Lab)
+      - url: https://psychscreen.org
+        label: PsychSCREEN browser
     categories:
       - bulk RNA-seq
       - bipolar disorder
@@ -234,8 +240,10 @@ tables:
     assay: expression
     disease: ["scz", "ndd"]
     links:
-      - https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv
-      - https://psychscreen.org
+      - url: https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv
+        label: Schizophrenia DEGs CSV (Weng Lab)
+      - url: https://psychscreen.org
+        label: PsychSCREEN browser
     categories:
       - bulk RNA-seq
       - schizophrenia

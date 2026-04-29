@@ -68,7 +68,8 @@ tables:
       habenula: "Habenula pERK/tERK ratio (neural activity at 6 dpf)"
       posterior_tuberculum: "Posterior tuberculum pERK/tERK ratio (neural activity at 6 dpf; dopaminergic region)"
     links:
-      - https://www.sciencedirect.com/science/article/pii/S2211124723002541?via%3Dihub#app2
+      - url: https://www.sciencedirect.com/science/article/pii/S2211124723002541?via%3Dihub#app2
+        label: Cell Reports — supplementary materials
     categories:
       - functional genomics
       - behavior
@@ -104,7 +105,8 @@ tables:
         five 1-s flashes of lights-off or -on stimuli at 29-s intervals at 5 dpf. Sleep-wake:
         Larvae are exposed to a 14 h:10 h white light:dark schedule at 5–7 dpf."
     links:
-      - https://ars.els-cdn.com/content/image/1-s2.0-S2211124723002541-mmc3.xlsx
+      - url: https://ars.els-cdn.com/content/image/1-s2.0-S2211124723002541-mmc3.xlsx
+        label: Supplementary Table S2 (mmc3.xlsx)
     categories:
       - mutant zebrafish
       - behavioral fingerprints

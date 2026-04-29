@@ -289,7 +289,9 @@ def load_data_tables(
                     link_table.get_meta_entry()
                     for link_table in data_and_meta.link_tables
                 ),
-                ",".join(table_config.links) if table_config.links else None,
+                json.dumps([link.to_json_dict() for link in table_config.links])
+                if table_config.links
+                else None,
                 ",".join(table_config.categories) if table_config.categories else None,
                 table_config.source,
                 ",".join(table_config.assay) if table_config.assay else None,

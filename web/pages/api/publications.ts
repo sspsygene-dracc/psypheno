@@ -1,12 +1,13 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "@/lib/db";
 import type { Dataset } from "@/components/DatasetItem";
+import { parseDatasetLinks, type DatasetLink } from "@/lib/links";
 
 export type PublicationTableEntry = {
   tableName: string;
   label: string;
   organism: string | null;
-  links: string[];
+  links: DatasetLink[];
   dataset: Dataset;
 };
 
@@ -113,10 +114,7 @@ export default async function handler(
       for (const a of tableAssays) {
         if (!entry.assays.includes(a)) entry.assays.push(a);
       }
-      const tableLinks = (r.links || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const tableLinks = parseDatasetLinks(r.links);
       const dataset: Dataset = {
         table_name: r.table_name,
         short_label: r.short_label,
@@ -128,7 +126,7 @@ export default async function handler(
         display_columns: r.display_columns,
         scalar_columns: r.scalar_columns,
         link_tables: r.link_tables,
-        links: r.links,
+        links: tableLinks,
         categories: r.categories,
         source: r.source,
         assay: r.assay,

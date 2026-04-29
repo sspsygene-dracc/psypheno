@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "@/lib/db";
+import { parseDatasetLinks } from "@/lib/links";
 
 export default async function handler(
   req: NextApiRequest,
@@ -48,7 +49,7 @@ export default async function handler(
     }>;
 
     const datasets = rows.map((r) => {
-      const { publication_authors, publication_sspsygene_grants, ...rest } = r;
+      const { publication_authors, publication_sspsygene_grants, links, ...rest } = r;
       let authors: string[] = [];
       if (publication_authors) {
         try {
@@ -69,6 +70,7 @@ export default async function handler(
       }
       return {
         ...rest,
+        links: parseDatasetLinks(links),
         publication_authors: authors,
         publication_sspsygene_grants: grants,
       };

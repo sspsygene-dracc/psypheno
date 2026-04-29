@@ -69,8 +69,10 @@ tables:
       hetdf: "Degrees of freedom for the heterogeneity test (= number of contributing studies − 1)"
       hetpval: "Heterogeneity p-value (Cochran's Q test)"
     links:
-      - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4.supplementary-material
-      - https://www.nature.com/articles/s41593-026-02247-7#Sec47
+      - url: https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4.supplementary-material
+        label: bioRxiv preprint supplement
+      - url: https://www.nature.com/articles/s41593-026-02247-7#Sec47
+        label: Nature Neuroscience — supplementary data
     categories:
       - meta-analysis
       - CRISPR perturbation
@@ -116,8 +118,10 @@ tables:
       Comparing behaviors in stable mutant and background-matched wild-type fish pvalues.
       Mutant behavioral fingerprint across startle-OFF, startle-ON, and sleep-wake parameters.
     links:
-      - https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4.supplementary-material
-      - https://www.nature.com/articles/s41593-026-02247-7#Sec47
+      - url: https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4.supplementary-material
+        label: bioRxiv preprint supplement
+      - url: https://www.nature.com/articles/s41593-026-02247-7#Sec47
+        label: Nature Neuroscience — supplementary data
     categories:
       - mutant zebrafish
       - behavioral fingerprints

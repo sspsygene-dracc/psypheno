@@ -12,6 +12,7 @@ import {
   getEnsemblSymbolMap,
   resolveEnsgsInRows,
 } from "@/lib/ensembl-symbol-resolver";
+import { parseDatasetLinks } from "@/lib/links";
 
 const DATASET_PAGE_LIMIT = 25;
 
@@ -150,11 +151,7 @@ export default async function handler(
     const rawRows = db.prepare(sql).all(...filterParams) as Record<string, unknown>[];
     const rows = resolveEnsgsInRows(rawRows, getEnsemblSymbolMap(db));
 
-    const links =
-      metadata.links
-        ?.split(",")
-        .map((s) => s.trim())
-        .filter(Boolean) ?? [];
+    const links = parseDatasetLinks(metadata.links);
     const categories =
       metadata.categories
         ?.split(",")

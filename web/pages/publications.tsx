@@ -6,6 +6,8 @@ import Footer from "@/components/Footer";
 import DatasetItem, { type Dataset } from "@/components/DatasetItem";
 import InfoTooltip from "@/components/InfoTooltip";
 import { formatAuthors } from "@/lib/format-authors";
+import { hostFromUrl, type DatasetLink } from "@/lib/links";
+import DatasetLinkAnchor from "@/components/DatasetLinkAnchor";
 import type {
   PublicationEntry,
   PublicationTableEntry,
@@ -33,14 +35,6 @@ function normalizeOrganism(raw: string): string {
   return raw.replace(/\s*\(.*$/u, "").trim().toLowerCase();
 }
 
-function hostFromUrl(url: string): string {
-  try {
-    const u = new URL(url);
-    return u.hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
 
 function slugFromLabel(label: string): string {
   return label.replace(/\s+/g, "_");
@@ -564,12 +558,12 @@ function PublicationCard({
   );
   const distinctTableLinks = useMemo(() => {
     const seen = new Set<string>();
-    const out: { url: string; tableName: string }[] = [];
+    const out: { link: DatasetLink; tableName: string }[] = [];
     for (const t of pub.tables) {
-      for (const url of t.links) {
-        if (seen.has(url)) continue;
-        seen.add(url);
-        out.push({ url, tableName: t.tableName });
+      for (const link of t.links) {
+        if (seen.has(link.url)) continue;
+        seen.add(link.url);
+        out.push({ link, tableName: t.tableName });
       }
     }
     return out;
@@ -746,19 +740,14 @@ function PublicationCard({
               fontSize: 13,
             }}
           >
-            {distinctTableLinks.map(({ url }) => (
-              <li key={url}>
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "#2563eb", textDecoration: "underline" }}
-                >
-                  {hostFromUrl(url)}
-                </a>{" "}
-                <span style={{ color: "#9ca3af", fontSize: 12 }}>
-                  — {url}
-                </span>
+            {distinctTableLinks.map(({ link }) => (
+              <li key={link.url}>
+                <DatasetLinkAnchor link={link} tooltipSize={13} />
+                {link.label && (
+                  <span style={{ color: "#9ca3af", fontSize: 12 }}>
+                    {" "}— {hostFromUrl(link.url)}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

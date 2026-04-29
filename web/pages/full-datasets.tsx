@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import DataTable, { type SortMode } from "@/components/DataTable";
 import InfoTooltip from "@/components/InfoTooltip";
 import type { Dataset } from "@/components/DatasetItem";
+import type { DatasetLink } from "@/lib/links";
 
 type DatasetData = {
   tableName: string;
@@ -16,7 +17,7 @@ type DatasetData = {
   description: string | null;
   organism: string | null;
   source: string | null;
-  links: string[];
+  links: DatasetLink[];
   categories: string[];
   assay: string[];
   fieldLabels: Record<string, string> | null;

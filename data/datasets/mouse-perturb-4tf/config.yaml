@@ -58,7 +58,8 @@ tables:
       cell_type: "Cell-type cluster from scRNA-seq of developing mouse cortex (excitatory and inhibitory neuron subtypes; glia)"
       perturbation: "CRISPR perturbation identifier (target gene name + replicate index, e.g. Foxg1_1; NonTarget1/SafeTarget for controls)"
     links:
-      - https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
+      - url: https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
+        label: Supplementary Table S8 (mmc4.xlsx)
     categories:
       - in vivo Perturb-seq
       - transcription factors
@@ -111,7 +112,8 @@ tables:
       p_value: "Nominal p-value from the limma moderated t-test"
       fdr: "Benjamini–Hochberg FDR-adjusted p-value"
     links:
-      - https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
+      - url: https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
+        label: Supplementary Table S8 (mmc4.xlsx)
     categories:
       - in vivo Perturb-seq
       - cell fate

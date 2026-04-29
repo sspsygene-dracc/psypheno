@@ -33,7 +33,8 @@ tables:
       number_of_models: "Number of animal models available"
       has_rescue_model: "Whether a rescue model exists"
     links:
-      - https://gene.sfari.org
+      - url: https://gene.sfari.org
+        label: SFARI Gene database
     categories:
       - curated database
       - autism genetics
@@ -69,7 +70,8 @@ tables:
       number_of_rescue_models: "Number of rescue models"
       parent_model_name: "Name of the parent animal model"
     links:
-      - https://gene.sfari.org
+      - url: https://gene.sfari.org
+        label: SFARI Gene database
     categories:
       - curated database
       - autism genetics
@@ -104,7 +106,8 @@ tables:
       eagle: "EAGLE automated gene scoring"
       number_of_reports: "Number of publications reporting this gene"
     links:
-      - https://gene.sfari.org
+      - url: https://gene.sfari.org
+        label: SFARI Gene database
     categories:
       - curated database
       - autism genetics

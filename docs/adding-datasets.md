@@ -280,14 +280,23 @@ tables:
       - iPSC-derived neurons        # Use whatever makes sense.
       - cortical development
 
-    links:                          # URLs to the paper AND the upstream data
-      - https://doi.org/10.1038/s41593-025-12345-6   # source. Include both: the
-      - https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE12345  # paper DOI
-                                    # and the data download URL (GEO/Zenodo/
-                                    # supplementary spreadsheet/etc.). These
-                                    # surface on the /download page so users
-                                    # can trace processed values back to the
-                                    # original release.
+    links:                          # Supplementary URLs (data downloads, code,
+                                    # protocols, GEO accessions, etc.). The
+                                    # paper DOI lives in `publication.doi`
+                                    # — don't repeat it here.
+                                    #
+                                    # Each entry is a dict with `url`, an
+                                    # optional `label` (becomes the displayed
+                                    # link text), and an optional `description`
+                                    # (rendered as a hover tooltip).
+      - url: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE12345
+        label: GEO — GSE12345
+        description: Raw and processed RNA-seq counts (optional)
+      - url: https://github.com/example/analysis-code
+        label: GitHub — analysis code
+                                    # Bare URL strings are still accepted as a
+                                    # back-compat shortcut; they render with
+                                    # the hostname as link text.
 
     # --- Statistical columns ---
 

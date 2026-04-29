@@ -184,7 +184,7 @@ def _table_metadata_dict(table_row: sqlite3.Row) -> dict[str, object]:
         "assay": _split_csv(table_row["assay"]),
         "disease": _split_csv(table_row["disease"]),
         "categories": _split_csv(table_row["categories"]),
-        "links": _split_csv(table_row["links"]),
+        "links": _parse_json_list(table_row["links"]),
         "gene_species": table_row["gene_species"],
         "gene_columns": _split_csv(table_row["gene_columns"]),
         "display_columns": _split_csv(table_row["display_columns"]),
@@ -295,7 +295,11 @@ def _write_manifest(
                 r["publication_doi"] or "",
                 f"tables/{tn}.tsv",
                 f"metadata/{tn}.yaml",
-                r["links"] or "",
+                ";".join(
+                    link["url"]
+                    for link in _parse_json_list(r["links"])
+                    if isinstance(link, dict) and "url" in link
+                ),
             ])
 
 

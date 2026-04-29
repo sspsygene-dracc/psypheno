@@ -3,6 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import DatasetLinkAnchor from "@/components/DatasetLinkAnchor";
 import DatasetToc, { useAssayGroups, type TocItem } from "@/components/DatasetToc";
 import type { Dataset } from "@/components/DatasetItem";
 
@@ -12,11 +13,6 @@ function datasetTitle(d: Dataset): string {
   if (d.medium_label) return d.medium_label;
   if (d.short_label) return d.short_label;
   return d.table_name.replace(/_/g, " ");
-}
-
-function parseLinks(s: string | null): string[] {
-  if (!s) return [];
-  return s.split(",").map((x) => x.trim()).filter(Boolean);
 }
 
 function parseCsvList(s: string | null): string[] {
@@ -264,7 +260,7 @@ export default function DownloadPage() {
 }
 
 function DatasetRow({ dataset }: { dataset: Dataset }) {
-  const sourceLinks = parseLinks(dataset.links);
+  const sourceLinks = dataset.links;
   const tn = dataset.table_name;
   const title = datasetTitle(dataset);
   const slug = dataset.short_label
@@ -362,20 +358,13 @@ function DatasetRow({ dataset }: { dataset: Dataset }) {
           }}
         >
           <span style={{ fontWeight: 500 }}>Source:</span>
-          {sourceLinks.map((url) => (
-            <a
-              key={url}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: "#2563eb",
-                textDecoration: "underline",
-                wordBreak: "break-all",
-              }}
-            >
-              {url}
-            </a>
+          {sourceLinks.map((link) => (
+            <DatasetLinkAnchor
+              key={link.url}
+              link={link}
+              tooltipSize={13}
+              anchorStyle={{ wordBreak: "break-all" }}
+            />
           ))}
         </div>
       )}

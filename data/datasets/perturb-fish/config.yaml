@@ -44,13 +44,23 @@ tables:
       - perturbation
     disease: ["asd", "ndd"]
     links:
-      - https://download.brainimagelibrary.org/0c/bd/0cbd479c521afff9/astrocytes/processed/finaltables/
-      - https://dx.doi.org/10.17504/protocols.io.6qpvr356bvmk/v1
-      - https://github.com/lbinan/Perturb-FISH
-      - https://github.com/douglasyao/FR-Perturb
-      - https://api.brainimagelibrary.org/web/view?bildid=ace-gem-get
-      - https://download.brainimagelibrary.org/0c/bd/0cbd479c521afff9/
-      - https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE221321
+      - url: https://download.brainimagelibrary.org/0c/bd/0cbd479c521afff9/astrocytes/processed/finaltables/
+        label: BIL — processed final tables
+        description: Brain Image Library; processed LFC and q-value matrices
+      - url: https://dx.doi.org/10.17504/protocols.io.6qpvr356bvmk/v1
+        label: Perturb-FISH protocol
+        description: protocols.io wet-lab procedure
+      - url: https://github.com/lbinan/Perturb-FISH
+        label: GitHub — Perturb-FISH
+      - url: https://github.com/douglasyao/FR-Perturb
+        label: GitHub — FR-Perturb
+      - url: https://api.brainimagelibrary.org/web/view?bildid=ace-gem-get
+        label: BIL landing page
+      - url: https://download.brainimagelibrary.org/0c/bd/0cbd479c521afff9/
+        label: BIL data directory
+        description: Full raw imaging dataset directory
+      - url: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE221321
+        label: GEO — GSE221321
     categories:
       - spatial transcriptomics
       - CRISPR screening

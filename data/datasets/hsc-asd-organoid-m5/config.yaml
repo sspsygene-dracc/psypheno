@@ -39,7 +39,8 @@ tables:
     source: "Supplementary Table 12"
     assay: perturbation
     links:
-      - https://www.nature.com/articles/s41586-025-10047-5#data-availability
+      - url: https://www.nature.com/articles/s41586-025-10047-5#data-availability
+        label: Nature — data availability
     categories:
       - CRISPRi perturbation
       - autism spectrum disorder
@@ -107,7 +108,8 @@ tables:
       gene_biotype: "Gene biotype"
       region_genes: "Genes in the affected CNV region or the perturbed gene for single-gene mutations"
     links:
-      - https://www.nature.com/articles/s41586-025-10047-5#data-availability
+      - url: https://www.nature.com/articles/s41586-025-10047-5#data-availability
+        label: Nature — data availability
     categories:
       - bulk RNA-seq
       - differential expression

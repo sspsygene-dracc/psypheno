@@ -14,6 +14,50 @@ from processing.types.split_column_entry import SplitColumnEntry
 
 logger = logging.getLogger(__name__)
 
+
+@dataclass
+class DatasetLink:
+    url: str
+    label: str | None = None
+    description: str | None = None
+
+    @classmethod
+    def from_yaml(cls, raw: Any, table_name: str) -> "DatasetLink":
+        if isinstance(raw, str):
+            return cls(url=raw)
+        if isinstance(raw, dict):
+            url = raw.get("url")
+            if not isinstance(url, str) or not url:
+                raise ValueError(
+                    f"table {table_name}: links entry must have a non-empty 'url' "
+                    f"field; got {raw!r}"
+                )
+            label = raw.get("label")
+            description = raw.get("description")
+            if label is not None and not isinstance(label, str):
+                raise ValueError(
+                    f"table {table_name}: links[{url}].label must be a string; "
+                    f"got {label!r}"
+                )
+            if description is not None and not isinstance(description, str):
+                raise ValueError(
+                    f"table {table_name}: links[{url}].description must be a "
+                    f"string; got {description!r}"
+                )
+            return cls(url=url, label=label, description=description)
+        raise ValueError(
+            f"table {table_name}: links entry must be a URL string or a dict "
+            f"with 'url'/'label'/'description'; got {type(raw).__name__}: {raw!r}"
+        )
+
+    def to_json_dict(self) -> dict[str, str]:
+        out: dict[str, str] = {"url": self.url}
+        if self.label is not None:
+            out["label"] = self.label
+        if self.description is not None:
+            out["description"] = self.description
+        return out
+
 # Per-table YAML keys that the loader recognizes. Anything else is ignored
 # silently today, which makes typos invisible — log a warning so wranglers
 # notice (e.g. `data_downloads:` from old #80 context, `field_label:` typo).
@@ -85,7 +129,7 @@ class TableToProcessConfig:
     short_label: str | None = None
     medium_label: str | None = None
     long_label: str | None = None
-    links: list[str] = field(default_factory=list)
+    links: list[DatasetLink] = field(default_factory=list)
     categories: list[str] = field(default_factory=list)
     source: str | None = None
     assay: list[str] = field(default_factory=list)
@@ -248,7 +292,10 @@ class TableToProcessConfig:
             short_label=json_data.get("shortLabel"),
             medium_label=json_data.get("mediumLabel"),
             long_label=json_data.get("longLabel"),
-            links=list(json_data.get("links", [])),
+            links=[
+                DatasetLink.from_yaml(entry, table_name=json_data["table"])
+                for entry in json_data.get("links", []) or []
+            ],
             categories=list(json_data.get("categories", [])),
             source=json_data.get("source"),
             assay=assay,
