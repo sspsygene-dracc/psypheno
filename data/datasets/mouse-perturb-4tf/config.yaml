@@ -66,7 +66,7 @@ tables:
       - cortical development
     organism: Mus musculus (embryonic cortex)
     organism_key: mouse
-    in_path: deg.txt
+    in_path: deg_cleaned.txt
     split_column_map:
       - source_col: perturbation
         new_col1: _perturbation_gene
@@ -126,7 +126,7 @@ tables:
       - cortical development
     organism: Mus musculus (embryonic cortex)
     organism_key: mouse
-    in_path: clusterprop.txt
+    in_path: clusterprop_cleaned.txt
     split_column_map:
       - source_col: guide
         new_col1: _guide_gene
