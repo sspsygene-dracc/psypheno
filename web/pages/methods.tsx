@@ -222,6 +222,13 @@ export default function MethodsPage() {
               that declares a <span style={codeStyle}>pvalue_column</span>. A
               single gene may contribute multiple p-values per table and across
               many tables.
+              <p style={{ marginTop: 8, marginBottom: 0, fontStyle: "italic", color: "#4b5563" }}>
+                Note: this step uses the <strong>nominal (unadjusted)</strong>{" "}
+                p-value column declared by each dataset, not the per-dataset
+                FDR / <span style={codeStyle}>padj</span> column. That is why
+                combined values can be far smaller than any single
+                study&apos;s adjusted p-value.
+              </p>
             </li>
             <li>
               <strong>Pre-collapse</strong> (for Fisher/Stouffer only): reduce

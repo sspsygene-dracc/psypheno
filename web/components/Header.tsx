@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { href: "/publications", label: "Publications" },
   { href: "/all-genes", label: "All Genes" },
   { href: "/most-significant", label: "Most Significant Genes" },
+  { href: "/methods", label: "Methods" },
   { href: "/dataset-changelog", label: "Changelog" },
 ];
 

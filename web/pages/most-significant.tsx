@@ -516,6 +516,34 @@ export default function MostSignificantPage() {
           compare how rankings change depending on the statistical combination
           approach.
         </p>
+        <div
+          style={{
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
+            borderLeft: "3px solid #2563eb",
+            borderRadius: 6,
+            padding: "12px 16px",
+            marginBottom: 20,
+            fontSize: 14,
+            lineHeight: 1.6,
+            color: "#374151",
+          }}
+        >
+          <strong>Note on combined p-values.</strong> The values below are
+          computed from the <strong>raw, unadjusted</strong> per-study
+          p-values reported by each dataset (not from the FDR-adjusted
+          columns). Combining many small nominal p-values can produce extreme
+          combined p-values — that&apos;s expected, and it&apos;s what allows
+          the ranking to highlight genes with consistent cross-study evidence.
+          See the{" "}
+          <Link
+            href="/methods"
+            style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}
+          >
+            methods page
+          </Link>{" "}
+          for the exact pipeline.
+        </div>
         <p style={{ marginBottom: 20 }}>
           <Link
             href="/significant-rows"

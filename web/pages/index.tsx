@@ -506,6 +506,29 @@ export default function Home() {
                 </a>
                 .
               </p>
+              <p style={{ marginTop: 12, marginBottom: 0 }}>
+                Each dataset&apos;s table shows both nominal p-values from the
+                source paper&apos;s analysis and a multiple-testing-corrected
+                significance column (typically Benjamini–Hochberg
+                FDR-adjusted) — hover any column header to see the exact
+                statistical method and correction used. The{" "}
+                <a
+                  href="/most-significant"
+                  style={{ color: "#2563eb", textDecoration: "none" }}
+                >
+                  cross-study significance ranking
+                </a>
+                , by contrast, combines <strong>unadjusted</strong> per-study
+                p-values, so its combined values can be far smaller than any
+                single study&apos;s adjusted p-value (see{" "}
+                <a
+                  href="/methods"
+                  style={{ color: "#2563eb", textDecoration: "none" }}
+                >
+                  methods
+                </a>{" "}
+                for details).
+              </p>
             </div>
           )}
           <div style={{ width: "100%" }}>
