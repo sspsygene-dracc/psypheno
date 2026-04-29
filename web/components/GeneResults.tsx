@@ -921,8 +921,8 @@ function DirectionToggle({
   geneDisplayName: string | null;
 }) {
   const tooltip =
-    "Target = the gene whose response was measured. " +
-    "Perturbed = the gene that was experimentally knocked down or up-regulated.";
+    "Target mode: find datasets where this gene was a measured readout — i.e. its expression or activity changed in response to other genes being perturbed. " +
+    "Perturbed mode: find datasets where this gene was the one experimentally manipulated (CRISPRi/CRISPRa knockdown or up-regulation, RNAi/shRNA, CRISPR knockout, or mutant lines, depending on the dataset).";
   const optionStyle = (active: boolean): React.CSSProperties => ({
     flex: 1,
     padding: "8px 16px",
@@ -982,16 +982,15 @@ function DirectionToggle({
         </button>
       </div>
       <span
-        title={tooltip}
-        aria-label={tooltip}
         style={{
+          display: "inline-flex",
+          alignItems: "center",
           fontSize: 12,
           color: "#6b7280",
-          cursor: "help",
-          borderBottom: "1px dotted #9ca3af",
         }}
       >
         what does this mean?
+        <InfoTooltip text={tooltip} size={13} />
       </span>
     </div>
   );

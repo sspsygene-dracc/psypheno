@@ -5,6 +5,7 @@ import SearchBar from "@/components/SearchBar";
 import GeneResults from "@/components/GeneResults";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import InfoTooltip from "@/components/InfoTooltip";
 import { TableResult } from "@/lib/table_result";
 import { SearchSuggestion } from "@/state/SearchSuggestion";
 
@@ -417,9 +418,25 @@ export default function Home() {
                 background: "#f9fafb",
                 border: "1px solid #e5e7eb",
                 borderRadius: 12,
-                padding: 4,
+                padding: 8,
               }}
             >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#374151",
+                  padding: "4px 6px 6px",
+                }}
+              >
+                <span>Gene</span>
+                <InfoTooltip
+                  size={13}
+                  text="Type a gene symbol or synonym in any of human, mouse, or zebrafish. Returns every consortium dataset that has touched this gene — whether it appears as a perturbed gene (the one experimentally manipulated: CRISPRi, CRISPRa, RNAi, knockout, mutant line) or as a target gene (the one whose expression or activity was measured)."
+                />
+              </div>
               <SearchBar
                 placeholder="Search for a gene (e.g., CNTN5, EBF3)"
                 onSelect={(s) => setSelected(s)}
@@ -437,22 +454,58 @@ export default function Home() {
                 background: "#f9fafb",
                 border: "1px solid #e5e7eb",
                 borderRadius: 12,
-                padding: 4,
+                padding: 8,
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: 12,
               }}
             >
-              <SearchBar
-                placeholder="Perturbed gene"
-                onSelect={(s) => setPerturbed(s)}
-                value={perturbed}
-              />
-              <SearchBar
-                placeholder="Target gene"
-                onSelect={(s) => setTarget(s)}
-                value={target}
-              />
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#374151",
+                    padding: "4px 6px 6px",
+                  }}
+                >
+                  <span>Perturbed gene</span>
+                  <InfoTooltip
+                    size={13}
+                    text="The gene that was experimentally manipulated in this dataset's experiment — knocked down (CRISPRi, RNAi/shRNA), upregulated (CRISPRa, overexpression), knocked out (CRISPR-KO), or carried as a mutant allele. The exact perturbation method varies by dataset; see each dataset's description in the results."
+                  />
+                </div>
+                <SearchBar
+                  placeholder="Perturbed gene"
+                  onSelect={(s) => setPerturbed(s)}
+                  value={perturbed}
+                />
+              </div>
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#374151",
+                    padding: "4px 6px 6px",
+                  }}
+                >
+                  <span>Target gene</span>
+                  <InfoTooltip
+                    size={13}
+                    text="The gene whose expression or activity was measured as a readout — i.e. how the genome responded to the perturbation. In a CRISPR/RNAi screen this is typically a downstream gene whose differential expression was tested against scramble/non-targeting controls."
+                  />
+                </div>
+                <SearchBar
+                  placeholder="Target gene"
+                  onSelect={(s) => setTarget(s)}
+                  value={target}
+                />
+              </div>
             </div>
           )}
           {!displayResults() && (
@@ -487,9 +540,13 @@ export default function Home() {
                 touched it, with effect sizes and significance shown
                 side-by-side across studies. Switch to{" "}
                 <strong>Perturbed/Target</strong> mode to look up a specific
-                perturbation–readout pair (e.g. &ldquo;what happens to{" "}
-                <em>FOXP2</em> when <em>CHD8</em> is knocked out?&rdquo;). Use
-                the{" "}
+                perturbation–readout pair: a <strong>perturbed</strong> gene
+                (the one experimentally manipulated — CRISPRi/CRISPRa,
+                RNAi, knockout, or mutant line, depending on the dataset)
+                and a <strong>target</strong> gene (the readout whose
+                expression or activity was measured) — e.g. &ldquo;what
+                happens to <em>FOXP2</em> when <em>CHD8</em> is knocked
+                out?&rdquo;. Use the{" "}
                 <a
                   href="/most-significant"
                   style={{ color: "#2563eb", textDecoration: "none" }}

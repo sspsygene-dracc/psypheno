@@ -6,6 +6,7 @@ import GeneInfoBox from "@/components/GeneInfoBox";
 import GeneSignificanceSummary from "@/components/GeneSignificanceSummary";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import InfoTooltip from "@/components/InfoTooltip";
 
 const PAGE_SIZE = 10;
 const NUM_COLS = 6; // rank, gene, pvalue, tables, pvalues, gene info
@@ -666,17 +667,25 @@ export default function MostSignificantPage() {
             })}
           </div>
           <span
-            style={{ fontSize: 12, color: "#6b7280", maxWidth: 480 }}
-            title={
-              "Global: legacy default. Drops perturbed only when both target and perturbed exist in the same source table.\n" +
-              "Target: ranks each gene as if it were the gene whose response was measured in each study.\n" +
-              "Perturbed: ranks each gene as if it were the gene that was experimentally manipulated.\n" +
-              "Disabled when an assay, disease, or organism filter is set (only the global pre-computed table exists for those subsets)."
-            }
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              fontSize: 12,
+              color: "#6b7280",
+            }}
           >
             {assayFilter || diseaseFilter || organismFilter
               ? "(direction not applied while filters are active)"
               : "what does this mean?"}
+            <InfoTooltip
+              size={13}
+              text={
+                "Global: legacy default — drops perturbed only when both target and perturbed exist in the same source table. " +
+                "Target: ranks each gene as if it were the readout (the gene whose expression or activity was measured). " +
+                "Perturbed: ranks each gene as if it were the one experimentally manipulated (CRISPRi/CRISPRa knockdown or up-regulation, RNAi/shRNA, CRISPR knockout, or mutant lines, depending on the dataset). " +
+                "Disabled when an assay, disease, or organism filter is set (only the global pre-computed table exists for those subsets)."
+              }
+            />
           </span>
         </div>
 
