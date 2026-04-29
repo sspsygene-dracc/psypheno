@@ -404,6 +404,7 @@ def _make_test_db():
             gene_columns TEXT, gene_species TEXT, display_columns TEXT,
             scalar_columns TEXT, link_tables TEXT, links TEXT, categories TEXT,
             source TEXT, assay TEXT, field_labels TEXT, organism TEXT,
+            organism_key TEXT,
             publication_title TEXT, publication_authors TEXT, publication_year TEXT,
             publication_doi TEXT, publication_url TEXT, publication_journal TEXT,
             pvalue_column TEXT, fdr_column TEXT, disease TEXT
@@ -625,7 +626,7 @@ class TestPvalueCollection:
         conn.execute("INSERT INTO tbl_multi__link VALUES (3, 1)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_multi', 'pval_a,pval_b', 'gene:tbl_multi__link:0:1')"
+            "VALUES ('tbl_multi', 'pval_a,pval_b', 'gene:tbl_multi__link:target')"
         )
         conn.commit()
 
@@ -665,7 +666,7 @@ class TestPvalueCollection:
         conn.execute("INSERT INTO tbl_a__pert VALUES (2, 2)")
         conn.execute(
             "INSERT INTO data_tables (table_name, pvalue_column, link_tables) "
-            "VALUES ('tbl_a', 'pval', 'target_gene:tbl_a__target:0:1,perturbed_gene:tbl_a__pert:1:0')"
+            "VALUES ('tbl_a', 'pval', 'target_gene:tbl_a__target:target,perturbed_gene:tbl_a__pert:perturbed')"
         )
         conn.commit()
 

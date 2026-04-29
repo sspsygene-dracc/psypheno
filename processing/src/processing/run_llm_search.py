@@ -161,6 +161,7 @@ def run_agent(
         if abort_event.is_set():
             return {
                 "symbol": symbol,
+                "status": "ABORTED",
                 "success": False,
                 "elapsed": 0.0,
                 "returncode": -2,
@@ -234,6 +235,7 @@ def run_agent(
                 f.write(f"Status: TIMEOUT after {elapsed:.1f}s\n")
             return {
                 "symbol": symbol,
+                "status": "TIMEOUT",
                 "success": False,
                 "elapsed": elapsed,
                 "returncode": -1,
@@ -246,6 +248,7 @@ def run_agent(
                 f.write(f"=== {symbol} ===\nStatus: ERROR\n{e}\n")
             return {
                 "symbol": symbol,
+                "status": "ERROR",
                 "success": False,
                 "elapsed": elapsed,
                 "returncode": -1,
