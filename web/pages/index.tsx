@@ -19,7 +19,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [generalData, setGeneralData] = useState<TableResult[]>([]);
   const [pairData, setPairData] = useState<TableResult[]>([]);
-  const [assayTypeLabels, setAssayTypeLabels] = useState<Record<string, string>>({});
+  const [assayTypeLabels, setAssayTypeLabels] = useState<
+    Record<string, string>
+  >({});
   const [geneDescription, setGeneDescription] = useState<string | null>(null);
   const [llmResult, setLlmResult] = useState<{
     pubmedLinks: string | null;
@@ -40,7 +42,7 @@ export default function Home() {
 
   // Resolve a gene symbol to a SearchSuggestion via the search API
   const resolveSymbol = async (
-    symbol: string
+    symbol: string,
   ): Promise<SearchSuggestion | null> => {
     try {
       const res = await fetch("/api/search-text", {
@@ -350,7 +352,8 @@ export default function Home() {
               href="/most-significant"
               style={{ color: "#2563eb", textDecoration: "none" }}
             >
-              Gene ranking by cross-study significance across all datasets now available!
+              Gene ranking by cross-study significance across all datasets now
+              available!
             </a>
           </div>
           {/* Mode toggle */}
@@ -378,7 +381,10 @@ export default function Home() {
                   searchMode === "general" ? "#ffffff" : "transparent",
                 color: "#1f2937",
                 fontWeight: 600,
-                boxShadow: searchMode === "general" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                boxShadow:
+                  searchMode === "general"
+                    ? "0 1px 3px rgba(0,0,0,0.1)"
+                    : "none",
               }}
             >
               General gene search
@@ -394,7 +400,8 @@ export default function Home() {
                 background: searchMode === "pair" ? "#ffffff" : "transparent",
                 color: "#1f2937",
                 fontWeight: 600,
-                boxShadow: searchMode === "pair" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                boxShadow:
+                  searchMode === "pair" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
               }}
             >
               Perturbed/Target search
@@ -470,8 +477,8 @@ export default function Home() {
                 >
                   SSPsyGene consortium
                 </a>{" "}
-                — differential-expression studies, perturbation screens
-                (CRISPR knockouts, knockdowns, overexpression), and phenotype
+                — differential-expression studies, perturbation screens (CRISPR
+                knockouts, knockdowns, overexpression), and phenotype
                 annotations from human, mouse, and zebrafish models of
                 psychiatric disease.
               </p>
@@ -492,10 +499,10 @@ export default function Home() {
                 to see which genes are most consistently implicated across the
                 whole consortium. You can also{" "}
                 <a
-                  href="/all-datasets"
+                  href="/full-datasets"
                   style={{ color: "#2563eb", textDecoration: "none" }}
                 >
-                  browse all datasets
+                  view full datasets
                 </a>{" "}
                 or{" "}
                 <a
@@ -509,9 +516,9 @@ export default function Home() {
               <p style={{ marginTop: 12, marginBottom: 0 }}>
                 Each dataset&apos;s table shows both nominal p-values from the
                 source paper&apos;s analysis and a multiple-testing-corrected
-                significance column (typically Benjamini–Hochberg
-                FDR-adjusted) — hover any column header to see the exact
-                statistical method and correction used. The{" "}
+                significance column (typically Benjamini–Hochberg FDR-adjusted)
+                — hover any column header to see the exact statistical method
+                and correction used. The{" "}
                 <a
                   href="/most-significant"
                   style={{ color: "#2563eb", textDecoration: "none" }}
@@ -540,12 +547,26 @@ export default function Home() {
                     geneDisplayName={displayGeneString()}
                     data={searchMode === "general" ? generalData : pairData}
                     assayTypeLabels={assayTypeLabels}
-                    centralGeneId={searchMode === "general" ? selected?.centralGeneId : undefined}
+                    centralGeneId={
+                      searchMode === "general"
+                        ? selected?.centralGeneId
+                        : undefined
+                    }
                     direction={direction}
                     onDirectionChange={setDirection}
-                    perturbedCentralGeneId={searchMode === "pair" ? (perturbed?.centralGeneId ?? null) : undefined}
-                    targetCentralGeneId={searchMode === "pair" ? (target?.centralGeneId ?? null) : undefined}
-                    geneDescription={searchMode === "general" ? geneDescription : undefined}
+                    perturbedCentralGeneId={
+                      searchMode === "pair"
+                        ? (perturbed?.centralGeneId ?? null)
+                        : undefined
+                    }
+                    targetCentralGeneId={
+                      searchMode === "pair"
+                        ? (target?.centralGeneId ?? null)
+                        : undefined
+                    }
+                    geneDescription={
+                      searchMode === "general" ? geneDescription : undefined
+                    }
                     llmResult={searchMode === "general" ? llmResult : undefined}
                   />
                 )}
