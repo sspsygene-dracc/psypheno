@@ -117,6 +117,9 @@ def clean_gene_column(
                     counts["rescued_symbol_ensg"] += 1
                     continue
 
+        # New rescue helpers (e.g. #124's resolve_gencode_clone) MUST be
+        # added above this classification step so the silencer remains a
+        # backstop, not a short-circuit.
         category = helpers.is_non_symbol_identifier(name)
         if category is not None:
             tag = f"non_symbol_{category}"

@@ -1,16 +1,12 @@
 from dataclasses import dataclass
 from pathlib import Path
-import re
 from typing import Any, Literal
 
 import pandas as pd
 from processing.central_gene_table import get_central_gene_table
 from processing.my_logger import get_sspsygene_logger
+from processing.preprocessing.helpers import is_non_symbol_identifier
 from processing.types.link_table import LinkTable, PerturbedOrTarget
-
-_CONTIG_REGEX = re.compile(
-    r"^(((C[RU]|F[OP]|AUXG|BX|A[CDFJLP])\d{6}\.\d{1,2})|([UZ]\d{5}\.\d))$"
-)
 
 
 @dataclass
@@ -110,7 +106,7 @@ class GeneMapping:
                         data_id_to_central_gene_id.append((row_id, None))
                         continue
 
-                    if not _CONTIG_REGEX.match(gene_val):
+                    if is_non_symbol_identifier(gene_val) is None:
                         get_sspsygene_logger().warning(
                             "Path %s, column %s, gene %s not in gene maps for species %s; adding manually",
                             in_path,
