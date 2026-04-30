@@ -115,7 +115,7 @@ tables:
       - psychiatric disorders
     organism: Homo sapiens (postmortem brain)
     organism_key: human
-    in_path: Age_DEGcombined.csv
+    in_path: Age_DEGcombined_cleaned.csv
     split_column_map: []
     separator: ","
     gene_mappings:
@@ -123,8 +123,9 @@ tables:
         link_table_name: gene
         species: human
         # Retired/withdrawn HGNC symbols present across psychscreen DEG tables
-        # (per #125 audit). Silences load-db warnings; rows still added to
-        # central_gene as manual entries.
+        # (per #125 audit, expanded in #140 once the cleaner exposed the full
+        # set). Silences load-db warnings; rows still added to central_gene as
+        # manual entries.
         ignore_missing:
           - GATD3B
           - IQCD
@@ -139,6 +140,12 @@ tables:
           - TEMN3-AS1
           - FLJ45513
           - SIK1B
+          - QARS
+          - SARS
+          - MPP6
+          - C18orf21
+          - LOR
+          - DUSP27
         perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
@@ -176,7 +183,7 @@ tables:
       - psychiatric disorders
     organism: Homo sapiens (postmortem brain)
     organism_key: human
-    in_path: ASD_DEGcombined.csv
+    in_path: ASD_DEGcombined_cleaned.csv
     split_column_map: []
     separator: ","
     gene_mappings:
@@ -184,8 +191,9 @@ tables:
         link_table_name: gene
         species: human
         # Retired/withdrawn HGNC symbols present across psychscreen DEG tables
-        # (per #125 audit). Silences load-db warnings; rows still added to
-        # central_gene as manual entries.
+        # (per #125 audit, expanded in #140 once the cleaner exposed the full
+        # set). Silences load-db warnings; rows still added to central_gene as
+        # manual entries.
         ignore_missing:
           - GATD3B
           - IQCD
@@ -200,6 +208,12 @@ tables:
           - TEMN3-AS1
           - FLJ45513
           - SIK1B
+          - QARS
+          - SARS
+          - MPP6
+          - C18orf21
+          - LOR
+          - DUSP27
         perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
@@ -237,7 +251,7 @@ tables:
       - psychiatric disorders
     organism: Homo sapiens (postmortem brain)
     organism_key: human
-    in_path: Bipolar_DEGcombined.csv
+    in_path: Bipolar_DEGcombined_cleaned.csv
     split_column_map: []
     separator: ","
     gene_mappings:
@@ -245,8 +259,9 @@ tables:
         link_table_name: gene
         species: human
         # Retired/withdrawn HGNC symbols present across psychscreen DEG tables
-        # (per #125 audit). Silences load-db warnings; rows still added to
-        # central_gene as manual entries.
+        # (per #125 audit, expanded in #140 once the cleaner exposed the full
+        # set). Silences load-db warnings; rows still added to central_gene as
+        # manual entries.
         ignore_missing:
           - GATD3B
           - IQCD
@@ -261,6 +276,12 @@ tables:
           - TEMN3-AS1
           - FLJ45513
           - SIK1B
+          - QARS
+          - SARS
+          - MPP6
+          - C18orf21
+          - LOR
+          - DUSP27
         perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
@@ -298,7 +319,7 @@ tables:
       - psychiatric disorders
     organism: Homo sapiens (postmortem brain)
     organism_key: human
-    in_path: Schizophrenia_DEGcombined.csv
+    in_path: Schizophrenia_DEGcombined_cleaned.csv
     split_column_map: []
     separator: ","
     gene_mappings:
@@ -306,8 +327,9 @@ tables:
         link_table_name: gene
         species: human
         # Retired/withdrawn HGNC symbols present across psychscreen DEG tables
-        # (per #125 audit). Silences load-db warnings; rows still added to
-        # central_gene as manual entries.
+        # (per #125 audit, expanded in #140 once the cleaner exposed the full
+        # set). Silences load-db warnings; rows still added to central_gene as
+        # manual entries.
         ignore_missing:
           - GATD3B
           - IQCD
@@ -322,6 +344,12 @@ tables:
           - TEMN3-AS1
           - FLJ45513
           - SIK1B
+          - QARS
+          - SARS
+          - MPP6
+          - C18orf21
+          - LOR
+          - DUSP27
         perturbed_or_target: target
     pvalue_column: pvalue
     fdr_column: padj
