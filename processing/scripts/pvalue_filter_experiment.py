@@ -18,27 +18,36 @@ contributing meaningful ranking information at the top of the list, and the
 mixed-filtering bias is mostly a concern for combined-p *magnitudes*, not
 gene rankings. If they disagree, the bias is real for ranking too.
 
-Combine implementations are reference-grade (matching poolr / ACAT) but in
-pure Python so we can sweep scenarios without spinning up R.
+Combine is delegated to the same R script the production pipeline uses
+(`processing/src/processing/r/compute_combined.R`, which calls poolr::fisher,
+poolr::stouffer, ACAT::ACAT, harmonicmeanp::p.hmp), so all four reported
+methods match the production implementations exactly.
 
 Usage:
     SSPSYGENE_DATA_DB=/path/to/sspsygene.db \\
         processing/.venv-claude/bin/python processing/scripts/pvalue_filter_experiment.py
 """
 
-import math
+import csv
 import os
+import shutil
 import sqlite3
+import subprocess
 import sys
+import tempfile
 from collections import defaultdict
+from pathlib import Path
 
+import mpmath
 import numpy as np
 from scipy import stats
 
 DB = os.environ.get("SSPSYGENE_DATA_DB", "data/db/sspsygene.db")
+R_SCRIPT = (
+    Path(__file__).resolve().parent.parent
+    / "src" / "processing" / "r" / "compute_combined.R"
+)
 
-# Already-DEG-only tables (per the §1 audit in #148). Unaffected by C(T)
-# filtering; flagged in the table listing for context.
 PREFILTERED = {
     "brain_organoid_atlas_nebula_gene_0_05_FDR",
     "brain_organoid_atlas_nebula_gene_0_2_FDR",
@@ -47,7 +56,6 @@ PREFILTERED = {
 
 
 def parse_link_tables(link_tables_raw: str, direction: str):
-    """Return list of (data_column, link_table_name) for the given direction."""
     out = []
     for entry in (link_tables_raw or "").split(","):
         entry = entry.strip()
@@ -96,72 +104,98 @@ def load_data(cur):
     return gene_pvals, short_label
 
 
-# --- combine functions ----------------------------------------------------
+def precollapse(pvals: list[float]) -> float:
+    """Bonferroni: min(p) * n, capped at 1, mpmath for tiny p (matches pipeline)."""
+    n = len(pvals)
+    min_p = mpmath.mpf(min(pvals))
+    return float(min(min_p * n, mpmath.mpf(1)))
 
 
-def precollapse_per_table(pvals: list[float]) -> float:
-    """Bonferroni: min(p) * n, capped at 1."""
-    return min(min(pvals) * len(pvals), 1.0)
+def run_r_combine(
+    per_gene_table: dict[int, dict[str, list[float]]],
+    label: str,
+) -> dict[int, tuple[float | None, ...]]:
+    """Write CSVs, call R, return {gene_id: (fisher, stouffer, cct, hmp)}.
+
+    Mirrors processing/src/processing/combined_pvalues.py:_call_r_combine
+    but built on already-filtered in-memory data.
+    """
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        sys.exit("Rscript not found on PATH")
+    if not R_SCRIPT.exists():
+        sys.exit(f"R script not found: {R_SCRIPT}")
+
+    tmp_dir = tempfile.mkdtemp(prefix=f"sspsygene_filterexp_{label}_")
+    try:
+        collapsed_path = Path(tmp_dir) / "collapsed_pvalues.csv"
+        with open(collapsed_path, "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["gene_id", "pvalue"])
+            for gid in sorted(per_gene_table.keys()):
+                for tbl_pvals in per_gene_table[gid].values():
+                    w.writerow([gid, f"{precollapse(tbl_pvals):.17e}"])
+
+        raw_path = Path(tmp_dir) / "raw_pvalues.csv"
+        with open(raw_path, "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["gene_id", "pvalue"])
+            for gid in sorted(per_gene_table.keys()):
+                for tbl_pvals in per_gene_table[gid].values():
+                    for p in tbl_pvals:
+                        w.writerow([gid, f"{p:.17e}"])
+
+        print(f"  [{label}] calling R ({sum(len(v) for v in per_gene_table.values())} gene-tables)...")
+        result = subprocess.run(
+            [rscript, str(R_SCRIPT), tmp_dir],
+            capture_output=True, text=True, timeout=900,
+        )
+        if result.returncode != 0:
+            print(result.stdout)
+            print(result.stderr)
+            sys.exit(f"R failed for scenario {label}")
+
+        # forward R's progress lines so it doesn't look hung
+        for line in result.stdout.strip().splitlines():
+            print(f"  [{label}] {line.strip()}")
+
+        results_path = Path(tmp_dir) / "results.csv"
+        out: dict[int, tuple[float | None, ...]] = {}
+
+        def parse(s: str) -> float | None:
+            if s in ("NA", "", "NaN", "Inf", "-Inf"):
+                return None
+            try:
+                v = float(s)
+            except ValueError:
+                return None
+            if v != v or v == float("inf") or v == float("-inf"):
+                return None
+            return v
+
+        with open(results_path) as f:
+            for row in csv.DictReader(f):
+                gid = int(row["gene_id"])
+                out[gid] = (
+                    parse(row["fisher_p"]),
+                    parse(row["stouffer_p"]),
+                    parse(row["cauchy_p"]),
+                    parse(row["hmp_p"]),
+                )
+        return out
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def fisher_combine(pvals: list[float]) -> float | None:
-    """-2 sum log p ~ chi2(2k). Drop p>=1 (no information)."""
-    valid = [p for p in pvals if 0 < p < 1]
-    if len(valid) < 2:
-        return None
-    chi2 = -2.0 * sum(math.log(p) for p in valid)
-    return float(stats.chi2.sf(chi2, 2 * len(valid)))
-
-
-def stouffer_combine(pvals: list[float]) -> float | None:
-    """sum z_i / sqrt(k), z_i = qnorm(1-p). Drop p>=1."""
-    valid = [p for p in pvals if 0 < p < 1]
-    if len(valid) < 2:
-        return None
-    zs = stats.norm.isf(np.array(valid))
-    z = float(zs.sum() / math.sqrt(len(valid)))
-    return float(stats.norm.sf(z))
-
-
-def cct_combine(pvals: list[float]) -> float | None:
-    """Cauchy combination test (ACAT, equal weights)."""
-    valid = [p for p in pvals if 0 < p < 1]
-    if len(valid) < 2:
-        return None
-    parts = []
-    for p in valid:
-        if p < 1e-15:
-            parts.append(1.0 / (p * math.pi))
-        else:
-            parts.append(math.tan((0.5 - p) * math.pi))
-    T = sum(parts) / len(valid)
-    if T > 1e15:
-        return float(1.0 / (T * math.pi))
-    return float(0.5 - math.atan(T) / math.pi)
-
-
-def combine_all_genes(gene_pvals, scenario_filter):
-    """{gene_id: (fisher_p, stouffer_p, cct_p)} for the given scenario filter."""
-    per_gene_table: dict[int, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+def build_per_gene_table(gene_pvals, scenario_filter):
+    """{gene_id: {table_name: [p,...]}}, retaining only rows that pass the filter."""
+    per: dict[int, dict[str, list[float]]] = defaultdict(dict)
     for table_name, gdict in gene_pvals.items():
         for gid, ps in gdict.items():
             kept = [p for p in ps if scenario_filter(table_name, p)]
             if kept:
-                per_gene_table[gid][table_name] = kept
-
-    out = {}
-    for gid, tbl_dict in per_gene_table.items():
-        collapsed = [precollapse_per_table(ps) for ps in tbl_dict.values()]
-        raw = [p for ps in tbl_dict.values() for p in ps]
-        out[gid] = (
-            fisher_combine(collapsed),
-            stouffer_combine(collapsed),
-            cct_combine(raw),
-        )
-    return out
-
-
-# --- ranking comparison ---------------------------------------------------
+                per[gid][table_name] = kept
+    return per
 
 
 def rank_by(d, idx):
@@ -170,25 +204,22 @@ def rank_by(d, idx):
     return items
 
 
-def top_overlap(rank_a, rank_b, k):
-    a = {g for g, _ in rank_a[:k]}
-    b = {g for g, _ in rank_b[:k]}
+def top_overlap(rA, rB, k):
+    a = {g for g, _ in rA[:k]}
+    b = {g for g, _ in rB[:k]}
     return len(a & b) / k if k else 1.0
 
 
-def spearman_top(rank_a, rank_b, k):
-    a_top = {g: i for i, (g, _) in enumerate(rank_a[:k])}
-    b_top = {g: i for i, (g, _) in enumerate(rank_b[:k])}
+def spearman_top(rA, rB, k):
+    a_top = {g: i for i, (g, _) in enumerate(rA[:k])}
+    b_top = {g: i for i, (g, _) in enumerate(rB[:k])}
     union = list(a_top.keys() | b_top.keys())
     if len(union) < 3:
         return float("nan")
-    a_ranks = [a_top.get(g, k) for g in union]
-    b_ranks = [b_top.get(g, k) for g in union]
-    rho, _ = stats.spearmanr(a_ranks, b_ranks)
+    ar = [a_top.get(g, k) for g in union]
+    br = [b_top.get(g, k) for g in union]
+    rho, _ = stats.spearmanr(ar, br)
     return rho
-
-
-# --- main -----------------------------------------------------------------
 
 
 def main() -> int:
@@ -204,28 +235,30 @@ def main() -> int:
     for tn, g in gene_pvals.items():
         n_rows = sum(len(v) for v in g.values())
         flag = "  [pre-filtered]" if tn in PREFILTERED else ""
-        print(
-            f"  {short_label[tn][:42]:<43} {tn:<45} "
-            f"genes={len(g):>6} rows={n_rows:>9}{flag}"
-        )
+        print(f"  {short_label[tn][:42]:<43} {tn:<45} genes={len(g):>6} rows={n_rows:>9}{flag}")
     print()
 
-    print("Computing combined p under each scenario...")
-    A = combine_all_genes(gene_pvals, lambda _t, _p: True)
-    Cs = {
-        T: combine_all_genes(gene_pvals, (lambda T_=T: lambda _t, p: p <= T_)())
-        for T in (0.05, 0.1, 0.2, 0.5)
-    }
-    print(
-        f"A: {len(A)} genes, "
-        + ", ".join(f"C({T}): {len(C)}" for T, C in Cs.items())
-    )
+    scenarios: list[tuple[str, callable]] = [
+        ("baseline", lambda _t, _p: True),
+    ]
+    for T in (0.05, 0.1, 0.2, 0.5):
+        scenarios.append((f"C{T}", (lambda T_=T: lambda _t, p: p <= T_)()))
 
-    METHODS = [("Fisher", 0), ("Stouffer", 1), ("CCT", 2)]
+    print("Running R combine for each scenario; takes a few minutes total.\n")
+    results: dict[str, dict[int, tuple[float | None, ...]]] = {}
+    for label, flt in scenarios:
+        per = build_per_gene_table(gene_pvals, flt)
+        results[label] = run_r_combine(per, label)
+        print(f"  [{label}] {len(results[label])} genes scored\n")
+
+    METHODS = [("Fisher", 0), ("Stouffer", 1), ("CCT", 2), ("HMP", 3)]
     KS = [50, 100, 500, 1000]
+    A = results["baseline"]
 
-    def report(label, X, Y):
-        print(f"\n{'=' * 78}\n{label}\n{'=' * 78}")
+    for label, _ in scenarios[1:]:
+        C = results[label]
+        T = label[1:]
+        print(f"\n{'=' * 96}\nA = baseline   C(T={T}) = filter every table at p<={T}\n{'=' * 96}")
         print(
             f"{'method':<10} "
             + " ".join(f"{'top' + str(k) + '_jacc':>13}" for k in KS)
@@ -233,19 +266,16 @@ def main() -> int:
             + " ".join(f"{'top' + str(k) + '_rho':>11}" for k in KS)
         )
         for name, idx in METHODS:
-            rX = rank_by(X, idx)
-            rY = rank_by(Y, idx)
-            overlaps = [top_overlap(rX, rY, k) for k in KS]
-            rhos = [spearman_top(rX, rY, k) for k in KS]
+            rA = rank_by(A, idx)
+            rC = rank_by(C, idx)
+            ovs = [top_overlap(rA, rC, k) for k in KS]
+            rhs = [spearman_top(rA, rC, k) for k in KS]
             print(
                 f"{name:<10} "
-                + " ".join(f"{o:>13.3f}" for o in overlaps)
+                + " ".join(f"{o:>13.3f}" for o in ovs)
                 + "  "
-                + " ".join(f"{r:>11.3f}" for r in rhos)
+                + " ".join(f"{r:>11.3f}" for r in rhs)
             )
-
-    for T, C in Cs.items():
-        report(f"A = baseline   C(T={T}) = filter every table at p<={T}", A, C)
 
     return 0
 
