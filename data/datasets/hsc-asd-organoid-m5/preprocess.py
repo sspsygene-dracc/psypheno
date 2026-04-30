@@ -28,6 +28,7 @@ Output files:
 
 import json
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 
@@ -92,7 +93,9 @@ def build_region_genes_map() -> dict[str, str]:
 def process_supp3(normalizer: GeneSymbolNormalizer) -> None:
     region_genes_map = build_region_genes_map()
 
-    all_sheets = pd.read_excel(SUPP3_EXCEL, sheet_name=None, engine="openpyxl", dtype=str)
+    all_sheets = pd.read_excel(
+        SUPP3_EXCEL, sheet_name=None, engine="openpyxl", dtype=str
+    )
     print(f"Supp Table 3: read {len(all_sheets)} sheets")
 
     frames = []
@@ -105,23 +108,44 @@ def process_supp3(normalizer: GeneSymbolNormalizer) -> None:
         df = df[df["hgnc_symbol"].astype(str).str.strip() != ""]
 
         df, _ = clean_gene_column(
-            df, "hgnc_symbol", species="human", normalizer=normalizer,
-            excel_demangle=True, strip_make_unique=True,
+            cast(pd.DataFrame, df),
+            "hgnc_symbol",
+            species="human",
+            normalizer=normalizer,
+            excel_demangle=True,
+            strip_make_unique=True,
             manual_aliases=MANUAL_ALIASES,
         )
         df = df.drop(columns=["_hgnc_symbol_resolution"])
 
-        df = df.rename(columns={  # type: ignore
-            "hgnc_symbol": "target_gene",
-            "hgnc_symbol_raw": "target_gene_raw",
-            "ensembl_gene_id": "Ensembl_Gene_Id",
-            "AveExpr": "Avg_Expr",
-            "p": "P-Value",
-            "fdr": "Adjusted_P-Value",
-            "z.std": "z_std",
-        })
+        df = df.rename(
+            columns={  # type: ignore
+                "hgnc_symbol": "target_gene",
+                "hgnc_symbol_raw": "target_gene_raw",
+                "ensembl_gene_id": "Ensembl_Gene_Id",
+                "AveExpr": "Avg_Expr",
+                "p": "P-Value",
+                "fdr": "Adjusted_P-Value",
+                "z.std": "z_std",
+            }
+        )
 
-        df = df[["target_gene", "target_gene_raw", "Ensembl_Gene_Id", "logFC", "Avg_Expr", "t", "P-Value", "Adjusted_P-Value", "z_std", "chromosome_name", "band", "gene_biotype"]]
+        df = df[
+            [
+                "target_gene",
+                "target_gene_raw",
+                "Ensembl_Gene_Id",
+                "logFC",
+                "Avg_Expr",
+                "t",
+                "P-Value",
+                "Adjusted_P-Value",
+                "z_std",
+                "chromosome_name",
+                "band",
+                "gene_biotype",
+            ]
+        ]
 
         df.insert(0, "perturbation", deletion_type)
         df.insert(1, "organoid_age_(days)", get_organoid_age(sheet_name))
@@ -135,27 +159,35 @@ def process_supp3(normalizer: GeneSymbolNormalizer) -> None:
 
 
 def process_supp12(normalizer: GeneSymbolNormalizer) -> None:
-    all_sheets = pd.read_excel(SUPP12_EXCEL, sheet_name=None, engine="openpyxl", dtype=str)
+    all_sheets = pd.read_excel(
+        SUPP12_EXCEL, sheet_name=None, engine="openpyxl", dtype=str
+    )
     print(f"Supp Table 12: read {len(all_sheets)} sheets")
 
     frames = []
     for sheet_name, df in all_sheets.items():
         df = df.drop(columns=["...1"], errors="ignore")
 
-        df = df.rename(columns={
-            "gene": "target_gene",
-            "avg_logFC": "Avg_logFC",
-            "1.target.pct": "target_pct",
-            "2.NTC.pct": "NTC_pct",
-            "1.target.exp": "target_exp",
-            "2.NTC.exp": "NTC_exp",
-            "p_val": "P_Value",
-            "p_val_adj": "Adjusted_P_Value",
-        })
+        df = df.rename(
+            columns={
+                "gene": "target_gene",
+                "avg_logFC": "Avg_logFC",
+                "1.target.pct": "target_pct",
+                "2.NTC.pct": "NTC_pct",
+                "1.target.exp": "target_exp",
+                "2.NTC.exp": "NTC_exp",
+                "p_val": "P_Value",
+                "p_val_adj": "Adjusted_P_Value",
+            }
+        )
 
         df, _ = clean_gene_column(
-            df, "target_gene", species="human", normalizer=normalizer,
-            excel_demangle=True, strip_make_unique=True,
+            df,
+            "target_gene",
+            species="human",
+            normalizer=normalizer,
+            excel_demangle=True,
+            strip_make_unique=True,
             manual_aliases=MANUAL_ALIASES,
         )
         df = df.drop(columns=["_target_gene_resolution"])

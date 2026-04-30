@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -75,7 +76,7 @@ def test_non_resolving_pattern_overlap_raises() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _base_mapping() -> dict:
+def _base_mapping() -> dict[str, Any]:
     return {
         "column_name": "target_gene",
         "species": "human",
@@ -163,15 +164,6 @@ def central_gene_stub(monkeypatch: pytest.MonkeyPatch) -> CentralGeneTable:
     # processing.central_gene_table; patching the module-level singleton
     # is sufficient since get_central_gene_table reads it on each call.
     return table
-
-
-def _run_mapping(
-    cfg: dict, values: list[str]
-) -> tuple[list[tuple[int, int | None]], CentralGeneTable]:
-    gm = GeneMapping.from_json(cfg)
-    df = pd.DataFrame({"id": list(range(len(values))), "target_gene": values})
-    link = gm.resolve_to_central_gene_table("test_table", df, Path("/dev/null"))
-    return link.central_gene_table_links, gm.non_resolving and gm  # type: ignore
 
 
 def test_link_table_asymmetry_first_encounter_is_linked(

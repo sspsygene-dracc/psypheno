@@ -73,8 +73,48 @@ def test_excel_demangle_unrecognized_gene_number(
         ("RP11-783K16.5", "gencode_clone"),
         ("CTD-2331H12.4", "gencode_clone"),
         ("hsa-mir-99", "gencode_clone"),
+        # New GENCODE-clone prefixes seen in polygenic-risk-20 / psychscreen
+        # supplementary tables.
+        ("ABC7-42389800N19.1", "gencode_clone"),
+        ("EM:AC006547.7", "gencode_clone"),
+        ("yR211F11.2", "gencode_clone"),
+        ("XX-DJ76P10__A.2", "gencode_clone"),
+        ("XX-FW80269A6.1", "gencode_clone"),
+        ("CITF22-49D8.1", "gencode_clone"),
+        ("GHc-602D8.2", "gencode_clone"),
+        ("SC22CB-1E7.1", "gencode_clone"),
+        ("bP-21201H5.1", "gencode_clone"),
         ("KC877982", "genbank_accession"),
         ("L29074.1", "genbank_accession"),
+        # RNA-family labels — Y_RNA / U-snRNA / snoRNA / miRNA / SRP /
+        # 7SK / Vault. Family annotations, not loci; should NOT
+        # become individual central_gene stubs.
+        ("Y_RNA", "rna_family"),
+        ("U3", "rna_family"),
+        ("U6", "rna_family"),
+        ("U7", "rna_family"),
+        ("snoU13", "rna_family"),
+        ("snoU109", "rna_family"),
+        ("snoU2-30", "rna_family"),
+        ("snoU2_19", "rna_family"),
+        ("SNORA2", "rna_family"),
+        ("SNORA7", "rna_family"),
+        ("SNORA73", "rna_family"),
+        ("SNORA74", "rna_family"),
+        ("SNORD42", "rna_family"),
+        ("SNORD45", "rna_family"),
+        ("SNORD58", "rna_family"),
+        ("SNORD59", "rna_family"),
+        ("SNORD115", "rna_family"),
+        ("SNORD116", "rna_family"),
+        ("Metazoa_SRP", "rna_family"),
+        ("7SK", "rna_family"),
+        ("Vault", "rna_family"),
+        ("MIR5096", "rna_family"),
+        ("MIR1254-1", "rna_family"),
+        ("MIR1273F", "rna_family"),
+        ("MIR3687", "rna_family"),
+        ("MIR4459", "rna_family"),
     ],
 )
 def test_is_non_symbol_identifier_positive(name: str, category: str) -> None:
@@ -107,6 +147,7 @@ def test_non_symbol_categories_keys_match_literal() -> None:
         "contig",
         "gencode_clone",
         "genbank_accession",
+        "rna_family",
     }
 
 
@@ -117,6 +158,13 @@ def test_non_symbol_categories_predicate_only_matches_own_category() -> None:
     assert NON_SYMBOL_CATEGORIES["genbank_accession"]("KC877982") is True
     assert NON_SYMBOL_CATEGORIES["genbank_accession"]("BRCA1") is False
     assert NON_SYMBOL_CATEGORIES["gencode_clone"]("RP11-783K16.5") is True
+    assert NON_SYMBOL_CATEGORIES["rna_family"]("Y_RNA") is True
+    assert NON_SYMBOL_CATEGORIES["rna_family"]("MIR5096") is True
+    assert NON_SYMBOL_CATEGORIES["rna_family"]("BRCA1") is False
+    # rna_family must take precedence over gencode_clone for things like
+    # MIR1254-1 (otherwise the hyphen-digit suffix would route it to clone).
+    assert NON_SYMBOL_CATEGORIES["rna_family"]("MIR1254-1") is True
+    assert NON_SYMBOL_CATEGORIES["gencode_clone"]("MIR1254-1") is False
 
 
 # ---------------------------------------------------------------------------

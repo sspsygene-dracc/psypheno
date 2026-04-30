@@ -31,12 +31,35 @@ _CONTIG_RE = re.compile(
     r"^(((C[RU]|F[OP]|AUXG|BX|A[CDFJLP])\d{6,8}\.\d{1,2})|([UZ]\d{5}\.\d))$"
 )
 _GENCODE_CLONE_RE = re.compile(
-    r"^(RP\d+|CT[ABCD]|KB|GS1|LA16c|LL0XNC01|LL22NC03|WI2|XX(bac|yac|cos)|hsa)-[\w.-]+$"
+    r"^("
+    r"RP\d+|CT[ABCD]|KB|GS1|LA16c|LL0XNC01|LL22NC03|WI2|XX(bac|yac|cos)|hsa"
+    # Additional clone-name prefixes seen in polygenic-risk-20 / psychscreen
+    # supplementary tables. Most are BAC/PAC/cosmid library identifiers from
+    # legacy Sanger/Genome Project annotations that GENCODE preserved as the
+    # display name; HGNC has not promoted them to approved symbols.
+    r"|ABC7|EM:[A-Z]{2}\d{6}|yR\d+|XX-(DJ|FW)\d|CITF\d+|GHc-\d+|SC22CB-\d+|bP-\d+"
+    r")-?[\w.-]+$"
 )
 _GENBANK_RE = re.compile(r"^[A-Z]{1,2}\d{5,6}(\.\d+)?$")
 
 _MAKE_UNIQUE_RE = re.compile(r"^(.+?)\.(\d+)$")
 _SYMBOL_ENSG_RE = re.compile(r"^(.+?)_(ENSG\d+(?:\.\d+)?)$")
+
+# RNA-family LABELS (not specific gene loci). Values like `Y_RNA`, `U6`,
+# `SNORA74`, `MIR5096`, `Metazoa_SRP` are family annotations; the genome
+# may contain hundreds of distinct loci sharing the label, so resolving
+# to a single approved symbol is impossible. Callers typically route
+# these to non_resolving.drop_patterns rather than record_patterns.
+_RNA_FAMILY_RE = re.compile(
+    r"^("
+    r"Y_RNA|"                    # Y_RNA family
+    r"U[0-9]{1,2}|"              # U-snRNAs (U1, U2, U3, U6, U7, ...)
+    r"snoU[0-9]+([-_][0-9]+)?|"  # snoRNA pseudogene annotations (snoU13, snoU2-30)
+    r"SNOR[ABCD][0-9]+|"         # H/ACA + C/D box snoRNAs (SNORA74, SNORD45)
+    r"Metazoa_SRP|7SK|Vault|"    # other RNA families
+    r"MIR[0-9]+[A-Z0-9-]*"       # microRNAs (MIR5096, MIR1254-1, MIR1273F)
+    r")$"
+)
 
 
 NonSymbolCategory = Literal[
@@ -45,6 +68,7 @@ NonSymbolCategory = Literal[
     "contig",
     "gencode_clone",
     "genbank_accession",
+    "rna_family",
 ]
 
 
@@ -96,7 +120,9 @@ def is_non_symbol_identifier(name: str) -> NonSymbolCategory | None:
 
     Returns a category tag that callers can use to silence warnings or
     drop rows. Order matters: contig is checked before the more general
-    GenBank pattern so that AUXG01000058.1 isn't misclassified.
+    GenBank pattern so that AUXG01000058.1 isn't misclassified, and
+    rna_family is checked before gencode_clone so that `MIR1254-1`
+    (which contains a hyphen-digit suffix) isn't misclassified.
     """
     if not name:
         return None
@@ -106,6 +132,8 @@ def is_non_symbol_identifier(name: str) -> NonSymbolCategory | None:
         return "ensembl_mouse"
     if _CONTIG_RE.match(name):
         return "contig"
+    if _RNA_FAMILY_RE.match(name):
+        return "rna_family"
     if _GENCODE_CLONE_RE.match(name):
         return "gencode_clone"
     if _GENBANK_RE.match(name):
@@ -129,6 +157,7 @@ NON_SYMBOL_CATEGORIES: dict[str, Callable[[str], bool]] = {
     "contig": _make_category_predicate("contig"),
     "gencode_clone": _make_category_predicate("gencode_clone"),
     "genbank_accession": _make_category_predicate("genbank_accession"),
+    "rna_family": _make_category_predicate("rna_family"),
 }
 
 

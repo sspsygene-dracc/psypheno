@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections import Counter
 from dataclasses import dataclass, field
 
@@ -96,7 +97,7 @@ def clean_gene_column(
     counts: Counter[str] = Counter()
 
     for idx, raw in zip(out.index, raw_values):
-        if pd.isna(raw) or raw == "":
+        if raw is None or (isinstance(raw, float) and math.isnan(raw)) or raw == "":
             new_values.append(raw)
             resolutions.append("passed_through")
             counts["passed_through"] += 1
