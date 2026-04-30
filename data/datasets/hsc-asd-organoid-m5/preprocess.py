@@ -5,6 +5,15 @@ Reads Supplementary Table 3 (45 sheets, one per perturbation x timepoint) and
 Supplementary Table 12 (26 sheets, one per M5 transcription factor) from the
 downloaded Excel files and produces two TSV files.
 
+Both reads pass `dtype=str` so any Excel-mangled date cells (e.g. `1-Mar`,
+`9-Sep`) survive as strings rather than being silently converted to
+Timestamps. Each sheet's gene column is then routed through
+`processing.preprocessing.clean_gene_column` with `excel_demangle=True` and
+`strip_make_unique=True` to rescue the mangled values and the R `make.unique`
+`.N`-suffixed values that #144 / #126 expose. Numeric columns become strings
+on the way through and re-parse to numerics when the TSV is loaded
+downstream.
+
 Usage:
     python preprocess.py
 
@@ -21,6 +30,8 @@ import json
 from pathlib import Path
 
 import pandas as pd
+
+from processing.preprocessing import GeneSymbolNormalizer, clean_gene_column
 
 DIR = Path(__file__).resolve().parent
 # Copied from geschwind_2026_cnv/cnv_gene_lists.json — manually curated gene lists
@@ -71,10 +82,10 @@ def build_region_genes_map() -> dict[str, str]:
     return region_genes_map
 
 
-def process_supp3() -> None:
+def process_supp3(normalizer: GeneSymbolNormalizer) -> None:
     region_genes_map = build_region_genes_map()
 
-    all_sheets = pd.read_excel(SUPP3_EXCEL, sheet_name=None, engine="openpyxl")
+    all_sheets = pd.read_excel(SUPP3_EXCEL, sheet_name=None, engine="openpyxl", dtype=str)
     print(f"Supp Table 3: read {len(all_sheets)} sheets")
 
     frames = []
@@ -85,6 +96,12 @@ def process_supp3() -> None:
         # Row count drops from 808,380 to 720,945.
         df = df.dropna(subset=["hgnc_symbol"])
         df = df[df["hgnc_symbol"].astype(str).str.strip() != ""]
+
+        df, _ = clean_gene_column(
+            df, "hgnc_symbol", species="human", normalizer=normalizer,
+            excel_demangle=True, strip_make_unique=True,
+        )
+        df = df.drop(columns=["_hgnc_symbol_resolution"])
 
         df = df.rename(columns={  # type: ignore
             "hgnc_symbol": "target_gene",
@@ -108,8 +125,8 @@ def process_supp3() -> None:
     print(f"Wrote {len(combined)} rows to {SUPP3_OUT}")
 
 
-def process_supp12() -> None:
-    all_sheets = pd.read_excel(SUPP12_EXCEL, sheet_name=None, engine="openpyxl")
+def process_supp12(normalizer: GeneSymbolNormalizer) -> None:
+    all_sheets = pd.read_excel(SUPP12_EXCEL, sheet_name=None, engine="openpyxl", dtype=str)
     print(f"Supp Table 12: read {len(all_sheets)} sheets")
 
     frames = []
@@ -127,6 +144,12 @@ def process_supp12() -> None:
             "p_val_adj": "Adjusted_P_Value",
         })
 
+        df, _ = clean_gene_column(
+            df, "target_gene", species="human", normalizer=normalizer,
+            excel_demangle=True, strip_make_unique=True,
+        )
+        df = df.drop(columns=["_target_gene_resolution"])
+
         df.insert(0, "perturbed_gene", sheet_name)
 
         frames.append(df)
@@ -137,8 +160,9 @@ def process_supp12() -> None:
 
 
 def main() -> None:
-    process_supp3()
-    process_supp12()
+    normalizer = GeneSymbolNormalizer.from_env()
+    process_supp3(normalizer)
+    process_supp12(normalizer)
 
 
 if __name__ == "__main__":

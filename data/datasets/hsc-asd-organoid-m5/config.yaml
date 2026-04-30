@@ -54,9 +54,10 @@ tables:
       - column_name: target_gene
         link_table_name: Target_Gene
         species: human
-        # Retired/withdrawn HGNC symbols present in supp12 (per #125 audit).
-        # Silences load-db warnings; rows still added to central_gene as
-        # manual entries.
+        # Retired/withdrawn HGNC symbols present in supp12 (per #125 audit,
+        # expanded in #144 once the cleaner exposed the full set). Silences
+        # load-db warnings; rows still added to central_gene as manual
+        # entries.
         ignore_missing:
           - GATD3B
           - IQCD
@@ -78,6 +79,14 @@ tables:
           - FLJ45513
           - HGC6.3
           - SIK1B
+          - DEC1
+          - DUSP27
+          - LOR
+          - C18orf21
+          - MPP6
+          - QARS
+          - SARS
+          - TAZ
         perturbed_or_target: target
       - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
