@@ -2,6 +2,8 @@
 
 > **For a fresh agent:** this plan is fully self-contained. Read this top-to-bottom before exploring. The repo is `/Users/jbirgmei/prog/sspsygene` (code) and `sspsygene-dracc/psypheno` (issue tracker — separate GitHub repo, use `gh` against it). Project context is in [CLAUDE.md](CLAUDE.md).
 
+> **Status (2026-04-30):** library + schema + all per-dataset migrations landed in a single working-tree change. No PRs opened yet; no DB rebuild run yet. The follow-up tickets from §6 were intentionally NOT filed per user direction. See §9 ("Implementation log") at the bottom for deltas vs. the original design.
+
 ## 1. Background
 
 The `#126` tracker on `sspsygene-dracc/psypheno` is rolling out a "move gene-name cleanup out of `load-db` and into per-dataset preprocessing" architecture. Five per-dataset migrations landed in late April 2026:
@@ -175,12 +177,14 @@ No `preprocess.py` may silently drop rows from a source file. Every dropped row 
 
 The known offender to retire: [hsc-asd-organoid-m5/preprocess.py:86-87](data/datasets/hsc-asd-organoid-m5/preprocess.py#L86) `dropna(subset=["hgnc_symbol"])` silently throws away ~87,435 rows per Supp 3 read. Those rows should pass through; `non_resolving:` decides their fate.
 
+> **Status:** the silent dropna in hsc-asd-organoid-m5/preprocess.py is **still in place** after this implementation. It was scoped out and remains a known offender; the wrangler should let those rows through and rely on `non_resolving:` next time the dataset is re-loaded.
+
 ### 3.3 Cleaner preserves raw values + supports manual aliases
 
 `clean_gene_column` API change in [processing/src/processing/preprocessing/dataframe.py](processing/src/processing/preprocessing/dataframe.py):
 
-- **Move raw to `<col>_raw`, clean stays in `<col>`.** Existing `column_name:` references in YAML continue to work unchanged. Resolution-tag column `_<col>_resolution` remains as today.
-- **New `manual_aliases: dict[str, str]` parameter**, e.g. `{"NOV": "CCN3", "QARS": "QARS1", "MUM1": "PWWP3A"}`. Applied AFTER all auto-rescues (`excel_demangle`, `strip_make_unique`, `split_symbol_ensg`, `resolve_hgnc_id`) fail, BEFORE `is_non_symbol_identifier` classification. Tagged `rescued_manual_alias` in the resolution column. Resolves through the normalizer (so `NOV → CCN3` only succeeds if `CCN3` is a current approved symbol — guards against typos).
+- **Move raw to `<col>_raw`, clean stays in `<col>`.** Existing `column_name:` references in YAML continue to work unchanged. Resolution-tag column `_<col>_resolution` remains as today. The cleaner **raises `KeyError`** if `<col>_raw` already exists in the input frame, so the wrangler must rename or drop the conflicting column before calling.
+- **New `manual_aliases: dict[str, str]` parameter**, e.g. `{"NOV": "CCN3", "QARS": "QARS1", "MUM1": "PWWP3A"}`. Applied AFTER all auto-rescues (`excel_demangle`, `strip_make_unique`, `split_symbol_ensg`, `resolve_hgnc_id`) fail, BEFORE `is_non_symbol_identifier` classification. Tagged `rescued_manual_alias` in the resolution column. The target **must** resolve through the normalizer to a current approved symbol; if not, the cleaner **raises `ValueError`** (rather than silently dropping the alias). This makes manual_aliases unsuitable for "fix a typo to a value that itself isn't a real symbol" — those need a pandas op upstream of the cleaner (e.g. `df[col].str.rstrip(".")`, see §4 dynamic_convergence).
 - **ENSG/GenBank → symbol via the `ensembl_to_symbol` map** at preprocess time becomes a future `resolve_via_ensembl_map: bool` flag (per `#119`). Out of scope for the schema PR; standalone follow-up.
 
 ### 3.4 Strict load-db dispatch
@@ -196,15 +200,15 @@ Rewrite the per-row resolution loop in `gene_mapping.py:resolve_to_central_gene_
 
 **Concurrent fix**: in step 6 (and 5), append `(row_id, new_entry.row_id)` so the first-encounter row is linked. Fixes Problem 5 above.
 
-`replace:`, `to_upper:` retire from `GeneMapping`. Wranglers do these in `preprocess.py` via `clean_gene_column`'s `manual_aliases` (for replace-style str→str) or trivial pandas ops (`df[col].str.upper()`). The 3 existing `replace:` entries migrate to:
-- `dynamic_convergence`: `ABALON. → ABALON`, `SGK494. → SGK494` → preprocess.py via a per-call `manual_aliases={"ABALON.": "ABALON", "SGK494.": "SGK494"}` (or a future trailing-dot helper).
-- `zebraAsd`: `SCN1LAB → SCN1A` → preprocess.py via `manual_aliases={"SCN1LAB": "SCN1A"}`.
+`ignore_missing:`, `replace:`, `to_upper:` retire from `GeneMapping` and **hard-error on parse** (no deprecation path; this implementation migrated all callers in the same change). Wranglers do replace/to_upper in `preprocess.py` via `clean_gene_column`'s `manual_aliases` (for str→str rescues whose target is a real symbol) or trivial pandas ops. The 3 existing `replace:` entries migrate to:
+- `dynamic_convergence`: `ABALON. → ABALON`, `SGK494. → SGK494` → **pandas `df[col].str.rstrip(".")`** in preprocess.py. NOT manual_aliases, because manual_aliases requires the target to resolve through the normalizer and `ABALON` / `SGK494` are themselves retired-no-successor symbols (handled via `record_values:` in YAML).
+- `zebraAsd`: `SCN1LAB → SCN1A` → preprocess.py via a custom `transform_sample()` that upper-cases and substitutes (covers both `to_upper:` and `replace:` for that file in one pass; the column is later split by load-db's `split_column_map`).
 
 `multi_gene_separator:` stays at load-db (not promoted to preprocess.py) — splitting at preprocess time would change dataset row counts and break upstream paper IDs.
 
-### 3.5 Execution shape (user-locked)
+### 3.5 Execution shape
 
-Library + new YAML schema first; per-dataset migrations follow. Concretely: one PR ships the library + schema changes (sections 3.1, 3.3, 3.4) including the link-table asymmetry fix, behind no behavior change for existing datasets (`ignore_missing` continues to be parsed during the transition with a deprecation warning that maps it to the equivalent of `record_values:` so the comments-vs-code discrepancy is finally fixed). Then 9 small per-dataset migration PRs convert `ignore_missing` → `non_resolving:` blocks one dataset at a time.
+**Final shape (what shipped):** one combined working-tree change. Library + schema + every per-dataset migration land together. Retired keys (`ignore_missing` / `replace` / `to_upper`) hard-error in `GeneMapping.from_json`; there is no deprecation window. The original plan called for staged PRs with a deprecation path, but the user explicitly opted to remove the soon-deprecated code outright since it was all introduced recently and every caller in the repo could be migrated in the same diff.
 
 ## 4. Per-dataset migration table
 
@@ -214,48 +218,65 @@ Re-classify every current `ignore_missing` entry. The wrangler-side job per data
 |---|---|---|
 | Clinical placeholders | `drop_values:` | `not_available`, `none identified` |
 | Synthetic / control reagents | `drop_values:` | `GFP`, `NonTarget1`, `SafeTarget`, `Control_ST`, `Gm16091`, `Gm42864` |
-| Retired-with-known-successor | `manual_aliases={...}` in `preprocess.py` | `NOV → CCN3`, `QARS → QARS1`, `MUM1 → PWWP3A`, `TAZ → TAFAZZIN`, `SARS → SARS1`, `MPP6 → ?`, `DEC1 → BHLHE40 or DELEC1`, `LOR → ?` |
-| Retired-no-successor | `record_values:` | `SGK494`, `GATD3B`, `IQCD`, `IQCA1`, `CRIPAK`, `U2AF1L5`, `SMC5-AS1`, `OCLM`, `SMIM11B`, `TMEM155`, `SMIM34B`, `KCNE1B`, `THRA1/BTR`, `CBSL`, `TEMN3-AS1`, `ABALON`, `FAM243B`, `FLJ45513`, `HGC6.3`, `SIK1B`, `LINC00283`, `DUSP27` |
+| Retired-with-known-successor (high-confidence) | `manual_aliases={...}` in `preprocess.py` | `NOV → CCN3`, `QARS → QARS1`, `MUM1 → PWWP3A`, `TAZ → TAFAZZIN`, `SARS → SARS1` |
+| Retired-with-known-successor (needs review) | `record_values:` (parked pending wrangler/domain-expert input) | `MPP6`, `LOR`, `DEC1` |
+| Retired-no-successor | `record_values:` | `SGK494`, `GATD3B`, `IQCD`, `IQCA1`, `CRIPAK`, `U2AF1L5`, `SMC5-AS1`, `OCLM`, `SMIM11B`, `TMEM155`, `SMIM34B`, `KCNE1B`, `THRA1/BTR`, `CBSL`, `TEMN3-AS1`, `ABALON`, `FAM243B`, `FLJ45513`, `HGC6.3`, `SIK1B`, `LINC00283`, `DUSP27`, `C18orf21` (ambiguous prev-symbol) |
 | Old aliases / RNA family / antisense | `record_values:` | `HDGFRP3`, `HDGFRP2`, `LYST-AS1`, `Y_RNA`, `MIR5096`, `SNORA74`, `MSNP1AS`, `RPS10P2-AS1` |
 | Tier B regex categories | `record_patterns:` (explicit opt-in) | `[ensembl_human, ensembl_mouse, contig, gencode_clone, genbank_accession]` per dataset that has those |
 
-The wrangler decides per-dataset whether NOV → CCN3 is right in their paper's context. For NDD-focused datasets in this repo, `CCN3` is the right call for NOV (it's the matrix protein). The MPP6/LOR/DEC1 mappings need wrangler / domain-expert review before commit.
+For NDD-focused datasets in this repo, `CCN3` is the right call for NOV (it's the matrix protein), and similarly the QARS1 / PWWP3A / TAFAZZIN / SARS1 successors were applied across the migrated datasets. The `MPP6 / LOR / DEC1` mappings remain parked in `record_values:` — domain-expert input still required before promoting them to `manual_aliases`.
+
+> **Status:** all eight datasets that used `ignore_missing` have been migrated to this taxonomy. No `record_patterns:` entries were added in this round — the implicit Tier B silencing turning into per-dataset opt-in is a behavior change that surfaces as load-db warnings the next time a wrangler rebuilds. That's intentional (see §3.1).
 
 ## 5. File-level changes
 
-### Library + schema PR (lands first)
+### Library + schema (landed)
 
-- [processing/src/processing/preprocessing/dataframe.py](processing/src/processing/preprocessing/dataframe.py) — `clean_gene_column` emits `<col>_raw`, accepts `manual_aliases`. New `rescued_manual_alias` resolution tag. Existing rescue order preserved.
-- [processing/src/processing/types/gene_mapping.py](processing/src/processing/types/gene_mapping.py) — parse `non_resolving:` block; new dispatch order; fix link-table asymmetry; deprecation-warning path for `ignore_missing:` / `replace:` / `to_upper:` so existing configs still work during the transition.
-- [processing/src/processing/preprocessing/helpers.py](processing/src/processing/preprocessing/helpers.py) — expose `NON_SYMBOL_CATEGORIES: dict[str, Callable[[str], bool]]` for YAML loader to validate.
-- [processing/src/processing/preprocessing/__init__.py](processing/src/processing/preprocessing/__init__.py) — re-export.
-- New unit tests for: `manual_aliases` rescue, raw-column preservation, the four `non_resolving:` paths, link-table asymmetry fix, deprecation path for old knobs.
+- [processing/src/processing/preprocessing/dataframe.py](processing/src/processing/preprocessing/dataframe.py) — `clean_gene_column` emits `<col>_raw`, accepts `manual_aliases`. New `rescued_manual_alias` resolution tag. Existing rescue order preserved. Raises `KeyError` if `<col>_raw` already exists; raises `ValueError` if a `manual_aliases` target doesn't resolve through the normalizer.
+- [processing/src/processing/types/gene_mapping.py](processing/src/processing/types/gene_mapping.py) — new `NonResolving` dataclass; parses `non_resolving:` block; new dispatch order; fixes the link-table asymmetry. **Hard-errors** (no deprecation path) on the retired keys `ignore_missing` / `replace` / `to_upper`, and on the long-retired `is_perturbed` / `is_target`.
+- [processing/src/processing/preprocessing/helpers.py](processing/src/processing/preprocessing/helpers.py) — exposes `NON_SYMBOL_CATEGORIES: dict[str, Callable[[str], bool]]` for the YAML loader to validate `drop_patterns` / `record_patterns` entries.
+- [processing/src/processing/preprocessing/__init__.py](processing/src/processing/preprocessing/__init__.py) — re-exports.
+- Tests:
+  - [tests/preprocessing/test_dataframe.py](processing/tests/preprocessing/test_dataframe.py) — `<col>_raw` preservation, raw-column collision, manual_aliases rescue, unresolvable-target raise, rescue ordering.
+  - [tests/preprocessing/test_helpers.py](processing/tests/preprocessing/test_helpers.py) — `NON_SYMBOL_CATEGORIES` shape + per-category predicate.
+  - [tests/processing_types/test_gene_mapping.py](processing/tests/processing_types/test_gene_mapping.py) — new file; covers `NonResolving` parsing/validation/classify, `GeneMapping` rejection of retired keys, dispatch order (drop / record / fallback), link-table asymmetry fix, stub creation. (Directory named `processing_types/` rather than `types/` to avoid shadowing the `types` stdlib module during pytest collection.)
 
-### Per-dataset migration PRs (one per dataset, after the library PR)
+### Per-dataset migrations (landed)
 
-For each of the 9 datasets that use the soon-deprecated knobs:
+All in the same change. Per dataset, one or more of:
 
-1. Migrate `config.yaml`: `ignore_missing:` / `replace:` / `to_upper:` → `non_resolving:` block (and/or `manual_aliases` invocation in `preprocess.py`).
-2. Add `preprocess.py` if missing — needed for: `mgi_phenotypes`, `perturb-fish`, `sfari`, `zebraAsd`.
-3. Pass `manual_aliases` for retired-with-successor symbols.
-4. Drop the per-dataset YAML comment "rows still added to central_gene as manual entries" — it's now actually true after the library PR ships, but the new comment text in `non_resolving:` blocks should be self-explanatory.
-5. Side-car DB rebuild + per-criteria verification (see section 7).
+1. `config.yaml`: `ignore_missing:` / `replace:` / `to_upper:` (and empty `ignore_missing: []` no-ops) → `non_resolving:` block, with the column's mapping order tightened to put `perturbed_or_target:` adjacent to its category.
+2. `preprocess.py`: pass `manual_aliases` for high-confidence retired-with-successor symbols (NOV/QARS/MUM1/TAZ/SARS subsets per dataset). Raw column `<col>_raw` is kept in the output TSV; `_<col>_resolution` is dropped before write.
+3. New `preprocess.py` for `zebraAsd` (covers `to_upper:` + `replace: SCN1LAB → SCN1A` → `transform_sample()` that splits on `_`, upper-cases gene token, applies the ortholog rename). Generated `*_cleaned.txt` is committed.
+4. The misleading "rows still added to central_gene as manual entries" YAML comments were dropped; the new `non_resolving.record_values:` comments explain stub creation explicitly.
+5. Side-car DB rebuild — **not yet run** in this iteration. Pytest passes (139/139) and `npx tsc --noEmit` is clean.
 
-## 6. Ticket changes
+Datasets that still **don't** have a `preprocess.py` and didn't need one: `mgi_phenotypes`, `perturb-fish`, `sfari` — their migrations are YAML-only because they had no `to_upper` / `replace` / mapping requiring a manual alias.
 
-- **#121 — full rewrite.** New title: *"Replace `ignore_missing`/`replace`/`to_upper` with explicit `non_resolving:` block and `manual_aliases:`"*. Body describes the new 4-knob schema, the `manual_aliases` parameter, raw-column preservation. Acceptance: every `ignore_missing` entry across the repo classified into one of the new buckets; old knobs removed from `GeneMapping`.
+## 6. Ticket changes — DEFERRED
+
+**The user explicitly opted not to file follow-up tickets in this round.** Keeping the original list below for record-keeping and so a future agent can re-evaluate when filing them is appropriate (e.g. before opening a PR for this work).
+
+- **#121 — full rewrite.** New title: *"Replace `ignore_missing`/`replace`/`to_upper` with explicit `non_resolving:` block and `manual_aliases:`"*. Body describes the new 4-knob schema, the `manual_aliases` parameter, raw-column preservation. Acceptance: every `ignore_missing` entry across the repo classified into one of the new buckets; old knobs removed from `GeneMapping`. (All acceptance criteria are now met by the landed change.)
 - **#119 — unchanged but cross-referenced.** Continues to track ENSG → symbol conversion at preprocess time (the future `resolve_via_ensembl_map` flag).
-- **#126 — update tracker.** Reflect closed sub-tickets; add a new sub-task "non_resolving schema migration" (parent of the 9 per-dataset migrations).
-- **#140 / #142 / #143 / #144 / #145 — add follow-up comments.** Note that `ignore_missing`'s spirit (silence + record stub) is preserved under the new `non_resolving.record_values:` knob; the past close comments asserting "rows still added to central_gene as manual entries" become accurate once the library PR ships (today they're aspirational/wrong).
-- **New ticket: link-table asymmetry fix.** Lands with the library PR.
-- **New ticket: deprecation of implicit Tier B silencing.** Flags the migration cost — datasets that today rely on hardcoded `is_non_symbol_identifier` need explicit `record_patterns:` after the schema change.
-- **New ticket: retire silent `preprocess.py` row-drops.** Audit every existing `preprocess.py` for `dropna()`, boolean-mask filters, and similar; either move to YAML config or surface the drop count + reason in the script's stdout. Concrete known offender: [hsc-asd-organoid-m5/preprocess.py:86-87](data/datasets/hsc-asd-organoid-m5/preprocess.py#L86).
-- **New ticket: track dropped/skipped rows in download-page metadata.** Wranglers and downstream users should be able to see, per dataset, how many rows were dropped and why (which `drop_values:` entry or `drop_patterns:` category triggered, or `ignore_empty:`, or a documented preprocess-time dropna). Implementation sketch: `load-db` emits a per-dataset `drop_audit.tsv` (columns: `dataset`, `table`, `column`, `reason`, `value`, `row_count`) into `data/db/exports/`; the [downloads page](web/pages/downloads.tsx) lists it alongside the existing artifacts. Out of scope for the schema PR; standalone follow-up.
-- **New ticket: end-to-end test for row-drop accounting.** Once `#117`'s test infrastructure exists (currently no automated suite — see CLAUDE.md), add a regression test that verifies two invariants: (1) for every dataset, `(input rows) − (rows present in dataset table) − (rows present in drop_audit.tsv) == 0` — i.e. no row vanishes silently; (2) every row in `drop_audit.tsv` traces to a specific `non_resolving:` entry, `ignore_empty:` flag, or whitelisted preprocess-time transform. Catches regressions where a wrangler adds a silent `dropna()` to `preprocess.py` or a YAML knob misclassifies. Depends on the drop-audit ticket above; independent of the schema PR.
+- **#126 — update tracker.** Reflect closed sub-tickets.
+- **#140 / #142 / #143 / #144 / #145 — add follow-up comments.** Note that `ignore_missing`'s spirit (silence + record stub) is preserved under the new `non_resolving.record_values:` knob; the past close comments asserting "rows still added to central_gene as manual entries" are now accurate (they were aspirational/wrong before).
+- **New ticket: deprecation of implicit Tier B silencing** — datasets that today rely on hardcoded `is_non_symbol_identifier` need explicit `record_patterns:` after the schema change. This change has SHIPPED in the implementation; new warning spam will surface on the next dataset rebuild.
+- **New ticket: retire silent `preprocess.py` row-drops.** Audit every existing `preprocess.py` for `dropna()`, boolean-mask filters, and similar. Concrete known offender still in place: [hsc-asd-organoid-m5/preprocess.py:86-87](data/datasets/hsc-asd-organoid-m5/preprocess.py#L86).
+- **New ticket: track dropped/skipped rows in download-page metadata** (drop_audit.tsv).
+- **New ticket: end-to-end test for row-drop accounting.**
 
 ## 7. Verification
 
-Per the project's [CLAUDE.md](CLAUDE.md), use the side-car DB rebuild rather than the default DB path:
+### What's verified so far
+
+- **Library-side pytest** — 139/139 passing, including 27 new tests covering: `<col>_raw` preservation, raw-column collision, manual_aliases rescue + unresolvable-target raise, rescue ordering, `NON_SYMBOL_CATEGORIES` shape + predicates, `NonResolving` parsing/validation/classify, `GeneMapping` rejection of retired keys, full dispatch order (drop / record / fallback), and the link-table asymmetry fix.
+- **YAML config parse** — every `gene_mapping` block across the 10 dataset YAMLs parses cleanly through the new `GeneMapping.from_json` (verified via a small one-off script during implementation).
+- **web `npx tsc --noEmit`** — clean, as expected (no spillover into the TS surface).
+
+### What still needs to be verified (deferred to user)
+
+Per the project's [CLAUDE.md](CLAUDE.md), use the side-car DB rebuild rather than the default DB path. **The user has not run this yet** — the implementation explicitly stops short of touching `data/db/sspsygene.db`.
 
 ```bash
 sed 's|"db/sspsygene.db"|"db/sspsygene-claude.db"|' \
@@ -265,18 +286,56 @@ SSPSYGENE_CONFIG_JSON=/tmp/sspsygene-config-claude.json \
     processing/.venv-claude/bin/sspsygene load-db --dataset NAME
 ```
 
-After each per-dataset migration, verify:
+Per-dataset checks once that runs:
 
-1. **Row counts**: `central_gene` row count diff vs main is exactly the expected delta (new `manually_added=1` stubs from `record_values` / `record_patterns`, minus any orphans that previously got stubs but now `drop_values`/`drop_patterns`).
-2. **Zero unaccounted warnings**: `sspsygene load-db --dataset NAME 2>&1 | grep "not in gene maps"` returns empty for every value listed under `non_resolving:`.
-3. **manual_aliases rescues join correctly**: `sqlite3 data/db/sspsygene-claude.db` — for each rescued symbol (e.g. `NOV → CCN3`), confirm the dataset table's link points to `CCN3`'s `central_gene` row, which has full HGNC + MGI homology.
-4. **`<col>_raw` preserved in TSV**: spot-check the cleaned TSV for at least one row per resolution tag (`passed_through`, `rescued_excel`, `rescued_manual_alias`, `rescued_make_unique`, `non_symbol_*`) — `<col>_raw` matches the pre-cleaner value, `<col>` shows the canonical form.
-5. **Library-side**: pytest covers the new dispatch order, `manual_aliases`, raw-column preservation, link-table asymmetry fix, deprecation path.
+1. **Row counts**: `central_gene` row count diff vs main is exactly the expected delta. **Direction reverses vs the original plan**: each migration ADDS `manually_added=1` stubs for entries that today are silently orphaned via `ignore_missing`. Orphan rows newly classified as `drop_values`/`drop_patterns` see no row count change (they were already orphans). `manual_aliases` rescues subtract from the stub count and instead link to existing HGNC entries.
+2. **Zero unaccounted warnings**: `sspsygene load-db --dataset NAME 2>&1 | grep "not in gene maps"` should be empty for every value covered by `non_resolving:`. Datasets that historically relied on Tier B silencing for raw ENSG/contig/etc IDs WILL produce new warnings until `record_patterns:` entries are added — this is the intentional behavior change called out in §3.1.
+3. **manual_aliases rescues join correctly**: for each rescued symbol (e.g. `NOV → CCN3`), confirm the dataset table's link points to `CCN3`'s `central_gene` row.
+4. **`<col>_raw` preserved in TSV**: spot-check the cleaned TSV for at least one row per resolution tag — `<col>_raw` matches the pre-cleaner value, `<col>` shows the canonical form. (Existing `*_cleaned.csv/tsv` outputs in the repo were generated by the OLD preprocess.py and lack `<col>_raw`; they'll gain the column the next time a wrangler runs preprocess.py.)
+5. **zebraAsd**: the regenerated `1-s2.0-S2211124723002541-mmc5_cleaned.txt` was produced by the new preprocess.py during implementation and is committed; load-db should consume it without error.
 
-End-to-end smoke after all 9 datasets migrate: full DB rebuild (`sspsygene load-db` no `--dataset`), confirm row counts match the pre-migration baseline ± documented deltas. Run `npx tsc --noEmit` in `web/` (the canonical pre-commit check per CLAUDE.md).
+End-to-end smoke once all datasets are rebuilt: full DB rebuild (`sspsygene load-db`, no `--dataset`), confirm row counts match the pre-migration baseline ± documented deltas.
 
 ## 8. Out of scope
 
 - ENSG → symbol conversion at preprocess time (`#119`'s remaining work).
 - GENCODE clone resolution (`#139`, deferred — needs GTF data source).
 - Removing `manually_added=1` stubs from `central_gene` for "junk" categories (e.g. ENSG IDs that already exist as approved symbols) — that's a separate cleanup orthogonal to this redesign.
+- Retiring the silent `dropna()` in `hsc-asd-organoid-m5/preprocess.py` (still present; tracked under "retire silent preprocess.py row-drops" in §6).
+- Filing the follow-up tickets enumerated in §6.
+
+## 9. Implementation log — deltas vs. the original design
+
+This section captures decisions made during implementation that diverge from §§1–8 above.
+
+### 9.1 Single combined change, no deprecation path
+
+Original §3.5 called for a staged rollout: a library + schema PR with `ignore_missing` deprecated-but-still-parsed, then nine per-dataset migration PRs. **Final shape: one combined working-tree change with hard errors on retired keys.** Reason: the user pointed out that `ignore_missing` was introduced recently and every caller is in this repo, so a deprecation window costs more than it buys. `GeneMapping.from_json` now raises `ValueError` if it sees `ignore_missing`, `replace`, or `to_upper`, with a message naming the new home for each.
+
+### 9.2 manual_aliases is strict; trailing-dot fix uses pandas
+
+Original §3.3 said the manual_aliases target "resolves through the normalizer (so `NOV → CCN3` only succeeds if `CCN3` is a current approved symbol — guards against typos)." The implementation makes this **a hard `ValueError`** rather than a silent fail, which has a knock-on consequence: the dynamic_convergence trailing-dot fix (`ABALON. → ABALON`, `SGK494. → SGK494`) cannot use manual_aliases because `ABALON` and `SGK494` are themselves retired-no-successor symbols (handled via `record_values:`). The implementation switched to a pandas op (`df["MarkerName"].str.rstrip(".")`) before calling `clean_gene_column`. The original §3.4 listed manual_aliases as the migration target for these — that was wrong; the plan now reflects the pandas approach.
+
+### 9.3 MPP6 / LOR / DEC1 → record_values, not manual_aliases
+
+§4 listed these under "retired-with-known-successor" but flagged them as needing wrangler/domain-expert review. The implementation puts them in `record_values:` across every affected dataset (brain_organoid_atlas, hsc-asd-organoid-m5, polygenic-risk-20, psychscreen). Promoting them to manual_aliases is a follow-up that requires picking a successor per paper context. `C18orf21` is in the same boat (ambiguous prev-symbol → RMP24 / RMP24P1) and went to `record_values:`.
+
+### 9.4 Empty `ignore_missing: []` knobs were dropped, not migrated
+
+Several datasets had `ignore_missing: []` no-op entries. Rather than translate them to empty `non_resolving:` blocks (also no-ops), the migration drops the line entirely. This includes `sfari` (3 tables), `mgi_phenotypes`, `dynamic_convergence` (Perturbed_Baseline_behavior_pvalues), `brain_organoid_atlas` (S11), `zebraAsd` (RestWake_VisStart_byGene).
+
+### 9.5 `<col>_raw` collision raises
+
+The cleaner now raises `KeyError` if `<col>_raw` already exists in the input frame. This wasn't called out in §3.3, but it matters because hsc-asd-organoid-m5's preprocess.py renames `hgnc_symbol → target_gene` AFTER cleaning; the implementation also renames `hgnc_symbol_raw → target_gene_raw` to keep them in lockstep.
+
+### 9.6 Test directory naming
+
+New tests for `GeneMapping` / `NonResolving` live at [processing/tests/processing_types/](processing/tests/processing_types/). The natural name `tests/types/` shadows the `types` stdlib module during pytest collection on this Python version, hence the rename.
+
+### 9.7 zebraAsd preprocess approach
+
+§3.4 suggested `manual_aliases={"SCN1LAB": "SCN1A"}` for the zebrafish ortholog rename. The actual implementation uses a custom `transform_sample()` because the column being transformed is `Mutant_Experiment_Sample` (a composite like `chd8_HOM_3` from which load-db's `split_column_map` later extracts the gene token); upper-casing + ortholog substitution both have to happen on the source column before that split. `manual_aliases` would have run too late.
+
+### 9.8 brain_organoid_atlas patient_list
+
+§3.1's "drop_values for clinical placeholders" applies to the patient_list table's `Pathologic causative mutation` column. The original preprocess.py routed that file through `clean_gene_column` for symmetry; the implementation switched to a `shutil.copyfile` since the cleaner has nothing useful to do on placeholder strings, and the YAML's `non_resolving.drop_values:` handles them at load-db time.
