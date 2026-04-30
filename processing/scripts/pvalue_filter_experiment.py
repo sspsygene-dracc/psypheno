@@ -28,7 +28,10 @@ Usage:
         processing/.venv-claude/bin/python processing/scripts/pvalue_filter_experiment.py
 """
 
+# pylint: disable=invalid-name,too-many-locals
+
 import csv
+import math
 import os
 import shutil
 import sqlite3
@@ -37,15 +40,18 @@ import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
+from typing import Callable, cast
 
 import mpmath
-import numpy as np
 from scipy import stats
 
 DB = os.environ.get("SSPSYGENE_DATA_DB", "data/db/sspsygene.db")
 R_SCRIPT = (
     Path(__file__).resolve().parent.parent
-    / "src" / "processing" / "r" / "compute_combined.R"
+    / "src"
+    / "processing"
+    / "r"
+    / "compute_combined.R"
 )
 
 PREFILTERED = {
@@ -54,8 +60,10 @@ PREFILTERED = {
     "mouse_perturb_deg",
 }
 
+ScenarioFilter = Callable[[str, float], bool]
 
-def parse_link_tables(link_tables_raw: str, direction: str):
+
+def parse_link_tables(link_tables_raw: str, direction: str) -> list[tuple[str, str]]:
     out = []
     for entry in (link_tables_raw or "").split(","):
         entry = entry.strip()
@@ -70,7 +78,9 @@ def parse_link_tables(link_tables_raw: str, direction: str):
     return out
 
 
-def load_data(cur):
+def load_data(
+    cur: sqlite3.Cursor,
+) -> tuple[dict[str, dict[int, list[float]]], dict[str, str]]:
     """{table_name: {central_gene_id: [p, ...]}} for target-direction tables."""
     tables = cur.execute(
         """
@@ -145,10 +155,14 @@ def run_r_combine(
                     for p in tbl_pvals:
                         w.writerow([gid, f"{p:.17e}"])
 
-        print(f"  [{label}] calling R ({sum(len(v) for v in per_gene_table.values())} gene-tables)...")
+        print(
+            f"  [{label}] calling R ({sum(len(v) for v in per_gene_table.values())} gene-tables)..."
+        )
         result = subprocess.run(
             [rscript, str(R_SCRIPT), tmp_dir],
-            capture_output=True, text=True, timeout=900,
+            capture_output=True,
+            text=True,
+            timeout=900,
         )
         if result.returncode != 0:
             print(result.stdout)
@@ -169,7 +183,7 @@ def run_r_combine(
                 v = float(s)
             except ValueError:
                 return None
-            if v != v or v == float("inf") or v == float("-inf"):
+            if math.isnan(v) or math.isinf(v):
                 return None
             return v
 
@@ -187,7 +201,10 @@ def run_r_combine(
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def build_per_gene_table(gene_pvals, scenario_filter):
+def build_per_gene_table(
+    gene_pvals: dict[str, dict[int, list[float]]],
+    scenario_filter: ScenarioFilter,
+) -> dict[int, dict[str, list[float]]]:
     """{gene_id: {table_name: [p,...]}}, retaining only rows that pass the filter."""
     per: dict[int, dict[str, list[float]]] = defaultdict(dict)
     for table_name, gdict in gene_pvals.items():
@@ -198,19 +215,29 @@ def build_per_gene_table(gene_pvals, scenario_filter):
     return per
 
 
-def rank_by(d, idx):
-    items = [(gid, vals[idx]) for gid, vals in d.items() if vals[idx] is not None]
+def rank_by(
+    d: dict[int, tuple[float | None, ...]], idx: int
+) -> list[tuple[int, float]]:
+    items: list[tuple[int, float]] = []
+    for gid, vals in d.items():
+        v = vals[idx]
+        if v is not None:
+            items.append((gid, v))
     items.sort(key=lambda x: x[1])
     return items
 
 
-def top_overlap(rA, rB, k):
+def top_overlap(
+    rA: list[tuple[int, float]], rB: list[tuple[int, float]], k: int
+) -> float:
     a = {g for g, _ in rA[:k]}
     b = {g for g, _ in rB[:k]}
     return len(a & b) / k if k else 1.0
 
 
-def spearman_top(rA, rB, k):
+def spearman_top(
+    rA: list[tuple[int, float]], rB: list[tuple[int, float]], k: int
+) -> float:
     a_top = {g: i for i, (g, _) in enumerate(rA[:k])}
     b_top = {g: i for i, (g, _) in enumerate(rB[:k])}
     union = list(a_top.keys() | b_top.keys())
@@ -219,7 +246,7 @@ def spearman_top(rA, rB, k):
     ar = [a_top.get(g, k) for g in union]
     br = [b_top.get(g, k) for g in union]
     rho, _ = stats.spearmanr(ar, br)
-    return rho
+    return cast(float, rho)
 
 
 def main() -> int:
@@ -235,14 +262,16 @@ def main() -> int:
     for tn, g in gene_pvals.items():
         n_rows = sum(len(v) for v in g.values())
         flag = "  [pre-filtered]" if tn in PREFILTERED else ""
-        print(f"  {short_label[tn][:42]:<43} {tn:<45} genes={len(g):>6} rows={n_rows:>9}{flag}")
+        print(
+            f"  {short_label[tn][:42]:<43} {tn:<45} genes={len(g):>6} rows={n_rows:>9}{flag}"
+        )
     print()
 
-    scenarios: list[tuple[str, callable]] = [
+    scenarios: list[tuple[str, ScenarioFilter]] = [
         ("baseline", lambda _t, _p: True),
     ]
     for T in (0.05, 0.1, 0.2, 0.5):
-        scenarios.append((f"C{T}", (lambda T_=T: lambda _t, p: p <= T_)()))
+        scenarios.append((f"C{T}", lambda _t, p, T_=T: p <= T_))
 
     print("Running R combine for each scenario; takes a few minutes total.\n")
     results: dict[str, dict[int, tuple[float | None, ...]]] = {}
@@ -258,7 +287,9 @@ def main() -> int:
     for label, _ in scenarios[1:]:
         C = results[label]
         T = label[1:]
-        print(f"\n{'=' * 96}\nA = baseline   C(T={T}) = filter every table at p<={T}\n{'=' * 96}")
+        print(
+            f"\n{'=' * 96}\nA = baseline   C(T={T}) = filter every table at p<={T}\n{'=' * 96}"
+        )
         print(
             f"{'method':<10} "
             + " ".join(f"{'top' + str(k) + '_jacc':>13}" for k in KS)
