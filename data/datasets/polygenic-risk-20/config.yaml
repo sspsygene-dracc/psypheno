@@ -54,7 +54,7 @@ tables:
     effect_column: logFC
     organism: Homo sapiens (iPSC-derived neurons)
     organism_key: human
-    in_path: Supp_1_all.csv
+    in_path: Supp_1_all_cleaned.csv
     separator: ","
     split_column_map: []
     gene_mappings:
@@ -62,8 +62,11 @@ tables:
         link_table_name: Target_Gene
         species: human
         # Retired/withdrawn HGNC symbols across Supp_1 + Supp_2 (per #125
-        # audit). Silences load-db warnings; rows still added to central_gene
-        # as manual entries.
+        # audit, expanded in #143 once the cleaner exposed the full set).
+        # Silences load-db warnings; rows still added to central_gene
+        # as manual entries. Pre-existing RNA-family-label warnings
+        # (Y_RNA, U3, SNORA*, snoU*, MIR*, etc.) remain — they need a
+        # separate non-symbol category, not an ignore_missing entry.
         ignore_missing:
           - GATD3B
           - IQCD
@@ -76,6 +79,14 @@ tables:
           - TMEM155
           - ABALON
           - SIK1B
+          - NOV
+          - MUM1
+          - MPP6
+          - SARS
+          - QARS
+          - TAZ
+          - C18orf21
+          - SGK494
         perturbed_or_target: target
       - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
@@ -113,7 +124,7 @@ tables:
     effect_column: logFC
     organism: Homo sapiens (iPSC-derived neurons)
     organism_key: human
-    in_path: Supp_2_all.csv
+    in_path: Supp_2_all_cleaned.csv
     separator: ","
     split_column_map: []
     gene_mappings:
@@ -121,8 +132,11 @@ tables:
         link_table_name: Target_Gene
         species: human
         # Retired/withdrawn HGNC symbols across Supp_1 + Supp_2 (per #125
-        # audit). Silences load-db warnings; rows still added to central_gene
-        # as manual entries.
+        # audit, expanded in #143 once the cleaner exposed the full set).
+        # Silences load-db warnings; rows still added to central_gene
+        # as manual entries. Pre-existing RNA-family-label warnings
+        # (Y_RNA, U3, SNORA*, snoU*, MIR*, etc.) remain — they need a
+        # separate non-symbol category, not an ignore_missing entry.
         ignore_missing:
           - GATD3B
           - IQCD
@@ -135,6 +149,14 @@ tables:
           - TMEM155
           - ABALON
           - SIK1B
+          - NOV
+          - MUM1
+          - MPP6
+          - SARS
+          - QARS
+          - TAZ
+          - C18orf21
+          - SGK494
         perturbed_or_target: target
       - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
