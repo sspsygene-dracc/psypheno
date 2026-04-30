@@ -66,7 +66,7 @@ tables:
       - iPSC lines
     organism: Homo sapiens
     organism_key: human
-    in_path: patient_list.tsv
+    in_path: patient_list_cleaned.tsv
     split_column_map: []
     separator: "\t"
     gene_mappings:
@@ -103,7 +103,7 @@ tables:
       - brain organoids
     organism: Homo sapiens (organoids)
     organism_key: human
-    in_path: nebula_gene_0.05_FDR.txt
+    in_path: nebula_gene_0.05_FDR_cleaned.txt
     split_column_map: []
     separator: "\t"
     gene_mappings:
@@ -111,7 +111,8 @@ tables:
         link_table_name: gene
         species: human
         # Retired/withdrawn HGNC symbols that appear in this dataset's data
-        # files but no longer have a current HGNC entry (per #125 audit). Listed
+        # files but no longer have a current HGNC entry (per #125 audit,
+        # expanded in #145 once the cleaner exposed the full set). Listed
         # here to silence the load-db warnings; rows for these symbols still
         # get added to central_gene as manual entries.
         ignore_missing:
@@ -121,13 +122,13 @@ tables:
           - CRIPAK
           - U2AF1L5
           - SMC5-AS1
+          - SARS
+          - MPP6
+          - TAZ
+          - QARS
+          - C18orf21
+          - LOR
         perturbed_or_target: target
-        replace:
-          TBCE.1: TBCE
-          MATR3.1: MATR3
-          HSPA14.1: HSPA14
-          TMSB15B.1: TMSB15B
-          CYB561D2.1: CYB561D2
     pvalue_column: pvalue
     fdr_column: FDR
     effect_column: logFC
@@ -157,7 +158,7 @@ tables:
       - brain organoids
     organism: Homo sapiens (organoids)
     organism_key: human
-    in_path: nebula_gene_0.2_FDR.tsv
+    in_path: nebula_gene_0.2_FDR_cleaned.tsv
     split_column_map: []
     separator: "\t"
     gene_mappings:
@@ -165,7 +166,8 @@ tables:
         link_table_name: gene
         species: human
         # Retired/withdrawn HGNC symbols that appear in this dataset's data
-        # files but no longer have a current HGNC entry (per #125 audit). Listed
+        # files but no longer have a current HGNC entry (per #125 audit,
+        # expanded in #145 once the cleaner exposed the full set). Listed
         # here to silence the load-db warnings; rows for these symbols still
         # get added to central_gene as manual entries.
         ignore_missing:
@@ -175,13 +177,13 @@ tables:
           - CRIPAK
           - U2AF1L5
           - SMC5-AS1
+          - SARS
+          - MPP6
+          - TAZ
+          - QARS
+          - C18orf21
+          - LOR
         perturbed_or_target: target
-        replace:
-          TBCE.1: TBCE
-          MATR3.1: MATR3
-          HSPA14.1: HSPA14
-          TMSB15B.1: TMSB15B
-          CYB561D2.1: CYB561D2
     pvalue_column: pvalue
     fdr_column: FDR
     effect_column: logFC
@@ -211,7 +213,7 @@ tables:
       - gene screens
     organism: Homo sapiens (organoids)
     organism_key: human
-    in_path: s10.tsv
+    in_path: s10_cleaned.tsv
     split_column_map: []
     separator: "\t"
     gene_mappings:
@@ -219,7 +221,8 @@ tables:
         link_table_name: gene
         species: human
         # Retired/withdrawn HGNC symbols that appear in this dataset's data
-        # files but no longer have a current HGNC entry (per #125 audit). Listed
+        # files but no longer have a current HGNC entry (per #125 audit,
+        # expanded in #145 once the cleaner exposed the full set). Listed
         # here to silence the load-db warnings; rows for these symbols still
         # get added to central_gene as manual entries.
         ignore_missing:
@@ -229,14 +232,13 @@ tables:
           - CRIPAK
           - U2AF1L5
           - SMC5-AS1
+          - SARS
+          - MPP6
+          - TAZ
+          - QARS
+          - C18orf21
+          - LOR
         perturbed_or_target: target
-        replace:
-          TBCE.1: TBCE
-          CYB561D2.1: CYB561D2
-          MATR3.1: MATR3
-          HSPA14.1: HSPA14
-          TMSB15B.1: TMSB15B
-          ARMCX5-GPRASP2.1: ARMCX5-GPRASP2
     pvalue_column: pvalue
     fdr_column: FDR
     effect_column: logFC
@@ -266,7 +268,7 @@ tables:
       - validation
     organism: Homo sapiens (organoids)
     organism_key: human
-    in_path: Table_8_Selected_validate_genes.txt
+    in_path: Table_8_Selected_validate_genes_cleaned.txt
     split_column_map: []
     separator: "\t"
     gene_mappings:
