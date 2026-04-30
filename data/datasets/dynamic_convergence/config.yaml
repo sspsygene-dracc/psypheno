@@ -79,7 +79,7 @@ tables:
       - developmental transcriptomics
     organism: Homo sapiens (hiPSC-derived neurons)
     organism_key: human
-    in_path: Supplemental_Data_2(META_DEGs).csv
+    in_path: Supplemental_Data_2(META_DEGs)_cleaned.csv
     split_column_map: []
     separator: ","
     gene_mappings:
@@ -87,7 +87,8 @@ tables:
         link_table_name: gene
         species: human
         # Retired/withdrawn HGNC symbols in Supplemental_Data_2 (per #125
-        # audit). Silences load-db warnings; rows still added to central_gene
+        # audit, expanded in #142 once the cleaner exposed the full set).
+        # Silences load-db warnings; rows still added to central_gene
         # as manual entries.
         ignore_missing:
           - GATD3B
@@ -97,23 +98,23 @@ tables:
           - SMIM11B
           - ABALON
           - SIK1B
+          - NOV
+          - QARS
+          - C18orf21
+          - MUM1
+          - SGK494
+          - TAZ
+          - MPP6
+          - SARS
         perturbed_or_target: target
+        # Trailing-dot variants (no `.N`) are not handled by the shared
+        # cleaner's strip_make_unique helper; collapse them here so the
+        # ignore_missing entries above silence the underlying retired
+        # symbols. All `.N`-suffix entries (#142) and the GenBank
+        # accession `KC877982.1` (Tier B silencer) were dropped.
         replace:
-          EMG1.1: EMG1
-          SOD2.1: SOD2
-          ATXN7.1: ATXN7
-          ABCF2.1: ABCF2
           ABALON.: ABALON
-          IGF2.1: IGF2
-          DIABLO.1: DIABLO
           SGK494.: SGK494
-          PINX1.1: PINX1
-          KC877982.1: KC877982
-          COG8.1: COG8
-          RGS5.1: RGS5
-          SCO2.1: SCO2
-          LINC01238.1: LINC01238
-          POLR2J3.1: POLR2J3
     pvalue_column: P-value
     effect_column: Zscore
   - table: Perturbed_Baseline_behavior_pvalues
@@ -166,7 +167,7 @@ tables:
        off_avg_stim5: "Visual-startle (lights-off): average response to stimulus #5 (habituation endpoint) — signed −log10(p) (mutant vs WT)"
     organism: Danio rerio (crispant mutants)
     organism_key: zebrafish
-    in_path: HumanName_Baseline_behavior_pvalues.csv
+    in_path: HumanName_Baseline_behavior_pvalues_cleaned.csv
     separator: ","
     split_column_map: []
     gene_mappings:
