@@ -1,8 +1,11 @@
 """Tests for the combined p-value pipeline.
 
 Covers: _precollapse, _parse_link_tables_for_direction, _load_hgnc_gene_flags,
-_call_r_combine, and compute_combined_pvalues.
+_filter_collected, _write_r_inputs / _parse_r_results, ComputeGroupBuilder,
+GeneFlagger, _call_r_combine, and compute_combined_pvalues.
 """
+
+# pylint: disable=use-implicit-booleaness-not-comparison
 
 import csv
 import shutil
@@ -16,11 +19,16 @@ import pytest
 
 from processing.combined_pvalues import (
     CollectedPvalues,
+    ComputeGroupBuilder,
     GeneCombinedPvalues,
+    GeneFlagger,
     _call_r_combine,  # pyright: ignore[reportPrivateUsage]
+    _filter_collected,  # pyright: ignore[reportPrivateUsage]
     _load_hgnc_gene_flags,  # pyright: ignore[reportPrivateUsage]
     _parse_link_tables_for_direction,  # pyright: ignore[reportPrivateUsage]
+    _parse_r_results,  # pyright: ignore[reportPrivateUsage]
     _precollapse,  # pyright: ignore[reportPrivateUsage]
+    _write_r_inputs,  # pyright: ignore[reportPrivateUsage]
     compute_combined_pvalues,
 )
 
@@ -312,7 +320,7 @@ class TestCallRCombine:
 
         with (
             patch("shutil.which", return_value="/usr/bin/Rscript"),
-            patch("processing.combined_pvalues._ensure_r_packages", return_value=True),
+            patch("processing.combined_pvalues.r_runner._ensure_r_packages", return_value=True),
             patch("subprocess.run", side_effect=fake_run),
         ):
             result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
@@ -366,7 +374,7 @@ class TestCallRCombine:
 
         with (
             patch("shutil.which", return_value="/usr/bin/Rscript"),
-            patch("processing.combined_pvalues._ensure_r_packages", return_value=True),
+            patch("processing.combined_pvalues.r_runner._ensure_r_packages", return_value=True),
             patch("subprocess.run", side_effect=fake_run),
         ):
             result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
@@ -459,7 +467,7 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues._call_r_combine", side_effect=mock_r):
+        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
             compute_combined_pvalues(conn)
 
         assert sorted(captured["per_table"][1]["tbl_a"]) == pytest.approx(
@@ -488,7 +496,7 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues._call_r_combine", side_effect=mock_r):
+        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
             compute_combined_pvalues(conn)
 
         assert captured["all_pvals"][1] == [0.01]
@@ -514,7 +522,7 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues._call_r_combine", side_effect=mock_r):
+        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
             compute_combined_pvalues(conn)
 
         assert captured["all_pvals"][1] == [0.05]
@@ -540,7 +548,7 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues._call_r_combine", side_effect=mock_r):
+        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
             compute_combined_pvalues(conn)
 
         assert captured["all_pvals"][1] == [0.05]
@@ -566,7 +574,7 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues._call_r_combine", side_effect=mock_r):
+        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
             compute_combined_pvalues(conn)
 
         assert sorted(captured["all_pvals"][1]) == pytest.approx([0.05, 1.0])
@@ -600,7 +608,7 @@ class TestPvalueCollection:
             captured["per_table"] = {k: dict(v) for k, v in per_table.items()}
             return {}
 
-        with patch("processing.combined_pvalues._call_r_combine", side_effect=mock_r):
+        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
             compute_combined_pvalues(conn)
 
         assert "tbl_a" in captured["per_table"][1]
@@ -639,7 +647,7 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues._call_r_combine", side_effect=mock_r):
+        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
             compute_combined_pvalues(conn)
 
         # Both columns merge into same table key: 6 values total
@@ -676,7 +684,7 @@ class TestPvalueCollection:
             captures.append(dict(pvalues.all_pvalues))
             return {}
 
-        with patch("processing.combined_pvalues._call_r_combine", side_effect=mock_r):
+        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
             compute_combined_pvalues(conn)
 
         # The legacy "global" group filters perturbed when both sides exist:
@@ -872,7 +880,7 @@ class TestEndToEnd:
         )
         conn.commit()
 
-        with patch("processing.combined_pvalues._call_r_combine", return_value={}):
+        with patch("processing.combined_pvalues.r_runner._call_r_combine", return_value={}):
             compute_combined_pvalues(conn)
 
         row = conn.execute(
@@ -894,7 +902,7 @@ class TestEndToEnd:
         )
         conn.commit()
 
-        with patch("processing.combined_pvalues._call_r_combine", return_value={}):
+        with patch("processing.combined_pvalues.r_runner._call_r_combine", return_value={}):
             compute_combined_pvalues(conn)
 
         row = conn.execute(
@@ -902,3 +910,330 @@ class TestEndToEnd:
         ).fetchone()
         assert row is not None
         assert row[0] is None  # BRCA1 has hgnc_id and no matching gene group
+
+
+# ===================================================================
+# 8. TestFilterCollected — pure dict filtering
+# ===================================================================
+
+
+class TestFilterCollected:
+    def test_keeps_only_named_tables(self):
+        master = CollectedPvalues.from_dicts(
+            per_table={
+                1: {"tbl_a": [0.01, 0.02], "tbl_b": [0.05]},
+                2: {"tbl_a": [0.1], "tbl_c": [0.2]},
+            },
+            all_pvalues={1: [0.01, 0.02, 0.05], 2: [0.1, 0.2]},
+        )
+        out = _filter_collected(master, {"tbl_a"})
+        assert dict(out.per_table) == {
+            1: {"tbl_a": [0.01, 0.02]},
+            2: {"tbl_a": [0.1]},
+        }
+        assert sorted(out.all_pvalues[1]) == [0.01, 0.02]
+        assert sorted(out.all_pvalues[2]) == [0.1]
+
+    def test_empty_filter_returns_empty(self):
+        master = CollectedPvalues.from_dicts(
+            per_table={1: {"tbl_a": [0.01]}}, all_pvalues={1: [0.01]},
+        )
+        out = _filter_collected(master, set())
+        assert out.is_empty()
+
+    def test_filter_with_no_matches_returns_empty(self):
+        master = CollectedPvalues.from_dicts(
+            per_table={1: {"tbl_a": [0.01]}}, all_pvalues={1: [0.01]},
+        )
+        out = _filter_collected(master, {"unrelated"})
+        assert out.is_empty()
+
+    def test_filter_does_not_mutate_master(self):
+        """Ensure the filter creates fresh lists — mutating the output must not
+        bleed back into master (a real risk with defaultdict-of-list)."""
+        master = CollectedPvalues.from_dicts(
+            per_table={1: {"tbl_a": [0.01, 0.02]}},
+            all_pvalues={1: [0.01, 0.02]},
+        )
+        out = _filter_collected(master, {"tbl_a"})
+        out.per_table[1]["tbl_a"].append(99.0)
+        assert master.per_table[1]["tbl_a"] == [0.01, 0.02]
+
+
+# ===================================================================
+# 9. TestComputeGroupBuilder — pure group enumeration
+# ===================================================================
+
+
+def _make_row(
+    table_name: str,
+    *,
+    pvalue_col: str = "pval",
+    link: str = "g:lt:target",
+    assay: str | None = None,
+    disease: str | None = None,
+    organism: str | None = None,
+):
+    return (table_name, pvalue_col, link, assay, disease, organism)
+
+
+class TestComputeGroupBuilder:
+    def test_emits_global_group_per_direction(self):
+        rows = [_make_row("tbl_a")]
+        groups = ComputeGroupBuilder(rows).build()
+        out_tables = [g.out_table for g in groups]
+        assert "gene_combined_pvalues_target" in out_tables
+        assert "gene_combined_pvalues_perturbed" in out_tables
+
+    def test_global_group_min_tables_one(self):
+        rows = [_make_row("tbl_a")]
+        groups = ComputeGroupBuilder(rows).build()
+        global_groups = [
+            g for g in groups
+            if g.out_table.startswith("gene_combined_pvalues_")
+            and g.assay_filter is None
+            and g.disease_filter is None
+            and g.organism_filter is None
+        ]
+        assert len(global_groups) == 2  # one per direction
+        for g in global_groups:
+            assert g.min_tables == 1
+
+    def test_filter_groups_have_min_tables_two(self):
+        rows = [
+            _make_row("tbl_a", assay="rnaseq"),
+            _make_row("tbl_b", assay="rnaseq"),
+        ]
+        groups = ComputeGroupBuilder(rows).build()
+        assay_groups = [g for g in groups if g.assay_filter == "rnaseq"]
+        assert assay_groups, "expected per-assay groups"
+        for g in assay_groups:
+            assert g.min_tables == 2
+
+    def test_pairwise_and_triple_combos(self):
+        rows = [
+            _make_row(
+                "tbl_x", assay="rnaseq", disease="asd", organism="human",
+            ),
+        ]
+        groups = ComputeGroupBuilder(rows).build()
+        out_tables = {g.out_table for g in groups}
+        # 2 directions × {global, A, D, O, A+D, A+O, D+O, A+D+O} = 16 groups
+        assert len(groups) == 16
+        # spot-check a few names
+        assert "gene_combined_pvalues_rnaseq_target" in out_tables
+        assert "gene_combined_pvalues_d_asd_target" in out_tables
+        assert "gene_combined_pvalues_o_human_target" in out_tables
+        assert "gene_combined_pvalues_rnaseq_d_asd_target" in out_tables
+        assert "gene_combined_pvalues_rnaseq_o_human_target" in out_tables
+        assert "gene_combined_pvalues_d_asd_o_human_target" in out_tables
+        assert "gene_combined_pvalues_rnaseq_d_asd_o_human_target" in out_tables
+
+    def test_comma_separated_keys_split(self):
+        rows = [_make_row("tbl_a", assay="rnaseq, atacseq")]
+        groups = ComputeGroupBuilder(rows).build()
+        assays = {g.assay_filter for g in groups if g.assay_filter}
+        assert assays == {"rnaseq", "atacseq"}
+
+    def test_empty_keys_skipped(self):
+        rows = [_make_row("tbl_a", assay=None, disease="", organism="  ")]
+        groups = ComputeGroupBuilder(rows).build()
+        # Only direction-level globals should remain
+        filtered = [
+            g for g in groups
+            if g.assay_filter or g.disease_filter or g.organism_filter
+        ]
+        assert filtered == []
+
+    def test_groups_use_3col_table_triples(self):
+        """ComputeGroup.tables drops the assay/disease/organism columns —
+        only (table_name, pvalue_column, link_tables) flows downstream."""
+        rows = [_make_row("tbl_a", pvalue_col="pv", link="g:lt:target")]
+        groups = ComputeGroupBuilder(rows).build()
+        for g in groups:
+            for entry in g.tables:
+                assert len(entry) == 3
+                assert entry == ("tbl_a", "pv", "g:lt:target")
+
+
+# ===================================================================
+# 10. TestGeneFlagger — direct unit tests for the flag classifier
+# ===================================================================
+
+
+def _make_flagger_db(rows: list[tuple[int, str | None, str | None]]):
+    """In-memory central_gene with the (id, human_symbol, hgnc_id) shape."""
+    conn = sqlite3.connect(":memory:")
+    conn.execute(
+        "CREATE TABLE central_gene ("
+        "id INTEGER PRIMARY KEY, human_symbol TEXT, hgnc_id TEXT)"
+    )
+    for gid, sym, hgnc in rows:
+        conn.execute(
+            "INSERT INTO central_gene (id, human_symbol, hgnc_id) VALUES (?, ?, ?)",
+            (gid, sym, hgnc),
+        )
+    conn.commit()
+    return conn
+
+
+class TestGeneFlagger:
+    def test_no_flags_when_no_data(self):
+        conn = _make_flagger_db([(1, "BRCA1", "HGNC:1100")])
+        flagger = GeneFlagger.from_db(conn)
+        assert flagger.flags_for(1) is None
+
+    def test_no_hgnc_flag_when_id_missing(self):
+        conn = _make_flagger_db([(1, "MYGENE", None)])
+        flagger = GeneFlagger.from_db(conn)
+        assert flagger.flags_for(1) == "no_hgnc"
+
+    def test_hgnc_family_flag(self):
+        flagger = GeneFlagger(
+            symbol_lookup={1: "RPL5"},
+            hgnc_id_lookup={1: "HGNC:10316"},
+            hgnc_flags={"RPL5": "ribosomal"},
+            nimh_genes=set(),
+        )
+        assert flagger.flags_for(1) == "ribosomal"
+
+    def test_nimh_priority_flag(self):
+        flagger = GeneFlagger(
+            symbol_lookup={1: "BRCA1"},
+            hgnc_id_lookup={1: "HGNC:1100"},
+            hgnc_flags={},
+            nimh_genes={"BRCA1"},
+        )
+        assert flagger.flags_for(1) == "nimh_priority"
+
+    def test_combined_flags_sorted_comma_separated(self):
+        flagger = GeneFlagger(
+            symbol_lookup={1: "RPL5"},
+            hgnc_id_lookup={1: None},
+            hgnc_flags={"RPL5": "ribosomal,transcription_factor"},
+            nimh_genes={"RPL5"},
+        )
+        # Flags merge from HGNC families + NIMH + missing-hgnc; alphabetized.
+        assert flagger.flags_for(1) == (
+            "nimh_priority,no_hgnc,ribosomal,transcription_factor"
+        )
+
+    def test_unknown_gene_id_with_no_hgnc_data(self):
+        flagger = GeneFlagger(
+            symbol_lookup={},
+            hgnc_id_lookup={},
+            hgnc_flags={},
+            nimh_genes=set(),
+        )
+        # No symbol → not in NIMH; no hgnc id → no_hgnc fires.
+        assert flagger.flags_for(99) == "no_hgnc"
+
+    def test_from_db_skips_missing_paths(self, tmp_path: Path):
+        conn = _make_flagger_db([(1, "BRCA1", "HGNC:1100")])
+        # Pointing at non-existent paths should be silently ignored.
+        flagger = GeneFlagger.from_db(
+            conn,
+            hgnc_path=tmp_path / "nope.tsv",
+            nimh_csv_path=tmp_path / "nope.csv",
+            tf_list_path=tmp_path / "nope.csv",
+        )
+        assert flagger.hgnc_flags == {}
+        assert flagger.nimh_genes == set()
+        assert flagger.flags_for(1) is None
+
+
+# ===================================================================
+# 11. TestRInputOutputBridging — _write_r_inputs / _parse_r_results
+# ===================================================================
+
+
+class TestWriteRInputs:
+    def test_writes_collapsed_and_raw_csvs(self, tmp_path: Path):
+        pvalues = CollectedPvalues.from_dicts(
+            per_table={
+                1: {"tbl_a": [0.01, 0.02]},  # min(0.01) * 2 = 0.02 collapsed
+                2: {"tbl_a": [0.5], "tbl_b": [0.1]},
+            },
+            all_pvalues={1: [0.01, 0.02], 2: [0.5, 0.1]},
+        )
+        _write_r_inputs(tmp_path, pvalues)
+
+        collapsed = list(csv.DictReader(open(tmp_path / "collapsed_pvalues.csv")))
+        # Gene 1 collapses to 0.02; gene 2 emits two rows (one per table).
+        assert len(collapsed) == 3
+        gene1_rows = [r for r in collapsed if r["gene_id"] == "1"]
+        assert len(gene1_rows) == 1
+        assert float(gene1_rows[0]["pvalue"]) == pytest.approx(0.02, rel=1e-10)
+
+        raw = list(csv.DictReader(open(tmp_path / "raw_pvalues.csv")))
+        # 2 raws for gene 1 + 2 raws for gene 2 = 4 rows.
+        assert len(raw) == 4
+        gene1_raws = sorted(
+            float(r["pvalue"]) for r in raw if r["gene_id"] == "1"
+        )
+        assert gene1_raws == pytest.approx([0.01, 0.02])
+
+    def test_empty_pvalues_writes_only_headers(self, tmp_path: Path):
+        _write_r_inputs(tmp_path, CollectedPvalues())
+        for name in ("collapsed_pvalues.csv", "raw_pvalues.csv"):
+            rows = list(csv.reader(open(tmp_path / name)))
+            assert rows == [["gene_id", "pvalue"]]
+
+
+class TestParseRResults:
+    def _write_results_csv(self, path: Path, rows: list[dict[str, str]]):
+        cols = [
+            "gene_id",
+            "fisher_p", "fisher_fdr",
+            "stouffer_p", "stouffer_fdr",
+            "cauchy_p", "cauchy_fdr",
+            "hmp_p", "hmp_fdr",
+        ]
+        with open(path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=cols)
+            writer.writeheader()
+            for row in rows:
+                writer.writerow(row)
+
+    def test_parses_full_row(self, tmp_path: Path):
+        path = tmp_path / "results.csv"
+        self._write_results_csv(path, [{
+            "gene_id": "7",
+            "fisher_p": "1e-3", "fisher_fdr": "1e-2",
+            "stouffer_p": "2e-3", "stouffer_fdr": "2e-2",
+            "cauchy_p": "3e-3", "cauchy_fdr": "3e-2",
+            "hmp_p": "4e-3", "hmp_fdr": "4e-2",
+        }])
+        out = _parse_r_results(path)
+        assert set(out.keys()) == {7}
+        rec = out[7]
+        assert rec.fisher_p == pytest.approx(1e-3)
+        assert rec.fisher_fdr == pytest.approx(1e-2)
+        assert rec.stouffer_p == pytest.approx(2e-3)
+        assert rec.cauchy_fdr == pytest.approx(3e-2)
+        assert rec.hmp_p == pytest.approx(4e-3)
+
+    def test_na_inf_nan_become_none(self, tmp_path: Path):
+        path = tmp_path / "results.csv"
+        self._write_results_csv(path, [{
+            "gene_id": "1",
+            "fisher_p": "NA", "fisher_fdr": "",
+            "stouffer_p": "NaN", "stouffer_fdr": "Inf",
+            "cauchy_p": "-Inf", "cauchy_fdr": "0.5",
+            "hmp_p": "0.25", "hmp_fdr": "NA",
+        }])
+        out = _parse_r_results(path)
+        rec = out[1]
+        assert rec.fisher_p is None
+        assert rec.fisher_fdr is None
+        assert rec.stouffer_p is None
+        assert rec.stouffer_fdr is None
+        assert rec.cauchy_p is None
+        assert rec.cauchy_fdr == pytest.approx(0.5)
+        assert rec.hmp_p == pytest.approx(0.25)
+        assert rec.hmp_fdr is None
+
+    def test_empty_results_csv(self, tmp_path: Path):
+        path = tmp_path / "results.csv"
+        self._write_results_csv(path, [])
+        assert _parse_r_results(path) == {}
