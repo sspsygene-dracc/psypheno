@@ -22,7 +22,7 @@ Tracked in [wrangler_gene_cleanup.md §4](wrangler_gene_cleanup.md), not blockin
 
 ## 3. Open tickets — context for a fresh agent
 
-These three tickets remain open and form a small, mostly-independent cluster. **Suggested order: #119 first (it makes #118 obsolete and is the biggest single win), then #139 (deferred standalone), then #118 only if #119 is delayed.**
+Two tickets remain open and are mostly independent. **Suggested order: #119 first (biggest single win), then #139.** (#118 was closed as superseded by #119 — see the closure comment for the rationale; if #119 stalls and the displayed-vs-stored ENSG filter mismatch actually hurts users, reopen #118.)
 
 ### 3.1 #119 — Convert ENSG → HGNC at preprocess time, drop runtime resolver
 
@@ -39,7 +39,7 @@ Some datasets store raw `ENSG…` IDs in their gene columns (most prominent exam
 
 **Why it's a problem.**
 
-1. SQL operates on the raw stored value, not the displayed symbol. Sort / WHERE / LIKE filters miss for ENSG-storing columns. That's the entire motivation for #118 (a workaround for this same root cause).
+1. SQL operates on the raw stored value, not the displayed symbol. Sort / WHERE / LIKE filters miss for ENSG-storing columns. (#118 — a SQL workaround that bolted a sub-select onto the filter — was closed as superseded by this ticket.)
 2. Cache management exists only because the rewrite happens at request time.
 3. Every new API route has to remember to call `resolveEnsgsInRows` — easy to miss; downloads (#83) and any future export will need it too.
 
@@ -63,7 +63,7 @@ Some datasets store raw `ENSG…` IDs in their gene columns (most prominent exam
 3. **Wire into `clean_gene_column`** as a new `resolve_via_ensembl_map: bool` flag. Slot it BEFORE `is_non_symbol_identifier` (same ordering invariant as the other rescues) so that ENSG IDs that DO map to symbols get rescued, and only the orphan ENSGs fall through to the non-symbol classifier.
 4. **Update affected per-dataset preprocess.py to pass the flag.** `<col>_raw` already preserves the original ENSG (added under #121).
 5. **Drop the runtime resolver.** Once the stored value IS the symbol, `web/lib/ensembl-symbol-resolver.ts` and its call sites can be removed. The `ensembl_to_symbol` SQLite table can stay (it's the natural artifact for #99, the downloadable map; just no longer on the request path).
-6. **Close out / simplify #118** — once the stored value is the symbol, the per-column filter just works without a cross-table join.
+6. **Per-column filter consistency** — once the stored value is the symbol, the existing `LIKE` filter on per-dataset table columns just works without a cross-table join. No web-side change required for filtering; the runtime resolver removal in step 5 already handles the rendering side.
 
 **Gotchas:**
 
@@ -82,37 +82,7 @@ Some datasets store raw `ENSG…` IDs in their gene columns (most prominent exam
 
 ---
 
-### 3.2 #118 — Per-column filters: match ENSG-storing columns by displayed gene symbol
-
-**Title:** "Per-column filters: match ENSG-storing columns by displayed gene symbol" — [GitHub link](https://github.com/sspsygene-dracc/psypheno/issues/118).
-
-**Short version: this is a workaround for #119. If #119 lands, #118 closes for free.** Don't start #118 standalone unless #119 is meaningfully delayed.
-
-**If you do work it standalone:**
-
-The per-column filter UI was added in #76 (already landed). It builds SQL like `WHERE col LIKE ?` against the per-dataset table. For columns that store `ENSG…` IDs verbatim, typing `BRCA` matches nothing because the stored value is `ENSG00000012048`, not `BRCA1`.
-
-Suggested fix per the ticket body:
-
-```sql
--- Today's filter (approx):
-... WHERE col LIKE ?
-
--- Proposed:
-... WHERE col LIKE ? OR col IN (
-  SELECT ensembl_id FROM ensembl_to_symbol WHERE symbol LIKE ?
-)
-```
-
-Both bound parameters; same `\`-escape semantics as the current LIKE filter. Apply only to non-scalar columns. Detect ENSG-storing columns either lazily (cheap regex on the displayed cells) or via a column-level flag derived during load-db.
-
-Files: [`web/pages/api/dataset-data.ts`](web/pages/api/dataset-data.ts) (or wherever the per-column filter SQL lives — search for `LIKE` near the filter-handling code).
-
-Performance check: the largest tables are `hsc_asd_organoid_m5_DE_results` (~720k rows) and `geschwind_2026_cnv_de` (~720k, now merged into hsc-asd-organoid-m5). Adding a `OR col IN (...)` should still hit the existing index, but verify with `EXPLAIN QUERY PLAN`.
-
----
-
-### 3.3 #139 — Tier C/C4: GENCODE clone resolution via Ensembl annotation parse
+### 3.2 #139 — Tier C/C4: GENCODE clone resolution via Ensembl annotation parse
 
 **Title:** "Tier C/C4: GENCODE clone resolution via Ensembl annotation parse" — [GitHub link](https://github.com/sspsygene-dracc/psypheno/issues/139).
 
