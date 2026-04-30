@@ -114,6 +114,7 @@ def process_supp3(normalizer: GeneSymbolNormalizer) -> None:
             normalizer=normalizer,
             excel_demangle=True,
             strip_make_unique=True,
+            resolve_hgnc_id=True,
             manual_aliases=MANUAL_ALIASES,
         )
         df = df.drop(columns=["_hgnc_symbol_resolution"])
@@ -188,6 +189,7 @@ def process_supp12(normalizer: GeneSymbolNormalizer) -> None:
             normalizer=normalizer,
             excel_demangle=True,
             strip_make_unique=True,
+            resolve_hgnc_id=True,
             manual_aliases=MANUAL_ALIASES,
         )
         df = df.drop(columns=["_target_gene_resolution"])
