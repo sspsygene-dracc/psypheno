@@ -61,33 +61,28 @@ tables:
       - column_name: target_gene
         link_table_name: Target_Gene
         species: human
-        # Retired/withdrawn HGNC symbols across Supp_1 + Supp_2 (per #125
-        # audit, expanded in #143 once the cleaner exposed the full set).
-        # Silences load-db warnings; rows still added to central_gene
-        # as manual entries. Pre-existing RNA-family-label warnings
-        # (Y_RNA, U3, SNORA*, snoU*, MIR*, etc.) remain — they need a
-        # separate non-symbol category, not an ignore_missing entry.
-        ignore_missing:
-          - GATD3B
-          - IQCD
-          - IQCA1
-          - CRIPAK
-          - U2AF1L5
-          - SMC5-AS1
-          - OCLM
-          - SMIM11B
-          - TMEM155
-          - ABALON
-          - SIK1B
-          - NOV
-          - MUM1
-          - MPP6
-          - SARS
-          - QARS
-          - TAZ
-          - C18orf21
-          - SGK494
         perturbed_or_target: target
+        # Retired-no-successor / ambiguous-prev-symbol HGNC entries
+        # across Supp_1 + Supp_2. Each gets a manually_added=1
+        # central_gene stub. NOV/MUM1/SARS/QARS/TAZ are mapped to
+        # CCN3/PWWP3A/SARS1/QARS1/TAFAZZIN in preprocess.py via
+        # clean_gene_column(manual_aliases=...).
+        non_resolving:
+          record_values:
+            - GATD3B
+            - IQCD
+            - IQCA1
+            - CRIPAK
+            - U2AF1L5
+            - SMC5-AS1
+            - OCLM
+            - SMIM11B
+            - TMEM155
+            - ABALON
+            - SIK1B
+            - MPP6
+            - C18orf21
+            - SGK494
       - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
         species: human
@@ -131,33 +126,28 @@ tables:
       - column_name: target_gene
         link_table_name: Target_Gene
         species: human
-        # Retired/withdrawn HGNC symbols across Supp_1 + Supp_2 (per #125
-        # audit, expanded in #143 once the cleaner exposed the full set).
-        # Silences load-db warnings; rows still added to central_gene
-        # as manual entries. Pre-existing RNA-family-label warnings
-        # (Y_RNA, U3, SNORA*, snoU*, MIR*, etc.) remain — they need a
-        # separate non-symbol category, not an ignore_missing entry.
-        ignore_missing:
-          - GATD3B
-          - IQCD
-          - IQCA1
-          - CRIPAK
-          - U2AF1L5
-          - SMC5-AS1
-          - OCLM
-          - SMIM11B
-          - TMEM155
-          - ABALON
-          - SIK1B
-          - NOV
-          - MUM1
-          - MPP6
-          - SARS
-          - QARS
-          - TAZ
-          - C18orf21
-          - SGK494
         perturbed_or_target: target
+        # Retired-no-successor / ambiguous-prev-symbol HGNC entries
+        # across Supp_1 + Supp_2. Each gets a manually_added=1
+        # central_gene stub. NOV/MUM1/SARS/QARS/TAZ are mapped to
+        # CCN3/PWWP3A/SARS1/QARS1/TAFAZZIN in preprocess.py via
+        # clean_gene_column(manual_aliases=...).
+        non_resolving:
+          record_values:
+            - GATD3B
+            - IQCD
+            - IQCA1
+            - CRIPAK
+            - U2AF1L5
+            - SMC5-AS1
+            - OCLM
+            - SMIM11B
+            - TMEM155
+            - ABALON
+            - SIK1B
+            - MPP6
+            - C18orf21
+            - SGK494
       - column_name: perturbed_gene
         link_table_name: Perturbed_Gene
         species: human

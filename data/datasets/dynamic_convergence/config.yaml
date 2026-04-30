@@ -86,35 +86,26 @@ tables:
       - column_name: MarkerName
         link_table_name: gene
         species: human
-        # Retired/withdrawn HGNC symbols in Supplemental_Data_2 (per #125
-        # audit, expanded in #142 once the cleaner exposed the full set).
-        # Silences load-db warnings; rows still added to central_gene
-        # as manual entries.
-        ignore_missing:
-          - GATD3B
-          - IQCD
-          - IQCA1
-          - U2AF1L5
-          - SMIM11B
-          - ABALON
-          - SIK1B
-          - NOV
-          - QARS
-          - C18orf21
-          - MUM1
-          - SGK494
-          - TAZ
-          - MPP6
-          - SARS
         perturbed_or_target: target
-        # Trailing-dot variants (no `.N`) are not handled by the shared
-        # cleaner's strip_make_unique helper; collapse them here so the
-        # ignore_missing entries above silence the underlying retired
-        # symbols. All `.N`-suffix entries (#142) and the GenBank
-        # accession `KC877982.1` (Tier B silencer) were dropped.
-        replace:
-          ABALON.: ABALON
-          SGK494.: SGK494
+        # Retired-no-successor / ambiguous-prev-symbol HGNC entries
+        # appearing in Supplemental_Data_2. Each gets a manually_added=1
+        # central_gene stub and the load-db warning is silenced.
+        # NOV/QARS/MUM1/TAZ/SARS are handled in preprocess.py via
+        # clean_gene_column(manual_aliases=...) since they have known
+        # canonical successors (CCN3 / QARS1 / PWWP3A / TAFAZZIN /
+        # SARS1) for this NDD context.
+        non_resolving:
+          record_values:
+            - GATD3B
+            - IQCD
+            - IQCA1
+            - U2AF1L5
+            - SMIM11B
+            - ABALON
+            - SIK1B
+            - C18orf21
+            - SGK494
+            - MPP6
     pvalue_column: P-value
     effect_column: Zscore
   - table: Perturbed_Baseline_behavior_pvalues
@@ -174,5 +165,4 @@ tables:
       - column_name: human_gene_name
         link_table_name: gene
         species: human
-        ignore_missing: []
         perturbed_or_target: perturbed

@@ -59,6 +59,5 @@ tables:
         link_table_name: gene
         species: mouse
         gene_type: ensmus
-        ignore_missing: []
         ignore_empty: true
         perturbed_or_target: perturbed

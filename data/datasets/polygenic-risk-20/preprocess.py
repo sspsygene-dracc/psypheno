@@ -39,6 +39,14 @@ JOBS: list[tuple[str, str]] = [
 ]
 GENE_COLUMNS = ("perturbed_gene", "target_gene")
 
+MANUAL_ALIASES = {
+    "NOV": "CCN3",
+    "MUM1": "PWWP3A",
+    "SARS": "SARS1",
+    "QARS": "QARS1",
+    "TAZ": "TAFAZZIN",
+}
+
 
 def main() -> None:
     normalizer = GeneSymbolNormalizer.from_env()
@@ -53,6 +61,7 @@ def main() -> None:
                 normalizer=normalizer,
                 excel_demangle=True,
                 strip_make_unique=True,
+                manual_aliases=MANUAL_ALIASES,
             )
             print(f"{in_name}: {report.summary()}")
             df = df.drop(columns=[f"_{column}_resolution"])

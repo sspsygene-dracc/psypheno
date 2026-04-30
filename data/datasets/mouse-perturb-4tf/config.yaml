@@ -77,20 +77,21 @@ tables:
       - column_name: Gene
         link_table_name: gene
         species: mouse
-        # Predicted-only mouse gene models that aren't in the loaded MGI
-        # symbol set (per #125 audit). Silences load-db warnings; rows still
-        # added to central_gene as manual entries.
-        ignore_missing:
-          - Gm16091
-          - Gm42864
         perturbed_or_target: target
+        # Predicted-only mouse gene models that aren't in the loaded MGI
+        # symbol set; orphan the link without creating a stub.
+        non_resolving:
+          drop_values:
+            - Gm16091
+            - Gm42864
       - column_name: _perturbation_gene
         link_table_name: perturbation_gene
         species: mouse
-        ignore_missing:
-          - NonTarget1
-          - SafeTarget
         perturbed_or_target: perturbed
+        non_resolving:
+          drop_values:
+            - NonTarget1
+            - SafeTarget
     pvalue_column: PValue
     fdr_column: padj
     effect_column: logFC
@@ -137,11 +138,12 @@ tables:
       - column_name: _guide_gene
         link_table_name: guide_gene
         species: mouse
-        ignore_missing:
-          - NonTarget1
-          - SafeTarget
-          - GFP
         perturbed_or_target: perturbed
+        non_resolving:
+          drop_values:
+            - NonTarget1
+            - SafeTarget
+            - GFP
     pvalue_column: P.Value
     fdr_column: FDR
     effect_column: limma_coef

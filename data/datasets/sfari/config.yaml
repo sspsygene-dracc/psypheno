@@ -47,7 +47,6 @@ tables:
       - column_name: gene-symbol
         link_table_name: gene
         species: human
-        ignore_missing: []
         perturbed_or_target: perturbed
   - table: sfari_animal_rescues
     changelog:
@@ -84,7 +83,6 @@ tables:
       - column_name: model-symbol
         link_table_name: gene
         species: human
-        ignore_missing: []
         perturbed_or_target: perturbed
   - table: sfari_human_genes
     changelog:
@@ -121,9 +119,10 @@ tables:
       - column_name: gene-symbol
         link_table_name: gene
         species: human
-        # Retired/withdrawn HGNC symbols (per #125 audit). Silences load-db
-        # warnings; rows still added to central_gene as manual entries.
-        ignore_missing:
-          - MSNP1AS
-          - RPS10P2-AS1
         perturbed_or_target: perturbed
+        # Antisense-RNA / lincRNA labels with no current HGNC entry.
+        # Each gets a manually_added=1 central_gene stub.
+        non_resolving:
+          record_values:
+            - MSNP1AS
+            - RPS10P2-AS1

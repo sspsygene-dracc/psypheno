@@ -76,9 +76,10 @@ tables:
         link_table_name: perturbGene
         comment: human iPSC-derived astrocyte dataset
         species: human
-        ignore_missing:
-          - Control_ST
         perturbed_or_target: perturbed
+        non_resolving:
+          drop_values:
+            - Control_ST
       - column_name: gene
         link_table_name: gene
         comment: human iPSC-derived astrocyte dataset

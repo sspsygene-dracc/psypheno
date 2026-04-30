@@ -1,6 +1,7 @@
 import pytest
 
 from processing.preprocessing import (
+    NON_SYMBOL_CATEGORIES,
     GeneSymbolNormalizer,
     excel_demangle,
     is_non_symbol_identifier,
@@ -92,6 +93,30 @@ def test_is_non_symbol_identifier_positive(name: str, category: str) -> None:
 )
 def test_is_non_symbol_identifier_negative(name: str) -> None:
     assert is_non_symbol_identifier(name) is None
+
+
+# ---------------------------------------------------------------------------
+# NON_SYMBOL_CATEGORIES (predicate map exposed for the YAML loader)
+# ---------------------------------------------------------------------------
+
+
+def test_non_symbol_categories_keys_match_literal() -> None:
+    assert set(NON_SYMBOL_CATEGORIES) == {
+        "ensembl_human",
+        "ensembl_mouse",
+        "contig",
+        "gencode_clone",
+        "genbank_accession",
+    }
+
+
+def test_non_symbol_categories_predicate_only_matches_own_category() -> None:
+    assert NON_SYMBOL_CATEGORIES["ensembl_human"]("ENSG00000123456") is True
+    assert NON_SYMBOL_CATEGORIES["ensembl_human"]("ENSMUSG00000071265") is False
+    assert NON_SYMBOL_CATEGORIES["ensembl_mouse"]("ENSMUSG00000071265") is True
+    assert NON_SYMBOL_CATEGORIES["genbank_accession"]("KC877982") is True
+    assert NON_SYMBOL_CATEGORIES["genbank_accession"]("BRCA1") is False
+    assert NON_SYMBOL_CATEGORIES["gencode_clone"]("RP11-783K16.5") is True
 
 
 # ---------------------------------------------------------------------------

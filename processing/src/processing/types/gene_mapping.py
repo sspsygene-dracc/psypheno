@@ -1,12 +1,101 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
 from processing.central_gene_table import get_central_gene_table
 from processing.my_logger import get_sspsygene_logger
-from processing.preprocessing.helpers import is_non_symbol_identifier
+from processing.preprocessing.helpers import (
+    NON_SYMBOL_CATEGORIES,
+    is_non_symbol_identifier,
+)
 from processing.types.link_table import LinkTable, PerturbedOrTarget
+
+
+_KNOWN_NON_RESOLVING_KEYS = {
+    "drop_values",
+    "drop_patterns",
+    "record_values",
+    "record_patterns",
+}
+
+_RETIRED_GENE_MAPPING_KEYS = {"ignore_missing", "replace", "to_upper"}
+
+
+@dataclass
+class NonResolving:
+    """Per-mapping policy for values that don't resolve to a known symbol.
+
+    Each bucket has explicit semantics:
+
+      drop_values / drop_patterns
+        Orphan the row's link (`(row_id, None)`); do NOT create a
+        central_gene stub; do NOT warn. Use for placeholders, controls,
+        or pattern categories that should not appear in the gene table
+        (e.g. raw ENSG IDs).
+
+      record_values / record_patterns
+        Create a `manually_added=1` central_gene stub and link the row
+        to it; do NOT warn. Use for retired-but-still-meaningful symbols
+        (`SGK494`, `GATD3B`) and pattern categories that legitimately
+        belong in central_gene but cannot be auto-resolved.
+
+    Anything not matched here falls through to the strict default:
+    WARN + create stub + link.
+    """
+
+    drop_values: frozenset[str] = field(default_factory=frozenset)
+    drop_patterns: tuple[str, ...] = field(default_factory=tuple)
+    record_values: frozenset[str] = field(default_factory=frozenset)
+    record_patterns: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self):
+        for category in (*self.drop_patterns, *self.record_patterns):
+            if category not in NON_SYMBOL_CATEGORIES:
+                raise ValueError(
+                    f"Unknown non_resolving pattern category: {category!r}. "
+                    f"Valid categories: {sorted(NON_SYMBOL_CATEGORIES)}"
+                )
+        overlap_values = self.drop_values & self.record_values
+        if overlap_values:
+            raise ValueError(
+                f"non_resolving: values appear in both drop_values and "
+                f"record_values: {sorted(overlap_values)}"
+            )
+        overlap_patterns = set(self.drop_patterns) & set(self.record_patterns)
+        if overlap_patterns:
+            raise ValueError(
+                f"non_resolving: pattern categories appear in both "
+                f"drop_patterns and record_patterns: {sorted(overlap_patterns)}"
+            )
+
+    @classmethod
+    def from_json(cls, json_data: dict[str, Any]) -> "NonResolving":
+        unknown = set(json_data.keys()) - _KNOWN_NON_RESOLVING_KEYS
+        if unknown:
+            raise ValueError(
+                f"non_resolving: unknown key(s) {sorted(unknown)}. "
+                f"Recognized keys: {sorted(_KNOWN_NON_RESOLVING_KEYS)}"
+            )
+        return cls(
+            drop_values=frozenset(json_data.get("drop_values") or []),
+            drop_patterns=tuple(json_data.get("drop_patterns") or []),
+            record_values=frozenset(json_data.get("record_values") or []),
+            record_patterns=tuple(json_data.get("record_patterns") or []),
+        )
+
+    def classify(self, gene_val: str) -> Literal["drop", "record", "fallback"]:
+        if gene_val in self.drop_values:
+            return "drop"
+        if gene_val in self.record_values:
+            return "record"
+        for category in self.drop_patterns:
+            if NON_SYMBOL_CATEGORIES[category](gene_val):
+                return "drop"
+        for category in self.record_patterns:
+            if NON_SYMBOL_CATEGORIES[category](gene_val):
+                return "record"
+        return "fallback"
 
 
 @dataclass
@@ -14,33 +103,22 @@ class GeneMapping:
     column_name: str
     species: Literal["human", "mouse"]
     link_table_name: str
-    ignore_missing: list[str]
-    to_upper: bool
-    replace: dict[str, str]
     perturbed_or_target: PerturbedOrTarget
-    ignore_empty: bool
+    ignore_empty: bool = False
     multi_gene_separator: str | None = None
+    non_resolving: NonResolving = field(default_factory=NonResolving)
 
     def __post_init__(self):
         if self.species not in ["human", "mouse"]:
             raise ValueError(f"Invalid species: {self.species}")
-        if self.to_upper not in [True, False]:
-            raise ValueError(f"Invalid to_upper: {self.to_upper}")
         if self.perturbed_or_target not in ("perturbed", "target"):
             raise ValueError(
                 f"Invalid perturbed_or_target: {self.perturbed_or_target!r} "
                 f"(must be 'perturbed' or 'target')"
             )
-        if not isinstance(self.replace, dict):  # type: ignore
-            raise ValueError(f"Invalid replace: {self.replace}")
-        for key, value in self.replace.items():
-            if not isinstance(key, str) or not isinstance(value, str):  # type: ignore
-                raise ValueError(f"Invalid replace: {self.replace}")
 
     @classmethod
     def from_json(cls, json_data: dict[str, Any]) -> "GeneMapping":
-        to_upper = json_data["to_upper"] if "to_upper" in json_data else False
-        replace: dict[str, str] = json_data["replace"] if "replace" in json_data else {}
         if "is_perturbed" in json_data or "is_target" in json_data:
             raise ValueError(
                 f"Gene mapping for column {json_data.get('column_name')!r}: "
@@ -53,20 +131,34 @@ class GeneMapping:
                 "missing required field 'perturbed_or_target' (must be "
                 "'perturbed' or 'target')."
             )
+
+        column_name = json_data["column_name"]
+
+        retired = _RETIRED_GENE_MAPPING_KEYS & json_data.keys()
+        if retired:
+            raise ValueError(
+                f"Gene mapping for column {column_name!r}: key(s) {sorted(retired)} "
+                "are no longer supported. Migrate to the new 'non_resolving:' "
+                "block (drop_values / drop_patterns / record_values / "
+                "record_patterns), and move replace/to_upper substitutions into "
+                "preprocess.py via clean_gene_column(manual_aliases=...) or a "
+                "trivial pandas op."
+            )
+
+        non_resolving_block = json_data.get("non_resolving")
+        if non_resolving_block is not None:
+            non_resolving = NonResolving.from_json(non_resolving_block)
+        else:
+            non_resolving = NonResolving()
+
         return cls(
-            column_name=json_data["column_name"],
+            column_name=column_name,
             species=json_data["species"],
             link_table_name=json_data["link_table_name"],
-            ignore_missing=(
-                json_data["ignore_missing"] if "ignore_missing" in json_data else []
-            ),
-            to_upper=to_upper,
-            replace=replace,
             perturbed_or_target=json_data["perturbed_or_target"],
-            ignore_empty=(
-                json_data["ignore_empty"] if "ignore_empty" in json_data else False
-            ),
-            multi_gene_separator=json_data.get("multi_gene_separator", None),
+            ignore_empty=bool(json_data.get("ignore_empty", False)),
+            multi_gene_separator=json_data.get("multi_gene_separator"),
+            non_resolving=non_resolving,
         )
 
     def resolve_to_central_gene_table(
@@ -90,42 +182,66 @@ class GeneMapping:
                 data_id_to_central_gene_id.append((row_id, None))
                 continue
 
-            # Split multi-gene values into individual genes
             if self.multi_gene_separator:
-                gene_values = [g.strip() for g in str(elem).split(self.multi_gene_separator) if g.strip()]
+                gene_values = [
+                    g.strip()
+                    for g in str(elem).split(self.multi_gene_separator)
+                    if g.strip()
+                ]
             else:
                 gene_values = [elem]
 
             for gene_val in gene_values:
-                if self.to_upper:
-                    gene_val = gene_val.upper()
-                if gene_val in self.replace:
-                    gene_val = self.replace[gene_val]
-                if gene_val not in species_map:
-                    if gene_val in self.ignore_missing:
-                        data_id_to_central_gene_id.append((row_id, None))
-                        continue
+                if gene_val in species_map:
+                    for entry in species_map[gene_val]:
+                        data_id_to_central_gene_id.append((row_id, entry.row_id))
+                        entry.add_used_name(
+                            species=self.species,
+                            name=gene_val,
+                            dataset_name=primary_table_name,
+                        )
+                    continue
 
-                    if is_non_symbol_identifier(gene_val) is None:
+                disposition = self.non_resolving.classify(gene_val)
+
+                if disposition == "drop":
+                    data_id_to_central_gene_id.append((row_id, None))
+                    continue
+
+                if disposition == "fallback":
+                    category = is_non_symbol_identifier(gene_val)
+                    if category is None:
                         get_sspsygene_logger().warning(
-                            "Path %s, column %s, gene %s not in gene maps for species %s; adding manually",
+                            "Path %s, column %s, gene %s not in gene maps for "
+                            "species %s; adding manually",
                             in_path,
                             self.column_name,
                             gene_val,
                             self.species,
                         )
-                    new_entry = get_central_gene_table().add_species_entry(
-                        species=self.species,
-                        symbol=gene_val,
-                        dataset=primary_table_name,
-                    )
-                    species_map[gene_val] = [new_entry]
-                else:
-                    for entry in species_map[gene_val]:
-                        data_id_to_central_gene_id.append((row_id, entry.row_id))
-                        entry.add_used_name(
-                            species=self.species, name=gene_val, dataset_name=primary_table_name
+                    else:
+                        get_sspsygene_logger().warning(
+                            "Path %s, column %s, value %s looks like a "
+                            "non-symbol identifier (%s) for species %s but is "
+                            "not whitelisted under non_resolving; adding stub. "
+                            "Add it to non_resolving.record_patterns or "
+                            "drop_patterns to silence.",
+                            in_path,
+                            self.column_name,
+                            gene_val,
+                            category,
+                            self.species,
                         )
+                # disposition in ("record", "fallback") — both create a stub
+                # and link the row.
+                new_entry = get_central_gene_table().add_species_entry(
+                    species=self.species,
+                    symbol=gene_val,
+                    dataset=primary_table_name,
+                )
+                species_map[gene_val] = [new_entry]
+                data_id_to_central_gene_id.append((row_id, new_entry.row_id))
+
         link_table_full_name = primary_table_name + "__" + self.link_table_name
         return LinkTable(
             central_gene_table_links=data_id_to_central_gene_id,

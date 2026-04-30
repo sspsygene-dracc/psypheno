@@ -34,6 +34,13 @@ import pandas as pd
 from processing.preprocessing import GeneSymbolNormalizer, clean_gene_column
 
 DIR = Path(__file__).resolve().parent
+
+MANUAL_ALIASES = {
+    "QARS": "QARS1",
+    "SARS": "SARS1",
+    "TAZ": "TAFAZZIN",
+}
+
 # Copied from geschwind_2026_cnv/cnv_gene_lists.json — manually curated gene lists
 # for each ASD-associated CNV region, sourced from ClinGen, OMIM, and GeneReviews.
 CNV_GENE_LISTS = DIR / "cnv_gene_lists.json"
@@ -100,11 +107,13 @@ def process_supp3(normalizer: GeneSymbolNormalizer) -> None:
         df, _ = clean_gene_column(
             df, "hgnc_symbol", species="human", normalizer=normalizer,
             excel_demangle=True, strip_make_unique=True,
+            manual_aliases=MANUAL_ALIASES,
         )
         df = df.drop(columns=["_hgnc_symbol_resolution"])
 
         df = df.rename(columns={  # type: ignore
             "hgnc_symbol": "target_gene",
+            "hgnc_symbol_raw": "target_gene_raw",
             "ensembl_gene_id": "Ensembl_Gene_Id",
             "AveExpr": "Avg_Expr",
             "p": "P-Value",
@@ -112,7 +121,7 @@ def process_supp3(normalizer: GeneSymbolNormalizer) -> None:
             "z.std": "z_std",
         })
 
-        df = df[["target_gene", "Ensembl_Gene_Id", "logFC", "Avg_Expr", "t", "P-Value", "Adjusted_P-Value", "z_std", "chromosome_name", "band", "gene_biotype"]]
+        df = df[["target_gene", "target_gene_raw", "Ensembl_Gene_Id", "logFC", "Avg_Expr", "t", "P-Value", "Adjusted_P-Value", "z_std", "chromosome_name", "band", "gene_biotype"]]
 
         df.insert(0, "perturbation", deletion_type)
         df.insert(1, "organoid_age_(days)", get_organoid_age(sheet_name))
@@ -147,6 +156,7 @@ def process_supp12(normalizer: GeneSymbolNormalizer) -> None:
         df, _ = clean_gene_column(
             df, "target_gene", species="human", normalizer=normalizer,
             excel_demangle=True, strip_make_unique=True,
+            manual_aliases=MANUAL_ALIASES,
         )
         df = df.drop(columns=["_target_gene_resolution"])
 

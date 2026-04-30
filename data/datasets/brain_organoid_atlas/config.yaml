@@ -73,10 +73,11 @@ tables:
       - column_name: Pathologic causative mutation
         link_table_name: gene
         species: human
-        ignore_missing:
-          - not_available
-          - none identified
         perturbed_or_target: perturbed
+        non_resolving:
+          drop_values:
+            - not_available
+            - none identified
   - table: brain_organoid_atlas_nebula_gene_0_05_FDR
     changelog:
       - date: "2025-11-05"
@@ -110,25 +111,23 @@ tables:
       - column_name: gene_symbol
         link_table_name: gene
         species: human
-        # Retired/withdrawn HGNC symbols that appear in this dataset's data
-        # files but no longer have a current HGNC entry (per #125 audit,
-        # expanded in #145 once the cleaner exposed the full set). Listed
-        # here to silence the load-db warnings; rows for these symbols still
-        # get added to central_gene as manual entries.
-        ignore_missing:
-          - GATD3B
-          - IQCD
-          - IQCA1
-          - CRIPAK
-          - U2AF1L5
-          - SMC5-AS1
-          - SARS
-          - MPP6
-          - TAZ
-          - QARS
-          - C18orf21
-          - LOR
         perturbed_or_target: target
+        # Retired-no-successor / ambiguous-prev-symbol HGNC entries that
+        # appear in this dataset's data files. Each gets a
+        # manually_added=1 central_gene stub. SARS/QARS/TAZ are mapped
+        # to their canonical successors (SARS1/QARS1/TAFAZZIN) in
+        # preprocess.py via clean_gene_column(manual_aliases=...).
+        non_resolving:
+          record_values:
+            - GATD3B
+            - IQCD
+            - IQCA1
+            - CRIPAK
+            - U2AF1L5
+            - SMC5-AS1
+            - MPP6
+            - C18orf21
+            - LOR
     pvalue_column: pvalue
     fdr_column: FDR
     effect_column: logFC
@@ -165,25 +164,23 @@ tables:
       - column_name: gene_symbol
         link_table_name: gene
         species: human
-        # Retired/withdrawn HGNC symbols that appear in this dataset's data
-        # files but no longer have a current HGNC entry (per #125 audit,
-        # expanded in #145 once the cleaner exposed the full set). Listed
-        # here to silence the load-db warnings; rows for these symbols still
-        # get added to central_gene as manual entries.
-        ignore_missing:
-          - GATD3B
-          - IQCD
-          - IQCA1
-          - CRIPAK
-          - U2AF1L5
-          - SMC5-AS1
-          - SARS
-          - MPP6
-          - TAZ
-          - QARS
-          - C18orf21
-          - LOR
         perturbed_or_target: target
+        # Retired-no-successor / ambiguous-prev-symbol HGNC entries that
+        # appear in this dataset's data files. Each gets a
+        # manually_added=1 central_gene stub. SARS/QARS/TAZ are mapped
+        # to their canonical successors (SARS1/QARS1/TAFAZZIN) in
+        # preprocess.py via clean_gene_column(manual_aliases=...).
+        non_resolving:
+          record_values:
+            - GATD3B
+            - IQCD
+            - IQCA1
+            - CRIPAK
+            - U2AF1L5
+            - SMC5-AS1
+            - MPP6
+            - C18orf21
+            - LOR
     pvalue_column: pvalue
     fdr_column: FDR
     effect_column: logFC
@@ -220,25 +217,23 @@ tables:
       - column_name: gene_symbol
         link_table_name: gene
         species: human
-        # Retired/withdrawn HGNC symbols that appear in this dataset's data
-        # files but no longer have a current HGNC entry (per #125 audit,
-        # expanded in #145 once the cleaner exposed the full set). Listed
-        # here to silence the load-db warnings; rows for these symbols still
-        # get added to central_gene as manual entries.
-        ignore_missing:
-          - GATD3B
-          - IQCD
-          - IQCA1
-          - CRIPAK
-          - U2AF1L5
-          - SMC5-AS1
-          - SARS
-          - MPP6
-          - TAZ
-          - QARS
-          - C18orf21
-          - LOR
         perturbed_or_target: target
+        # Retired-no-successor / ambiguous-prev-symbol HGNC entries that
+        # appear in this dataset's data files. Each gets a
+        # manually_added=1 central_gene stub. SARS/QARS/TAZ are mapped
+        # to their canonical successors (SARS1/QARS1/TAFAZZIN) in
+        # preprocess.py via clean_gene_column(manual_aliases=...).
+        non_resolving:
+          record_values:
+            - GATD3B
+            - IQCD
+            - IQCA1
+            - CRIPAK
+            - U2AF1L5
+            - SMC5-AS1
+            - MPP6
+            - C18orf21
+            - LOR
     pvalue_column: pvalue
     fdr_column: FDR
     effect_column: logFC
@@ -275,7 +270,6 @@ tables:
       - column_name: gene
         link_table_name: gene
         species: human
-        ignore_missing: []
         perturbed_or_target: target
     pvalue_column: p
     fdr_column: p_adjust

@@ -8,7 +8,7 @@ helpers stay easy to unit-test.
 from __future__ import annotations
 
 import re
-from typing import Literal
+from typing import Callable, Literal
 
 from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
 
@@ -111,6 +111,25 @@ def is_non_symbol_identifier(name: str) -> NonSymbolCategory | None:
     if _GENBANK_RE.match(name):
         return "genbank_accession"
     return None
+
+
+def _make_category_predicate(category: NonSymbolCategory) -> Callable[[str], bool]:
+    def predicate(name: str) -> bool:
+        return is_non_symbol_identifier(name) == category
+
+    predicate.__name__ = f"is_{category}"
+    return predicate
+
+
+# Public, explicit map from category name → predicate. The YAML loader uses
+# this to validate `non_resolving.drop_patterns` / `record_patterns` entries.
+NON_SYMBOL_CATEGORIES: dict[str, Callable[[str], bool]] = {
+    "ensembl_human": _make_category_predicate("ensembl_human"),
+    "ensembl_mouse": _make_category_predicate("ensembl_mouse"),
+    "contig": _make_category_predicate("contig"),
+    "gencode_clone": _make_category_predicate("gencode_clone"),
+    "genbank_accession": _make_category_predicate("genbank_accession"),
+}
 
 
 def strip_make_unique_suffix(

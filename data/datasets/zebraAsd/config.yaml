@@ -77,7 +77,7 @@ tables:
       - autism genetics
     organism: Danio rerio
     organism_key: zebrafish
-    in_path: 1-s2.0-S2211124723002541-mmc5.txt
+    in_path: 1-s2.0-S2211124723002541-mmc5_cleaned.txt
     split_column_map:
       - source_col: Mutant_Experiment_Sample
         new_col1: _Mutant_Experiment_Sample_gene
@@ -88,9 +88,6 @@ tables:
       - column_name: _Mutant_Experiment_Sample_gene
         link_table_name: Mutant_Experiment_Sample_gene
         species: human
-        to_upper: true
-        replace:
-          SCN1LAB: SCN1A
         perturbed_or_target: perturbed
   - table: RestWake_VisStart_byGene
     changelog:
@@ -131,7 +128,6 @@ tables:
       - column_name: human_gene_name
         link_table_name: gene
         species: human
-        ignore_missing: []
         perturbed_or_target: perturbed
     pvalue_column: Pvalue
     effect_column: Beta

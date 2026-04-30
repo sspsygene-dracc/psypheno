@@ -21,6 +21,7 @@ Example:
 
 from processing.preprocessing.dataframe import CleanReport, clean_gene_column
 from processing.preprocessing.helpers import (
+    NON_SYMBOL_CATEGORIES,
     NonSymbolCategory,
     excel_demangle,
     is_non_symbol_identifier,
@@ -32,6 +33,7 @@ from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
 __all__ = [
     "CleanReport",
     "GeneSymbolNormalizer",
+    "NON_SYMBOL_CATEGORIES",
     "NonSymbolCategory",
     "Species",
     "clean_gene_column",

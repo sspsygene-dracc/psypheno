@@ -40,6 +40,11 @@ JOBS: list[tuple[str, str]] = [
     ("Schizophrenia_DEGcombined.csv", "Schizophrenia_DEGcombined_cleaned.csv"),
 ]
 
+MANUAL_ALIASES = {
+    "QARS": "QARS1",
+    "SARS": "SARS1",
+}
+
 
 def main() -> None:
     normalizer = GeneSymbolNormalizer.from_env()
@@ -54,6 +59,7 @@ def main() -> None:
             excel_demangle=True,
             strip_make_unique=True,
             split_symbol_ensg=True,
+            manual_aliases=MANUAL_ALIASES,
         )
         print(f"{in_name}: {report.summary()}")
         cleaned = cleaned.drop(columns=["_gene_resolution"])

@@ -52,31 +52,50 @@ def clean_gene_column(
     excel_demangle: bool = False,
     strip_make_unique: bool = False,
     split_symbol_ensg: bool = False,
+    manual_aliases: dict[str, str] | None = None,
     drop_non_symbols: bool = False,
 ) -> tuple[pd.DataFrame, CleanReport]:
     """Resolve and annotate a gene-name column.
 
     Returns (modified_df, report). The modified DataFrame:
-      - has values in `column` replaced with the canonical symbol when
-        a resolution succeeded;
-      - has a new `_<column>_resolution` column with the per-row tag;
+      - keeps the original (pre-cleaner) value in `<column>_raw`;
+      - replaces values in `column` with the canonical symbol when a
+        resolution succeeded;
+      - adds `_<column>_resolution` with the per-row tag;
       - drops rows whose value matched is_non_symbol_identifier when
         drop_non_symbols=True (the dropped indices are returned via
         the report).
 
-    The empty / NaN values pass through untouched and are tagged
+    Empty / NaN values pass through untouched and are tagged
     `passed_through`.
+
+    `manual_aliases` is a wrangler-supplied last-resort rescue map for
+    retired symbols whose canonical successor cannot be picked
+    automatically (e.g. `NOV → CCN3`). It runs AFTER the auto-rescues
+    and BEFORE `is_non_symbol_identifier`, and resolves the alias
+    target through the normalizer to guard against typos.
     """
     if column not in df.columns:
         raise KeyError(f"column {column!r} not in DataFrame columns: {list(df.columns)}")
 
+    raw_col = f"{column}_raw"
+    if raw_col in df.columns:
+        raise KeyError(
+            f"column {raw_col!r} already exists in DataFrame; clean_gene_column "
+            "needs to write the raw values there. Rename or drop the existing "
+            "column before calling."
+        )
+
+    aliases = manual_aliases or {}
+
     out = df.copy()
+    raw_values: list[object] = list(out[column].tolist())
     new_values: list[object] = []
     resolutions: list[str] = []
     drop_idx: list[int] = []
     counts: Counter[str] = Counter()
 
-    for idx, raw in zip(out.index, out[column].tolist()):
+    for idx, raw in zip(out.index, raw_values):
         if pd.isna(raw) or raw == "":
             new_values.append(raw)
             resolutions.append("passed_through")
@@ -126,6 +145,20 @@ def clean_gene_column(
                     counts["rescued_symbol_ensg"] += 1
                     continue
 
+        if name in aliases:
+            target = aliases[name]
+            rescued = normalizer.resolve(target, species)
+            if rescued is None:
+                raise ValueError(
+                    f"manual_aliases: target {target!r} (for {name!r}) is not a "
+                    f"current approved {species} symbol. Pick a different "
+                    "successor or drop the entry."
+                )
+            new_values.append(rescued)
+            resolutions.append("rescued_manual_alias")
+            counts["rescued_manual_alias"] += 1
+            continue
+
         # New rescue helpers (e.g. #124's resolve_gencode_clone) MUST be
         # added above this classification step so the silencer remains a
         # backstop, not a short-circuit.
@@ -146,6 +179,7 @@ def clean_gene_column(
         resolutions.append("unresolved")
         counts["unresolved"] += 1
 
+    out[raw_col] = raw_values
     out[column] = new_values
     out[f"_{column}_resolution"] = resolutions
 
