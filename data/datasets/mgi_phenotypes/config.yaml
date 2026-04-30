@@ -37,7 +37,8 @@ tables:
       pubmed_id_for_original_reference: "PubMed ID of the original publication"
       mgi_marker_accession_id: "MGI accession ID for the gene marker"
       marker_refseq_id: "RefSeq gene ID"
-      marker_ensembl_id: "Ensembl gene ID"
+      marker_ensembl_id: "Mouse symbol resolved from Marker Ensembl ID (raw ID in marker_ensembl_id_raw)"
+      marker_ensembl_id_raw: "Original Ensembl gene ID (pre-resolution)"
       high_level_mammalian_phenotype_id_comma_delimited_: "MP ontology term IDs"
       synonyms_delimited_: "Gene/allele synonyms"
     links:
@@ -51,13 +52,12 @@ tables:
       - curated database
     organism: Mus musculus
     organism_key: mouse
-    in_path: MGI_PhenotypicAllele_annotated.rpt
+    in_path: MGI_PhenotypicAllele_cleaned.rpt
     split_column_map: []
     separator: "\t"
     gene_mappings:
       - column_name: Marker Ensembl ID
         link_table_name: gene
         species: mouse
-        gene_type: ensmus
         ignore_empty: true
         perturbed_or_target: perturbed

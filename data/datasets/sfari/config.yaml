@@ -98,6 +98,8 @@ tables:
     assay: curated
     fieldLabels:
       status: "Curation status"
+      ensembl_id: "Human symbol resolved from Ensembl gene ID (raw ID in ensembl_id_raw)"
+      ensembl_id_raw: "Original Ensembl gene ID (pre-resolution)"
       genetic_category: "Genetic evidence category"
       gene_score: "SFARI gene score (1=high confidence, 2=strong candidate, 3=suggestive evidence)"
       syndromic: "Whether gene is linked to a syndromic form of ASD"
@@ -112,7 +114,7 @@ tables:
       - human genetics
     organism: Homo sapiens
     organism_key: human
-    in_path: SFARI-Gene_genes_07-08-2025release_10-03-2025export.csv
+    in_path: SFARI-Gene_genes_07-08-2025release_10-03-2025export_cleaned.csv
     split_column_map: []
     separator: ","
     gene_mappings:
