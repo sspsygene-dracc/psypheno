@@ -1,0 +1,4 @@
+MGI Accession ID	Marker Symbol	Marker Name	Feature Type	EntrezGene ID	NCBI Gene chromosome	NCBI Gene start	NCBI Gene end	NCBI Gene strand	Ensembl Gene ID	Ensembl Gene chromosome	Ensembl Gene start	Ensembl Gene end	Ensembl Gene strand	CCDS IDs	HGNC ID
+MGI:1345280	Slc30a3	solute carrier family 30 (zinc transporter), member 3	protein coding gene	22784	5	31243450	31265576	-	ENSMUSG00000029151	5	31243450	31265581	-	CCDS51455.1	HGNC:11014
+MGI:98834	Trp53	transformation related protein 53	protein coding gene	22059	11	69471174	69482699	+	ENSMUSG00000059552	11	69471185	69482699	+	CCDS36193.1	HGNC:11998
+MGI:1914152	Mtap	methylthioadenosine phosphorylase	protein coding gene	66902	4	89055607	89099327	+	ENSMUSG00000062937	4	89055359	89099318	+	CCDS18349.1	HGNC:7413

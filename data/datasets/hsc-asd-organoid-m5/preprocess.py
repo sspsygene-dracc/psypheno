@@ -32,7 +32,11 @@ from typing import cast
 
 import pandas as pd
 
-from processing.preprocessing import GeneSymbolNormalizer, clean_gene_column
+from processing.preprocessing import (
+    EnsemblToSymbolMapper,
+    GeneSymbolNormalizer,
+    clean_gene_column,
+)
 
 DIR = Path(__file__).resolve().parent
 
@@ -90,7 +94,9 @@ def build_region_genes_map() -> dict[str, str]:
     return region_genes_map
 
 
-def process_supp3(normalizer: GeneSymbolNormalizer) -> None:
+def process_supp3(
+    normalizer: GeneSymbolNormalizer, ensembl_mapper: EnsemblToSymbolMapper
+) -> None:
     region_genes_map = build_region_genes_map()
 
     all_sheets = pd.read_excel(
@@ -116,6 +122,8 @@ def process_supp3(normalizer: GeneSymbolNormalizer) -> None:
             strip_make_unique=True,
             resolve_hgnc_id=True,
             manual_aliases=MANUAL_ALIASES,
+            ensembl_mapper=ensembl_mapper,
+            resolve_via_ensembl_map=True,
         )
         df = df.drop(columns=["_hgnc_symbol_resolution"])
 
@@ -159,7 +167,9 @@ def process_supp3(normalizer: GeneSymbolNormalizer) -> None:
     print(f"Wrote {len(combined)} rows to {SUPP3_OUT}")
 
 
-def process_supp12(normalizer: GeneSymbolNormalizer) -> None:
+def process_supp12(
+    normalizer: GeneSymbolNormalizer, ensembl_mapper: EnsemblToSymbolMapper
+) -> None:
     all_sheets = pd.read_excel(
         SUPP12_EXCEL, sheet_name=None, engine="openpyxl", dtype=str
     )
@@ -191,6 +201,8 @@ def process_supp12(normalizer: GeneSymbolNormalizer) -> None:
             strip_make_unique=True,
             resolve_hgnc_id=True,
             manual_aliases=MANUAL_ALIASES,
+            ensembl_mapper=ensembl_mapper,
+            resolve_via_ensembl_map=True,
         )
         df = df.drop(columns=["_target_gene_resolution"])
 
@@ -205,8 +217,9 @@ def process_supp12(normalizer: GeneSymbolNormalizer) -> None:
 
 def main() -> None:
     normalizer = GeneSymbolNormalizer.from_env()
-    process_supp3(normalizer)
-    process_supp12(normalizer)
+    ensembl_mapper = EnsemblToSymbolMapper.from_env()
+    process_supp3(normalizer, ensembl_mapper)
+    process_supp12(normalizer, ensembl_mapper)
 
 
 if __name__ == "__main__":

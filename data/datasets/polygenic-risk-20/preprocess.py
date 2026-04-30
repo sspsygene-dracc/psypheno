@@ -29,7 +29,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from processing.preprocessing import GeneSymbolNormalizer, clean_gene_column
+from processing.preprocessing import (
+    EnsemblToSymbolMapper,
+    GeneSymbolNormalizer,
+    clean_gene_column,
+)
 
 DIR = Path(__file__).resolve().parent
 
@@ -50,6 +54,7 @@ MANUAL_ALIASES = {
 
 def main() -> None:
     normalizer = GeneSymbolNormalizer.from_env()
+    ensembl_mapper = EnsemblToSymbolMapper.from_env()
 
     for in_name, out_name in JOBS:
         df = pd.read_csv(DIR / in_name, dtype=str)
@@ -62,6 +67,8 @@ def main() -> None:
                 excel_demangle=True,
                 strip_make_unique=True,
                 manual_aliases=MANUAL_ALIASES,
+                ensembl_mapper=ensembl_mapper,
+                resolve_via_ensembl_map=True,
             )
             print(f"{in_name}: {report.summary()}")
             df = df.drop(columns=[f"_{column}_resolution"])

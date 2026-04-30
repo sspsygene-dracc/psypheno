@@ -20,6 +20,7 @@ Example:
 """
 
 from processing.preprocessing.dataframe import CleanReport, clean_gene_column
+from processing.preprocessing.ensembl_index import EnsemblToSymbolMapper
 from processing.preprocessing.helpers import (
     NON_SYMBOL_CATEGORIES,
     NonSymbolCategory,
@@ -32,6 +33,7 @@ from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
 
 __all__ = [
     "CleanReport",
+    "EnsemblToSymbolMapper",
     "GeneSymbolNormalizer",
     "NON_SYMBOL_CATEGORIES",
     "NonSymbolCategory",

@@ -2,10 +2,6 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { sanitizeIdentifier, parseDisplayColumns, parseLinkTablesForDirection } from "@/lib/gene-query";
-import {
-  getEnsemblSymbolMap,
-  resolveEnsgsInRows,
-} from "@/lib/ensembl-symbol-resolver";
 
 const bodySchema = z.object({
   centralGeneId: z.number().min(0),
@@ -32,7 +28,6 @@ export default async function handler(
 
   try {
     const db = getDb();
-    const symbolMap = getEnsemblSymbolMap(db);
 
     // Fetch all tables that have the relevant pvalue/fdr columns
     const allTables = db
@@ -154,7 +149,7 @@ export default async function handler(
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean),
-          rows: resolveEnsgsInRows(rows, symbolMap),
+          rows,
           totalSignificantRows: countResult.cnt,
         });
       } catch (innerErr) {

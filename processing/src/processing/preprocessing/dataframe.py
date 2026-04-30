@@ -10,6 +10,7 @@ import pandas as pd
 
 from processing.my_logger import get_sspsygene_logger
 from processing.preprocessing import helpers
+from processing.preprocessing.ensembl_index import EnsemblToSymbolMapper
 from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
 
 
@@ -55,6 +56,8 @@ def clean_gene_column(
     split_symbol_ensg: bool = False,
     manual_aliases: dict[str, str] | None = None,
     drop_non_symbols: bool = False,
+    ensembl_mapper: EnsemblToSymbolMapper | None = None,
+    resolve_via_ensembl_map: bool = False,
 ) -> tuple[pd.DataFrame, CleanReport]:
     """Resolve and annotate a gene-name column.
 
@@ -75,7 +78,19 @@ def clean_gene_column(
     automatically (e.g. `NOV → CCN3`). It runs AFTER the auto-rescues
     and BEFORE `is_non_symbol_identifier`, and resolves the alias
     target through the normalizer to guard against typos.
+
+    `resolve_via_ensembl_map=True` rescues raw `ENSG…`/`ENSMUSG…`
+    values that map to a known approved symbol in the supplied
+    `ensembl_mapper`. Tagged `rescued_ensembl_map`. Orphan IDs (no
+    symbol mapping) fall through to the `non_symbol_ensembl_*`
+    classification.
     """
+    if resolve_via_ensembl_map and ensembl_mapper is None:
+        raise ValueError(
+            "resolve_via_ensembl_map=True requires an ensembl_mapper; "
+            "pass EnsemblToSymbolMapper.from_env() (or from_paths)."
+        )
+
     if column not in df.columns:
         raise KeyError(f"column {column!r} not in DataFrame columns: {list(df.columns)}")
 
@@ -159,6 +174,17 @@ def clean_gene_column(
             resolutions.append("rescued_manual_alias")
             counts["rescued_manual_alias"] += 1
             continue
+
+        if resolve_via_ensembl_map:
+            assert ensembl_mapper is not None
+            rescued = ensembl_mapper.resolve_ensg(name, species)
+            if rescued is not None:
+                resolved_symbol = normalizer.resolve(rescued, species)
+                if resolved_symbol is not None:
+                    new_values.append(resolved_symbol)
+                    resolutions.append("rescued_ensembl_map")
+                    counts["rescued_ensembl_map"] += 1
+                    continue
 
         # New rescue helpers (e.g. #124's resolve_gencode_clone) MUST be
         # added above this classification step so the silencer remains a

@@ -1,7 +1,11 @@
 import pandas as pd
 import pytest
 
-from processing.preprocessing import GeneSymbolNormalizer, clean_gene_column
+from processing.preprocessing import (
+    EnsemblToSymbolMapper,
+    GeneSymbolNormalizer,
+    clean_gene_column,
+)
 
 
 def test_clean_gene_column_full_pipeline(normalizer: GeneSymbolNormalizer) -> None:
@@ -237,6 +241,109 @@ def test_clean_gene_column_manual_aliases_unresolvable_target_raises(
             normalizer=normalizer,
             manual_aliases={"NOV": "NOTAREALSYMBOL"},
         )
+
+
+def test_clean_gene_column_resolve_via_ensembl_map(
+    normalizer: GeneSymbolNormalizer,
+    ensembl_mapper: EnsemblToSymbolMapper,
+) -> None:
+    df = pd.DataFrame(
+        {
+            "target_gene": [
+                "BRCA1",                  # passed_through
+                "ENSG00000160221",        # rescued_ensembl_map -> GATD3A
+                "ENSG00000012048.4",      # rescued_ensembl_map -> BRCA1 (versioned)
+                "ENSG99999999999",        # non_symbol_ensembl_human (orphan)
+            ]
+        }
+    )
+    out, report = clean_gene_column(
+        df,
+        "target_gene",
+        species="human",
+        normalizer=normalizer,
+        ensembl_mapper=ensembl_mapper,
+        resolve_via_ensembl_map=True,
+    )
+    assert out["target_gene"].tolist() == [
+        "BRCA1",
+        "GATD3A",
+        "BRCA1",
+        "ENSG99999999999",
+    ]
+    assert report.resolutions == [
+        "passed_through",
+        "rescued_ensembl_map",
+        "rescued_ensembl_map",
+        "non_symbol_ensembl_human",
+    ]
+    assert report.counts["rescued_ensembl_map"] == 2
+
+
+def test_clean_gene_column_resolve_via_ensembl_map_mouse(
+    normalizer: GeneSymbolNormalizer,
+    ensembl_mapper: EnsemblToSymbolMapper,
+) -> None:
+    df = pd.DataFrame(
+        {
+            "marker_ensembl_id": [
+                "Slc30a3",                # passed_through
+                "ENSMUSG00000029151",     # rescued_ensembl_map -> Slc30a3
+                "ENSMUSG99999999999",     # non_symbol_ensembl_mouse (orphan)
+            ]
+        }
+    )
+    out, report = clean_gene_column(
+        df,
+        "marker_ensembl_id",
+        species="mouse",
+        normalizer=normalizer,
+        ensembl_mapper=ensembl_mapper,
+        resolve_via_ensembl_map=True,
+    )
+    assert out["marker_ensembl_id"].tolist() == [
+        "Slc30a3",
+        "Slc30a3",
+        "ENSMUSG99999999999",
+    ]
+    assert report.resolutions == [
+        "passed_through",
+        "rescued_ensembl_map",
+        "non_symbol_ensembl_mouse",
+    ]
+
+
+def test_clean_gene_column_resolve_via_ensembl_map_requires_mapper(
+    normalizer: GeneSymbolNormalizer,
+) -> None:
+    df = pd.DataFrame({"target_gene": ["BRCA1"]})
+    with pytest.raises(ValueError, match="resolve_via_ensembl_map"):
+        clean_gene_column(
+            df,
+            "target_gene",
+            species="human",
+            normalizer=normalizer,
+            resolve_via_ensembl_map=True,
+        )
+
+
+def test_clean_gene_column_resolve_via_ensembl_map_runs_after_auto_rescues(
+    normalizer: GeneSymbolNormalizer,
+    ensembl_mapper: EnsemblToSymbolMapper,
+) -> None:
+    # Direct symbols win over the ENSG rescue path; this ensures the
+    # ensembl rescue does not eclipse the normalizer's own work.
+    df = pd.DataFrame({"target_gene": ["BRCA1", "DEC1"]})
+    out, report = clean_gene_column(
+        df,
+        "target_gene",
+        species="human",
+        normalizer=normalizer,
+        ensembl_mapper=ensembl_mapper,
+        resolve_via_ensembl_map=True,
+    )
+    assert out["target_gene"].tolist() == ["BRCA1", "DELEC1"]
+    assert report.resolutions == ["passed_through", "passed_through"]
 
 
 def test_clean_gene_column_manual_aliases_runs_after_auto_rescues(
