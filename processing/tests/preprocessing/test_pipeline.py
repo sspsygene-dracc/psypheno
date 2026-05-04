@@ -1,0 +1,349 @@
+"""Tests for the preprocessing Pipeline / Step / Tracker library."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pandas as pd
+import pytest
+import yaml
+
+from processing.preprocessing import (
+    EnsemblToSymbolMapper,
+    GeneSymbolNormalizer,
+    MANUAL_ALIASES_HUMAN,
+    Pipeline,
+    Tracker,
+    copy_file,
+)
+
+
+def test_tracker_round_trip(tmp_path: Path) -> None:
+    tracker = Tracker()
+    tracker.note_input("raw.csv")
+    tracker.record(
+        "clean_gene_column",
+        table="cleaned.csv",
+        column="target_gene",
+        species="human",
+        counts={"passed_through": 10, "rescued_excel": 2},
+    )
+    tracker.record("drop_columns", table="cleaned.csv", columns=["_target_gene_resolution"])
+
+    out = tmp_path / "preprocessing.yaml"
+    tracker.write(out)
+
+    loaded = yaml.safe_load(out.read_text())
+    assert loaded["inputs"] == ["raw.csv"]
+    assert "generated" in loaded
+    assert list(loaded["tables"].keys()) == ["cleaned.csv"]
+    actions = loaded["tables"]["cleaned.csv"]
+    assert len(actions) == 2
+    assert actions[0]["step"] == "clean_gene_column"
+    assert actions[0]["counts"]["passed_through"] == 10
+    assert actions[1]["step"] == "drop_columns"
+    assert actions[1]["columns"] == ["_target_gene_resolution"]
+
+
+def test_pipeline_clean_gene_then_drop(
+    normalizer: GeneSymbolNormalizer,
+    tmp_path: Path,
+) -> None:
+    """End-to-end: read CSV → clean gene column → drop resolution col → write."""
+    raw = tmp_path / "raw.csv"
+    pd.DataFrame({"target_gene": ["BRCA1", "9-Sep", "WHO_KNOWS"], "x": [1, 2, 3]}).to_csv(
+        raw, index=False
+    )
+    out_path = tmp_path / "cleaned.csv"
+
+    tracker = Tracker()
+    (
+        Pipeline("cleaned.csv", tracker=tracker, normalizer=normalizer)
+        .read_csv(raw)
+        .clean_gene("target_gene", species="human", excel_demangle=True)
+        .drop_columns(["_target_gene_resolution"])
+        .write_csv(out_path)
+        .run()
+    )
+
+    df = pd.read_csv(out_path, dtype=str)
+    assert df["target_gene"].tolist() == ["BRCA1", "SEPTIN9", "WHO_KNOWS"]
+    # Raw column kept by default (provenance for end users).
+    assert "target_gene_raw" in df.columns
+    # Resolution column was dropped via the tracked step.
+    assert "_target_gene_resolution" not in df.columns
+
+    actions = tracker.actions
+    assert [a.step for a in actions] == [
+        "read_csv",
+        "clean_gene_column",
+        "drop_columns",
+        "write_csv",
+    ]
+    clean = next(a for a in actions if a.step == "clean_gene_column")
+    assert clean.summary["column"] == "target_gene"
+    assert clean.summary["species"] == "human"
+    assert clean.summary["counts"]["rescued_excel"] == 1
+    assert clean.summary["counts"]["unresolved"] == 1
+    assert "WHO_KNOWS" in clean.summary["sample_unresolved"]
+
+
+def test_pipeline_dropna_records_before_after(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path
+) -> None:
+    raw = tmp_path / "raw.csv"
+    # Use literal "EMPTY_STR" placeholder + a NaN; pandas reads "" as NaN by
+    # default so the only way to keep an empty-but-present string distinct is
+    # to write a non-empty token then strip-filter it.
+    pd.DataFrame(
+        {"hgnc_symbol": ["BRCA1", None, "TP53", "   "], "x": [1, 2, 3, 4]}
+    ).to_csv(raw, index=False)
+    out = tmp_path / "out.csv"
+
+    tracker = Tracker()
+    (
+        Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
+        .read_csv(raw)
+        .dropna(["hgnc_symbol"])
+        .filter_rows(
+            lambda d: d["hgnc_symbol"].astype(str).str.strip() != "",
+            description="non-empty hgnc_symbol",
+        )
+        .write_csv(out)
+        .run()
+    )
+
+    df = pd.read_csv(out, dtype=str)
+    assert df["hgnc_symbol"].tolist() == ["BRCA1", "TP53"]
+
+    dropna = next(a for a in tracker.actions if a.step == "dropna")
+    assert dropna.summary["rows_before"] == 4
+    # NaN dropped by dropna; whitespace-only string still present at this stage.
+    assert dropna.summary["rows_after"] == 3
+    assert dropna.summary["dropped"] == 1
+
+    fr = next(a for a in tracker.actions if a.step == "filter_rows")
+    assert fr.summary["description"] == "non-empty hgnc_symbol"
+    assert fr.summary["dropped"] == 1
+
+
+def test_pipeline_rename_and_reorder(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path
+) -> None:
+    raw = tmp_path / "raw.csv"
+    pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}).to_csv(raw, index=False)
+    out = tmp_path / "out.csv"
+
+    tracker = Tracker()
+    (
+        Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
+        .read_csv(raw)
+        .rename({"a": "alpha", "b": "beta", "missing": "ignored"})
+        .reorder(["beta", "alpha", "c"])
+        .write_csv(out)
+        .run()
+    )
+
+    df = pd.read_csv(out, dtype=str)
+    assert df.columns.tolist() == ["beta", "alpha", "c"]
+
+    rename = next(a for a in tracker.actions if a.step == "rename")
+    # Only applied (present) renames are recorded.
+    assert rename.summary["mapping"] == {"a": "alpha", "b": "beta"}
+
+    reorder = next(a for a in tracker.actions if a.step == "reorder")
+    assert reorder.summary["columns"] == ["beta", "alpha", "c"]
+
+
+def test_pipeline_transform_column_records_description(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path
+) -> None:
+    raw = tmp_path / "raw.csv"
+    pd.DataFrame({"name": ["ABALON.", "SGK494.", "BRCA1"]}).to_csv(raw, index=False)
+    out = tmp_path / "out.csv"
+
+    tracker = Tracker()
+    (
+        Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
+        .read_csv(raw)
+        .transform_column(
+            "name",
+            lambda s: s.str.rstrip("."),
+            description="strip trailing dots from MarkerName",
+        )
+        .write_csv(out)
+        .run()
+    )
+
+    df = pd.read_csv(out, dtype=str)
+    assert df["name"].tolist() == ["ABALON", "SGK494", "BRCA1"]
+
+    rec = next(a for a in tracker.actions if a.step == "transform_column")
+    assert rec.summary["description"] == "strip trailing dots from MarkerName"
+    assert rec.summary["rows_changed"] == 2
+
+
+def test_pipeline_insert_column(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path
+) -> None:
+    raw = tmp_path / "raw.csv"
+    pd.DataFrame({"x": [1, 2, 3]}).to_csv(raw, index=False)
+    out = tmp_path / "out.csv"
+
+    tracker = Tracker()
+    (
+        Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
+        .read_csv(raw)
+        .insert_column("perturbation", "16p11del", position=0)
+        .write_csv(out)
+        .run()
+    )
+
+    df = pd.read_csv(out, dtype=str)
+    assert df.columns.tolist() == ["perturbation", "x"]
+    assert df["perturbation"].tolist() == ["16p11del", "16p11del", "16p11del"]
+
+    rec = next(a for a in tracker.actions if a.step == "insert_column")
+    assert rec.summary["column"] == "perturbation"
+    assert rec.summary["value"] == "16p11del"
+
+
+def test_copy_file_records_pass_through(tmp_path: Path) -> None:
+    src = tmp_path / "patient_list.tsv"
+    src.write_text("id\tname\n1\tx\n")
+    dst = tmp_path / "out" / "patient_list.tsv"
+
+    tracker = Tracker()
+    copy_file(src, dst, tracker=tracker)
+
+    assert dst.read_text() == src.read_text()
+    rec = tracker.actions[0]
+    assert rec.step == "copy_file"
+    assert rec.table == "patient_list.tsv"
+    assert rec.summary["source"] == "patient_list.tsv"
+
+
+def test_pipeline_keeps_resolution_column_by_default(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path
+) -> None:
+    """#150: don't drop `_<col>_resolution` silently — it carries provenance."""
+    raw = tmp_path / "raw.csv"
+    pd.DataFrame({"target_gene": ["BRCA1"]}).to_csv(raw, index=False)
+    out = tmp_path / "out.csv"
+
+    tracker = Tracker()
+    (
+        Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
+        .read_csv(raw)
+        .clean_gene("target_gene", species="human")
+        .write_csv(out)
+        .run()
+    )
+
+    df = pd.read_csv(out, dtype=str)
+    assert "_target_gene_resolution" in df.columns
+    assert "target_gene_raw" in df.columns
+
+
+def test_pipeline_run_without_write_raises(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path
+) -> None:
+    """A pipeline that has no read step is malformed; cleaner error than KeyError."""
+    raw = tmp_path / "raw.csv"
+    pd.DataFrame({"a": [1]}).to_csv(raw, index=False)
+
+    tracker = Tracker()
+    pipe = Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
+    # No read step — clean_gene should fail with the helpful message.
+    pipe.clean_gene("a", species="human")
+    with pytest.raises(ValueError, match="requires a DataFrame"):
+        pipe.run()
+
+
+def test_two_pipelines_share_one_tracker(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path
+) -> None:
+    """One dataset → two output tables → one preprocessing.yaml."""
+    raw1 = tmp_path / "a.csv"
+    raw2 = tmp_path / "b.csv"
+    pd.DataFrame({"target_gene": ["BRCA1"]}).to_csv(raw1, index=False)
+    pd.DataFrame({"target_gene": ["TP53"]}).to_csv(raw2, index=False)
+
+    tracker = Tracker()
+    for in_path, out_name in [(raw1, "a_clean.csv"), (raw2, "b_clean.csv")]:
+        (
+            Pipeline(out_name, tracker=tracker, normalizer=normalizer)
+            .read_csv(in_path)
+            .clean_gene("target_gene", species="human")
+            .write_csv(tmp_path / out_name)
+            .run()
+        )
+
+    yaml_path = tmp_path / "preprocessing.yaml"
+    tracker.write(yaml_path)
+    loaded = yaml.safe_load(yaml_path.read_text())
+    assert set(loaded["tables"].keys()) == {"a_clean.csv", "b_clean.csv"}
+    assert loaded["inputs"] == ["a.csv", "b.csv"]
+
+
+def test_clean_gene_with_ensembl_mapper(
+    normalizer: GeneSymbolNormalizer,
+    ensembl_mapper: EnsemblToSymbolMapper,
+    tmp_path: Path,
+) -> None:
+    """Ensure resolve_via_ensembl_map flag plumbs through the pipeline."""
+    raw = tmp_path / "raw.csv"
+    # Use one ENSG that's in the fixture's hgnc_stub mapping.
+    pd.DataFrame({"target_gene": ["ENSG00000012048"]}).to_csv(raw, index=False)
+    out = tmp_path / "out.csv"
+
+    tracker = Tracker()
+    (
+        Pipeline(
+            "out.csv",
+            tracker=tracker,
+            normalizer=normalizer,
+            ensembl_mapper=ensembl_mapper,
+        )
+        .read_csv(raw)
+        .clean_gene(
+            "target_gene",
+            species="human",
+            resolve_via_ensembl_map=True,
+        )
+        .write_csv(out)
+        .run()
+    )
+
+    df = pd.read_csv(out, dtype=str)
+    # The fixture maps ENSG00000012048 → BRCA1 (see fixtures/hgnc_stub.txt).
+    assert df["target_gene"].tolist() == ["BRCA1"]
+    rec = next(a for a in tracker.actions if a.step == "clean_gene_column")
+    assert rec.summary["counts"].get("rescued_ensembl_map") == 1
+
+
+def test_resolve_via_ensembl_map_requires_mapper(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path
+) -> None:
+    raw = tmp_path / "raw.csv"
+    pd.DataFrame({"target_gene": ["BRCA1"]}).to_csv(raw, index=False)
+
+    tracker = Tracker()
+    pipe = (
+        Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
+        .read_csv(raw)
+        .clean_gene("target_gene", species="human", resolve_via_ensembl_map=True)
+    )
+    with pytest.raises(ValueError, match="ensembl_mapper"):
+        pipe.run()
+
+
+def test_manual_aliases_human_constant_unchanged() -> None:
+    """The cross-dataset alias superset; wranglers extend it per-dataset."""
+    assert MANUAL_ALIASES_HUMAN == {
+        "NOV": "CCN3",
+        "MUM1": "PWWP3A",
+        "QARS": "QARS1",
+        "SARS": "SARS1",
+        "TAZ": "TAFAZZIN",
+    }
