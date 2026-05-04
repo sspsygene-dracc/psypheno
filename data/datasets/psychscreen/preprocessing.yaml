@@ -1,0 +1,241 @@
+generated: '2026-05-04T10:52:37Z'
+inputs:
+- Age_DEGcombined.csv
+- ASD_DEGcombined.csv
+- Bipolar_DEGcombined.csv
+- Schizophrenia_DEGcombined.csv
+tables:
+  Age_DEGcombined_cleaned.csv:
+  - step: read_csv
+    source: Age_DEGcombined.csv
+    separator: ','
+    rows: 333485
+    columns:
+    - gene
+    - baseMean
+    - log2FoldChange
+    - lfcSE
+    - stat
+    - pvalue
+    - padj
+    - cell_type
+  - step: clean_gene_column
+    column: gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      split_symbol_ensg: true
+      manual_aliases: &id001
+        QARS: QARS1
+        SARS: SARS1
+    counts:
+      non_symbol_contig: 61508
+      passed_through: 271324
+      unresolved: 204
+      rescued_excel: 254
+      rescued_manual_alias: 38
+      rescued_symbol_ensg: 128
+      rescued_make_unique: 28
+      non_symbol_genbank_accession: 1
+    dropped_rows: 0
+    sample_unresolved:
+    - TMEM155
+    - GATD3B
+    - CRIPAK
+    - U2AF1L5
+    - SMIM11B
+    - MPP6
+    - C18orf21
+    - LOR
+    - IQCA1
+    - DUSP27
+  - step: write_csv
+    destination: Age_DEGcombined_cleaned.csv
+    separator: ','
+    rows: 333485
+    columns:
+    - gene
+    - baseMean
+    - log2FoldChange
+    - lfcSE
+    - stat
+    - pvalue
+    - padj
+    - cell_type
+    - gene_raw
+    - _gene_resolution
+  ASD_DEGcombined_cleaned.csv:
+  - step: read_csv
+    source: ASD_DEGcombined.csv
+    separator: ','
+    rows: 281935
+    columns:
+    - gene
+    - baseMean
+    - log2FoldChange
+    - lfcSE
+    - stat
+    - pvalue
+    - padj
+    - cell_type
+  - step: clean_gene_column
+    column: gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      split_symbol_ensg: true
+      manual_aliases: *id001
+    counts:
+      non_symbol_contig: 52472
+      passed_through: 228911
+      unresolved: 171
+      rescued_excel: 210
+      non_symbol_genbank_accession: 4
+      rescued_make_unique: 27
+      rescued_manual_alias: 30
+      rescued_symbol_ensg: 110
+    dropped_rows: 0
+    sample_unresolved:
+    - FLJ45513
+    - DUSP27
+    - U2AF1L5
+    - LOR
+    - SMIM11B
+    - SMC5-AS1
+    - C18orf21
+    - IQCA1
+    - CRIPAK
+    - IQCD
+  - step: write_csv
+    destination: ASD_DEGcombined_cleaned.csv
+    separator: ','
+    rows: 281935
+    columns:
+    - gene
+    - baseMean
+    - log2FoldChange
+    - lfcSE
+    - stat
+    - pvalue
+    - padj
+    - cell_type
+    - gene_raw
+    - _gene_resolution
+  Bipolar_DEGcombined_cleaned.csv:
+  - step: read_csv
+    source: Bipolar_DEGcombined.csv
+    separator: ','
+    rows: 333485
+    columns:
+    - gene
+    - baseMean
+    - log2FoldChange
+    - lfcSE
+    - stat
+    - pvalue
+    - padj
+    - cell_type
+  - step: clean_gene_column
+    column: gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      split_symbol_ensg: true
+      manual_aliases: *id001
+    counts:
+      passed_through: 271324
+      non_symbol_contig: 61508
+      unresolved: 204
+      rescued_symbol_ensg: 128
+      rescued_manual_alias: 38
+      rescued_make_unique: 28
+      rescued_excel: 254
+      non_symbol_genbank_accession: 1
+    dropped_rows: 0
+    sample_unresolved:
+    - U2AF1L5
+    - IQCD
+    - C18orf21
+    - GATD3B
+    - SMC5-AS1
+    - SMIM11B
+    - MPP6
+    - IQCA1
+    - CRIPAK
+    - GATD3B
+  - step: write_csv
+    destination: Bipolar_DEGcombined_cleaned.csv
+    separator: ','
+    rows: 333485
+    columns:
+    - gene
+    - baseMean
+    - log2FoldChange
+    - lfcSE
+    - stat
+    - pvalue
+    - padj
+    - cell_type
+    - gene_raw
+    - _gene_resolution
+  Schizophrenia_DEGcombined_cleaned.csv:
+  - step: read_csv
+    source: Schizophrenia_DEGcombined.csv
+    separator: ','
+    rows: 333485
+    columns:
+    - gene
+    - baseMean
+    - log2FoldChange
+    - lfcSE
+    - stat
+    - pvalue
+    - padj
+    - cell_type
+  - step: clean_gene_column
+    column: gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      split_symbol_ensg: true
+      manual_aliases: *id001
+    counts:
+      non_symbol_contig: 61508
+      passed_through: 271324
+      rescued_excel: 254
+      unresolved: 204
+      rescued_make_unique: 28
+      rescued_symbol_ensg: 128
+      rescued_manual_alias: 38
+      non_symbol_genbank_accession: 1
+    dropped_rows: 0
+    sample_unresolved:
+    - LOR
+    - CRIPAK
+    - C18orf21
+    - SMIM11B
+    - GATD3B
+    - SMC5-AS1
+    - TMEM155
+    - MPP6
+    - IQCA1
+    - U2AF1L5
+  - step: write_csv
+    destination: Schizophrenia_DEGcombined_cleaned.csv
+    separator: ','
+    rows: 333485
+    columns:
+    - gene
+    - baseMean
+    - log2FoldChange
+    - lfcSE
+    - stat
+    - pvalue
+    - padj
+    - cell_type
+    - gene_raw
+    - _gene_resolution

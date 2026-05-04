@@ -1,7 +1,7 @@
 """Preprocess Pratt et al. 2024 PsychSCREEN DEG tables.
 
-Cleans the `gene` column in all four DEGcombined CSVs via the shared
-cleaner from #120. Three rescue families fire across the files:
+Cleans the `gene` column in all four DEGcombined CSVs. Three rescue
+families fire across the files:
 
   * Tier C3 (split_symbol_ensg): 8 `<symbol>_ENSG...` composites such
     as `TBCE_ENSG00000284770`, `MATR3_ENSG00000015479`,
@@ -14,9 +14,12 @@ cleaner from #120. Three rescue families fire across the files:
     suffixed form does not, so GENCODE clones like `AC000058.1`
     correctly fall through to the Tier B silencer.
 
-The Tier A and Tier C2 rescues are out of #140's literal scope but
-are rolled in here so the four large CSVs are touched once. See the
-commit message for #140 for the per-file rescue tallies.
+The Tier A and Tier C2 rescues were out of #140's literal scope but are
+rolled in here so the four large CSVs are touched once. See the commit
+message for #140 for the per-file rescue tallies.
+
+Writes a sibling `preprocessing.yaml` (#150) that records every action
+applied across all four output tables.
 
 Usage:
     python preprocess.py
@@ -27,9 +30,11 @@ import ...` resolves.
 
 from pathlib import Path
 
-import pandas as pd
-
-from processing.preprocessing import GeneSymbolNormalizer, clean_gene_column
+from processing.preprocessing import (
+    GeneSymbolNormalizer,
+    Pipeline,
+    Tracker,
+)
 
 DIR = Path(__file__).resolve().parent
 
@@ -47,24 +52,26 @@ MANUAL_ALIASES = {
 
 
 def main() -> None:
+    tracker = Tracker()
     normalizer = GeneSymbolNormalizer.from_env()
 
     for in_name, out_name in JOBS:
-        df = pd.read_csv(DIR / in_name, dtype=str)
-        cleaned, report = clean_gene_column(
-            df,
-            "gene",
-            species="human",
-            normalizer=normalizer,
-            excel_demangle=True,
-            strip_make_unique=True,
-            split_symbol_ensg=True,
-            manual_aliases=MANUAL_ALIASES,
+        (
+            Pipeline(out_name, tracker=tracker, normalizer=normalizer)
+            .read_csv(DIR / in_name)
+            .clean_gene(
+                "gene",
+                species="human",
+                excel_demangle=True,
+                strip_make_unique=True,
+                split_symbol_ensg=True,
+                manual_aliases=MANUAL_ALIASES,
+            )
+            .write_csv(DIR / out_name)
+            .run()
         )
-        print(f"{in_name}: {report.summary()}")
-        cleaned = cleaned.drop(columns=["_gene_resolution"])
-        cleaned.to_csv(DIR / out_name, index=False)
-        print(f"  wrote {len(cleaned)} rows to {out_name}")
+
+    tracker.write(DIR / "preprocessing.yaml")
 
 
 if __name__ == "__main__":
