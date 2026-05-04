@@ -85,7 +85,16 @@ export default async function handler(
     return res.status(404).json({ error: "Not found" });
   }
 
-  const filename = segments[segments.length - 1] ?? blobPath;
+  // Distinguish per-table metadata.yaml from per-table preprocessing.yaml
+  // in the saved filename — both URL paths end in `<tn>.yaml` and otherwise
+  // collide in the user's downloads folder. Storage paths (and zip entries)
+  // remain `metadata/<tn>.yaml` / `preprocessing/<tn>.yaml`; only the
+  // Content-Disposition filename is rewritten.
+  const lastSegment = segments[segments.length - 1] ?? blobPath;
+  const filename =
+    segments[0] === "preprocessing" && lastSegment.endsWith(".yaml")
+      ? lastSegment.replace(/\.yaml$/, "_preprocessing.yaml")
+      : lastSegment;
   const safeName = filename.replace(/"/g, "");
 
   res.setHeader("Content-Type", row.content_type);
