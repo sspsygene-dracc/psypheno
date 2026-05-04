@@ -10,7 +10,7 @@ from processing.sql_utils import sanitize_identifier
 from .data import CollectedPvalues, GeneCombinedPvalues
 
 
-def _write_combined_results(
+def write_combined_results(
     conn: sqlite3.Connection,
     output_table: str,
     pvalues: CollectedPvalues,

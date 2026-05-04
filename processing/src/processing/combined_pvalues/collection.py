@@ -1,8 +1,8 @@
 """P-value collection from SQLite + the small pure helpers it depends on.
 
-`_collect_pvalues_for_tables` is the SQL-heavy stage; `_filter_collected`
+`collect_pvalues_for_tables` is the SQL-heavy stage; `filter_collected`
 re-uses a master scan to derive each filtered group's CollectedPvalues.
-`_parse_link_tables_for_direction` and `_precollapse` are pure helpers
+`parse_link_tables_for_direction` and `precollapse` are pure helpers
 shared by collection and the R writer.
 """
 
@@ -16,9 +16,7 @@ from processing.sql_utils import sanitize_identifier
 from .data import CollectedPvalues, SourceTableTriple
 
 
-def _parse_link_tables_for_direction(
-    link_tables_raw: str, direction: str
-) -> list[str]:
+def parse_link_tables_for_direction(link_tables_raw: str, direction: str) -> list[str]:
     """Extract link tables matching a specific search direction.
 
     direction must be "target" or "perturbed".
@@ -46,7 +44,7 @@ def _parse_link_tables_for_direction(
     return out
 
 
-def _precollapse(pvalues: list[float]) -> float:
+def precollapse(pvalues: list[float]) -> float:
     """Bonferroni pre-collapse: min(p) * n, capped at 1.0.
 
     Uses mpmath for arbitrary-precision arithmetic to avoid precision loss
@@ -58,7 +56,7 @@ def _precollapse(pvalues: list[float]) -> float:
     return float(min(collapsed, mpmath.mpf(1)))
 
 
-def _collect_pvalues_for_tables(
+def collect_pvalues_for_tables(
     conn: sqlite3.Connection,
     tables_with_pvalues: list[SourceTableTriple],
     label: str = "",
@@ -74,7 +72,7 @@ def _collect_pvalues_for_tables(
     for table_name, pvalue_cols_raw, link_tables_raw in tables_with_pvalues:
         table_name = sanitize_identifier(table_name)
         pvalue_cols = [sanitize_identifier(c) for c in pvalue_cols_raw.split(",")]
-        link_table_names = _parse_link_tables_for_direction(
+        link_table_names = parse_link_tables_for_direction(
             link_tables_raw or "", direction
         )
 
@@ -115,7 +113,7 @@ def _collect_pvalues_for_tables(
     return collected
 
 
-def _filter_collected(
+def filter_collected(
     master: CollectedPvalues, table_names: set[str]
 ) -> CollectedPvalues:
     """Restrict master to per_table entries whose table_name is in table_names,

@@ -20,7 +20,7 @@ from pathlib import Path
 
 import click
 
-from .collection import _precollapse
+from .collection import precollapse
 from .data import CollectedPvalues, GeneCombinedPvalues
 
 
@@ -51,12 +51,14 @@ def _ensure_r_packages(rscript: str) -> bool:
     """
     setup = _r_lib_setup_code()
     check_code = (
-        setup + "; "
-        + "; ".join(f"library({pkg})" for pkg in _REQUIRED_R_PACKAGES)
+        setup + "; " + "; ".join(f"library({pkg})" for pkg in _REQUIRED_R_PACKAGES)
     )
     check = subprocess.run(
         [rscript, "-e", check_code],
-        capture_output=True, text=True, timeout=30, check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
     )
     if check.returncode == 0:
         return True
@@ -72,55 +74,82 @@ def _ensure_r_packages(rscript: str) -> bool:
             f"({', '.join(cran_pkgs)})..."
         )
         install = subprocess.run(
-            [rscript, "-e",
-             f'{setup}; install.packages(c({pkg_list}), lib="{lib_path}", '
-             f'repos="https://cloud.r-project.org", quiet=TRUE)'],
-            capture_output=True, text=True, timeout=300, check=False,
+            [
+                rscript,
+                "-e",
+                f'{setup}; install.packages(c({pkg_list}), lib="{lib_path}", '
+                f'repos="https://cloud.r-project.org", quiet=TRUE)',
+            ],
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
         )
         if install.returncode != 0:
-            click.echo(click.style(
-                f"  Failed to install CRAN packages:\n{install.stderr.strip()}",
-                fg="yellow", bold=True,
-            ))
+            click.echo(
+                click.style(
+                    f"  Failed to install CRAN packages:\n{install.stderr.strip()}",
+                    fg="yellow",
+                    bold=True,
+                )
+            )
 
     # ACAT is not on CRAN; install from GitHub via remotes
     acat_check = subprocess.run(
-        [rscript, "-e", f'{setup}; library(ACAT)'],
-        capture_output=True, text=True, timeout=30, check=False,
+        [rscript, "-e", f"{setup}; library(ACAT)"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
     )
     if acat_check.returncode != 0:
         click.echo("  Attempting to install ACAT from GitHub...")
         acat_install = subprocess.run(
-            [rscript, "-e",
-             f'{setup}; '
-             f'if (!requireNamespace("remotes", quietly=TRUE)) '
-             f'install.packages("remotes", lib="{lib_path}", '
-             f'repos="https://cloud.r-project.org", quiet=TRUE); '
-             f'remotes::install_github("yaowuliu/ACAT", lib="{lib_path}", quiet=TRUE)'],
-            capture_output=True, text=True, timeout=300, check=False,
+            [
+                rscript,
+                "-e",
+                f"{setup}; "
+                f'if (!requireNamespace("remotes", quietly=TRUE)) '
+                f'install.packages("remotes", lib="{lib_path}", '
+                f'repos="https://cloud.r-project.org", quiet=TRUE); '
+                f'remotes::install_github("yaowuliu/ACAT", lib="{lib_path}", quiet=TRUE)',
+            ],
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
         )
         if acat_install.returncode != 0:
-            click.echo(click.style(
-                f"  Failed to install ACAT:\n{acat_install.stderr.strip()}",
-                fg="yellow", bold=True,
-            ))
+            click.echo(
+                click.style(
+                    f"  Failed to install ACAT:\n{acat_install.stderr.strip()}",
+                    fg="yellow",
+                    bold=True,
+                )
+            )
 
     # Verify all packages
     verify = subprocess.run(
         [rscript, "-e", check_code],
-        capture_output=True, text=True, timeout=30, check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
     )
     if verify.returncode != 0:
-        click.echo(click.style(
-            "\n  WARNING: Required R packages could not be installed. "
-            "Combined p-values will not be computed.\n",
-            fg="yellow", bold=True,
-        ))
+        click.echo(
+            click.style(
+                "\n  WARNING: Required R packages could not be installed. "
+                "Combined p-values will not be computed.\n",
+                fg="yellow",
+                bold=True,
+            )
+        )
         return False
     return True
 
 
-def _write_r_inputs(tmp_dir: Path, pvalues: CollectedPvalues) -> None:
+def write_r_inputs(tmp_dir: Path, pvalues: CollectedPvalues) -> None:
     """Write the per-table-collapsed and raw p-value CSVs the R script reads."""
     collapsed_path = tmp_dir / "collapsed_pvalues.csv"
     with open(collapsed_path, "w", newline="") as f:
@@ -128,7 +157,7 @@ def _write_r_inputs(tmp_dir: Path, pvalues: CollectedPvalues) -> None:
         writer.writerow(["gene_id", "pvalue"])
         for gene_id in sorted(pvalues.per_table.keys()):
             for tbl_pvals in pvalues.per_table[gene_id].values():
-                collapsed = _precollapse(tbl_pvals)
+                collapsed = precollapse(tbl_pvals)
                 writer.writerow([gene_id, f"{collapsed:.17e}"])
 
     raw_path = tmp_dir / "raw_pvalues.csv"
@@ -140,8 +169,9 @@ def _write_r_inputs(tmp_dir: Path, pvalues: CollectedPvalues) -> None:
                 writer.writerow([gene_id, f"{pval:.17e}"])
 
 
-def _parse_r_results(results_path: Path) -> dict[int, GeneCombinedPvalues]:
+def parse_r_results(results_path: Path) -> dict[int, GeneCombinedPvalues]:
     """Parse R's results.csv into per-gene combined-p-value records."""
+
     def _parse_cell(val_str: str) -> float | None:
         if val_str in ("NA", "", "NaN", "Inf", "-Inf"):
             return None
@@ -168,7 +198,7 @@ def _parse_r_results(results_path: Path) -> dict[int, GeneCombinedPvalues]:
     return gene_results
 
 
-def _call_r_combine(
+def call_r_combine(
     pvalues: CollectedPvalues,
 ) -> dict[int, GeneCombinedPvalues] | None:
     """Call R to compute combined p-values and FDR corrections.
@@ -178,34 +208,43 @@ def _call_r_combine(
     """
     rscript = shutil.which("Rscript")
     if rscript is None:
-        click.echo(click.style(
-            "\n  WARNING: Rscript not found on PATH. "
-            "Combined p-values will not be computed.\n"
-            "  Install R to enable this feature: brew install r (macOS) "
-            "or apt install r-base (Ubuntu)\n",
-            fg="yellow", bold=True,
-        ))
+        click.echo(
+            click.style(
+                "\n  WARNING: Rscript not found on PATH. "
+                "Combined p-values will not be computed.\n"
+                "  Install R to enable this feature: brew install r (macOS) "
+                "or apt install r-base (Ubuntu)\n",
+                fg="yellow",
+                bold=True,
+            )
+        )
         return None
 
     if not _ensure_r_packages(rscript):
-        click.echo(click.style(
-            "\n  WARNING: Required R packages could not be installed. "
-            "Combined p-values will not be computed.\n",
-            fg="yellow", bold=True,
-        ))
+        click.echo(
+            click.style(
+                "\n  WARNING: Required R packages could not be installed. "
+                "Combined p-values will not be computed.\n",
+                fg="yellow",
+                bold=True,
+            )
+        )
         return None
 
     if not _R_SCRIPT.exists():
-        click.echo(click.style(
-            f"\n  WARNING: R script not found: {_R_SCRIPT}. "
-            "Combined p-values will not be computed.\n",
-            fg="yellow", bold=True,
-        ))
+        click.echo(
+            click.style(
+                f"\n  WARNING: R script not found: {_R_SCRIPT}. "
+                "Combined p-values will not be computed.\n",
+                fg="yellow",
+                bold=True,
+            )
+        )
         return None
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="sspsygene_combine_"))
     try:
-        _write_r_inputs(tmp_dir, pvalues)
+        write_r_inputs(tmp_dir, pvalues)
 
         result = subprocess.run(
             [rscript, str(_R_SCRIPT), str(tmp_dir)],
@@ -229,7 +268,7 @@ def _call_r_combine(
         if not results_path.exists():
             raise RuntimeError(f"R script did not produce {results_path}")
 
-        return _parse_r_results(results_path)
+        return parse_r_results(results_path)
 
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)

@@ -22,7 +22,7 @@ from typing import Any
 import click
 
 from . import r_runner
-from .collection import _collect_pvalues_for_tables, _filter_collected
+from .collection import collect_pvalues_for_tables, filter_collected
 from .data import (
     CollectedGroup,
     CollectedPvalues,
@@ -34,7 +34,7 @@ from .data import (
 )
 from .flags import GeneFlagger
 from .groups import ComputeGroupBuilder
-from .writer import _write_combined_results
+from .writer import write_combined_results
 
 
 class MetaAnalysisRun:
@@ -124,10 +124,10 @@ class MetaAnalysisRun:
         self, tables_3col: list[SourceTableTriple]
     ) -> tuple[CollectedPvalues, CollectedPvalues]:
         click.echo("\n  Collecting p-values (2 master scans by direction)...")
-        master_target = _collect_pvalues_for_tables(
+        master_target = collect_pvalues_for_tables(
             self.conn, tables_3col, "[direction=target] ", direction="target",
         )
-        master_perturbed = _collect_pvalues_for_tables(
+        master_perturbed = collect_pvalues_for_tables(
             self.conn, tables_3col, "[direction=perturbed] ", direction="perturbed",
         )
         return master_target, master_perturbed
@@ -146,7 +146,7 @@ class MetaAnalysisRun:
             unique = {t[0] for t in group.tables}
             if unique == all_table_names:
                 return master
-            return _filter_collected(master, unique)
+            return filter_collected(master, unique)
 
         out: list[CollectedGroup] = []
         for group in groups:
@@ -211,7 +211,7 @@ class MetaAnalysisRun:
             future_to_idx: dict[Any, tuple[int, str]] = {}
             for job in r_jobs:
                 click.echo(f"  {job.label}Submitting R job...")
-                future = executor.submit(r_runner._call_r_combine, job.pvalues)
+                future = executor.submit(r_runner.call_r_combine, job.pvalues)
                 future_to_idx[future] = (job.idx, job.label)
 
             for future in as_completed(future_to_idx):
@@ -249,7 +249,7 @@ class MetaAnalysisRun:
             r_results = r_results_by_idx.get(i, {})
             flags_fn = flagger.flags_for if cg.use_gene_flags else None
 
-            _write_combined_results(
+            write_combined_results(
                 self.conn, cg.out_table, cg.pvalues, r_results,
                 self.no_index, flags_fn, cg.label,
             )

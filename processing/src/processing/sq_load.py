@@ -7,7 +7,7 @@ import sys
 import click
 
 from processing.central_gene_table import get_central_gene_table
-from processing.combined_pvalues import compute_combined_pvalues
+from processing.combined_pvalues.runner import compute_combined_pvalues
 from processing.effect_distributions import compute_effect_distributions
 from processing.ensembl_symbol_table import compute_ensembl_to_symbol
 from processing.exports import write_exports

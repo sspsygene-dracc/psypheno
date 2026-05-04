@@ -14,23 +14,24 @@ import subprocess
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
-
 import pytest
 
-from processing.combined_pvalues import (
-    CollectedPvalues,
-    ComputeGroupBuilder,
-    GeneCombinedPvalues,
-    GeneFlagger,
-    _call_r_combine,  # pyright: ignore[reportPrivateUsage]
-    _filter_collected,  # pyright: ignore[reportPrivateUsage]
-    _load_hgnc_gene_flags,  # pyright: ignore[reportPrivateUsage]
-    _parse_link_tables_for_direction,  # pyright: ignore[reportPrivateUsage]
-    _parse_r_results,  # pyright: ignore[reportPrivateUsage]
-    _precollapse,  # pyright: ignore[reportPrivateUsage]
-    _write_r_inputs,  # pyright: ignore[reportPrivateUsage]
-    compute_combined_pvalues,
+from processing.combined_pvalues.data import CollectedPvalues
+from processing.combined_pvalues.runner import compute_combined_pvalues
+from processing.combined_pvalues.collection import (
+    precollapse,
+    parse_link_tables_for_direction,
+    filter_collected,
 )
+from processing.combined_pvalues.flags import _load_hgnc_gene_flags
+from processing.combined_pvalues.r_runner import (
+    call_r_combine,
+    parse_r_results,
+    write_r_inputs,
+)
+from processing.combined_pvalues.data import GeneCombinedPvalues
+from processing.combined_pvalues.groups import ComputeGroupBuilder
+from processing.combined_pvalues.flags import GeneFlagger
 
 # ---------------------------------------------------------------------------
 # R availability check
@@ -69,42 +70,42 @@ requires_r = pytest.mark.skipif(
 
 class TestPrecollapse:
     def test_single_pvalue_returns_itself(self):
-        assert _precollapse([0.05]) == pytest.approx(0.05)
+        assert precollapse([0.05]) == pytest.approx(0.05)
 
     def test_multiple_pvalues_min_times_n(self):
         # min(0.1) * 3 = 0.3
-        assert _precollapse([0.1, 0.2, 0.3]) == pytest.approx(0.3)
+        assert precollapse([0.1, 0.2, 0.3]) == pytest.approx(0.3)
 
     def test_cap_at_one_when_exceeds(self):
         # min(0.6) * 2 = 1.2 -> capped at 1.0
-        assert _precollapse([0.6, 0.7]) == 1.0
+        assert precollapse([0.6, 0.7]) == 1.0
 
     def test_exactly_one(self):
         # min(0.5) * 2 = 1.0 exactly
-        assert _precollapse([0.5, 0.5]) == 1.0
+        assert precollapse([0.5, 0.5]) == 1.0
 
     def test_all_ones(self):
         # min(1.0) * 3 = 3.0 -> capped at 1.0
-        assert _precollapse([1.0, 1.0, 1.0]) == 1.0
+        assert precollapse([1.0, 1.0, 1.0]) == 1.0
 
     def test_very_small_pvalue_precision(self):
         # min(1e-300) * 2 = 2e-300, mpmath keeps precision
-        result = _precollapse([1e-300, 1e-280])
+        result = precollapse([1e-300, 1e-280])
         assert result == pytest.approx(2e-300, rel=1e-10)
 
     def test_subnormal_float(self):
         # 5e-324 is the smallest positive float; 5e-324 * 2 = 1e-323
-        result = _precollapse([5e-324, 1e-310])
+        result = precollapse([5e-324, 1e-310])
         assert result == pytest.approx(5e-324 * 2, rel=1e-5)
         assert result > 0
 
     def test_returns_python_float(self):
-        result = _precollapse([0.01, 0.02])
+        result = precollapse([0.01, 0.02])
         assert isinstance(result, float)
 
     def test_many_identical_small_values(self):
         # 1e-200 * 100 = 1e-198
-        result = _precollapse([1e-200] * 100)
+        result = precollapse([1e-200] * 100)
         assert result == pytest.approx(1e-198, rel=1e-10)
 
     @pytest.mark.parametrize(
@@ -119,7 +120,7 @@ class TestPrecollapse:
         ],
     )
     def test_parametrized_known_values(self, pvalues: list[float], expected: float):
-        result = _precollapse(pvalues)
+        result = precollapse(pvalues)
         assert result == pytest.approx(expected, rel=1e-10)
 
 
@@ -130,43 +131,45 @@ class TestPrecollapse:
 
 class TestParseLinkTablesForDirection:
     def test_empty_string(self):
-        assert _parse_link_tables_for_direction("", "target") == []
-        assert _parse_link_tables_for_direction("", "perturbed") == []
+        assert parse_link_tables_for_direction("", "target") == []
+        assert parse_link_tables_for_direction("", "perturbed") == []
 
     def test_target_entry_kept_for_target(self):
-        assert _parse_link_tables_for_direction("gene:tbl__link:target", "target") == [
+        assert parse_link_tables_for_direction("gene:tbl__link:target", "target") == [
             "tbl__link"
         ]
 
     def test_target_entry_dropped_for_perturbed(self):
-        assert _parse_link_tables_for_direction("gene:tbl__link:target", "perturbed") == []
+        assert (
+            parse_link_tables_for_direction("gene:tbl__link:target", "perturbed") == []
+        )
 
     def test_perturbed_entry_kept_for_perturbed(self):
-        assert _parse_link_tables_for_direction("gene:tbl__pert:perturbed", "perturbed") == [
-            "tbl__pert"
-        ]
+        assert parse_link_tables_for_direction(
+            "gene:tbl__pert:perturbed", "perturbed"
+        ) == ["tbl__pert"]
 
     def test_paired_table_splits_by_direction(self):
         raw = "gene:tbl__target:target,pert:tbl__pert:perturbed"
-        assert _parse_link_tables_for_direction(raw, "target") == ["tbl__target"]
-        assert _parse_link_tables_for_direction(raw, "perturbed") == ["tbl__pert"]
+        assert parse_link_tables_for_direction(raw, "target") == ["tbl__target"]
+        assert parse_link_tables_for_direction(raw, "perturbed") == ["tbl__pert"]
 
     def test_multiple_target(self):
         raw = "g1:lt1:target,g2:lt2:target"
-        assert _parse_link_tables_for_direction(raw, "target") == ["lt1", "lt2"]
-        assert _parse_link_tables_for_direction(raw, "perturbed") == []
+        assert parse_link_tables_for_direction(raw, "target") == ["lt1", "lt2"]
+        assert parse_link_tables_for_direction(raw, "perturbed") == []
 
     def test_whitespace_trimmed(self):
         raw = " gene:tbl__target:target , pert:tbl__pert:perturbed "
-        assert _parse_link_tables_for_direction(raw, "target") == ["tbl__target"]
+        assert parse_link_tables_for_direction(raw, "target") == ["tbl__target"]
 
     def test_short_parts_skipped(self):
         # Fewer than 3 parts: entry is malformed and dropped.
-        assert _parse_link_tables_for_direction("gene:tbl", "target") == []
+        assert parse_link_tables_for_direction("gene:tbl", "target") == []
 
     def test_invalid_direction_raises(self):
         with pytest.raises(ValueError):
-            _parse_link_tables_for_direction("gene:tbl:target", "global")
+            parse_link_tables_for_direction("gene:tbl:target", "global")
 
 
 # ===================================================================
@@ -271,7 +274,7 @@ class TestLoadHgncGeneFlags:
 class TestCallRCombine:
     def test_rscript_not_found_returns_none(self):
         with patch("shutil.which", return_value=None):
-            result = _call_r_combine(
+            result = call_r_combine(
                 CollectedPvalues.from_dicts({1: {"t": [0.01]}}, {1: [0.01]})
             )
         assert result is None
@@ -320,10 +323,13 @@ class TestCallRCombine:
 
         with (
             patch("shutil.which", return_value="/usr/bin/Rscript"),
-            patch("processing.combined_pvalues.r_runner._ensure_r_packages", return_value=True),
+            patch(
+                "processing.combined_pvalues.r_runner._ensure_r_packages",
+                return_value=True,
+            ),
             patch("subprocess.run", side_effect=fake_run),
         ):
-            result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
+            result = call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
 
         assert result is not None
         assert result[1].fisher_p == pytest.approx(1e-3)
@@ -374,10 +380,13 @@ class TestCallRCombine:
 
         with (
             patch("shutil.which", return_value="/usr/bin/Rscript"),
-            patch("processing.combined_pvalues.r_runner._ensure_r_packages", return_value=True),
+            patch(
+                "processing.combined_pvalues.r_runner._ensure_r_packages",
+                return_value=True,
+            ),
             patch("subprocess.run", side_effect=fake_run),
         ):
-            result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
+            result = call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
 
         assert result is not None
         assert result[1].fisher_p is None  # NA
@@ -467,7 +476,9 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
+        with patch(
+            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+        ):
             compute_combined_pvalues(conn)
 
         assert sorted(captured["per_table"][1]["tbl_a"]) == pytest.approx(
@@ -496,7 +507,9 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
+        with patch(
+            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+        ):
             compute_combined_pvalues(conn)
 
         assert captured["all_pvals"][1] == [0.01]
@@ -522,7 +535,9 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
+        with patch(
+            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+        ):
             compute_combined_pvalues(conn)
 
         assert captured["all_pvals"][1] == [0.05]
@@ -548,7 +563,9 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
+        with patch(
+            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+        ):
             compute_combined_pvalues(conn)
 
         assert captured["all_pvals"][1] == [0.05]
@@ -574,7 +591,9 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
+        with patch(
+            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+        ):
             compute_combined_pvalues(conn)
 
         assert sorted(captured["all_pvals"][1]) == pytest.approx([0.05, 1.0])
@@ -608,7 +627,9 @@ class TestPvalueCollection:
             captured["per_table"] = {k: dict(v) for k, v in per_table.items()}
             return {}
 
-        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
+        with patch(
+            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+        ):
             compute_combined_pvalues(conn)
 
         assert "tbl_a" in captured["per_table"][1]
@@ -647,7 +668,9 @@ class TestPvalueCollection:
             captured["all_pvals"] = dict(all_pvals)
             return {}
 
-        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
+        with patch(
+            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+        ):
             compute_combined_pvalues(conn)
 
         # Both columns merge into same table key: 6 values total
@@ -656,7 +679,7 @@ class TestPvalueCollection:
         assert sorted(bucket) == pytest.approx([0.01, 0.02, 0.03, 0.04, 0.05, 0.06])
 
         # Pre-collapse with n=6: min(0.01) * 6 = 0.06
-        collapsed = _precollapse(bucket)
+        collapsed = precollapse(bucket)
         assert collapsed == pytest.approx(0.06, rel=1e-10)
 
     def test_perturbed_link_table_filtered(self):
@@ -684,7 +707,9 @@ class TestPvalueCollection:
             captures.append(dict(pvalues.all_pvalues))
             return {}
 
-        with patch("processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r):
+        with patch(
+            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+        ):
             compute_combined_pvalues(conn)
 
         # The legacy "global" group filters perturbed when both sides exist:
@@ -708,7 +733,7 @@ class TestIntegrationWithR:
             1: {"tbl_a": [0.01], "tbl_b": [0.05], "tbl_c": [0.1]},
         }
         all_pvals = {1: [0.01, 0.05, 0.1]}
-        result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
+        result = call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
         assert result[1].fisher_p == pytest.approx(2.99715102020775949e-03, rel=1e-6)
         assert result[1].stouffer_p == pytest.approx(1.21196887876184683e-03, rel=1e-6)
@@ -720,7 +745,7 @@ class TestIntegrationWithR:
             1: {"tbl_a": [0.01], "tbl_b": [0.05], "tbl_c": [0.1]},
         }
         all_pvals = {1: [0.01, 0.05, 0.1]}
-        result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
+        result = call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
         assert result[1].cauchy_p == pytest.approx(2.31303843937040905e-02, rel=1e-6)
         assert result[1].hmp_p == pytest.approx(2.58759065818898529e-02, rel=1e-6)
@@ -738,7 +763,7 @@ class TestIntegrationWithR:
             },
         }
         all_pvals = {1: [0.4, 0.5, 0.6, 0.4, 0.5, 0.6, 0.4, 0.5, 0.6]}
-        result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
+        result = call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
         # Fisher and Stouffer: all collapsed values are 1.0, so NA
         assert result[1].fisher_p is None
@@ -752,7 +777,7 @@ class TestIntegrationWithR:
         """ACAT with a single p-value returns approximately that value."""
         per_table = {1: {"tbl_a": [0.03]}}
         all_pvals = {1: [0.03]}
-        result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
+        result = call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
         assert result[1].cauchy_p == pytest.approx(0.03, rel=1e-6)
 
@@ -761,7 +786,7 @@ class TestIntegrationWithR:
         """A very small p-value (1e-200) survives the full pipeline."""
         per_table = {1: {"tbl_a": [1e-200], "tbl_b": [1e-100]}}
         all_pvals = {1: [1e-200, 1e-100]}
-        result = _call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
+        result = call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
         # Fisher should produce a very small combined p-value
         fisher_p = result[1].fisher_p
@@ -880,7 +905,9 @@ class TestEndToEnd:
         )
         conn.commit()
 
-        with patch("processing.combined_pvalues.r_runner._call_r_combine", return_value={}):
+        with patch(
+            "processing.combined_pvalues.r_runner._call_r_combine", return_value={}
+        ):
             compute_combined_pvalues(conn)
 
         row = conn.execute(
@@ -902,7 +929,9 @@ class TestEndToEnd:
         )
         conn.commit()
 
-        with patch("processing.combined_pvalues.r_runner._call_r_combine", return_value={}):
+        with patch(
+            "processing.combined_pvalues.r_runner._call_r_combine", return_value={}
+        ):
             compute_combined_pvalues(conn)
 
         row = conn.execute(
@@ -926,7 +955,7 @@ class TestFilterCollected:
             },
             all_pvalues={1: [0.01, 0.02, 0.05], 2: [0.1, 0.2]},
         )
-        out = _filter_collected(master, {"tbl_a"})
+        out = filter_collected(master, {"tbl_a"})
         assert dict(out.per_table) == {
             1: {"tbl_a": [0.01, 0.02]},
             2: {"tbl_a": [0.1]},
@@ -936,16 +965,18 @@ class TestFilterCollected:
 
     def test_empty_filter_returns_empty(self):
         master = CollectedPvalues.from_dicts(
-            per_table={1: {"tbl_a": [0.01]}}, all_pvalues={1: [0.01]},
+            per_table={1: {"tbl_a": [0.01]}},
+            all_pvalues={1: [0.01]},
         )
-        out = _filter_collected(master, set())
+        out = filter_collected(master, set())
         assert out.is_empty()
 
     def test_filter_with_no_matches_returns_empty(self):
         master = CollectedPvalues.from_dicts(
-            per_table={1: {"tbl_a": [0.01]}}, all_pvalues={1: [0.01]},
+            per_table={1: {"tbl_a": [0.01]}},
+            all_pvalues={1: [0.01]},
         )
-        out = _filter_collected(master, {"unrelated"})
+        out = filter_collected(master, {"unrelated"})
         assert out.is_empty()
 
     def test_filter_does_not_mutate_master(self):
@@ -955,7 +986,7 @@ class TestFilterCollected:
             per_table={1: {"tbl_a": [0.01, 0.02]}},
             all_pvalues={1: [0.01, 0.02]},
         )
-        out = _filter_collected(master, {"tbl_a"})
+        out = filter_collected(master, {"tbl_a"})
         out.per_table[1]["tbl_a"].append(99.0)
         assert master.per_table[1]["tbl_a"] == [0.01, 0.02]
 
@@ -989,7 +1020,8 @@ class TestComputeGroupBuilder:
         rows = [_make_row("tbl_a")]
         groups = ComputeGroupBuilder(rows).build()
         global_groups = [
-            g for g in groups
+            g
+            for g in groups
             if g.out_table.startswith("gene_combined_pvalues_")
             and g.assay_filter is None
             and g.disease_filter is None
@@ -1013,7 +1045,10 @@ class TestComputeGroupBuilder:
     def test_pairwise_and_triple_combos(self):
         rows = [
             _make_row(
-                "tbl_x", assay="rnaseq", disease="asd", organism="human",
+                "tbl_x",
+                assay="rnaseq",
+                disease="asd",
+                organism="human",
             ),
         ]
         groups = ComputeGroupBuilder(rows).build()
@@ -1040,8 +1075,7 @@ class TestComputeGroupBuilder:
         groups = ComputeGroupBuilder(rows).build()
         # Only direction-level globals should remain
         filtered = [
-            g for g in groups
-            if g.assay_filter or g.disease_filter or g.organism_filter
+            g for g in groups if g.assay_filter or g.disease_filter or g.organism_filter
         ]
         assert filtered == []
 
@@ -1156,7 +1190,7 @@ class TestWriteRInputs:
             },
             all_pvalues={1: [0.01, 0.02], 2: [0.5, 0.1]},
         )
-        _write_r_inputs(tmp_path, pvalues)
+        write_r_inputs(tmp_path, pvalues)
 
         collapsed = list(csv.DictReader(open(tmp_path / "collapsed_pvalues.csv")))
         # Gene 1 collapses to 0.02; gene 2 emits two rows (one per table).
@@ -1168,13 +1202,11 @@ class TestWriteRInputs:
         raw = list(csv.DictReader(open(tmp_path / "raw_pvalues.csv")))
         # 2 raws for gene 1 + 2 raws for gene 2 = 4 rows.
         assert len(raw) == 4
-        gene1_raws = sorted(
-            float(r["pvalue"]) for r in raw if r["gene_id"] == "1"
-        )
+        gene1_raws = sorted(float(r["pvalue"]) for r in raw if r["gene_id"] == "1")
         assert gene1_raws == pytest.approx([0.01, 0.02])
 
     def test_empty_pvalues_writes_only_headers(self, tmp_path: Path):
-        _write_r_inputs(tmp_path, CollectedPvalues())
+        write_r_inputs(tmp_path, CollectedPvalues())
         for name in ("collapsed_pvalues.csv", "raw_pvalues.csv"):
             rows = list(csv.reader(open(tmp_path / name)))
             assert rows == [["gene_id", "pvalue"]]
@@ -1184,10 +1216,14 @@ class TestParseRResults:
     def _write_results_csv(self, path: Path, rows: list[dict[str, str]]):
         cols = [
             "gene_id",
-            "fisher_p", "fisher_fdr",
-            "stouffer_p", "stouffer_fdr",
-            "cauchy_p", "cauchy_fdr",
-            "hmp_p", "hmp_fdr",
+            "fisher_p",
+            "fisher_fdr",
+            "stouffer_p",
+            "stouffer_fdr",
+            "cauchy_p",
+            "cauchy_fdr",
+            "hmp_p",
+            "hmp_fdr",
         ]
         with open(path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=cols)
@@ -1197,14 +1233,23 @@ class TestParseRResults:
 
     def test_parses_full_row(self, tmp_path: Path):
         path = tmp_path / "results.csv"
-        self._write_results_csv(path, [{
-            "gene_id": "7",
-            "fisher_p": "1e-3", "fisher_fdr": "1e-2",
-            "stouffer_p": "2e-3", "stouffer_fdr": "2e-2",
-            "cauchy_p": "3e-3", "cauchy_fdr": "3e-2",
-            "hmp_p": "4e-3", "hmp_fdr": "4e-2",
-        }])
-        out = _parse_r_results(path)
+        self._write_results_csv(
+            path,
+            [
+                {
+                    "gene_id": "7",
+                    "fisher_p": "1e-3",
+                    "fisher_fdr": "1e-2",
+                    "stouffer_p": "2e-3",
+                    "stouffer_fdr": "2e-2",
+                    "cauchy_p": "3e-3",
+                    "cauchy_fdr": "3e-2",
+                    "hmp_p": "4e-3",
+                    "hmp_fdr": "4e-2",
+                }
+            ],
+        )
+        out = parse_r_results(path)
         assert set(out.keys()) == {7}
         rec = out[7]
         assert rec.fisher_p == pytest.approx(1e-3)
@@ -1215,14 +1260,23 @@ class TestParseRResults:
 
     def test_na_inf_nan_become_none(self, tmp_path: Path):
         path = tmp_path / "results.csv"
-        self._write_results_csv(path, [{
-            "gene_id": "1",
-            "fisher_p": "NA", "fisher_fdr": "",
-            "stouffer_p": "NaN", "stouffer_fdr": "Inf",
-            "cauchy_p": "-Inf", "cauchy_fdr": "0.5",
-            "hmp_p": "0.25", "hmp_fdr": "NA",
-        }])
-        out = _parse_r_results(path)
+        self._write_results_csv(
+            path,
+            [
+                {
+                    "gene_id": "1",
+                    "fisher_p": "NA",
+                    "fisher_fdr": "",
+                    "stouffer_p": "NaN",
+                    "stouffer_fdr": "Inf",
+                    "cauchy_p": "-Inf",
+                    "cauchy_fdr": "0.5",
+                    "hmp_p": "0.25",
+                    "hmp_fdr": "NA",
+                }
+            ],
+        )
+        out = parse_r_results(path)
         rec = out[1]
         assert rec.fisher_p is None
         assert rec.fisher_fdr is None
@@ -1236,4 +1290,4 @@ class TestParseRResults:
     def test_empty_results_csv(self, tmp_path: Path):
         path = tmp_path / "results.csv"
         self._write_results_csv(path, [])
-        assert _parse_r_results(path) == {}
+        assert parse_r_results(path) == {}

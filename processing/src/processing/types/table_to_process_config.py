@@ -2,7 +2,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import pandas as pd
 
@@ -58,35 +58,38 @@ class DatasetLink:
             out["description"] = self.description
         return out
 
+
 # Per-table YAML keys that the loader recognizes. Anything else is ignored
 # silently today, which makes typos invisible — log a warning so wranglers
 # notice (e.g. `data_downloads:` from old #80 context, `field_label:` typo).
-_KNOWN_TABLE_KEYS: frozenset[str] = frozenset({
-    "table",
-    "shortLabel",
-    "mediumLabel",
-    "longLabel",
-    "description",
-    "source",
-    "assay",
-    "disease",
-    "organism",
-    "organism_key",
-    "fieldLabels",
-    "categories",
-    "links",
-    "in_path",
-    "separator",
-    "split_column_map",
-    "gene_mappings",
-    "pvalue_column",
-    "fdr_column",
-    "effect_column",
-    "changelog",
-    # Internal: dataset-level publication block, merged in by TablesConfig.
-    "_publication",
-    "publication",
-})
+_KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
+    {
+        "table",
+        "shortLabel",
+        "mediumLabel",
+        "longLabel",
+        "description",
+        "source",
+        "assay",
+        "disease",
+        "organism",
+        "organism_key",
+        "fieldLabels",
+        "categories",
+        "links",
+        "in_path",
+        "separator",
+        "split_column_map",
+        "gene_mappings",
+        "pvalue_column",
+        "fdr_column",
+        "effect_column",
+        "changelog",
+        # Internal: dataset-level publication block, merged in by TablesConfig.
+        "_publication",
+        "publication",
+    }
+)
 
 
 def normalize_column_name(name: str) -> str:
@@ -100,9 +103,7 @@ def get_sql_friendly_columns(df: pd.DataFrame) -> list[str]:
     return [normalize_column_name(col) for col in df.columns]
 
 
-def normalize_field_labels(
-    raw_labels: dict[str, str], context: str
-) -> dict[str, str]:
+def normalize_field_labels(raw_labels: dict[str, str], context: str) -> dict[str, str]:
     normalized: dict[str, str] = {}
     seen_originals: dict[str, str] = {}  # normalized_key -> original_key
     for original_key, value in raw_labels.items():
@@ -160,11 +161,11 @@ def _filter_to_test_genes(
         if gm.multi_gene_separator:
             sep = gm.multi_gene_separator
             col_match = col.astype("string").apply(
-                lambda s, _sep=sep, _allowed=allowed_strs: pd.notna(s)
-                and any(g.strip() in _allowed for g in str(s).split(_sep))
+                lambda s, _sep=sep, _allowed=allowed_strs: pd.notna(s)  # type: ignore
+                and any(g.strip() in _allowed for g in str(s).split(_sep))  # type: ignore
             )
         else:
-            col_match = col.isin(allowed_strs)
+            col_match = col.isin(allowed_strs)  # type: ignore
         keep_mask &= col_match.fillna(False)
         group_cols.append(gm.column_name)
     filtered = data[keep_mask]
@@ -176,7 +177,7 @@ def _filter_to_test_genes(
             group_keys=False,
             sort=False,
         ).head(_PER_GROUP_ROW_CAP)
-    return filtered.reset_index(drop=True)
+    return cast(pd.DataFrame, filtered.reset_index(drop=True))
 
 
 @dataclass
@@ -258,10 +259,14 @@ class TableToProcessConfig:
                 sorted(unknown),
                 sorted(_KNOWN_TABLE_KEYS - {"_publication"}),
             )
-        publication: dict[str, Any] = json_data.get("_publication") or json_data.get("publication") or {}
-        authors: list[str] = list(publication.get("authors", [])) if isinstance(
-            publication.get("authors", []), list
-        ) else []
+        publication: dict[str, Any] = (
+            json_data.get("_publication") or json_data.get("publication") or {}
+        )
+        authors: list[str] = (
+            list(publication.get("authors", []))
+            if isinstance(publication.get("authors", []), list)
+            else []
+        )
         first_author = authors[0] if authors else None
         last_author = authors[-1] if authors else None
         author_count = len(authors) if authors else None
@@ -318,7 +323,9 @@ class TableToProcessConfig:
         # Stored as comma-separated string internally.
         raw_pvalue_col = json_data.get("pvalue_column")
         if isinstance(raw_pvalue_col, list):
-            pvalue_column = ",".join(normalize_column_name(c) for c in raw_pvalue_col) or None
+            pvalue_column = (
+                ",".join(normalize_column_name(c) for c in raw_pvalue_col) or None
+            )
         elif raw_pvalue_col:
             pvalue_column = normalize_column_name(raw_pvalue_col)
         else:
