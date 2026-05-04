@@ -83,52 +83,89 @@ loading pipeline can read. Each file will become one "table" on the website.
 If the raw data is not already in clean CSV/TSV format (and it usually isn't),
 write a Python script to convert it. Save this script in your dataset directory.
 
-**Example:** See `data/datasets/geschwind_2026_cnv/preprocess.py` for a real
-example that reads 45 sheets from an Excel file and outputs a single TSV.
+**Example:** See `data/datasets/mouse-perturb-4tf/preprocess.py` for the
+simplest real example, or `data/datasets/hsc-asd-organoid-m5/preprocess.py`
+for a multi-sheet Excel case.
 
-A simple preprocessing script looks like this:
+Use the **`processing.preprocessing` library** to build a `Pipeline` of
+tracked steps. Every step records what it did into a sidecar
+`preprocessing.yaml` so downstream users can audit exactly which manual
+changes were applied.
 
 ```python
 """
 Preprocess My Dataset.
 
-Reads the supplementary Excel file and produces a clean TSV.
+Reads the supplementary Excel file and produces a clean TSV plus a
+preprocessing.yaml provenance log.
 
 Usage:
     python preprocess.py
-
-Input:  ~/Downloads/SupplementaryTable.xlsx (sheet "DEG Results")
-Output: data/datasets/my-new-dataset/results.tsv
 """
 
-import pandas as pd
 from pathlib import Path
 
-# Point this to wherever you downloaded the raw file
-INPUT_PATH = Path.home() / "Downloads" / "SupplementaryTable.xlsx"
-OUTPUT_PATH = Path(__file__).parent / "results.tsv"
+from processing.preprocessing import (
+    GeneSymbolNormalizer,
+    Pipeline,
+    Tracker,
+)
 
-def main():
-    df = pd.read_excel(INPUT_PATH, sheet_name="DEG Results", engine="openpyxl")
+DIR = Path(__file__).resolve().parent
 
-    # Drop rows where the gene symbol is missing
-    df = df.dropna(subset=["gene_symbol"])
 
-    # Keep only the columns we need
-    df = df[["gene_symbol", "log2FoldChange", "pvalue", "padj", "cell_type"]]
+def main() -> None:
+    tracker = Tracker()
+    normalizer = GeneSymbolNormalizer.from_env()
 
-    df.to_csv(OUTPUT_PATH, sep="\t", index=False)
-    print(f"Wrote {len(df)} rows to {OUTPUT_PATH}")
+    (
+        Pipeline("results.tsv", tracker=tracker, normalizer=normalizer)
+        .read_csv(DIR / "raw.csv")
+        .dropna(["gene_symbol"])
+        .clean_gene(
+            "gene_symbol",
+            species="human",
+            excel_demangle=True,       # 1-Mar -> MARCHF1
+            strip_make_unique=True,    # MATR3.1 -> MATR3
+        )
+        .write_tsv(DIR / "results.tsv")
+        .run()
+    )
+
+    tracker.write(DIR / "preprocessing.yaml")
+
 
 if __name__ == "__main__":
     main()
 ```
 
+**Available pipeline steps** (all chainable, all tracked):
+- `read_csv` / `read_tsv` / `from_dataframe` — start the pipeline
+- `clean_gene(column, species=..., **rescue_flags)` — gene-name resolution
+  (Excel demangle, R make.unique strip, ENSG→symbol via `ensembl_mapper`,
+  HGNC ID resolution, manual aliases)
+- `dropna(columns)` / `filter_rows(predicate, description=...)` — drops
+- `rename(mapping)` / `reorder(columns)` / `drop_columns(columns)` —
+  schema reshape
+- `transform_column(column, func, description=...)` — one-off custom edits
+- `insert_column(name, value, position=None)` — constants or computed cols
+- `write_csv(path)` / `write_tsv(path)` — finish
+
+For unchanged companion files (e.g. a patient list referenced from another
+table), use the free `copy_file(src, dst, tracker=tracker)` helper — it
+records a `copy_file` action without loading a DataFrame.
+
+The cross-dataset alias superset `MANUAL_ALIASES_HUMAN` is also exported
+from `processing.preprocessing`; merge per-dataset additions on top if
+needed.
+
 **Key points:**
-- The input path points to your Downloads folder (or wherever you saved the
-  raw file). This raw file is NOT committed to git.
-- The output path is inside your dataset directory. This processed file IS
-  what the website loads.
+- The input path points to wherever you saved the raw file. Raw files are
+  typically NOT committed to git.
+- The cleaned output is committed (or pointed at by `in_path` in
+  `config.yaml`).
+- `preprocessing.yaml` is committed to git so reviewers can see exactly
+  what manual cleanup was applied.
 - Document where the input data came from in the script's docstring.
 
 Run your script to generate the output file:
