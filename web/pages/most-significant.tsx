@@ -10,6 +10,7 @@ import GeneSignificanceSummary, {
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import InfoTooltip from "@/components/InfoTooltip";
+import DoubleScrollX from "@/components/DoubleScrollX";
 
 const PAGE_SIZE = 10;
 const NUM_COLS = 6; // rank, gene, pvalue, tables, pvalues, gene info
@@ -1157,7 +1158,7 @@ export default function MostSignificantPage() {
             marginBottom: 24,
           }}
         >
-          <div style={{ overflowX: "auto" }}>
+          <DoubleScrollX>
             <table
               style={{
                 width: "100%",
@@ -1399,7 +1400,7 @@ export default function MostSignificantPage() {
                 })}
               </tbody>
             </table>
-          </div>
+          </DoubleScrollX>
           {totalPages > 1 && (
             <div
               style={{
