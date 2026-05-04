@@ -19,10 +19,10 @@ def test_non_resolving_empty() -> None:
     assert nr.classify("BRCA1") == "fallback"
 
 
-def test_non_resolving_drop_values() -> None:
-    nr = NonResolving.from_json({"drop_values": ["GFP", "NonTarget1"]})
-    assert nr.classify("GFP") == "drop"
-    assert nr.classify("NonTarget1") == "drop"
+def test_non_resolving_control_values() -> None:
+    nr = NonResolving.from_json({"control_values": ["GFP", "NonTarget1"]})
+    assert nr.classify("GFP") == "control"
+    assert nr.classify("NonTarget1") == "control"
     assert nr.classify("BRCA1") == "fallback"
 
 
@@ -30,13 +30,6 @@ def test_non_resolving_record_values() -> None:
     nr = NonResolving.from_json({"record_values": ["SGK494", "GATD3B"]})
     assert nr.classify("SGK494") == "record"
     assert nr.classify("GATD3B") == "record"
-    assert nr.classify("BRCA1") == "fallback"
-
-
-def test_non_resolving_drop_patterns() -> None:
-    nr = NonResolving.from_json({"drop_patterns": ["ensembl_human"]})
-    assert nr.classify("ENSG00000123456") == "drop"
-    assert nr.classify("ENSMUSG00000071265") == "fallback"
     assert nr.classify("BRCA1") == "fallback"
 
 
@@ -49,25 +42,28 @@ def test_non_resolving_record_patterns() -> None:
 
 def test_non_resolving_unknown_pattern_raises() -> None:
     with pytest.raises(ValueError, match="Unknown non_resolving pattern category"):
-        NonResolving.from_json({"drop_patterns": ["not_a_category"]})
+        NonResolving.from_json({"record_patterns": ["not_a_category"]})
+
+
+def test_non_resolving_drop_values_retired() -> None:
+    with pytest.raises(ValueError, match="no longer supported"):
+        NonResolving.from_json({"drop_values": ["GFP"]})
+
+
+def test_non_resolving_drop_patterns_retired() -> None:
+    with pytest.raises(ValueError, match="no longer supported"):
+        NonResolving.from_json({"drop_patterns": ["ensembl_human"]})
 
 
 def test_non_resolving_unknown_key_raises() -> None:
     with pytest.raises(ValueError, match="unknown key"):
-        NonResolving.from_json({"drop_value": ["GFP"]})  # typo
+        NonResolving.from_json({"control_value": ["GFP"]})  # typo
 
 
 def test_non_resolving_value_overlap_raises() -> None:
-    with pytest.raises(ValueError, match="drop_values and record_values"):
+    with pytest.raises(ValueError, match="control_values and record_values"):
         NonResolving.from_json(
-            {"drop_values": ["X"], "record_values": ["X"]}
-        )
-
-
-def test_non_resolving_pattern_overlap_raises() -> None:
-    with pytest.raises(ValueError, match="drop_patterns and record_patterns"):
-        NonResolving.from_json(
-            {"drop_patterns": ["contig"], "record_patterns": ["contig"]}
+            {"control_values": ["X"], "record_values": ["X"]}
         )
 
 
@@ -94,11 +90,11 @@ def test_gene_mapping_minimal() -> None:
 def test_gene_mapping_with_non_resolving() -> None:
     cfg = _base_mapping()
     cfg["non_resolving"] = {
-        "drop_values": ["GFP"],
+        "control_values": ["GFP"],
         "record_values": ["SGK494"],
     }
     gm = GeneMapping.from_json(cfg)
-    assert gm.non_resolving.classify("GFP") == "drop"
+    assert gm.non_resolving.classify("GFP") == "control"
     assert gm.non_resolving.classify("SGK494") == "record"
 
 
@@ -191,17 +187,23 @@ def test_link_table_asymmetry_first_encounter_is_linked(
     assert len(central_gene_stub.entries) == 2  # BRCA1 + WEIRDGENE
 
 
-def test_dispatch_drop_values_orphans(
+def test_dispatch_control_values_creates_kind_control_stub(
     central_gene_stub: CentralGeneTable,
 ) -> None:
     cfg = _base_mapping()
-    cfg["non_resolving"] = {"drop_values": ["GFP"]}
+    cfg["non_resolving"] = {"control_values": ["GFP"]}
     df = pd.DataFrame({"id": [1], "target_gene": ["GFP"]})
     gm = GeneMapping.from_json(cfg)
     link = gm.resolve_to_central_gene_table("t", df, Path("/dev/null"))
-    assert link.central_gene_table_links == [(1, None)]
-    # No stub created.
-    assert len(central_gene_stub.entries) == 1  # just BRCA1
+    [(row_id, cg_id)] = link.central_gene_table_links
+    assert row_id == 1
+    assert cg_id is not None
+    # Control stub is created with kind='control' so per-gene aggregates
+    # can filter it out.
+    new_entry = central_gene_stub.entries[cg_id]
+    assert new_entry.kind == "control"
+    assert new_entry.manually_added is True
+    assert new_entry.human_symbol == "GFP"
 
 
 def test_dispatch_record_values_creates_stub(
@@ -215,24 +217,11 @@ def test_dispatch_record_values_creates_stub(
     [(row_id, cg_id)] = link.central_gene_table_links
     assert row_id == 1
     assert cg_id is not None
-    # Stub is `manually_added=True`.
-    assert central_gene_stub.entries[cg_id].manually_added is True
-    assert central_gene_stub.entries[cg_id].human_symbol == "SGK494"
-
-
-def test_dispatch_drop_patterns(
-    central_gene_stub: CentralGeneTable,
-) -> None:
-    cfg = _base_mapping()
-    cfg["non_resolving"] = {"drop_patterns": ["ensembl_human"]}
-    df = pd.DataFrame({"id": [1, 2], "target_gene": ["ENSG00000123456", "BRCA1"]})
-    gm = GeneMapping.from_json(cfg)
-    link = gm.resolve_to_central_gene_table("t", df, Path("/dev/null"))
-    # ENSG row is orphaned, BRCA1 row resolves.
-    by_id = dict(link.central_gene_table_links)
-    assert by_id[1] is None
-    assert by_id[2] == 0
-    assert len(central_gene_stub.entries) == 1  # no stub created for ENSG
+    # Stub is `manually_added=True`, kind='gene' (not a control).
+    new_entry = central_gene_stub.entries[cg_id]
+    assert new_entry.manually_added is True
+    assert new_entry.kind == "gene"
+    assert new_entry.human_symbol == "SGK494"
 
 
 def test_dispatch_fallback_warns_and_records(

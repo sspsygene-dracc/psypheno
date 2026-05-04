@@ -47,6 +47,9 @@ _mgi_elem_types = {
 }
 
 
+EntryKind = Literal["gene", "control"]
+
+
 @dataclass
 class CentralGeneTableEntry:
 
@@ -61,6 +64,11 @@ class CentralGeneTableEntry:
     human_synonyms: set[str]
     mouse_synonyms: set[str]
     manually_added: bool = False
+    # `kind` distinguishes real-gene entries from perturbation controls
+    # (NonTarget1, SafeTarget, GFP, Control_ST, etc.). Controls are
+    # searchable but excluded from per-gene aggregates (volcano backgrounds,
+    # combined-pvalue meta-analysis, the gene browser). See discussion #19.
+    kind: EntryKind = "gene"
     dataset_names: set[str] = field(default_factory=set)
     used_human_names: set[str] = field(default_factory=set)
     used_mouse_names: set[str] = field(default_factory=set)
@@ -133,7 +141,7 @@ class CentralGeneTable:
             raise ValueError(f"Invalid species: {species}")
 
     def add_manual_mouse_entry(
-        self, symbol: str, dataset: str
+        self, symbol: str, dataset: str, *, kind: EntryKind = "gene"
     ) -> CentralGeneTableEntry:
         entry = CentralGeneTableEntry(
             row_id=len(self.entries),
@@ -150,12 +158,13 @@ class CentralGeneTable:
             used_mouse_names={symbol},
             used=True,
             manually_added=True,
+            kind=kind,
         )
         self.entries.append(entry)
         return entry
 
     def add_manual_human_entry(
-        self, symbol: str, dataset: str
+        self, symbol: str, dataset: str, *, kind: EntryKind = "gene"
     ) -> CentralGeneTableEntry:
         entry = CentralGeneTableEntry(
             row_id=len(self.entries),
@@ -172,17 +181,23 @@ class CentralGeneTable:
             used_human_names={symbol},
             manually_added=True,
             used=True,
+            kind=kind,
         )
         self.entries.append(entry)
         return entry
 
     def add_species_entry(
-        self, species: Literal["human", "mouse"], symbol: str, dataset: str
+        self,
+        species: Literal["human", "mouse"],
+        symbol: str,
+        dataset: str,
+        *,
+        kind: EntryKind = "gene",
     ) -> CentralGeneTableEntry:
         if species == "human":
-            return self.add_manual_human_entry(symbol, dataset)
+            return self.add_manual_human_entry(symbol, dataset, kind=kind)
         elif species == "mouse":
-            return self.add_manual_mouse_entry(symbol, dataset)
+            return self.add_manual_mouse_entry(symbol, dataset, kind=kind)
         else:
             raise ValueError(f"Invalid species: {species}")
 

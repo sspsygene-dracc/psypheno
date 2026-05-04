@@ -13,11 +13,20 @@ from processing.types.link_table import LinkTable, PerturbedOrTarget
 
 
 _KNOWN_NON_RESOLVING_KEYS = {
-    "drop_values",
-    "drop_patterns",
+    "control_values",
     "record_values",
     "record_patterns",
 }
+
+# Retired in the #19 / drop-values-removal work — moved out of config.yaml so
+# nothing is silently dropped at load-db time. Migration paths:
+#   drop_values → control_values: (perturbation controls), record_values:
+#     (unrecognized predicted genes still worth a stub), or .filter_rows()
+#     in preprocess.py (placeholders / true row drops, recorded in
+#     preprocessing.yaml).
+#   drop_patterns → record_patterns: in nearly every case; if the dataset
+#     truly wants those rows gone, use .filter_rows() in preprocess.py.
+_RETIRED_NON_RESOLVING_KEYS = {"drop_values", "drop_patterns"}
 
 _RETIRED_GENE_MAPPING_KEYS = {"ignore_missing", "replace", "to_upper"}
 
@@ -28,49 +37,56 @@ class NonResolving:
 
     Each bucket has explicit semantics:
 
-      drop_values / drop_patterns
-        Orphan the row's link (`(row_id, None)`); do NOT create a
-        central_gene stub; do NOT warn. Use for placeholders, controls,
-        or pattern categories that should not appear in the gene table
-        (e.g. raw ENSG IDs).
+      control_values
+        Perturbation control labels (`NonTarget1`, `SafeTarget`, `GFP`,
+        `Control_ST`, etc.). Create a `central_gene` entry with
+        `kind='control'`, link the row, but ensure per-gene aggregates
+        (volcano backgrounds, FDR meta-analysis, gene browser) filter
+        these out. Searchable via the autocomplete (and the `control`
+        keyword surfaces all of them at once).
 
       record_values / record_patterns
-        Create a `manually_added=1` central_gene stub and link the row
-        to it; do NOT warn. Use for retired-but-still-meaningful symbols
-        (`SGK494`, `GATD3B`) and pattern categories that legitimately
-        belong in central_gene but cannot be auto-resolved.
+        Create a `manually_added=1` central_gene stub (with
+        `kind='gene'`) and link the row; do NOT warn. Use for
+        retired-but-still-meaningful symbols (`SGK494`, `GATD3B`) and
+        pattern categories that legitimately belong in central_gene but
+        cannot be auto-resolved.
 
     Anything not matched here falls through to the strict default:
     WARN + create stub + link.
     """
 
-    drop_values: frozenset[str] = field(default_factory=frozenset)
-    drop_patterns: tuple[str, ...] = field(default_factory=tuple)
+    control_values: frozenset[str] = field(default_factory=frozenset)
     record_values: frozenset[str] = field(default_factory=frozenset)
     record_patterns: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self):
-        for category in (*self.drop_patterns, *self.record_patterns):
+        for category in self.record_patterns:
             if category not in NON_SYMBOL_CATEGORIES:
                 raise ValueError(
                     f"Unknown non_resolving pattern category: {category!r}. "
                     f"Valid categories: {sorted(NON_SYMBOL_CATEGORIES)}"
                 )
-        overlap_values = self.drop_values & self.record_values
-        if overlap_values:
+        overlap = self.control_values & self.record_values
+        if overlap:
             raise ValueError(
-                f"non_resolving: values appear in both drop_values and "
-                f"record_values: {sorted(overlap_values)}"
-            )
-        overlap_patterns = set(self.drop_patterns) & set(self.record_patterns)
-        if overlap_patterns:
-            raise ValueError(
-                f"non_resolving: pattern categories appear in both "
-                f"drop_patterns and record_patterns: {sorted(overlap_patterns)}"
+                f"non_resolving: values appear in both control_values and "
+                f"record_values: {sorted(overlap)}"
             )
 
     @classmethod
     def from_json(cls, json_data: dict[str, Any]) -> "NonResolving":
+        retired = set(json_data.keys()) & _RETIRED_NON_RESOLVING_KEYS
+        if retired:
+            raise ValueError(
+                f"non_resolving: key(s) {sorted(retired)} are no longer "
+                "supported. Migration paths: drop_values → control_values "
+                "(perturbation controls), record_values (predicted genes "
+                "you want kept as stubs), or .filter_rows() in preprocess.py "
+                "(placeholders / true row drops, tracked in "
+                "preprocessing.yaml). drop_patterns → record_patterns or "
+                ".filter_rows() — see docs/wrangler_gene_cleanup.md."
+            )
         unknown = set(json_data.keys()) - _KNOWN_NON_RESOLVING_KEYS
         if unknown:
             raise ValueError(
@@ -78,20 +94,18 @@ class NonResolving:
                 f"Recognized keys: {sorted(_KNOWN_NON_RESOLVING_KEYS)}"
             )
         return cls(
-            drop_values=frozenset(json_data.get("drop_values") or []),
-            drop_patterns=tuple(json_data.get("drop_patterns") or []),
+            control_values=frozenset(json_data.get("control_values") or []),
             record_values=frozenset(json_data.get("record_values") or []),
             record_patterns=tuple(json_data.get("record_patterns") or []),
         )
 
-    def classify(self, gene_val: str) -> Literal["drop", "record", "fallback"]:
-        if gene_val in self.drop_values:
-            return "drop"
+    def classify(
+        self, gene_val: str
+    ) -> Literal["control", "record", "fallback"]:
+        if gene_val in self.control_values:
+            return "control"
         if gene_val in self.record_values:
             return "record"
-        for category in self.drop_patterns:
-            if NON_SYMBOL_CATEGORIES[category](gene_val):
-                return "drop"
         for category in self.record_patterns:
             if NON_SYMBOL_CATEGORIES[category](gene_val):
                 return "record"
@@ -204,10 +218,6 @@ class GeneMapping:
 
                 disposition = self.non_resolving.classify(gene_val)
 
-                if disposition == "drop":
-                    data_id_to_central_gene_id.append((row_id, None))
-                    continue
-
                 if disposition == "fallback":
                     category = is_non_symbol_identifier(gene_val)
                     if category is None:
@@ -224,20 +234,23 @@ class GeneMapping:
                             "Path %s, column %s, value %s looks like a "
                             "non-symbol identifier (%s) for species %s but is "
                             "not whitelisted under non_resolving; adding stub. "
-                            "Add it to non_resolving.record_patterns or "
-                            "drop_patterns to silence.",
+                            "Add it to non_resolving.record_patterns to "
+                            "silence (or drop the row in preprocess.py).",
                             in_path,
                             self.column_name,
                             gene_val,
                             category,
                             self.species,
                         )
-                # disposition in ("record", "fallback") — both create a stub
-                # and link the row.
+                # All three dispositions create a stub and link the row.
+                # Controls get kind='control' so per-gene aggregates can
+                # filter them out; record/fallback stay as ordinary genes.
+                kind = "control" if disposition == "control" else "gene"
                 new_entry = get_central_gene_table().add_species_entry(
                     species=self.species,
                     symbol=gene_val,
                     dataset=primary_table_name,
+                    kind=kind,
                 )
                 species_map[gene_val] = [new_entry]
                 data_id_to_central_gene_id.append((row_id, new_entry.row_id))

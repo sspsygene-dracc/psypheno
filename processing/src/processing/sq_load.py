@@ -70,7 +70,8 @@ def load_gene_tables(
         mouse_synonyms TEXT,
         dataset_names TEXT,
         num_datasets INTEGER,
-        manually_added BOOLEAN
+        manually_added BOOLEAN,
+        kind TEXT NOT NULL DEFAULT 'gene'
         )"""
     )
     cur.execute(
@@ -114,12 +115,13 @@ def load_gene_tables(
             ",".join(entry.dataset_names) if entry.dataset_names else None,
             len(entry.dataset_names) if entry.dataset_names else 0,
             entry.manually_added,
+            entry.kind,
         )
         cur.execute(
             """INSERT INTO central_gene (
-            id, human_symbol, human_entrez_gene, hgnc_id, mouse_symbols, 
-            mouse_mgi_accession_ids, mouse_ensembl_genes, human_synonyms, mouse_synonyms, dataset_names, num_datasets, manually_added) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            id, human_symbol, human_entrez_gene, hgnc_id, mouse_symbols,
+            mouse_mgi_accession_ids, mouse_ensembl_genes, human_synonyms, mouse_synonyms, dataset_names, num_datasets, manually_added, kind)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             to_insert,
         )
         for synonym in human_synonyms:
@@ -157,6 +159,7 @@ def load_gene_tables(
             "mouse_synonyms",
             "dataset_names",
             "manually_added",
+            "kind",
         ],
         skip=no_index,
     )
