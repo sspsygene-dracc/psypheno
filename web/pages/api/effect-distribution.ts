@@ -123,6 +123,19 @@ export default async function handler(
       backgroundParams.push(perturbedCentralGeneId);
     }
 
+    // Exclude rows whose perturbed-gene link points at a kind='control'
+    // entry (NonTarget1, SafeTarget, GFP, …). Without this, the volcano
+    // background in the unrestricted case (no perturbedCentralGeneId, or
+    // multiple perturbed link tables) would include control rows and
+    // bias the distribution toward "no biological perturbation."
+    for (const lt of perturbedLTs) {
+      backgroundFilter +=
+        ` AND b.id NOT IN (` +
+        `SELECT lt.id FROM ${lt} lt ` +
+        `JOIN central_gene cg ON cg.id = lt.central_gene_id ` +
+        `WHERE cg.kind = 'control')`;
+    }
+
     const fdrSelect = fdrCol ? `b.${fdrCol}` : "NULL";
     const baseWhere = `b.${effectCol} IS NOT NULL AND b.${pvalueCol} IS NOT NULL ${backgroundFilter}`;
 

@@ -81,12 +81,19 @@ def collect_pvalues_for_tables(
 
         for pvalue_col in pvalue_cols:
             for lt_name in link_table_names:
+                # Exclude rows linked to a kind='control' central_gene
+                # (NonTarget1, SafeTarget, GFP, …). Without this, the
+                # combined-p meta-analysis would compute a "p-value for
+                # NonTarget1" — meaningless, since controls aren't being
+                # tested for an effect. See discussion #19.
                 query = (
                     f"SELECT lt.central_gene_id, t.{pvalue_col} "
                     f"FROM {table_name} t "
                     f"JOIN {lt_name} lt ON t.id = lt.id "
+                    f"JOIN central_gene cg ON cg.id = lt.central_gene_id "
                     f"WHERE t.{pvalue_col} IS NOT NULL "
-                    f"AND t.{pvalue_col} > 0 AND t.{pvalue_col} <= 1"
+                    f"AND t.{pvalue_col} > 0 AND t.{pvalue_col} <= 1 "
+                    f"AND cg.kind = 'gene'"
                 )
                 try:
                     rows = conn.execute(query).fetchall()

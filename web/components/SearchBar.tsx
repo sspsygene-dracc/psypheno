@@ -227,6 +227,27 @@ export default function SearchBar({
               }}
             >
               <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                {/* "control" badge for kind='control' entries (NonTarget1,
+                    SafeTarget, GFP, …). Surfaced on autocomplete and on
+                    the `control` keyword search. See discussion #19. */}
+                {s.kind === "control" && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: 0.5,
+                      textTransform: "uppercase",
+                      color: "#7c2d12",
+                      background: "#fed7aa",
+                      border: "1px solid #fdba74",
+                      borderRadius: 4,
+                      padding: "1px 6px",
+                    }}
+                    title="Perturbation control — searchable, but excluded from per-gene aggregates."
+                  >
+                    control
+                  </span>
+                )}
                 {/* Show human symbol */}
                 {s.humanSymbol && (
                   <span style={{ fontWeight: 600 }}>
@@ -252,6 +273,23 @@ export default function SearchBar({
               </div>
             </div>
           ))}
+          {/* Discoverability hint for the `control` keyword — only shown when
+              the user isn't already on it. Lightweight; no extra row when
+              they've already typed `control`. */}
+          {!/^controls?$/i.test(query.trim()) && (
+            <div
+              style={{
+                padding: "8px 16px",
+                fontSize: 12,
+                color: "#6b7280",
+                borderTop: "1px solid #f3f4f6",
+                background: "#fafafa",
+              }}
+            >
+              Tip: type <code>control</code> to list every perturbation
+              control across all datasets.
+            </div>
+          )}
         </div>
       )}
     </div>

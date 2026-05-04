@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
 import { parseLinkTablesForDirection, type SearchDirection } from "@/lib/gene-query";
-import { SearchSuggestion } from "@/state/SearchSuggestion";
+import { SearchSuggestion, type CentralGeneKind } from "@/state/SearchSuggestion";
 import type Database from "better-sqlite3";
 
 interface GeneSuggestionRow {
@@ -10,7 +10,14 @@ interface GeneSuggestionRow {
   human_synonyms: string | null;
   mouse_synonyms: string | null;
   dataset_count: number;
+  kind: CentralGeneKind;
 }
+
+// Typing `control` (or `controls`) in the search box is a shorthand for
+// "show me every kind='control' entry across all datasets" — useful for
+// sanity-checking volcanoes and finding what each Perturb-seq study used
+// as its negative control. Case-insensitive; trimmed.
+const CONTROL_KEYWORDS = new Set(["control", "controls"]);
 
 type StmtTriple = {
   stmtHuman: Database.Statement;
@@ -76,7 +83,7 @@ function prepareTriple(
 
   const stmtHuman = db.prepare(`
     SELECT id, human_symbol, mouse_symbols, human_synonyms, mouse_synonyms,
-           num_datasets AS dataset_count
+           num_datasets AS dataset_count, kind
     FROM central_gene
     WHERE human_symbol LIKE ? COLLATE NOCASE
     ${filterDirect}
@@ -87,7 +94,8 @@ function prepareTriple(
   const stmtMouse = db.prepare(`
     SELECT cg.id AS id, cg.human_symbol AS human_symbol,
            cg.mouse_symbols AS mouse_symbols, cg.human_synonyms AS human_synonyms,
-           cg.mouse_synonyms AS mouse_synonyms, cg.num_datasets AS dataset_count
+           cg.mouse_synonyms AS mouse_synonyms, cg.num_datasets AS dataset_count,
+           cg.kind AS kind
     FROM extra_mouse_symbols ms
     JOIN central_gene cg ON cg.id = ms.central_gene_id
     WHERE ms.symbol LIKE ? COLLATE NOCASE
@@ -100,7 +108,8 @@ function prepareTriple(
   const stmtSynonym = db.prepare(`
     SELECT cg.id AS id, cg.human_symbol AS human_symbol,
            cg.mouse_symbols AS mouse_symbols, cg.human_synonyms AS human_synonyms,
-           cg.mouse_synonyms AS mouse_synonyms, cg.num_datasets AS dataset_count
+           cg.mouse_synonyms AS mouse_synonyms, cg.num_datasets AS dataset_count,
+           cg.kind AS kind
     FROM extra_gene_synonyms gs
     JOIN central_gene cg ON cg.id = gs.central_gene_id
     WHERE gs.synonym LIKE ? COLLATE NOCASE
@@ -113,6 +122,57 @@ function prepareTriple(
   return { stmtHuman, stmtMouse, stmtSynonym };
 }
 
+// Keyword path: "control" returns every kind='control' entry, scoped by
+// the current direction (perturbed vs target). Compiled once per
+// direction, like the other prepared statements.
+let stmtControlsAll: Database.Statement | null = null;
+let stmtControlsPerturbed: Database.Statement | null = null;
+let stmtControlsTarget: Database.Statement | null = null;
+
+function prepareControlsStmt(
+  db: Database.Database,
+  directionalIdsTable: string | null,
+): Database.Statement {
+  const filterDirect = directionalIdsTable
+    ? `AND id IN (SELECT central_gene_id FROM temp.${directionalIdsTable})`
+    : "";
+  return db.prepare(`
+    SELECT id, human_symbol, mouse_symbols, human_synonyms, mouse_synonyms,
+           num_datasets AS dataset_count, kind
+    FROM central_gene
+    WHERE kind = 'control'
+    ${filterDirect}
+    ORDER BY num_datasets DESC, human_symbol ASC, mouse_symbols ASC
+    LIMIT ?
+  `);
+}
+
+function getControlsStmt(
+  db: Database.Database,
+  direction: SearchDirection | null,
+): Database.Statement | null {
+  // Reuse the directional temp tables prepared by getStmts(); they're
+  // keyed off the same db identity so the staleness check there suffices.
+  if (direction == null) {
+    if (!stmtControlsAll) stmtControlsAll = prepareControlsStmt(db, null);
+    return stmtControlsAll;
+  }
+  if (direction === "perturbed") {
+    if (!stmtControlsPerturbed) {
+      const tempName = materializeDirectionalIds(db, "perturbed");
+      if (!tempName) return null;
+      stmtControlsPerturbed = prepareControlsStmt(db, tempName);
+    }
+    return stmtControlsPerturbed;
+  }
+  if (!stmtControlsTarget) {
+    const tempName = materializeDirectionalIds(db, "target");
+    if (!tempName) return null;
+    stmtControlsTarget = prepareControlsStmt(db, tempName);
+  }
+  return stmtControlsTarget;
+}
+
 function getStmts(
   db: Database.Database,
   direction: SearchDirection | null,
@@ -121,6 +181,9 @@ function getStmts(
     stmtsAll = null;
     stmtsPerturbed = null;
     stmtsTarget = null;
+    stmtControlsAll = null;
+    stmtControlsPerturbed = null;
+    stmtControlsTarget = null;
     stmtsDb = db;
   }
 
@@ -147,6 +210,28 @@ function getStmts(
   return stmtsTarget;
 }
 
+function rowToSuggestion(
+  r: GeneSuggestionRow,
+  searchText: string,
+): SearchSuggestion {
+  return {
+    centralGeneId: r.id,
+    searchQuery: searchText,
+    humanSymbol: r.human_symbol,
+    mouseSymbols: r.mouse_symbols
+      ? r.mouse_symbols.split(",").filter(Boolean)
+      : null,
+    humanSynonyms: r.human_synonyms
+      ? r.human_synonyms.split(",").filter(Boolean)
+      : null,
+    mouseSynonyms: r.mouse_synonyms
+      ? r.mouse_synonyms.split(",").filter(Boolean)
+      : null,
+    datasetCount: r.dataset_count,
+    kind: r.kind ?? "gene",
+  };
+}
+
 export function fetchGeneSuggestions(
   text: string,
   pageLimit: number = 8,
@@ -155,6 +240,19 @@ export function fetchGeneSuggestions(
   const db = getDb();
   const searchText = text.trim().replace(/['"]/g, "");
   if (!searchText) return [];
+
+  // Keyword path: "control" / "controls" → return every kind='control'
+  // entry. Documented in docs/wrangler_gene_cleanup.md so users can
+  // discover it. Bypasses the LIKE-prefix three-stage flow entirely.
+  if (CONTROL_KEYWORDS.has(searchText.toLowerCase())) {
+    // Ensure directional temp tables are materialized (getStmts has the
+    // db-identity invalidation logic).
+    getStmts(db, direction);
+    const ctlStmt = getControlsStmt(db, direction);
+    if (!ctlStmt) return [];
+    const rows = ctlStmt.all(pageLimit) as GeneSuggestionRow[];
+    return rows.map((r) => rowToSuggestion(r, searchText));
+  }
 
   const likePrefix = `${searchText}%`;
   const stmts = getStmts(db, direction);
@@ -179,19 +277,5 @@ export function fetchGeneSuggestions(
     }
   }
 
-  return allRows.map((r) => ({
-    centralGeneId: r.id,
-    searchQuery: searchText,
-    humanSymbol: r.human_symbol,
-    mouseSymbols: r.mouse_symbols
-      ? r.mouse_symbols.split(",").filter(Boolean)
-      : null,
-    humanSynonyms: r.human_synonyms
-      ? r.human_synonyms.split(",").filter(Boolean)
-      : null,
-    mouseSynonyms: r.mouse_synonyms
-      ? r.mouse_synonyms.split(",").filter(Boolean)
-      : null,
-    datasetCount: r.dataset_count,
-  }));
+  return allRows.map((r) => rowToSuggestion(r, searchText));
 }

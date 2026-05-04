@@ -1,3 +1,5 @@
+export type CentralGeneKind = "gene" | "control";
+
 export interface SearchSuggestion {
   centralGeneId: number;
   searchQuery: string;
@@ -6,4 +8,5 @@ export interface SearchSuggestion {
   humanSynonyms: string[] | null;
   mouseSynonyms: string[] | null;
   datasetCount: number;
+  kind: CentralGeneKind;
 }

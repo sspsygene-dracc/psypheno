@@ -24,7 +24,10 @@ export default async function handler(
     const likePrefix = `${q}%`;
 
     // Compose filters
-    const filters: string[] = ["cg.num_datasets > 0"]; // always require datasets
+    const filters: string[] = [
+      "cg.num_datasets > 0",     // always require datasets
+      "cg.kind = 'gene'",        // exclude controls from the gene browser
+    ];
     const params: any[] = [];
     if (q.length > 0) {
       filters.unshift(
@@ -104,6 +107,7 @@ export default async function handler(
         ? r.mouse_synonyms.split(",").filter(Boolean)
         : null,
       datasetCount: r.dataset_count,
+      kind: "gene",  // /api/all-genes filters to kind='gene' above
     }));
 
     return res
