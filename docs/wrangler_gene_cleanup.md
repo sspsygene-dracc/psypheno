@@ -12,11 +12,13 @@ The per-mapping `gene_mappings:` block in each dataset's `config.yaml` got a new
 
 | Old knob | New home | Notes |
 |---|---|---|
-| `ignore_missing:` | split into `non_resolving.drop_values:` (orphan, no stub) and `non_resolving.record_values:` (`manually_added=1` stub, no warn) | The old form silently orphaned rows AND skipped the central_gene insert — that's now explicit. |
+| `ignore_missing:` | split into `non_resolving.control_values:` (perturbation controls — kind='control' stub, searchable but excluded from aggregates) and `non_resolving.record_values:` (`manually_added=1` stub, no warn) | The old form silently orphaned rows AND skipped the central_gene insert — that's now explicit. |
+| `non_resolving.drop_values:` | `non_resolving.control_values:` (controls), `non_resolving.record_values:` (predicted genes you want kept as stubs), or `.filter_rows()` in `preprocess.py` (placeholders / true row drops, tracked in `preprocessing.yaml`) | Removed from the schema. The old behaviour orphaned a link silently at load-db time — incompatible with #149/#150. |
+| `non_resolving.drop_patterns:` | `non_resolving.record_patterns:` in nearly every case; or `.filter_rows()` in `preprocess.py` if the rows truly shouldn't load | Removed from the schema. |
 | `replace:` (str → str) | `clean_gene_column(manual_aliases=...)` in your `preprocess.py`, OR a plain pandas op | Removed from the YAML schema. |
 | `to_upper:` | `df[col] = df[col].str.upper()` in your `preprocess.py` | Removed from the YAML schema. |
 
-The retired keys **hard-error** in load-db now — if you (or a colleague) puts `ignore_missing:` into a YAML, the build fails fast with a message pointing at the new home.
+The retired keys **hard-error** in load-db now — if you (or a colleague) puts `ignore_missing:` or `drop_values:` into a YAML, the build fails fast with a message pointing at the new home.
 
 `multi_gene_separator:` and `ignore_empty:` are unchanged.
 
@@ -35,25 +37,26 @@ gene_mappings:
     ignore_empty: true                 # unchanged
 
     non_resolving:
-      # 1. Literal values that should be ORPHANED (no central_gene stub, no warn).
-      #    Use for placeholders, controls, paper-specific junk.
-      drop_values: [not_available, none identified, GFP, NonTarget1]
+      # 1. Perturbation controls (NonTarget1, SafeTarget, GFP, Control_ST).
+      #    Created as central_gene entries with kind='control'.
+      #    Searchable in the autocomplete (and via the `control` keyword
+      #    — see §X) but EXCLUDED from per-gene aggregates: volcano
+      #    backgrounds, FDR meta-analysis, and the gene browser.
+      control_values: [GFP, NonTarget1]
 
-      # 2. Pattern categories that should be ORPHANED.
-      #    Useful when raw ENSG/clone IDs sneak in but you don't want
-      #    them in the gene browser at all.
-      drop_patterns: [rna_family]      # see §6 for the full list
-
-      # 3. Literal values that should get a manually_added=1 stub
-      #    in central_gene (no warn). Use for retired HGNC symbols
-      #    with no clear successor.
+      # 2. Literal values that should get a manually_added=1 stub in
+      #    central_gene (no warn), kind='gene'. Use for retired HGNC
+      #    symbols, predicted models that aren't in MGI/HGNC but you
+      #    want kept (Gm16091, Gm42864), and similar.
       record_values: [SGK494, GATD3B, IQCD, CRIPAK]
 
-      # 4. Pattern categories that should get a stub.
+      # 3. Pattern categories that should get a stub.
       #    Common case: ENSG IDs / GENCODE clones / contigs that
       #    aren't HGNC symbols but DO represent specific loci.
       record_patterns: [contig, gencode_clone, genbank_accession]
 ```
+
+> **Placeholder rows** (`not_available`, `none identified`, etc.) — drop them in `preprocess.py` via a tracked `.filter_rows(...)` step, NOT in `config.yaml`. The dropped count gets recorded in `preprocessing.yaml`. See `data/datasets/brain_organoid_atlas/preprocess.py` for an example.
 
 **Default behavior with no `non_resolving:` block:** unresolved values trigger a warning AND get a stub. Previously the loader silently swallowed warnings for values that looked like ENSG IDs / GENCODE clones / contigs / GenBank accessions; that implicit silencing is gone. To suppress those warnings without losing the rows, opt in explicitly via `record_patterns:` per dataset (see §4.5).
 
@@ -142,8 +145,9 @@ grep -P "^.+?\t<successor>\t" data/homology/hgnc_complete_set.txt
 
 Each dataset migration can shift row counts:
 
-- `record_values:` / `record_patterns:` entries → +N stubs in `central_gene` per unique value seen.
-- `drop_values:` / `drop_patterns:` → row stays in dataset table, but no central_gene link → invisible to gene search.
+- `record_values:` / `record_patterns:` entries → +N stubs in `central_gene` (kind='gene', `manually_added=1`) per unique value seen. Searchable.
+- `control_values:` entries → +N stubs in `central_gene` with `kind='control'`. Searchable but excluded from per-gene aggregates.
+- `.filter_rows()` in `preprocess.py` → rows are removed pre-load; `preprocessing.yaml` records the dropped count.
 - `manual_aliases:` (e.g. NOV → CCN3) → row stays, links to the existing CCN3 row → no stub created.
 
 Spot-check after a rebuild:
@@ -197,6 +201,16 @@ Use this when:
 
 **You don't need to write this file by hand.** As long as your `preprocess.py` calls `tracker.write(DIR / "preprocessing.yaml")` at the end of `main()`, it's regenerated every run.
 
+### 3.6 Controls and the `control` search keyword
+
+Perturbation control labels (`NonTarget1`, `SafeTarget`, `GFP`, `Control_ST`, …) live in `central_gene` with `kind='control'`. They are first-class entries:
+
+- **Searchable** in the autocomplete by exact name (e.g. typing `NonTarget` matches `NonTarget1`); each control suggestion shows a small uppercase `control` badge.
+- **Discoverable** via the **`control` keyword** — typing `control` (or `controls`) in the search box returns every `kind='control'` entry across all datasets. Useful for sanity-checking volcanoes, finding which Perturb-seq study used what control, and confirming a wrangle plumbed its control labels through. Direction filtering applies (perturbed/target dropdown narrows the result list).
+- **Excluded from per-gene aggregates**: the volcano background filter, the `combined_pvalues` meta-analysis, and the `/all-genes` browser all `WHERE central_gene.kind = 'gene'`. So a control doesn't pollute another gene's stats; conversely, the control's own `/gene/<name>` page just shows its rows (no aggregate volcano makes sense for it — UI polish is tracked separately).
+
+Wranglers tag controls in `config.yaml` via the `control_values:` bucket (see §1 / §2). If a control needs pattern-based matching down the road we can add `control_patterns:`; today all known controls are literal names.
+
 ---
 
 ## 4. Open decisions still owed by wranglers
@@ -248,28 +262,41 @@ In `SFARI-Gene_animal-rescues_07-08-2025release_10-03-2025export.csv`, the `mode
 
 **Action:** when convenient — remove the dropna + empty-string filter. Add `ignore_empty: true` to the `target_gene` mapping in `config.yaml` so empty values orphan cleanly. **Beware:** this brings 87k extra rows into the DB. Real downstream impact (DB size, search results, dataset table view); do its own commit + rebuild check, not lumped with cleanup.
 
-### 4.5 Policy: `record_patterns:` vs `drop_patterns:` for the new categories
+### 4.5 Policy for the pattern categories
 
-When you do the per-dataset rollout of `non_resolving:` (currently 6 datasets need it — see the warning sweep in §3.2), you have to pick a bucket per category. The trade-off is what the web UI does for those values after the rebuild.
+When you do the per-dataset rollout of `non_resolving:` (currently 6 datasets need it — see the warning sweep in §3.2), pick a bucket per category. The trade-off is what the web UI does for those values after the rebuild.
 
 | Category | Recommendation | Reasoning |
 |---|---|---|
-| `contig` | `record_patterns:` | Each contig accession represents a specific locus that just lacks an HGNC symbol. A stub is correct; orphaning would lose the row from gene search even though it's a real measured thing. |
+| `contig` | `record_patterns:` | Each contig accession represents a specific locus that just lacks an HGNC symbol. A stub is correct; dropping would lose the row from gene search even though it's a real measured thing. |
 | `gencode_clone` (incl. all the new prefixes: `ABC7-`, `EM:`, `yR`, `XX-DJ`, `XX-FW`, `CITF`, `GHc-`, `SC22CB-`, `bP-`) | `record_patterns:` | Same as contig — clones map to specific loci. |
 | `genbank_accession` | `record_patterns:` | Same — the accession identifies a specific deposited sequence. |
-| `ensembl_human` / `ensembl_mouse` | `record_patterns:` for now | Same. Once #119's preprocess-time ENSG → symbol resolution lands, these can become `drop_patterns:` (or just go away). |
-| `rna_family` | **`drop_patterns:`** | Different reasoning. RNA family labels (`Y_RNA`, `SNOR*`, `MIR*`, `U6`, `Vault`, `7SK`, `Metazoa_SRP`) are FAMILY annotations, not specific loci. The genome contains 100s–1000s of distinct paralogs sharing the label; `record_patterns` would create a single `manually_added=1` stub that conflates all of them. Searching `Y_RNA` in the web app would return ~2,000+ rows from polygenic-risk-20 alone, all behaving as if they're one gene. Misleading. With `drop_patterns:`, the rows stay in the dataset table view (the data is intact) but they're invisible to gene-search / cross-dataset cards — which is the right behavior for a family label. |
+| `ensembl_human` / `ensembl_mouse` | `record_patterns:` for now | Same. After #119's preprocess-time ENSG → symbol resolution, most of these collapse into real symbols anyway. |
+| `rna_family` | filter the rows out in `preprocess.py` via `.filter_rows()` | RNA family labels (`Y_RNA`, `SNOR*`, `MIR*`, `U6`, `Vault`, `7SK`, `Metazoa_SRP`) are FAMILY annotations, not specific loci. The genome contains 100s–1000s of distinct paralogs sharing the label; a `record_patterns` stub would create a single `manually_added=1` central_gene entry that conflates all of them. Searching `Y_RNA` in the web app would return ~2,000+ rows from polygenic-risk-20 alone, all behaving as if they're one gene. Misleading. The retired `drop_patterns:` knob used to silently orphan these at load-db; under #149/#150 the equivalent is a tracked `.filter_rows(...)` step in `preprocess.py` so the dropped count lands in `preprocessing.yaml`. |
 
-**TL;DR:**
+**TL;DR (config.yaml):**
 
 ```yaml
 non_resolving:
-  drop_patterns:   [rna_family]
   record_patterns: [contig, gencode_clone, genbank_accession]
   # for mouse-Ensembl-ID columns, also add `ensembl_mouse` to record_patterns
 ```
 
-If you disagree on the `rna_family` call (e.g. for some specific paper, you actively want `Y_RNA` to be a navigable entity), use `record_patterns: [rna_family]` instead — the schema doesn't care.
+**TL;DR (preprocess.py)** — for the family-label rows:
+
+```python
+from processing.preprocessing.helpers import is_non_symbol_identifier
+
+def _drop_rna_family(df: pd.DataFrame) -> pd.Series:
+    return pd.Series(
+        [is_non_symbol_identifier(v) != "rna_family"
+         for v in df["gene_symbol"]],
+        index=df.index,
+    )
+
+# inside main():
+.filter_rows(_drop_rna_family, description="drop RNA family labels (Y_RNA, MIR*, …)")
+```
 
 ---
 
@@ -284,7 +311,7 @@ If you're spinning up a new wrangle, the workflow is the same as before *except*
 5. **Don't drop rows outside the pipeline.** If you `dropna` or filter, do it via `.dropna(...)` / `.filter_rows(predicate, description=...)` — that way the YAML records the action and the row counts before/after.
 6. **Decide your `record_patterns:` upfront.** If the dataset has raw ENSG IDs / contigs / GENCODE clones (which most large RNA-seq tables do), add `record_patterns: [contig, gencode_clone, genbank_accession]` to that mapping. Otherwise you'll spam the load-db log with non-symbol-identifier warnings.
 7. **For mouse datasets:** if your gene column has Ensembl mouse IDs, opt in via `record_patterns: [ensembl_mouse]`.
-8. **For datasets with raw RNA family labels** (Y_RNA, U6, SNORD42, MIR123, etc.): use `drop_patterns: [rna_family]`. These are family labels, not loci — orphan them rather than create a misleading single-stub central_gene entry.
+8. **For datasets with raw RNA family labels** (Y_RNA, U6, SNORD42, MIR123, etc.): drop those rows in `preprocess.py` via a tracked `.filter_rows(...)` step (see §4.5 for a template). These are family labels, not loci — orphan-via-config used to be `drop_patterns: [rna_family]`, but that knob is retired; the equivalent now lives in preprocess so the count is recorded in `preprocessing.yaml`.
 
 ---
 
@@ -295,11 +322,16 @@ If you're spinning up a new wrangle, the workflow is the same as before *except*
 1. `ignore_empty: true` AND value is empty/NaN → orphan, no warn.
 2. `multi_gene_separator:` → split into multiple values.
 3. Resolve in `central_gene` (after preprocess-time cleaning) → join.
-4. **NEW**: value matches `drop_values:` or `drop_patterns:` → orphan, no stub, no warn.
-5. **NEW**: value matches `record_values:` or `record_patterns:` → stub + link, no warn.
-6. **DEFAULT**: warn + create stub + link.
+4. Value matches `control_values:` → `kind='control'` stub + link, no warn. Searchable, but excluded from per-gene aggregates.
+5. Value matches `record_values:` or `record_patterns:` → `kind='gene'` stub + link, no warn.
+6. **DEFAULT**: warn + create `kind='gene'` stub + link.
 
-### Pattern categories (for `drop_patterns:` / `record_patterns:`)
+> Heads-up: `drop_values:` and `drop_patterns:` were retired in the
+> #19 work. Their old behaviour (silent link orphan at load-db time)
+> is no longer available. Migrate to `control_values:` /
+> `record_values:` / `record_patterns:` / `.filter_rows()` per §1.
+
+### Pattern categories (for `record_patterns:`)
 
 | Name | Matches | Examples |
 |---|---|---|
