@@ -1,0 +1,50 @@
+generated: '2026-05-04T10:49:25Z'
+inputs:
+- deg.txt
+- clusterprop.txt
+tables:
+  deg_cleaned.txt:
+  - step: read_csv
+    source: deg.txt
+    separator: "\t"
+    rows: 1627
+    columns:
+    - Gene
+    - logFC
+    - logCPM
+    - LR
+    - PValue
+    - padj
+    - cell type
+    - perturbation
+  - step: clean_gene_column
+    column: Gene
+    species: mouse
+    flags:
+      excel_demangle: true
+    counts:
+      passed_through: 1622
+      rescued_excel: 3
+      unresolved: 2
+    dropped_rows: 0
+    sample_unresolved:
+    - Gm16091
+    - Gm42864
+  - step: write_csv
+    destination: deg_cleaned.txt
+    separator: "\t"
+    rows: 1627
+    columns:
+    - Gene
+    - logFC
+    - logCPM
+    - LR
+    - PValue
+    - padj
+    - cell type
+    - perturbation
+    - Gene_raw
+    - _Gene_resolution
+  clusterprop_cleaned.txt:
+  - step: copy_file
+    source: clusterprop.txt
