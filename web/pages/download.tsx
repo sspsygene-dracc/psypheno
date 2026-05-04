@@ -181,10 +181,99 @@ export default function DownloadPage() {
           <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: "#1f2937" }}>
             Per-dataset downloads
           </h2>
-          <p style={{ color: "#4b5563", marginBottom: 16, fontSize: 14 }}>
-            Click <em>Data (TSV)</em> for the full table or <em>Metadata (YAML)</em>{" "}
-            for column descriptions, citation, and source links.
+          <p style={{ color: "#4b5563", marginBottom: 8, fontSize: 14 }}>
+            Click <em>Data (TSV)</em> for the full table,{" "}
+            <em>Metadata (YAML)</em> for column descriptions, citation, and
+            source links, or — when present —{" "}
+            <em>Preprocessing (YAML)</em> for the per-step record of how the
+            raw data was cleaned before loading.
           </p>
+          <details style={{ marginBottom: 16 }}>
+            <summary
+              style={{
+                cursor: "pointer",
+                color: "#374151",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              About preprocessing provenance
+            </summary>
+            <div
+              style={{
+                marginTop: 8,
+                padding: "10px 12px",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
+                borderRadius: 8,
+                fontSize: 13,
+                color: "#374151",
+                lineHeight: 1.55,
+              }}
+            >
+              <p style={{ marginTop: 0 }}>
+                Each dataset's <em>Preprocessing (YAML)</em> file lists every
+                action the data wrangler's <code>preprocess.py</code> script
+                applied to the raw data — gene-symbol rescues, dropped rows,
+                renamed columns, custom transforms — in the order they
+                executed. Read it to audit how a published table was turned
+                into the table you can search and download here.
+              </p>
+              <p style={{ marginBottom: 0 }}>
+                Common fields you'll see:
+              </p>
+              <ul style={{ marginTop: 6, marginBottom: 0, paddingLeft: 20 }}>
+                <li>
+                  <code>step: clean_gene_column</code> — gene-symbol resolution
+                  for one column. <code>counts.passed_through</code> = rows
+                  whose original symbol resolved directly;{" "}
+                  <code>counts.rescued_excel</code> = rows where
+                  Excel-mangled values like <code>9-Sep</code> were repaired
+                  to <code>SEPTIN9</code>; <code>counts.rescued_make_unique</code>{" "}
+                  = R <code>make.unique</code> suffixes
+                  (<code>MATR3.1 → MATR3</code>) stripped;{" "}
+                  <code>counts.rescued_manual_alias</code> = wrangler-curated
+                  successor map hits (<code>NOV → CCN3</code>);{" "}
+                  <code>counts.rescued_ensembl_map</code> = ENSG/ENSMUSG IDs
+                  resolved to symbols; <code>counts.unresolved</code> = rows
+                  the cleaner could not resolve (kept as-is). The first ~10
+                  unresolved values appear in <code>sample_unresolved</code>{" "}
+                  for inspection.
+                </li>
+                <li>
+                  <code>step: dropna</code> /{" "}
+                  <code>step: filter_rows</code> — rows removed by a
+                  predicate. <code>rows_before</code> /{" "}
+                  <code>rows_after</code> / <code>dropped</code> tell you the
+                  exact counts.
+                </li>
+                <li>
+                  <code>step: rename</code> /{" "}
+                  <code>step: drop_columns</code> /{" "}
+                  <code>step: reorder</code> — schema reshape.
+                </li>
+                <li>
+                  <code>step: transform_column</code> — a one-off custom
+                  string fixup; the <code>description</code> field explains
+                  what was done.
+                </li>
+                <li>
+                  <code>step: read_csv</code> / <code>step: write_csv</code> —
+                  bookends recording the source filename and the final column
+                  list.
+                </li>
+              </ul>
+              <p style={{ marginTop: 8, marginBottom: 0 }}>
+                Each cleaned table also keeps two extra columns for
+                row-level provenance: <code>&lt;gene_col&gt;_raw</code> (the
+                original value before cleaning) and{" "}
+                <code>_&lt;gene_col&gt;_resolution</code> (the per-row tag
+                — <code>passed_through</code>, <code>rescued_excel</code>,
+                <code>unresolved</code>, etc.). Cross-reference those with
+                the YAML to investigate any specific row.
+              </p>
+            </div>
+          </details>
 
           {loading && <div style={{ color: "#6b7280" }}>Loading datasets...</div>}
           {error && <div style={{ color: "#dc2626" }}>{error}</div>}

@@ -2,7 +2,7 @@
 
 > **Audience:** SSPsyGene data wranglers (William, team). This is a living document — items will be added/removed as the cleanup work proceeds.
 >
-> **Status:** the architecture rewrite has landed (commit `15edd3d`, ticket [#121](https://github.com/sspsygene-dracc/psypheno/issues/121)). All datasets that used the old `ignore_missing` / `replace` / `to_upper` knobs have been migrated. This doc lists what's changed for you, what's still owed, and what to keep an eye on.
+> **Status:** the architecture rewrite has landed (commit `15edd3d`, ticket [#121](https://github.com/sspsygene-dracc/psypheno/issues/121)). All datasets that used the old `ignore_missing` / `replace` / `to_upper` knobs have been migrated. The OO preprocessing library + tracked-action provenance are also now in ([#149](https://github.com/sspsygene-dracc/psypheno/issues/149), [#150](https://github.com/sspsygene-dracc/psypheno/issues/150)) — `preprocess.py` is now a `Pipeline` of tracked steps that emit a sibling `preprocessing.yaml`. This doc lists what's changed for you, what's still owed, and what to keep an eye on.
 
 ---
 
@@ -19,6 +19,8 @@ The per-mapping `gene_mappings:` block in each dataset's `config.yaml` got a new
 The retired keys **hard-error** in load-db now — if you (or a colleague) puts `ignore_missing:` into a YAML, the build fails fast with a message pointing at the new home.
 
 `multi_gene_separator:` and `ignore_empty:` are unchanged.
+
+`preprocess.py` itself also changed: instead of free-function calls to `clean_gene_column(...)` plus loose `df.dropna(...)` / `df.drop_columns(...)` ops, you now build a **`Pipeline`** of tracked **`Step`s** that each record what they did into a `Tracker`. At the end of `main()` the tracker writes a sibling `preprocessing.yaml` so downstream users (and future-you) can audit exactly which manual cleanup was applied. See §2 for the cheat sheet, §3.5 for the provenance file.
 
 ---
 
@@ -57,37 +59,47 @@ gene_mappings:
 
 ### `manual_aliases` (in preprocess.py)
 
-For retired symbols where you know the canonical successor:
+For retired symbols where you know the canonical successor, pass them to `clean_gene` inside the pipeline:
 
 ```python
-from processing.preprocessing import GeneSymbolNormalizer, clean_gene_column
-
-normalizer = GeneSymbolNormalizer.from_env()
-df, report = clean_gene_column(
-    df, "target_gene",
-    species="human",
-    normalizer=normalizer,
-    excel_demangle=True,
-    strip_make_unique=True,
-    manual_aliases={
-        "NOV": "CCN3",
-        "QARS": "QARS1",
-        "MUM1": "PWWP3A",
-        "TAZ": "TAFAZZIN",
-        "SARS": "SARS1",
-    },
+from pathlib import Path
+from processing.preprocessing import (
+    GeneSymbolNormalizer, MANUAL_ALIASES_HUMAN, Pipeline, Tracker,
 )
+
+DIR = Path(__file__).resolve().parent
+
+def main() -> None:
+    tracker = Tracker()
+    normalizer = GeneSymbolNormalizer.from_env()
+
+    (
+        Pipeline("cleaned.csv", tracker=tracker, normalizer=normalizer)
+        .read_csv(DIR / "raw.csv")
+        .clean_gene(
+            "target_gene",
+            species="human",
+            excel_demangle=True,
+            strip_make_unique=True,
+            manual_aliases=MANUAL_ALIASES_HUMAN,   # the cross-dataset superset
+        )
+        .write_csv(DIR / "cleaned.csv")
+        .run()
+    )
+    tracker.write(DIR / "preprocessing.yaml")
 ```
 
-**Important:** the rescue target (`CCN3`, etc.) must resolve through the normalizer to a current approved HGNC symbol. If it doesn't, the call **raises `ValueError`** — guard against typos. So you cannot use `manual_aliases` for "fix a typo to a value that itself isn't a real symbol" (e.g. `ABALON. → ABALON` won't work because `ABALON` is itself retired). For those, use a pandas op upstream of `clean_gene_column`.
+`MANUAL_ALIASES_HUMAN` is exported from `processing.preprocessing` and contains the 5-symbol human cross-dataset superset (`NOV→CCN3, MUM1→PWWP3A, QARS→QARS1, SARS→SARS1, TAZ→TAFAZZIN`). For per-dataset additions, merge a dict on top: `manual_aliases={**MANUAL_ALIASES_HUMAN, "FOO": "BAR"}`.
+
+**Important:** the rescue target (`CCN3`, etc.) must resolve through the normalizer to a current approved HGNC symbol. If it doesn't, the call **raises `ValueError`** — guard against typos. So you cannot use `manual_aliases` for "fix a typo to a value that itself isn't a real symbol" (e.g. `ABALON. → ABALON` won't work because `ABALON` is itself retired). For those, use `.transform_column(col, func, description=...)` upstream of `clean_gene` — it's tracked so the YAML records the description.
 
 ---
 
 ## 3. Things to look at when running your next preprocess.py / load-db
 
-### 3.1 The new `<col>_raw` column
+### 3.1 The `<col>_raw` and `_<col>_resolution` columns
 
-`clean_gene_column` now writes the original (pre-cleaner) value into `<col>_raw`. If you preserve that column in your output TSV (don't drop it), wranglers and end-users can audit each row from the cleaned TSV alone — no need to cross-reference the source.
+`clean_gene` writes the original (pre-cleaner) value into `<col>_raw` and the per-row tag into `_<col>_resolution`. **Both are kept by default in the cleaned output** — wranglers and end-users can audit each row from the cleaned TSV alone, no need to cross-reference the source.
 
 ```
 target_gene  target_gene_raw   _target_gene_resolution
@@ -97,9 +109,9 @@ MATR3        MATR3.1           rescued_make_unique
 CCN3         NOV               rescued_manual_alias
 ```
 
-> If your `preprocess.py` has `df = df.drop(columns=["_<col>_resolution"])`, leave it — that drops only the resolution tag column. Do **not** drop `<col>_raw`. (See: brain_organoid_atlas, dynamic_convergence, hsc-asd-organoid-m5, polygenic-risk-20, psychscreen `preprocess.py` — they're all set up correctly.)
+> **Migration note (#150):** the old free-function flow had every `preprocess.py` call `df.drop(columns=["_<col>_resolution"])` immediately after `clean_gene_column(...)`. The new pipeline form does NOT do that — keep both `<col>_raw` AND `_<col>_resolution` in the output. If you really need to drop the resolution column for an existing dataset's contract, use `.drop_columns(["_<col>_resolution"])` in the pipeline — that's tracked too, so the YAML records the drop.
 >
-> If you rename `<col>` later in the script, rename `<col>_raw` in lockstep (e.g. hsc-asd-organoid-m5 renames `hgnc_symbol → target_gene` and also `hgnc_symbol_raw → target_gene_raw`).
+> If you rename `<col>` later in the script, rename `<col>_raw` in lockstep (e.g. hsc-asd-organoid-m5 renames `hgnc_symbol → target_gene` and also `hgnc_symbol_raw → target_gene_raw`). The pipeline's `.rename({...})` step handles this — pass both names in the mapping dict.
 
 ### 3.2 Watch the load-db warning counts
 
@@ -147,6 +159,43 @@ WHERE human_symbol IN ('CCN3','QARS1','PWWP3A','TAFAZZIN','SARS1');
 SELECT * FROM central_gene WHERE human_symbol = 'NOV';
 -- Expect: 0 rows
 ```
+
+### 3.5 The new sibling `preprocessing.yaml`
+
+Every dataset that ships a `Pipeline`-based `preprocess.py` also writes a sibling `preprocessing.yaml` capturing every action: read, gene-clean, dropna, filter_rows, transform_column, rename, drop_columns, write. **Tracked in git**, so PR diffs of `preprocessing.yaml` make manual cleanup changes review-visible.
+
+Shape (abbreviated):
+
+```yaml
+generated: '2026-05-04T10:49:25Z'
+inputs:
+- deg.txt
+tables:
+  deg_cleaned.txt:
+  - step: read_csv
+    source: deg.txt
+    rows: 1627
+    columns: [Gene, logFC, ...]
+  - step: clean_gene_column
+    column: Gene
+    species: mouse
+    flags: {excel_demangle: true}
+    counts: {passed_through: 1622, rescued_excel: 3, unresolved: 2}
+    dropped_rows: 0
+    sample_unresolved: [Gm16091, Gm42864]
+  - step: write_csv
+    destination: deg_cleaned.txt
+    rows: 1627
+```
+
+`load-db` slices this down to the per-table actions and stores them as JSON on `data_tables.preprocessing`. The web app surfaces a "Preprocessing (YAML)" download button next to the existing "Metadata (YAML)" button on `/download`.
+
+Use this when:
+- A user asks "why is row N missing the gene I expected?" — find the `_<col>_resolution` tag in the cleaned TSV, cross-reference with `counts` and `sample_unresolved` in the YAML.
+- A reviewer wants to know what manual cleanup you did — point them at the diff of `preprocessing.yaml` rather than re-eyeballing the script.
+- You're adding a new rescue helper (e.g. a new pattern category) — the rescue-tier counts in the YAML let you measure impact across all datasets at once.
+
+**You don't need to write this file by hand.** As long as your `preprocess.py` calls `tracker.write(DIR / "preprocessing.yaml")` at the end of `main()`, it's regenerated every run.
 
 ---
 
@@ -228,12 +277,14 @@ If you disagree on the `rna_family` call (e.g. for some specific paper, you acti
 
 If you're spinning up a new wrangle, the workflow is the same as before *except*:
 
-1. **Don't use `ignore_missing` / `replace` / `to_upper`** — they're gone. Use `non_resolving:` and `manual_aliases` instead.
-2. **Check `<col>_raw` doesn't already exist** in your input frame. The cleaner raises `KeyError` if it does. If you have a column literally named `target_gene_raw` already, rename it before calling.
-3. **Don't silently drop rows** in your `preprocess.py`. If you `dropna(...)` or filter, document it in the docstring AND emit a count to stdout — every dropped row needs to be accountable.
-4. **Decide your `record_patterns:` upfront.** If the dataset has raw ENSG IDs / contigs / GENCODE clones (which most large RNA-seq tables do), add `record_patterns: [contig, gencode_clone, genbank_accession]` to that mapping. Otherwise you'll spam the load-db log with non-symbol-identifier warnings.
-5. **For mouse datasets:** if your gene column has Ensembl mouse IDs, opt in via `record_patterns: [ensembl_mouse]`.
-6. **For datasets with raw RNA family labels** (Y_RNA, U6, SNORD42, MIR123, etc.): use `drop_patterns: [rna_family]`. These are family labels, not loci — orphan them rather than create a misleading single-stub central_gene entry.
+1. **Build a `Pipeline`, not free-function calls.** `from processing.preprocessing import Pipeline, Tracker, GeneSymbolNormalizer` — see `data/datasets/mouse-perturb-4tf/preprocess.py` for the simplest template, or `hsc-asd-organoid-m5/preprocess.py` for a multi-sheet Excel one. The chainable builder methods (`read_csv`, `clean_gene`, `dropna`, `filter_rows`, `transform_column`, `rename`, `drop_columns`, `write_csv`) cover everything; `pipeline.add(MyCustomStep(...))` is the escape hatch.
+2. **Call `tracker.write(DIR / "preprocessing.yaml")` at the end of `main()`.** Every step records into the tracker; this line persists it. The file is git-tracked so PR diffs surface every cleanup decision.
+3. **Don't use `ignore_missing` / `replace` / `to_upper`** — they're gone. Use `non_resolving:` and `manual_aliases` instead.
+4. **Check `<col>_raw` doesn't already exist** in your input frame. The cleaner raises `KeyError` if it does. If you have a column literally named `target_gene_raw` already, rename it before calling `clean_gene`.
+5. **Don't drop rows outside the pipeline.** If you `dropna` or filter, do it via `.dropna(...)` / `.filter_rows(predicate, description=...)` — that way the YAML records the action and the row counts before/after.
+6. **Decide your `record_patterns:` upfront.** If the dataset has raw ENSG IDs / contigs / GENCODE clones (which most large RNA-seq tables do), add `record_patterns: [contig, gencode_clone, genbank_accession]` to that mapping. Otherwise you'll spam the load-db log with non-symbol-identifier warnings.
+7. **For mouse datasets:** if your gene column has Ensembl mouse IDs, opt in via `record_patterns: [ensembl_mouse]`.
+8. **For datasets with raw RNA family labels** (Y_RNA, U6, SNORD42, MIR123, etc.): use `drop_patterns: [rna_family]`. These are family labels, not loci — orphan them rather than create a misleading single-stub central_gene entry.
 
 ---
 
@@ -284,9 +335,16 @@ Look out for "not in gene maps" or "looks like a non-symbol identifier"
 
 ## 7. Reference
 
-- Helper library:
-  [`processing/src/processing/preprocessing/`](processing/src/processing/preprocessing/)
+- Library + Pipeline API:
+  [`processing/src/processing/preprocessing/`](../processing/src/processing/preprocessing/)
+  ([README](../processing/src/processing/preprocessing/README.md))
 - Schema:
-  [`processing/src/processing/types/gene_mapping.py`](processing/src/processing/types/gene_mapping.py)
-- Reference migration (cleanest example): commit `15edd3d`, dataset
-  `dynamic_convergence`
+  [`processing/src/processing/types/gene_mapping.py`](../processing/src/processing/types/gene_mapping.py)
+- Reference migrations:
+  - Simplest pipeline:
+    [`data/datasets/mouse-perturb-4tf/preprocess.py`](../data/datasets/mouse-perturb-4tf/preprocess.py)
+  - Multi-sheet Excel + concat:
+    [`data/datasets/hsc-asd-organoid-m5/preprocess.py`](../data/datasets/hsc-asd-organoid-m5/preprocess.py)
+  - Free-function era (pre-#149): commit `15edd3d`, dataset `dynamic_convergence`
+- Tickets: [#149](https://github.com/sspsygene-dracc/psypheno/issues/149) (OO library),
+  [#150](https://github.com/sspsygene-dracc/psypheno/issues/150) (provenance tracking)
