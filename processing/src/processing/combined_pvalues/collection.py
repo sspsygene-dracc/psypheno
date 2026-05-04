@@ -13,7 +13,7 @@ import mpmath
 
 from processing.sql_utils import sanitize_identifier
 
-from .data import CollectedPvalues, SourceTableTriple
+from .data import CollectedPvalues, Regulation, SourceTableQuad
 
 
 def parse_link_tables_for_direction(link_tables_raw: str, direction: str) -> list[str]:
@@ -58,18 +58,28 @@ def precollapse(pvalues: list[float]) -> float:
 
 def collect_pvalues_for_tables(
     conn: sqlite3.Connection,
-    tables_with_pvalues: list[SourceTableTriple],
+    tables_with_pvalues: list[SourceTableQuad],
     label: str = "",
     direction: str = "target",
+    regulation: Regulation = "any",
 ) -> CollectedPvalues:
     """Collect p-values from the database for the given tables.
 
     direction must be "target" or "perturbed"; tables whose link-table entries
     don't include the matching direction are silently skipped.
+
+    regulation:
+      - "any" — collect every row that passes the standard filters (current
+        default behavior).
+      - "up" / "down" — restrict to rows whose table-declared effect_column is
+        > 0 (up) or < 0 (down). Tables without an effect_column are skipped
+        entirely under up/down (since signed direction is undefined for them).
     """
     collected = CollectedPvalues()
 
-    for table_name, pvalue_cols_raw, link_tables_raw in tables_with_pvalues:
+    for table_name, pvalue_cols_raw, link_tables_raw, effect_col_raw in (
+        tables_with_pvalues
+    ):
         table_name = sanitize_identifier(table_name)
         pvalue_cols = [sanitize_identifier(c) for c in pvalue_cols_raw.split(",")]
         link_table_names = parse_link_tables_for_direction(
@@ -78,6 +88,18 @@ def collect_pvalues_for_tables(
 
         if not link_table_names:
             continue
+
+        # Up/down regulation requires the table to declare an effect_column.
+        if regulation != "any" and not effect_col_raw:
+            continue
+        effect_col = (
+            sanitize_identifier(effect_col_raw) if effect_col_raw else None
+        )
+        sign_clause = ""
+        if regulation == "up" and effect_col is not None:
+            sign_clause = f" AND t.{effect_col} > 0"
+        elif regulation == "down" and effect_col is not None:
+            sign_clause = f" AND t.{effect_col} < 0"
 
         for pvalue_col in pvalue_cols:
             for lt_name in link_table_names:
@@ -94,6 +116,7 @@ def collect_pvalues_for_tables(
                     f"WHERE t.{pvalue_col} IS NOT NULL "
                     f"AND t.{pvalue_col} > 0 AND t.{pvalue_col} <= 1 "
                     f"AND cg.kind = 'gene'"
+                    f"{sign_clause}"
                 )
                 try:
                     rows = conn.execute(query).fetchall()

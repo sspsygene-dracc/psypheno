@@ -45,6 +45,7 @@ const bodySchema = z.object({
   organismFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
   geneSearch: z.string().max(50).regex(/^[A-Za-z0-9._-]*$/).default(""),
   direction: z.enum(["target", "perturbed"]).default("target"),
+  regulation: z.enum(["any", "up", "down"]).default("any"),
 });
 
 /** Check whether a table exists in the database. */
@@ -70,7 +71,7 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { page, pageSize, method, hideFlags, showFlags, showOther, assayFilter, diseaseFilter, organismFilter, geneSearch, direction } =
+  const { page, pageSize, method, hideFlags, showFlags, showOther, assayFilter, diseaseFilter, organismFilter, geneSearch, direction, regulation } =
     parse.data;
   const methodCol = METHOD_COLUMNS[method];
 
@@ -81,9 +82,11 @@ export default async function handler(
     const hasDesc = tableExists(db, "gene_descriptions");
 
     // Determine which combined p-values table to query. Every group is
-    // direction-aware ("target" or "perturbed"); filter combinations look up
-    // the matching table via combined_pvalue_groups.
-    let cpTable = `gene_combined_pvalues_${direction}`;
+    // direction-aware ("target" or "perturbed") and regulation-aware
+    // ("any" / "up" / "down"); filter combinations look up the matching
+    // table via combined_pvalue_groups.
+    const regSuffix = regulation === "any" ? "" : `_${regulation}`;
+    let cpTable = `gene_combined_pvalues_${direction}${regSuffix}`;
     let noTable = false;
     let numSourceTables = 0;
     if (assayFilter || diseaseFilter || organismFilter) {
@@ -92,13 +95,15 @@ export default async function handler(
         const group = db
           .prepare(
             `SELECT table_name, num_source_tables FROM combined_pvalue_groups
-             WHERE assay_filter IS ? AND disease_filter IS ? AND organism_filter IS ? AND direction = ?`
+             WHERE assay_filter IS ? AND disease_filter IS ? AND organism_filter IS ?
+             AND direction = ? AND regulation = ?`
           )
           .get(
             assayFilter ?? null,
             diseaseFilter ?? null,
             organismFilter ?? null,
             direction,
+            regulation,
           ) as
           | { table_name: string | null; num_source_tables: number }
           | undefined;

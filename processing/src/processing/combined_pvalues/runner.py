@@ -28,13 +28,20 @@ from .data import (
     CollectedPvalues,
     ComputeGroup,
     GeneCombinedPvalues,
+    Regulation,
     RJobInput,
+    SourceTableQuad,
     SourceTableRow,
-    SourceTableTriple,
 )
 from .flags import GeneFlagger
 from .groups import ComputeGroupBuilder
 from .writer import write_combined_results
+
+
+# Master scans are keyed by (direction, regulation) — 2 directions × 3
+# regulations = 6 scans, each producing one CollectedPvalues that derived
+# groups filter down from.
+MasterKey = tuple[str, Regulation]
 
 
 class MetaAnalysisRun:
@@ -86,14 +93,12 @@ class MetaAnalysisRun:
 
         groups = self._build_compute_groups(source_tables)
 
-        tables_3col: list[SourceTableTriple] = [
-            (t[0], t[1], t[2]) for t in source_tables
+        tables_4col: list[SourceTableQuad] = [
+            (t[0], t[1], t[2], t[6]) for t in source_tables
         ]
-        master_target, master_perturbed = self._collect_master_pvalues(tables_3col)
+        masters = self._collect_master_pvalues(tables_4col)
 
-        collected = self._derive_collected_groups(
-            groups, master_target, master_perturbed, tables_3col
-        )
+        collected = self._derive_collected_groups(groups, masters, tables_4col)
 
         r_results_by_idx = self._run_r_jobs(collected)
 
@@ -104,7 +109,8 @@ class MetaAnalysisRun:
     def _load_source_tables(self) -> list[SourceTableRow]:
         return self.conn.execute(
             "SELECT table_name, pvalue_column, link_tables, assay, disease, "
-            "organism_key FROM data_tables WHERE pvalue_column IS NOT NULL"
+            "organism_key, effect_column FROM data_tables "
+            "WHERE pvalue_column IS NOT NULL"
         ).fetchall()
 
     def _load_gene_flagger(self) -> GeneFlagger:
@@ -121,36 +127,56 @@ class MetaAnalysisRun:
         return ComputeGroupBuilder(source_tables).build()
 
     def _collect_master_pvalues(
-        self, tables_3col: list[SourceTableTriple]
-    ) -> tuple[CollectedPvalues, CollectedPvalues]:
-        click.echo("\n  Collecting p-values (2 master scans by direction)...")
-        master_target = collect_pvalues_for_tables(
-            self.conn, tables_3col, "[direction=target] ", direction="target",
+        self, tables_4col: list[SourceTableQuad]
+    ) -> dict[MasterKey, CollectedPvalues]:
+        """Collect master p-value sets, one per (direction × regulation).
+
+        Six scans total: target/perturbed × any/up/down. Each filtered group
+        downstream is derived from its matching master via `filter_collected`.
+        """
+        click.echo(
+            "\n  Collecting p-values "
+            "(6 master scans by direction × regulation)..."
         )
-        master_perturbed = collect_pvalues_for_tables(
-            self.conn, tables_3col, "[direction=perturbed] ", direction="perturbed",
-        )
-        return master_target, master_perturbed
+        masters: dict[MasterKey, CollectedPvalues] = {}
+        regulations: tuple[Regulation, ...] = ("any", "up", "down")
+        for direction in ("target", "perturbed"):
+            for regulation in regulations:
+                rlbl = "" if regulation == "any" else f", reg={regulation}"
+                masters[(direction, regulation)] = collect_pvalues_for_tables(
+                    self.conn,
+                    tables_4col,
+                    f"[direction={direction}{rlbl}] ",
+                    direction=direction,
+                    regulation=regulation,
+                )
+        return masters
 
     def _derive_collected_groups(
         self,
         groups: list[ComputeGroup],
-        master_target: CollectedPvalues,
-        master_perturbed: CollectedPvalues,
-        tables_3col: list[SourceTableTriple],
+        masters: dict[MasterKey, CollectedPvalues],
+        tables_4col: list[SourceTableQuad],
     ) -> list[CollectedGroup]:
-        all_table_names = {t[0] for t in tables_3col}
+        # `all_table_names` is regulation-specific: tables without an
+        # effect_column never appear in up/down masters, so the "use master
+        # directly" shortcut needs the regulation-matching set.
+        all_names_by_reg: dict[Regulation, set[str]] = {
+            "any": {t[0] for t in tables_4col},
+            "up": {t[0] for t in tables_4col if t[3]},
+            "down": {t[0] for t in tables_4col if t[3]},
+        }
 
         def _candidate_for(group: ComputeGroup) -> CollectedPvalues:
-            master = master_target if group.direction == "target" else master_perturbed
+            master = masters[(group.direction, group.regulation)]
             unique = {t[0] for t in group.tables}
-            if unique == all_table_names:
+            if unique == all_names_by_reg[group.regulation]:
                 return master
             return filter_collected(master, unique)
 
         out: list[CollectedGroup] = []
         for group in groups:
-            master = master_target if group.direction == "target" else master_perturbed
+            master = masters[(group.direction, group.regulation)]
             candidate = _candidate_for(group)
 
             # min_tables must be checked against tables that *actually* contribute
@@ -165,14 +191,17 @@ class MetaAnalysisRun:
                 click.echo(
                     f"  {group.label}Skipping — only {len(contributing)} source "
                     f"table(s) contribute in direction={group.direction}"
+                    f", regulation={group.regulation}"
                 )
                 final_pvalues: CollectedPvalues = CollectedPvalues()
             else:
                 final_pvalues = candidate
                 if candidate is not master:
                     click.echo(
-                        f"  {group.label}Derived from direction={group.direction} "
-                        f"master ({len(contributing)} tables)"
+                        f"  {group.label}Derived from "
+                        f"direction={group.direction}, "
+                        f"regulation={group.regulation} master "
+                        f"({len(contributing)} tables)"
                     )
 
             out.append(CollectedGroup(
@@ -180,6 +209,7 @@ class MetaAnalysisRun:
                 out_table=group.out_table,
                 label=group.label,
                 direction=group.direction,
+                regulation=group.regulation,
                 assay_filter=group.assay_filter,
                 disease_filter=group.disease_filter,
                 organism_filter=group.organism_filter,
@@ -272,9 +302,13 @@ class MetaAnalysisRun:
             disease_filter TEXT,
             organism_filter TEXT,
             direction TEXT,
+            regulation TEXT NOT NULL DEFAULT 'any',
             table_name TEXT,
             num_source_tables INTEGER,
-            PRIMARY KEY (assay_filter, disease_filter, organism_filter, direction)
+            PRIMARY KEY (
+                assay_filter, disease_filter, organism_filter,
+                direction, regulation
+            )
             )"""
         )
 
@@ -288,13 +322,14 @@ class MetaAnalysisRun:
         self.conn.execute(
             "INSERT INTO combined_pvalue_groups "
             "(assay_filter, disease_filter, organism_filter, direction, "
-            "table_name, num_source_tables) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
+            "regulation, table_name, num_source_tables) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 cg.assay_filter,
                 cg.disease_filter,
                 cg.organism_filter,
                 cg.direction,
+                cg.regulation,
                 table_name,
                 num_source_tables,
             ),

@@ -9,6 +9,8 @@ import Footer from "@/components/Footer";
 
 const PAGE_SIZE = 10;
 
+type Regulation = "any" | "up" | "down";
+
 type DatasetTableMeta = {
   tableName: string;
   shortLabel: string | null;
@@ -16,6 +18,7 @@ type DatasetTableMeta = {
   longLabel: string | null;
   pvalueColumn: string | null;
   fdrColumn: string | null;
+  effectColumn: string | null;
   assay: string[] | null;
   disease: string[] | null;
   organismKey: string[] | null;
@@ -157,10 +160,12 @@ function DatasetSection({
   meta,
   filterBy,
   sortBy,
+  regulation,
 }: {
   meta: DatasetTableMeta;
   filterBy: "pvalue" | "fdr";
   sortBy: "pvalue" | "fdr";
+  regulation: Regulation;
 }) {
   const [result, setResult] = useState<DatasetSigResult | null>(null);
   const [page, setPage] = useState(1);
@@ -168,7 +173,7 @@ function DatasetSection({
 
   useEffect(() => {
     setPage(1);
-  }, [filterBy, sortBy]);
+  }, [filterBy, sortBy, regulation]);
 
   useEffect(() => {
     setLoading(true);
@@ -181,6 +186,7 @@ function DatasetSection({
         pageSize: PAGE_SIZE,
         filterBy,
         sortBy,
+        regulation,
       }),
     })
       .then((r) => {
@@ -205,7 +211,7 @@ function DatasetSection({
         setResult(null);
         setLoading(false);
       });
-  }, [meta.tableName, page, filterBy, sortBy]);
+  }, [meta.tableName, page, filterBy, sortBy, regulation]);
 
   if (!loading && (!result || result.totalRows === 0)) return null;
 
@@ -298,6 +304,7 @@ export default function SignificantRowsPage() {
   const [assayFilter, setAssayFilter] = useState<string | null>(null);
   const [diseaseFilter, setDiseaseFilter] = useState<string | null>(null);
   const [organismFilter, setOrganismFilter] = useState<string | null>(null);
+  const [regulation, setRegulation] = useState<Regulation>("any");
   const [datasetsLoading, setDatasetsLoading] = useState(true);
   const [showToc, setShowToc] = useState(false);
   const router = useRouter();
@@ -306,10 +313,13 @@ export default function SignificantRowsPage() {
   const [initializedFromUrl, setInitializedFromUrl] = useState(false);
   useEffect(() => {
     if (!router.isReady || initializedFromUrl) return;
-    const { assay, disease, organism } = router.query;
+    const { assay, disease, organism, reg } = router.query;
     if (typeof assay === "string") setAssayFilter(assay);
     if (typeof disease === "string") setDiseaseFilter(disease);
     if (typeof organism === "string") setOrganismFilter(organism);
+    if (typeof reg === "string" && ["any", "up", "down"].includes(reg)) {
+      setRegulation(reg as Regulation);
+    }
     setInitializedFromUrl(true);
   }, [router.isReady, initializedFromUrl, router.query]);
 
@@ -407,6 +417,63 @@ export default function SignificantRowsPage() {
             See gene ranking by combined p-values &rarr;
           </Link>
         </p>
+
+        {/* Regulation filter */}
+        <div
+          style={{
+            marginBottom: 12,
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            padding: "10px 14px",
+            fontSize: 13,
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            flexWrap: "wrap",
+          }}
+        >
+          <span
+            style={{
+              fontWeight: 600,
+              color: "#374151",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Regulation:
+          </span>
+          <label style={radioLabelStyle}>
+            <input
+              type="radio"
+              name="regulationFilter"
+              checked={regulation === "any"}
+              onChange={() => setRegulation("any")}
+            />
+            All
+          </label>
+          <label style={radioLabelStyle}>
+            <input
+              type="radio"
+              name="regulationFilter"
+              checked={regulation === "up"}
+              onChange={() => setRegulation("up")}
+            />
+            Up-regulated
+          </label>
+          <label style={radioLabelStyle}>
+            <input
+              type="radio"
+              name="regulationFilter"
+              checked={regulation === "down"}
+              onChange={() => setRegulation("down")}
+            />
+            Down-regulated
+          </label>
+          <span style={{ color: "#6b7280", fontSize: 12 }}>
+            Up/Down restricts to rows whose effect-size column is positive /
+            negative; datasets without an effect column are hidden.
+          </span>
+        </div>
 
         {/* Assay type, disease, and organism filters */}
         {(availableAssays.length > 0 ||
@@ -622,6 +689,7 @@ export default function SignificantRowsPage() {
                     const hasCol =
                       sigFilterBy === "pvalue" ? t.pvalueColumn : t.fdrColumn;
                     if (!hasCol) return false;
+                    if (regulation !== "any" && !t.effectColumn) return false;
                     if (
                       diseaseFilter &&
                       !(t.disease ?? []).includes(diseaseFilter)
@@ -679,6 +747,7 @@ export default function SignificantRowsPage() {
                             meta={t}
                             filterBy={sigFilterBy}
                             sortBy={sigSortBy}
+                            regulation={regulation}
                           />
                         </div>
                       ))}

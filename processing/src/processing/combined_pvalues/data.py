@@ -5,15 +5,25 @@ These dataclasses describe what flows between stages; nothing here does I/O.
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from typing import Literal
 
 
-# Row from data_tables filtered to (table_name, pvalue_column, link_tables) —
-# the shape the collection / group-building code consumes.
-SourceTableTriple = tuple[str, str, str]
+# Regulation axis: "any" preserves the legacy behavior (all rows), while
+# "up" / "down" filter to rows where the table's effect_column is positive /
+# negative before combining.
+Regulation = Literal["any", "up", "down"]
+
+# Row from data_tables filtered to (table_name, pvalue_column, link_tables,
+# effect_column) — the shape the collection / group-building code consumes.
+# `effect_column` is None for tables that did not declare one, which makes the
+# table ineligible for the up/down regulation groups.
+SourceTableQuad = tuple[str, str, str, str | None]
 
 # Full row from data_tables that drives group enumeration; carries the assay /
-# disease / organism keys needed for filtered groups.
-SourceTableRow = tuple[str, str, str, str | None, str | None, str | None]
+# disease / organism keys needed for filtered groups, plus effect_column.
+SourceTableRow = tuple[
+    str, str, str, str | None, str | None, str | None, str | None
+]
 
 
 @dataclass
@@ -65,18 +75,24 @@ class GeneCombinedPvalues:
     hmp_fdr: float | None
 
 
+# pylint: disable=too-many-instance-attributes
 @dataclass
 class ComputeGroup:
     """Spec for one pre-computed combined-p-values output table.
 
     `direction` is always "target" or "perturbed" — every gene_mapping carries
     a direction now, so there is no direction-agnostic mode.
+
+    `regulation` is "any" / "up" / "down". For "up" and "down" the runner
+    restricts row collection to rows whose table-declared effect_column is
+    positive / negative, and skips tables that have no effect_column.
     """
 
-    tables: list[SourceTableTriple]
+    tables: list[SourceTableQuad]
     out_table: str
     label: str
     direction: str
+    regulation: Regulation = "any"
     assay_filter: str | None = None
     disease_filter: str | None = None
     organism_filter: str | None = None
@@ -84,6 +100,7 @@ class ComputeGroup:
     min_tables: int = 1
 
 
+# pylint: disable=too-many-instance-attributes
 @dataclass
 class CollectedGroup:
     """A ComputeGroup paired with its collected p-values, ready for R."""
@@ -92,6 +109,7 @@ class CollectedGroup:
     out_table: str
     label: str
     direction: str
+    regulation: Regulation
     assay_filter: str | None
     disease_filter: str | None
     organism_filter: str | None

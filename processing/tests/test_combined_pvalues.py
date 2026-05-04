@@ -424,7 +424,8 @@ def _make_test_db():
             organism_key TEXT,
             publication_title TEXT, publication_authors TEXT, publication_year TEXT,
             publication_doi TEXT, publication_url TEXT, publication_journal TEXT,
-            pvalue_column TEXT, fdr_column TEXT, disease TEXT
+            pvalue_column TEXT, fdr_column TEXT, disease TEXT,
+            effect_column TEXT
         )"""
     )
     conn.execute(
@@ -722,6 +723,194 @@ class TestPvalueCollection:
 
 
 # ===================================================================
+# 5b. TestRegulationSplit — up/down precomputed siblings
+# ===================================================================
+
+
+def _capture_runs():
+    """Helper: returns a (mock_r, captures) pair where captures records
+    every (out_table, per_table-as-plain-dict) the writer would produce.
+
+    The capture key is the output table name, which the runner derives from
+    `ComputeGroup.out_table` and feeds into `r_runner.call_r_combine` indirectly
+    via the order of group execution. Since R-job submission order maps 1:1
+    to writer dispatch order, we record per-call CollectedPvalues; tests then
+    compare via the per-gene p-value lists.
+    """
+    captures: list[dict[int, dict[str, list[float]]]] = []
+
+    def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+        snapshot: dict[int, dict[str, list[float]]] = {}
+        for gid, tbl_dict in pvalues.per_table.items():
+            snapshot[gid] = {tbl: list(pvals) for tbl, pvals in tbl_dict.items()}
+        captures.append(snapshot)
+        return {}
+
+    return mock_r, captures
+
+
+class TestRegulationSplit:
+    """Regulation axis: 'up' / 'down' siblings filter rows by effect-sign.
+
+    Tables without an `effect_column` declared are excluded from up/down
+    groups; they only contribute to the legacy "any" tables.
+    """
+
+    def _make_signed_db(self):
+        """Two genes × two tables with mixed-sign effect columns.
+
+        tbl_signed has effect_column=lfc; rows split:
+          gene 1: row 1 (p=0.01, lfc=+1.5), row 2 (p=0.04, lfc=-2.0)
+          gene 2: row 3 (p=0.02, lfc=+0.5)
+
+        tbl_unsigned has no effect_column; one row per gene:
+          gene 1: row 4 (p=0.03)
+          gene 2: row 5 (p=0.06)
+        """
+        conn = _make_test_db()
+        conn.execute(
+            "CREATE TABLE tbl_signed (id INTEGER, pval REAL, lfc REAL)"
+        )
+        conn.executemany(
+            "INSERT INTO tbl_signed VALUES (?, ?, ?)",
+            [(1, 0.01, 1.5), (2, 0.04, -2.0), (3, 0.02, 0.5)],
+        )
+        conn.execute(
+            "CREATE TABLE tbl_signed__link "
+            "(id INTEGER, central_gene_id INTEGER)"
+        )
+        conn.executemany(
+            "INSERT INTO tbl_signed__link VALUES (?, ?)",
+            [(1, 1), (2, 1), (3, 2)],
+        )
+        conn.execute("CREATE TABLE tbl_unsigned (id INTEGER, pval REAL)")
+        conn.executemany(
+            "INSERT INTO tbl_unsigned VALUES (?, ?)",
+            [(4, 0.03), (5, 0.06)],
+        )
+        conn.execute(
+            "CREATE TABLE tbl_unsigned__link "
+            "(id INTEGER, central_gene_id INTEGER)"
+        )
+        conn.executemany(
+            "INSERT INTO tbl_unsigned__link VALUES (?, ?)",
+            [(4, 1), (5, 2)],
+        )
+        conn.execute(
+            "INSERT INTO data_tables (table_name, pvalue_column, link_tables, "
+            "effect_column) VALUES "
+            "('tbl_signed', 'pval', 'gene:tbl_signed__link:target', 'lfc')"
+        )
+        conn.execute(
+            "INSERT INTO data_tables (table_name, pvalue_column, link_tables, "
+            "effect_column) VALUES "
+            "('tbl_unsigned', 'pval', 'gene:tbl_unsigned__link:target', NULL)"
+        )
+        conn.commit()
+        return conn
+
+    def test_up_table_keeps_only_positive_effect_rows(self):
+        conn = self._make_signed_db()
+        with patch(
+            "processing.combined_pvalues.r_runner.call_r_combine",
+            side_effect=_capture_runs()[0],
+        ):
+            compute_combined_pvalues(conn)
+
+        # Output table for the up-regulated, target, global group exists.
+        rows = conn.execute(
+            "SELECT central_gene_id, num_pvalues "
+            "FROM gene_combined_pvalues_target_up ORDER BY central_gene_id"
+        ).fetchall()
+        # Only signed-table rows with lfc>0 contribute. tbl_unsigned drops out.
+        # gene 1: 1 row (the lfc=+1.5 row, p=0.01)
+        # gene 2: 1 row (the lfc=+0.5 row, p=0.02)
+        assert rows == [(1, 1), (2, 1)]
+
+    def test_down_table_keeps_only_negative_effect_rows(self):
+        conn = self._make_signed_db()
+        with patch(
+            "processing.combined_pvalues.r_runner.call_r_combine",
+            side_effect=_capture_runs()[0],
+        ):
+            compute_combined_pvalues(conn)
+
+        rows = conn.execute(
+            "SELECT central_gene_id, num_pvalues "
+            "FROM gene_combined_pvalues_target_down ORDER BY central_gene_id"
+        ).fetchall()
+        # Only gene 1 has a negative-lfc row (lfc=-2.0, p=0.04). Gene 2 has
+        # no negative rows in tbl_signed and tbl_unsigned drops out.
+        assert rows == [(1, 1)]
+
+    def test_any_table_keeps_legacy_behavior(self):
+        conn = self._make_signed_db()
+        with patch(
+            "processing.combined_pvalues.r_runner.call_r_combine",
+            side_effect=_capture_runs()[0],
+        ):
+            compute_combined_pvalues(conn)
+
+        # Legacy table preserves both signed and unsigned tables.
+        rows = conn.execute(
+            "SELECT central_gene_id, num_tables, num_pvalues "
+            "FROM gene_combined_pvalues_target ORDER BY central_gene_id"
+        ).fetchall()
+        # gene 1: tbl_signed (2 rows: +1.5, -2.0) + tbl_unsigned (1 row) = 3 p
+        # gene 2: tbl_signed (1 row: +0.5) + tbl_unsigned (1 row) = 2 p
+        assert rows == [(1, 2, 3), (2, 2, 2)]
+
+    def test_unsigned_table_excluded_from_up_down(self):
+        """tbl_unsigned has effect_column=NULL → must NOT appear in
+        any up/down combined-p row."""
+        conn = self._make_signed_db()
+        mock_r, captures = _capture_runs()
+        with patch(
+            "processing.combined_pvalues.r_runner.call_r_combine",
+            side_effect=mock_r,
+        ):
+            compute_combined_pvalues(conn)
+
+        # Identify the captures whose tables include tbl_unsigned. For "any"
+        # we expect inclusion; for up/down we expect zero.
+        for snapshot in captures:
+            for _gene_id, tbl_dict in snapshot.items():
+                # Heuristic: an "up" or "down" snapshot has at most 1 p per
+                # gene-table pair coming from tbl_signed and never tbl_unsigned.
+                # A snapshot containing tbl_unsigned must be the "any" branch.
+                if "tbl_unsigned" in tbl_dict:
+                    # If this snapshot has tbl_unsigned, it must also have
+                    # both signed rows for gene 1 (the "any" branch).
+                    if 1 in snapshot:
+                        assert len(snapshot[1].get("tbl_signed", [])) == 2
+
+    def test_combined_pvalue_groups_records_regulation(self):
+        conn = self._make_signed_db()
+        mock_r, _ = _capture_runs()
+        with patch(
+            "processing.combined_pvalues.r_runner.call_r_combine",
+            side_effect=mock_r,
+        ):
+            compute_combined_pvalues(conn)
+
+        # combined_pvalue_groups must include rows for all 3 regulations
+        # for the global (NULL filters) target group.
+        rows = conn.execute(
+            "SELECT regulation, table_name FROM combined_pvalue_groups "
+            "WHERE assay_filter IS NULL AND disease_filter IS NULL "
+            "AND organism_filter IS NULL AND direction = 'target' "
+            "ORDER BY regulation"
+        ).fetchall()
+        regs = {r[0] for r in rows}
+        assert regs == {"any", "up", "down"}
+        # Output table names align with regulation:
+        by_reg = {r[0]: r[1] for r in rows}
+        assert by_reg["any"] == "gene_combined_pvalues_target"
+        assert by_reg["up"] == "gene_combined_pvalues_target_up"
+        assert by_reg["down"] == "gene_combined_pvalues_target_down"
+
+
+# ===================================================================
 # 6. TestIntegrationWithR — requires R + packages
 # ===================================================================
 
@@ -1005,8 +1194,11 @@ def _make_row(
     assay: str | None = None,
     disease: str | None = None,
     organism: str | None = None,
+    effect_col: str | None = None,
 ):
-    return (table_name, pvalue_col, link, assay, disease, organism)
+    return (
+        table_name, pvalue_col, link, assay, disease, organism, effect_col,
+    )
 
 
 class TestComputeGroupBuilder:
@@ -1080,15 +1272,19 @@ class TestComputeGroupBuilder:
         ]
         assert filtered == []
 
-    def test_groups_use_3col_table_triples(self):
-        """ComputeGroup.tables drops the assay/disease/organism columns —
-        only (table_name, pvalue_column, link_tables) flows downstream."""
-        rows = [_make_row("tbl_a", pvalue_col="pv", link="g:lt:target")]
+    def test_groups_use_table_quads(self):
+        """ComputeGroup.tables drops the assay/disease/organism columns but
+        keeps (table_name, pvalue_column, link_tables, effect_column)."""
+        rows = [
+            _make_row(
+                "tbl_a", pvalue_col="pv", link="g:lt:target", effect_col="lfc",
+            )
+        ]
         groups = ComputeGroupBuilder(rows).build()
         for g in groups:
             for entry in g.tables:
-                assert len(entry) == 3
-                assert entry == ("tbl_a", "pv", "g:lt:target")
+                assert len(entry) == 4
+                assert entry == ("tbl_a", "pv", "g:lt:target", "lfc")
 
 
 # ===================================================================

@@ -31,6 +31,7 @@ type RankedRow = {
 };
 
 type Method = "fisher" | "stouffer" | "cauchy" | "hmp";
+type Regulation = "any" | "up" | "down";
 
 /** Positive "show" flags \u2014 categories of interest. */
 const SHOW_FLAG_OPTIONS: { key: string; label: string; href?: string }[] = [
@@ -240,6 +241,7 @@ export default function MostSignificantPage() {
   const [page, setPage] = useState(1);
   const [method, setMethod] = useState<Method>("fisher");
   const [direction, setDirection] = useState<"target" | "perturbed">("target");
+  const [regulation, setRegulation] = useState<Regulation>("any");
   const [loading, setLoading] = useState(true);
   const [noTable, setNoTable] = useState<{ numSourceTables: number } | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -297,6 +299,7 @@ export default function MostSignificantPage() {
     longLabel: string | null;
     pvalueColumn: string | null;
     fdrColumn: string | null;
+    effectColumn: string | null;
     assay: string[] | null;
     disease: string[] | null;
     organismKey: string[] | null;
@@ -318,6 +321,9 @@ export default function MostSignificantPage() {
     }
     if (typeof q.dir === "string" && ["target", "perturbed"].includes(q.dir)) {
       setDirection(q.dir as "target" | "perturbed");
+    }
+    if (typeof q.reg === "string" && ["any", "up", "down"].includes(q.reg)) {
+      setRegulation(q.reg as Regulation);
     }
     if (typeof q.assay === "string") setAssayFilter(q.assay);
     if (typeof q.disease === "string") setDiseaseFilter(q.disease);
@@ -350,6 +356,7 @@ export default function MostSignificantPage() {
     const params: Record<string, string> = {};
     if (method !== "fisher") params.method = method;
     if (direction !== "target") params.dir = direction;
+    if (regulation !== "any") params.reg = regulation;
     if (assayFilter) params.assay = assayFilter;
     if (diseaseFilter) params.disease = diseaseFilter;
     if (organismFilter) params.organism = organismFilter;
@@ -364,7 +371,7 @@ export default function MostSignificantPage() {
     if (!showOther) params.showOther = "0";
     router.replace({ pathname: router.pathname, query: params }, undefined, { shallow: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [method, direction, assayFilter, diseaseFilter, organismFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady]);
+  }, [method, direction, regulation, assayFilter, diseaseFilter, organismFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady]);
 
   useEffect(() => {
     fetch("/api/dataset-tables-with-pvalues")
@@ -396,6 +403,7 @@ export default function MostSignificantPage() {
         pageSize: PAGE_SIZE,
         method,
         direction,
+        regulation,
         hideFlags,
         showFlags,
         showOther,
@@ -424,6 +432,7 @@ export default function MostSignificantPage() {
     page,
     method,
     direction,
+    regulation,
     hideFlags,
     showFlags,
     showOther,
@@ -641,6 +650,10 @@ export default function MostSignificantPage() {
             const directionTooltip =
               "Target: rank each gene by how often its expression or activity is a downstream readout (the gene was measured). " +
               "Perturbed: rank each gene by how often it is the upstream experimentally manipulated gene (CRISPRi/CRISPRa, RNAi, knockout, mutant line).";
+            const regulationTooltip =
+              "All: combine p-values across every contributing row. " +
+              "Up-regulated / Down-regulated: restrict each study to rows whose effect-size column is positive (up) or negative (down) before combining. " +
+              "Datasets without an effect-size column drop out under up/down.";
             const filterRowStyle: React.CSSProperties = {
               display: "flex",
               alignItems: "center",
@@ -701,6 +714,48 @@ export default function MostSignificantPage() {
                       }}
                     />
                     Perturbed
+                  </label>
+                </div>
+                <div style={{ ...filterRowStyle, marginBottom: 8 }}>
+                  <span style={filterLabelStyle}>
+                    Regulation
+                    <InfoTooltip text={regulationTooltip} size={13} />:
+                  </span>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      name="regulation"
+                      checked={regulation === "any"}
+                      onChange={() => {
+                        setRegulation("any");
+                        setPage(1);
+                      }}
+                    />
+                    All
+                  </label>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      name="regulation"
+                      checked={regulation === "up"}
+                      onChange={() => {
+                        setRegulation("up");
+                        setPage(1);
+                      }}
+                    />
+                    Up-regulated
+                  </label>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      name="regulation"
+                      checked={regulation === "down"}
+                      onChange={() => {
+                        setRegulation("down");
+                        setPage(1);
+                      }}
+                    />
+                    Down-regulated
                   </label>
                 </div>
                 {availableAssays.length > 0 && (
@@ -855,6 +910,7 @@ export default function MostSignificantPage() {
         {(() => {
           const filtered = datasetTables.filter((t) => {
             if (!t.pvalueColumn) return false;
+            if (regulation !== "any" && !t.effectColumn) return false;
             if (assayFilter && !(t.assay ?? []).includes(assayFilter))
               return false;
             if (diseaseFilter && !(t.disease ?? []).includes(diseaseFilter))
@@ -1381,6 +1437,7 @@ export default function MostSignificantPage() {
                             <GeneSignificanceFetcher
                               centralGeneId={row.central_gene_id}
                               direction={direction}
+                              regulation={regulation}
                               assayTypeLabels={assayTypeLabels}
                             />
                             <GeneInfoBox
@@ -1428,10 +1485,12 @@ export default function MostSignificantPage() {
 function GeneSignificanceFetcher({
   centralGeneId,
   direction,
+  regulation,
   assayTypeLabels,
 }: {
   centralGeneId: number;
   direction: "target" | "perturbed";
+  regulation: Regulation;
   assayTypeLabels: Record<string, string>;
 }) {
   const [data, setData] = useState<{
@@ -1444,7 +1503,7 @@ function GeneSignificanceFetcher({
     fetch("/api/combined-pvalues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ centralGeneId, direction }),
+      body: JSON.stringify({ centralGeneId, direction, regulation }),
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -1458,7 +1517,7 @@ function GeneSignificanceFetcher({
     return () => {
       cancelled = true;
     };
-  }, [centralGeneId, direction]);
+  }, [centralGeneId, direction, regulation]);
 
   if (!data) return null;
   return (

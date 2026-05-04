@@ -9,12 +9,16 @@ import {
 const bodySchema = z.object({
   centralGeneId: z.number().min(0),
   direction: z.enum(["target", "perturbed"]).optional(),
+  regulation: z.enum(["any", "up", "down"]).optional(),
 });
 
-const COMBINED_TABLE_BY_DIRECTION = {
-  target: "gene_combined_pvalues_target",
-  perturbed: "gene_combined_pvalues_perturbed",
-} as const;
+function combinedTableFor(
+  direction: "target" | "perturbed",
+  regulation: "any" | "up" | "down",
+): string {
+  const suffix = regulation === "any" ? "" : `_${regulation}`;
+  return `gene_combined_pvalues_${direction}${suffix}`;
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -31,7 +35,8 @@ export default async function handler(
 
   const centralGeneId = parse.data.centralGeneId;
   const direction = parse.data.direction ?? "target";
-  const combinedTable = COMBINED_TABLE_BY_DIRECTION[direction];
+  const regulation = parse.data.regulation ?? "any";
+  const combinedTable = combinedTableFor(direction, regulation);
 
   try {
     const db = getDb();
@@ -61,7 +66,7 @@ export default async function handler(
     const tablesWithPvalues = db
       .prepare(
         `SELECT table_name, short_label, medium_label, long_label, description, pvalue_column, fdr_column,
-                link_tables, field_labels, assay
+                link_tables, field_labels, assay, effect_column
          FROM data_tables
          WHERE pvalue_column IS NOT NULL OR fdr_column IS NOT NULL
          ORDER BY id ASC`
@@ -77,6 +82,7 @@ export default async function handler(
         link_tables: string | null;
         field_labels: string | null;
         assay: string | null;
+        effect_column: string | null;
       }>;
 
     // For each table, count rows and fetch best p-value/FDR for this gene
@@ -100,6 +106,9 @@ export default async function handler(
         direction,
       );
       if (linkTableNames.length === 0) continue;
+
+      // Up/down regulation requires an effect_column on this table.
+      if (regulation !== "any" && !t.effect_column) continue;
 
       const subqueries = linkTableNames.map((lt) => {
         return `SELECT id FROM ${lt} WHERE central_gene_id = ?`;
@@ -130,9 +139,20 @@ export default async function handler(
         if (minPvalExpr) selectParts.push(`${minPvalExpr} as best_pval`);
         if (minFdrExpr) selectParts.push(`${minFdrExpr} as best_fdr`);
 
+        // Sign filter for up/down: bolt onto the WHERE so count/best_*
+        // reflect only same-signed rows.
+        let signClause = "";
+        if (regulation !== "any" && t.effect_column) {
+          const effectCol = sanitizeIdentifier(t.effect_column);
+          signClause =
+            regulation === "up"
+              ? ` AND ${effectCol} > 0`
+              : ` AND ${effectCol} < 0`;
+        }
+
         const row = db
           .prepare(
-            `SELECT ${selectParts.join(", ")} FROM ${baseTable} WHERE id IN (${idSubquery})`
+            `SELECT ${selectParts.join(", ")} FROM ${baseTable} WHERE id IN (${idSubquery})${signClause}`
           )
           .get(...params) as Record<string, unknown>;
 

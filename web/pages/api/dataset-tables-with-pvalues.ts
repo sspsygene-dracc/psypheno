@@ -14,7 +14,7 @@ export default async function handler(
 
     const rows = db
       .prepare(
-        `SELECT table_name, short_label, medium_label, long_label, pvalue_column, fdr_column, assay, disease, organism_key
+        `SELECT table_name, short_label, medium_label, long_label, pvalue_column, fdr_column, effect_column, assay, disease, organism_key
          FROM data_tables
          WHERE pvalue_column IS NOT NULL OR fdr_column IS NOT NULL
          ORDER BY id ASC`
@@ -26,6 +26,7 @@ export default async function handler(
         long_label: string | null;
         pvalue_column: string | null;
         fdr_column: string | null;
+        effect_column: string | null;
         assay: string | null;
         disease: string | null;
         organism_key: string | null;
@@ -75,16 +76,20 @@ export default async function handler(
       assayFilter: string | null;
       diseaseFilter: string | null;
       organismFilter: string | null;
+      direction: string;
+      regulation: string;
       tableName: string | null;
       numSourceTables: number;
     }> = [];
     try {
       const rawGroups = db
-        .prepare("SELECT assay_filter, disease_filter, organism_filter, table_name, num_source_tables FROM combined_pvalue_groups")
+        .prepare("SELECT assay_filter, disease_filter, organism_filter, direction, regulation, table_name, num_source_tables FROM combined_pvalue_groups")
         .all() as Array<{
           assay_filter: string | null;
           disease_filter: string | null;
           organism_filter: string | null;
+          direction: string;
+          regulation: string;
           table_name: string | null;
           num_source_tables: number;
         }>;
@@ -92,6 +97,8 @@ export default async function handler(
         assayFilter: g.assay_filter,
         diseaseFilter: g.disease_filter,
         organismFilter: g.organism_filter,
+        direction: g.direction,
+        regulation: g.regulation,
         tableName: g.table_name,
         numSourceTables: g.num_source_tables,
       }));
@@ -107,6 +114,7 @@ export default async function handler(
         longLabel: r.long_label,
         pvalueColumn: r.pvalue_column,
         fdrColumn: r.fdr_column,
+        effectColumn: r.effect_column,
         assay: r.assay ? r.assay.split(",").map((s) => s.trim()).filter(Boolean) : null,
         disease: r.disease ? r.disease.split(",").map((s) => s.trim()).filter(Boolean) : null,
         organismKey: r.organism_key ? r.organism_key.split(",").map((s) => s.trim()).filter(Boolean) : null,
