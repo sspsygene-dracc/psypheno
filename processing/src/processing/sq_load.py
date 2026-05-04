@@ -184,6 +184,7 @@ def load_data_tables(
     skip_missing: bool = False,
     *,
     no_index: bool = False,
+    test_central_gene_ids: set[int] | None = None,
 ) -> None:
     cur = conn.cursor()
     cur.execute(
@@ -247,7 +248,9 @@ def load_data_tables(
                     err=True,
                 )
                 sys.exit(1)
-        data_and_meta = table_config.load_data_table()
+        data_and_meta = table_config.load_data_table(
+            test_central_gene_ids=test_central_gene_ids,
+        )
         loaded.append(table_config.table)
         data_and_meta.data.to_sql(
             table_config.table, conn, if_exists="replace", index=False
@@ -499,6 +502,7 @@ def load_db(
     nimh_csv_path: Path | None = None,
     tf_list_path: Path | None = None,
     skip_meta_analysis: bool = False,
+    test_central_gene_ids: set[int] | None = None,
 ) -> None:
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
@@ -518,7 +522,11 @@ def load_db(
     with NewSqlite3(staging, logger) as new_sqlite3:
         conn = new_sqlite3.conn
         load_data_tables(
-            conn, table_configs, skip_missing=skip_missing, no_index=no_index
+            conn,
+            table_configs,
+            skip_missing=skip_missing,
+            no_index=no_index,
+            test_central_gene_ids=test_central_gene_ids,
         )
         load_gene_tables(conn, no_index=no_index)
         compute_ensembl_to_symbol(conn, no_index=no_index)

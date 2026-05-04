@@ -118,6 +118,67 @@ def normalize_field_labels(
     return normalized
 
 
+_PER_GROUP_ROW_CAP = 200
+
+
+def _filter_to_test_genes(
+    *,
+    data: pd.DataFrame,
+    gene_mappings: list[GeneMapping],
+    allowed_central_gene_ids: set[int],
+) -> pd.DataFrame:
+    """Restrict a dataset to rows whose gene-keyed columns hit the fixture.
+
+    Two stages:
+      1. Filter rows where EVERY column in `gene_mappings` carries a value
+         resolving to a central_gene in `allowed_central_gene_ids` (AND
+         semantics — for pair tables this means both ends are interesting;
+         for single-direction tables it reduces to the one column).
+      2. Cap each unique gene-key combination to `_PER_GROUP_ROW_CAP` rows,
+         so a single perturbation × target pair (or a single gene's
+         per-cell-type repeats) can't bloat the test build.
+
+    Filtering runs before `resolve_to_central_gene_table` so we never
+    create `manually_added=1` central_gene stubs from rows that get thrown
+    away.
+    """
+    # Local import: central_gene_table imports config, which imports this
+    # module — top-level import would cycle.
+    from processing.central_gene_table import get_central_gene_table
+
+    central_table = get_central_gene_table()
+    keep_mask = pd.Series(True, index=data.index)
+    group_cols: list[str] = []
+    for gm in gene_mappings:
+        species_map = central_table.get_species_map(species=gm.species)
+        allowed_strs = {
+            key
+            for key, entries in species_map.items()
+            if any(entry.row_id in allowed_central_gene_ids for entry in entries)
+        }
+        col = data[gm.column_name]
+        if gm.multi_gene_separator:
+            sep = gm.multi_gene_separator
+            col_match = col.astype("string").apply(
+                lambda s, _sep=sep, _allowed=allowed_strs: pd.notna(s)
+                and any(g.strip() in _allowed for g in str(s).split(_sep))
+            )
+        else:
+            col_match = col.isin(allowed_strs)
+        keep_mask &= col_match.fillna(False)
+        group_cols.append(gm.column_name)
+    filtered = data[keep_mask]
+    if group_cols:
+        filtered = filtered.groupby(
+            group_cols,
+            dropna=False,
+            as_index=False,
+            group_keys=False,
+            sort=False,
+        ).head(_PER_GROUP_ROW_CAP)
+    return filtered.reset_index(drop=True)
+
+
 @dataclass
 class TableToProcessConfig:
     table: str
@@ -318,7 +379,11 @@ class TableToProcessConfig:
             changelog=list(json_data.get("changelog", [])),
         )
 
-    def load_data_table(self) -> DataLoadResult:
+    def load_data_table(
+        self,
+        *,
+        test_central_gene_ids: set[int] | None = None,
+    ) -> DataLoadResult:
         conversion_dict: dict[str, Any] = {
             "convert_string": True,
             "convert_integer": False,
@@ -337,6 +402,12 @@ class TableToProcessConfig:
         data["id"] = list(range(len(data)))
         for split_column in self.split_column_map:
             split_column.split_column(data)
+        if test_central_gene_ids is not None and self.gene_mappings:
+            data = _filter_to_test_genes(
+                data=data,
+                gene_mappings=self.gene_mappings,
+                allowed_central_gene_ids=test_central_gene_ids,
+            )
         species_list: list[Literal["human", "mouse", "zebrafish"]] = []
         gene_columns: list[str] = []
         used_entrez_ids: set[EntrezGene] = set()

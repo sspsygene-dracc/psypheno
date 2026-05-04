@@ -1,3 +1,4 @@
+import json
 import logging
 import sys
 import shutil
@@ -79,6 +80,16 @@ def cli(
     "tree (exports/) from the existing out_db. Useful while iterating on "
     "the export step.",
 )
+@click.option(
+    "--test",
+    "test_mode",
+    is_flag=True,
+    default=False,
+    help="Restrict each dataset to rows whose gene columns all intersect the "
+    "bundled top-genes fixture (processing/src/processing/test_fixture_genes.json), "
+    "then cap each unique gene-key combo to 200 rows. Fast end-to-end smoke "
+    "tests. Orthogonal to --no-index and --skip-meta-analysis.",
+)
 def load_db(
     dataset: str | None,
     skip_missing_datasets: bool,
@@ -86,6 +97,7 @@ def load_db(
     skip_gene_descriptions: bool,
     skip_meta_analysis: bool,
     export_only: bool,
+    test_mode: bool,
 ) -> None:
     """Load the database"""
     try:
@@ -112,6 +124,18 @@ def load_db(
                 )
             )
             return
+        test_central_gene_ids: set[int] | None = None
+        if test_mode:
+            fixture_path = (
+                Path(__file__).resolve().parent.parent / "test_fixture_genes.json"
+            )
+            test_central_gene_ids = set(
+                json.loads(fixture_path.read_text())["central_gene_ids"]
+            )
+            click.echo(
+                f"--test: filtering to {len(test_central_gene_ids)} central genes "
+                f"from {fixture_path.name}"
+            )
         load_db(
             config.out_db,
             config.tables_config.tables,
@@ -126,6 +150,7 @@ def load_db(
             nimh_csv_path=config.gene_map_config.nimh_gene_list_file,
             tf_list_path=config.gene_map_config.tf_list_file,
             skip_meta_analysis=skip_meta_analysis,
+            test_central_gene_ids=test_central_gene_ids,
         )
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)

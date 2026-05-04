@@ -36,11 +36,38 @@ sspsygene load-db --dataset my-dataset
 
 # Load all datasets but skip slow steps (for testing)
 sspsygene load-db --no-index --skip-meta-analysis
+
+# Fast end-to-end smoke test (~seconds, exercises every pipeline stage)
+sspsygene load-db --test
 ```
 
 The database is written to `$SSPSYGENE_DATA_DB`. The pipeline reads dataset
 configs from `data/datasets/*/config.yaml` and gene homology files from
 `data/homology/`.
+
+### Fast iteration with `--test`
+
+`sspsygene load-db --test` runs the **full** pipeline (every dataset, every
+link table, meta-analysis, indexing) but restricts each dataset's rows to
+those whose gene-keyed columns *all* intersect a bundled fixture of central
+genes (top-100 target Fisher + top-100 perturbed Cauchy + perturbed-side
+genes from any small perturb-screen link table), then caps each unique
+gene-key combination to 200 rows. AND semantics across columns keeps pair
+tables tractable; the per-group cap prevents any one (perturbation, target)
+combo or any one gene's per-cell-type/age repeats from bloating the build.
+Useful for shaking out loader/schema changes end-to-end in ~30 s instead of
+2–3 min.
+
+The fixture is `processing/src/processing/test_fixture_genes.json` (committed).
+Regenerate it from a current full build with:
+
+```bash
+processing/.venv-claude/bin/python processing/scripts/build_test_fixture.py
+```
+
+`--test` is orthogonal to `--no-index` and `--skip-meta-analysis` — combine as
+needed. Datasets whose tables have empty `gene_mappings` (pure metadata) pass
+through unfiltered.
 
 ## Web Application
 
@@ -109,6 +136,7 @@ Commands:
     --skip-meta-analysis               Skip combined p-value computation
     --skip-gene-descriptions           Skip gene description copying
     --skip-missing-datasets            Skip missing input files
+    --test                             Restrict to bundled top-genes fixture
 
   deploy                             Deploy to prod, dev, and internal sites
     --prod-only / --dev-only / --int-only   Target one environment
