@@ -8,7 +8,6 @@ import click
 
 from processing.central_gene_table import get_central_gene_table
 from processing.combined_pvalues.runner import compute_combined_pvalues
-from processing.effect_distributions import compute_effect_distributions
 from processing.ensembl_symbol_table import compute_ensembl_to_symbol
 from processing.exports import write_exports
 from processing.gene_descriptions import copy_gene_descriptions
@@ -543,7 +542,6 @@ def load_db(
                 nimh_csv_path=nimh_csv_path,
                 tf_list_path=tf_list_path,
             )
-        compute_effect_distributions(conn, no_index=no_index)
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)
 

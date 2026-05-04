@@ -26,7 +26,13 @@ let stmtsAll: StmtTriple | null = null;
 let stmtsPerturbed: StmtTriple | null = null;
 let stmtsTarget: StmtTriple | null = null;
 
-function buildDirectionalSubquery(
+// Materialize a TEMP table containing the distinct central_gene_ids that
+// appear in any link table tagged with the given direction, then return its
+// name. The temp DB is writable even on a read-only main connection, and
+// querying a single PK-indexed temp table beats re-running the union of N
+// link-table scans on every keystroke. Returns null when no link tables
+// match the direction (autocomplete should yield nothing).
+function materializeDirectionalIds(
   db: Database.Database,
   direction: SearchDirection,
 ): string | null {
@@ -41,20 +47,31 @@ function buildDirectionalSubquery(
     }
   }
   if (linkTables.size === 0) return null;
-  return [...linkTables]
-    .map((lt) => `SELECT central_gene_id FROM ${lt}`)
-    .join(" UNION ");
+  const tempName = `_autocomplete_${direction}_ids`;
+  db.exec(`DROP TABLE IF EXISTS temp.${tempName}`);
+  db.exec(
+    `CREATE TEMP TABLE ${tempName} (central_gene_id INTEGER PRIMARY KEY)`,
+  );
+  // Table identifiers can't be bound, so concatenate. Values come from
+  // sanitizeIdentifier inside parseLinkTablesForDirection.
+  for (const lt of linkTables) {
+    db.exec(
+      `INSERT OR IGNORE INTO temp.${tempName} (central_gene_id) ` +
+        `SELECT central_gene_id FROM ${lt}`,
+    );
+  }
+  return tempName;
 }
 
 function prepareTriple(
   db: Database.Database,
-  directionalSubquery: string | null,
+  directionalIdsTable: string | null,
 ): StmtTriple {
-  const filterDirect = directionalSubquery
-    ? `AND id IN (${directionalSubquery})`
+  const filterDirect = directionalIdsTable
+    ? `AND id IN (SELECT central_gene_id FROM temp.${directionalIdsTable})`
     : "";
-  const filterJoined = directionalSubquery
-    ? `AND cg.id IN (${directionalSubquery})`
+  const filterJoined = directionalIdsTable
+    ? `AND cg.id IN (SELECT central_gene_id FROM temp.${directionalIdsTable})`
     : "";
 
   const stmtHuman = db.prepare(`
@@ -114,18 +131,18 @@ function getStmts(
 
   if (direction === "perturbed") {
     if (!stmtsPerturbed) {
-      const sub = buildDirectionalSubquery(db, "perturbed");
+      const tempName = materializeDirectionalIds(db, "perturbed");
       // No link tables in this direction → no autocomplete results.
-      if (!sub) return null;
-      stmtsPerturbed = prepareTriple(db, sub);
+      if (!tempName) return null;
+      stmtsPerturbed = prepareTriple(db, tempName);
     }
     return stmtsPerturbed;
   }
 
   if (!stmtsTarget) {
-    const sub = buildDirectionalSubquery(db, "target");
-    if (!sub) return null;
-    stmtsTarget = prepareTriple(db, sub);
+    const tempName = materializeDirectionalIds(db, "target");
+    if (!tempName) return null;
+    stmtsTarget = prepareTriple(db, tempName);
   }
   return stmtsTarget;
 }

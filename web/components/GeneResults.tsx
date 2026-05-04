@@ -975,11 +975,7 @@ export default function GeneResults({
                             targetCentralGeneId={
                               targetCentralGeneId ?? undefined
                             }
-                            geneSymbol={
-                              targetGene?.humanSymbol ??
-                              perturbedGene?.humanSymbol ??
-                              undefined
-                            }
+                            geneSymbol={targetGene?.humanSymbol ?? undefined}
                           />
                         </div>
                       )}

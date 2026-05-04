@@ -168,7 +168,11 @@ export default function SearchBar({
         value={query}
         onChange={(e) => {
           if (suppress) setSuppress(false);
-          setQuery(e.target.value);
+          const next = e.target.value;
+          setQuery(next);
+          // If the user erases the input while a value is selected, propagate
+          // the clear up — otherwise the parent stays "stuck" on the old gene.
+          if (next.trim() === "" && value) onSelect(null);
         }}
         onFocus={() => {
           if (query && !suppress) {

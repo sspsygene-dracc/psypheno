@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import {
   sanitizeIdentifier,
   parseDisplayColumns,
+  parseLinkTablesForDirection,
   buildGeneQuery,
 } from "@/lib/gene-query";
 
@@ -13,7 +14,26 @@ const bodySchema = z.object({
   targetCentralGeneId: z.number().int().min(0).optional(),
 });
 
-type StoredVolcano = { e: number; l: number; f: number | null; t: boolean };
+// Volcano sample shape: ~100 always-included top-by-p rows + a hash-sorted
+// bulk sample. Numbers chosen to match the previous Python precompute so the
+// frontend's cloud density looks the same.
+const TOP_BY_P_LIMIT = 100;
+const BULK_LIMIT = 1000;
+const PVALUE_FLOOR = 1e-300;
+
+type VolcanoPoint = {
+  effect: number;
+  negLog10P: number;
+  fdr: number | null;
+  topByP: boolean;
+};
+
+type SampleRow = {
+  id: number;
+  effect: number | null;
+  pvalue: number | null;
+  fdr: number | null;
+};
 
 type GeneRow = {
   effect: number | null;
@@ -33,62 +53,50 @@ export default async function handler(
   if (!parse.success) {
     return res.status(400).json({ error: "Invalid request body" });
   }
-  const {
-    tableName,
-    perturbedCentralGeneId,
-    targetCentralGeneId,
-  } = parse.data;
+  const { tableName, perturbedCentralGeneId, targetCentralGeneId } = parse.data;
 
   try {
     const db = getDb();
 
-    const dist = db
-      .prepare(
-        `SELECT effect_column, pvalue_column, fdr_column, n_total, n_nonnull,
-                volcano_points_json
-         FROM table_effect_distributions WHERE table_name = ?`,
-      )
-      .get(tableName) as
-      | {
-          effect_column: string;
-          pvalue_column: string;
-          fdr_column: string | null;
-          n_total: number;
-          n_nonnull: number;
-          volcano_points_json: string;
-        }
-      | undefined;
-
-    if (!dist) {
-      return res.status(404).json({ error: "No distribution for this table" });
-    }
-
-    const volcanoStored = JSON.parse(
-      dist.volcano_points_json,
-    ) as StoredVolcano[];
-    const volcanoPoints = volcanoStored.map((p) => ({
-      effect: p.e,
-      negLog10P: p.l,
-      fdr: p.f,
-      topByP: p.t,
-    }));
-
-    // Look up the queried gene's rows in this table by joining on the link
-    // tables — uses the same logic as the main gene-data query.
     const tableMeta = db
       .prepare(
-        `SELECT display_columns, link_tables, field_labels FROM data_tables WHERE table_name = ?`,
+        `SELECT effect_column, pvalue_column, fdr_column,
+                display_columns, link_tables, field_labels
+         FROM data_tables WHERE table_name = ?`,
       )
       .get(tableName) as
       | {
+          effect_column: string | null;
+          pvalue_column: string | null;
+          fdr_column: string | null;
           display_columns: string;
           link_tables: string | null;
           field_labels: string | null;
         }
       | undefined;
 
+    if (!tableMeta || !tableMeta.effect_column || !tableMeta.pvalue_column) {
+      return res
+        .status(404)
+        .json({ error: "Table has no effect/pvalue columns" });
+    }
+
+    const baseTable = sanitizeIdentifier(tableName);
+    const displayCols = parseDisplayColumns(tableMeta.display_columns);
+    const effectCol = sanitizeIdentifier(tableMeta.effect_column);
+    const pvalueCol = sanitizeIdentifier(tableMeta.pvalue_column.split(",")[0]);
+    const fdrCol = tableMeta.fdr_column
+      ? sanitizeIdentifier(tableMeta.fdr_column.split(",")[0])
+      : null;
+
+    if (!displayCols.includes(effectCol) || !displayCols.includes(pvalueCol)) {
+      return res
+        .status(404)
+        .json({ error: "effect/pvalue columns not in display_columns" });
+    }
+
     let fieldLabels: Record<string, string> = {};
-    if (tableMeta?.field_labels) {
+    if (tableMeta.field_labels) {
       try {
         const parsed = JSON.parse(tableMeta.field_labels);
         if (parsed && typeof parsed === "object") {
@@ -101,53 +109,121 @@ export default async function handler(
       }
     }
 
+    // Background sample. When a perturbed gene is given AND this table has a
+    // perturbed link direction, restrict the sample to that perturbation's
+    // rows — the natural "experiment context" for a volcano. Otherwise sample
+    // the whole table. The target gene never restricts the background (it
+    // would shrink to 1–2 rows, just the orange dot).
+    const linkTablesRaw = tableMeta.link_tables || "";
+    const perturbedLTs = parseLinkTablesForDirection(linkTablesRaw, "perturbed");
+    let backgroundFilter = "";
+    const backgroundParams: unknown[] = [];
+    if (perturbedCentralGeneId && perturbedLTs.length === 1) {
+      backgroundFilter = `AND b.id IN (SELECT id FROM ${perturbedLTs[0]} WHERE central_gene_id = ?)`;
+      backgroundParams.push(perturbedCentralGeneId);
+    }
+
+    const fdrSelect = fdrCol ? `b.${fdrCol}` : "NULL";
+    const baseWhere = `b.${effectCol} IS NOT NULL AND b.${pvalueCol} IS NOT NULL ${backgroundFilter}`;
+
+    // Always include the most-significant rows so the volcano's tails are
+    // present regardless of the bulk sample.
+    const topSql = `
+      SELECT b.id AS id, b.${effectCol} AS effect, b.${pvalueCol} AS pvalue,
+             ${fdrSelect} AS fdr
+      FROM ${baseTable} b
+      WHERE ${baseWhere}
+      ORDER BY b.${pvalueCol} ASC
+      LIMIT ${TOP_BY_P_LIMIT}
+    `;
+    // Stable pseudo-random sample: order by Knuth's multiplicative hash of
+    // the row id. Deterministic per-DB; breaks insertion-order correlation
+    // with effect/pvalue. The mask keeps the value in 31 bits so we never
+    // overflow SQLite's int64 expression evaluator.
+    const bulkSql = `
+      SELECT b.id AS id, b.${effectCol} AS effect, b.${pvalueCol} AS pvalue,
+             ${fdrSelect} AS fdr
+      FROM ${baseTable} b
+      WHERE ${baseWhere}
+      ORDER BY ((b.id * 2654435761) & 2147483647)
+      LIMIT ${BULK_LIMIT}
+    `;
+    const topRows = db.prepare(topSql).all(...backgroundParams) as SampleRow[];
+    const bulkRows = db.prepare(bulkSql).all(...backgroundParams) as SampleRow[];
+
+    // Dedup by id; top-by-p wins. Compute negLog10P here so SQLite stays
+    // free of math.h.
+    const seen = new Set<number>();
+    const volcanoPoints: VolcanoPoint[] = [];
+    const addRow = (row: SampleRow, topByP: boolean) => {
+      if (seen.has(row.id)) return;
+      if (row.effect == null || row.pvalue == null) return;
+      const effect = Number(row.effect);
+      const pvalue = Number(row.pvalue);
+      if (!Number.isFinite(effect) || !Number.isFinite(pvalue)) return;
+      seen.add(row.id);
+      volcanoPoints.push({
+        effect,
+        negLog10P: -Math.log10(Math.max(pvalue, PVALUE_FLOOR)),
+        fdr: row.fdr == null ? null : Number(row.fdr),
+        topByP,
+      });
+    };
+    for (const r of topRows) addRow(r, true);
+    for (const r of bulkRows) addRow(r, false);
+
+    // n_nonnull is the number of rows that *would* contribute to the
+    // background — i.e. the size of the (possibly-filtered) population the
+    // sample is drawn from. Cheap on filtered queries; on unfiltered ones
+    // it's a single scan over rows the sample queries already touched.
+    const nNonNull = (
+      db
+        .prepare(
+          `SELECT COUNT(*) AS cnt FROM ${baseTable} b WHERE ${baseWhere}`,
+        )
+        .get(...backgroundParams) as { cnt: number }
+    ).cnt;
+
+    // Orange-dot rows highlight the *target* gene (per #152). When only a
+    // perturbed gene is given, the background already represents that
+    // perturbation's experiment — there's no separate row to single out.
+    // When both are given, intersect (target row WITHIN the perturbation's
+    // background); same as gene-data's pair-search semantics.
     const geneRows: GeneRow[] = [];
-    if (tableMeta) {
-      const baseTable = sanitizeIdentifier(tableName);
-      const displayCols = parseDisplayColumns(tableMeta.display_columns);
-      const effectCol = sanitizeIdentifier(dist.effect_column);
-      const pvalueCol = sanitizeIdentifier(dist.pvalue_column.split(",")[0]);
-      const fdrCol = dist.fdr_column
-        ? sanitizeIdentifier(dist.fdr_column.split(",")[0])
-        : null;
-      if (
-        displayCols.includes(effectCol) &&
-        displayCols.includes(pvalueCol)
-      ) {
-        const query = buildGeneQuery({
-          baseTable,
-          displayCols,
-          linkTablesRaw: tableMeta.link_tables || "",
-          perturbedCentralGeneId,
-          targetCentralGeneId,
-        });
-        if (query) {
-          const fdrSelect = fdrCol ? `, b.${fdrCol} AS fdr` : `, NULL AS fdr`;
-          const sql = `SELECT DISTINCT b.id, b.${effectCol} AS effect, b.${pvalueCol} AS pvalue${fdrSelect} ${query.fromAndWhere}`;
-          const rows = db.prepare(sql).all(...query.params) as Array<{
-            id: number;
-            effect: number | null;
-            pvalue: number | null;
-            fdr: number | null;
-          }>;
-          for (const r of rows) {
-            geneRows.push({
-              effect: r.effect == null ? null : Number(r.effect),
-              pvalue: r.pvalue == null ? null : Number(r.pvalue),
-              fdr: r.fdr == null ? null : Number(r.fdr),
-              rowKey: String(r.id),
-            });
-          }
+    if (targetCentralGeneId) {
+      const query = buildGeneQuery({
+        baseTable,
+        displayCols,
+        linkTablesRaw,
+        perturbedCentralGeneId,
+        targetCentralGeneId,
+      });
+      if (query) {
+        const fdrSelectGene = fdrCol ? `, b.${fdrCol} AS fdr` : `, NULL AS fdr`;
+        const sql = `SELECT DISTINCT b.id, b.${effectCol} AS effect, b.${pvalueCol} AS pvalue${fdrSelectGene} ${query.fromAndWhere}`;
+        const rows = db.prepare(sql).all(...query.params) as Array<{
+          id: number;
+          effect: number | null;
+          pvalue: number | null;
+          fdr: number | null;
+        }>;
+        for (const r of rows) {
+          geneRows.push({
+            effect: r.effect == null ? null : Number(r.effect),
+            pvalue: r.pvalue == null ? null : Number(r.pvalue),
+            fdr: r.fdr == null ? null : Number(r.fdr),
+            rowKey: String(r.id),
+          });
         }
       }
     }
 
     return res.status(200).json({
-      effectColumn: dist.effect_column,
-      pvalueColumn: dist.pvalue_column,
-      fdrColumn: dist.fdr_column,
-      nTotal: dist.n_total,
-      nNonNull: dist.n_nonnull,
+      effectColumn: tableMeta.effect_column,
+      pvalueColumn: tableMeta.pvalue_column,
+      fdrColumn: tableMeta.fdr_column,
+      nTotal: nNonNull,
+      nNonNull,
       volcanoPoints,
       geneRows,
       fieldLabels,
