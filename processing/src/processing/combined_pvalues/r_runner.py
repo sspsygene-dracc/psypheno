@@ -8,7 +8,7 @@ module owns:
   (in a project-local library, since the system library is often read-only)
 - writing the per-table-collapsed and raw-p-value CSVs the R script reads
 - parsing the R script's results.csv into `GeneCombinedPvalues` records
-- the public `_call_r_combine` function used as the R-job entry point
+- the public `call_r_combine` function used as the R-job entry point
 """
 
 import csv

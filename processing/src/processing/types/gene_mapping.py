@@ -1,14 +1,13 @@
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
+import click
 import pandas as pd
 from processing.central_gene_table import get_central_gene_table
 from processing.my_logger import get_sspsygene_logger
-from processing.preprocessing.helpers import (
-    NON_SYMBOL_CATEGORIES,
-    is_non_symbol_identifier,
-)
+from processing.preprocessing.helpers import NON_SYMBOL_CATEGORIES
 from processing.types.link_table import LinkTable, PerturbedOrTarget
 
 
@@ -187,10 +186,17 @@ class GeneMapping:
         ), f"table {primary_table_name}, column {self.column_name} not found in data columns {data.columns.tolist()}"
         id_column: list[int] = data["id"].tolist()
         in_column: list[str] = data[self.column_name].tolist()
+        total_rows = len(id_column)
         data_id_to_central_gene_id: list[tuple[int, int | None]] = []
         species_map = get_central_gene_table().get_species_map(
             species=self.species,
         )
+        affected_row_ids: set[int] = set()
+        unresolvable_counts: Counter[str] = Counter()
+        # Once a fallback stub is created, repeat occurrences of the same
+        # value resolve via species_map. Track the set of fallback-origin
+        # values so we still count those rows as affected.
+        fallback_values: set[str] = set()
         for row_id, elem in zip(id_column, in_column):
             if self.ignore_empty and (pd.isna(elem) or not elem):
                 data_id_to_central_gene_id.append((row_id, None))
@@ -207,6 +213,9 @@ class GeneMapping:
 
             for gene_val in gene_values:
                 if gene_val in species_map:
+                    if gene_val in fallback_values:
+                        affected_row_ids.add(row_id)
+                        unresolvable_counts[gene_val] += 1
                     for entry in species_map[gene_val]:
                         data_id_to_central_gene_id.append((row_id, entry.row_id))
                         entry.add_used_name(
@@ -219,29 +228,9 @@ class GeneMapping:
                 disposition = self.non_resolving.classify(gene_val)
 
                 if disposition == "fallback":
-                    category = is_non_symbol_identifier(gene_val)
-                    if category is None:
-                        get_sspsygene_logger().warning(
-                            "Path %s, column %s, gene %s not in gene maps for "
-                            "species %s; adding manually",
-                            in_path,
-                            self.column_name,
-                            gene_val,
-                            self.species,
-                        )
-                    else:
-                        get_sspsygene_logger().warning(
-                            "Path %s, column %s, value %s looks like a "
-                            "non-symbol identifier (%s) for species %s but is "
-                            "not whitelisted under non_resolving; adding stub. "
-                            "Add it to non_resolving.record_patterns to "
-                            "silence (or drop the row in preprocess.py).",
-                            in_path,
-                            self.column_name,
-                            gene_val,
-                            category,
-                            self.species,
-                        )
+                    fallback_values.add(gene_val)
+                    affected_row_ids.add(row_id)
+                    unresolvable_counts[gene_val] += 1
                 # All three dispositions create a stub and link the row.
                 # Controls get kind='control' so per-gene aggregates can
                 # filter them out; record/fallback stay as ordinary genes.
@@ -255,6 +244,15 @@ class GeneMapping:
                 species_map[gene_val] = [new_entry]
                 data_id_to_central_gene_id.append((row_id, new_entry.row_id))
 
+        if affected_row_ids:
+            self._log_aggregate_unresolvable_warning(
+                primary_table_name=primary_table_name,
+                in_path=in_path,
+                total_rows=total_rows,
+                affected_row_ids=affected_row_ids,
+                unresolvable_counts=unresolvable_counts,
+            )
+
         link_table_full_name = primary_table_name + "__" + self.link_table_name
         return LinkTable(
             central_gene_table_links=data_id_to_central_gene_id,
@@ -262,3 +260,30 @@ class GeneMapping:
             link_table_name=link_table_full_name,
             perturbed_or_target=self.perturbed_or_target,
         )
+
+    def _log_aggregate_unresolvable_warning(
+        self,
+        *,
+        primary_table_name: str,
+        in_path: Path,
+        total_rows: int,
+        affected_row_ids: set[int],
+        unresolvable_counts: Counter[str],
+    ) -> None:
+        n_affected = len(affected_row_ids)
+        pct = (n_affected / total_rows) * 100 if total_rows else 0.0
+        top = unresolvable_counts.most_common(10)
+        sample = ", ".join(f"{val} (x{n})" for val, n in top)
+        n_distinct = len(unresolvable_counts)
+        more = "" if n_distinct <= 10 else f" (+{n_distinct - 10} more)"
+        msg = (
+            f"{primary_table_name}.{self.column_name} ({in_path.name}): "
+            f"{n_affected}/{total_rows} rows ({pct:.1f}%) had unresolvable "
+            f"{self.species} gene values; stubs added. "
+            f"Top values: {sample}{more}. "
+            "Add to non_resolving.record_values/record_patterns to silence, "
+            "or drop the rows in preprocess.py."
+        )
+        if pct > 3.0:
+            msg = click.style(msg, fg="red", bold=True)
+        get_sspsygene_logger().warning(msg)

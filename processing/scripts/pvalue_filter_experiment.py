@@ -127,7 +127,7 @@ def run_r_combine(
 ) -> dict[int, tuple[float | None, ...]]:
     """Write CSVs, call R, return {gene_id: (fisher, stouffer, cct, hmp)}.
 
-    Mirrors processing/src/processing/combined_pvalues.py:_call_r_combine
+    Mirrors processing/src/processing/combined_pvalues.py:call_r_combine
     but built on already-filtered in-memory data.
     """
     rscript = shutil.which("Rscript")

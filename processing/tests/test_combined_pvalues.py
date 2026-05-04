@@ -2,7 +2,7 @@
 
 Covers: _precollapse, _parse_link_tables_for_direction, _load_hgnc_gene_flags,
 _filter_collected, _write_r_inputs / _parse_r_results, ComputeGroupBuilder,
-GeneFlagger, _call_r_combine, and compute_combined_pvalues.
+GeneFlagger, call_r_combine, and compute_combined_pvalues.
 """
 
 # pylint: disable=use-implicit-booleaness-not-comparison
@@ -433,7 +433,8 @@ def _make_test_db():
             mouse_symbols TEXT, mouse_mgi_accession_ids TEXT,
             mouse_ensembl_genes TEXT, human_synonyms TEXT, mouse_synonyms TEXT,
             dataset_names TEXT, num_datasets INTEGER, manually_added INTEGER,
-            human_entrez_gene TEXT
+            human_entrez_gene TEXT,
+            kind TEXT NOT NULL DEFAULT 'gene'
         )"""
     )
     conn.execute(
@@ -477,7 +478,7 @@ class TestPvalueCollection:
             return {}
 
         with patch(
-            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+            "processing.combined_pvalues.r_runner.call_r_combine", side_effect=mock_r
         ):
             compute_combined_pvalues(conn)
 
@@ -508,7 +509,7 @@ class TestPvalueCollection:
             return {}
 
         with patch(
-            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+            "processing.combined_pvalues.r_runner.call_r_combine", side_effect=mock_r
         ):
             compute_combined_pvalues(conn)
 
@@ -536,7 +537,7 @@ class TestPvalueCollection:
             return {}
 
         with patch(
-            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+            "processing.combined_pvalues.r_runner.call_r_combine", side_effect=mock_r
         ):
             compute_combined_pvalues(conn)
 
@@ -564,7 +565,7 @@ class TestPvalueCollection:
             return {}
 
         with patch(
-            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+            "processing.combined_pvalues.r_runner.call_r_combine", side_effect=mock_r
         ):
             compute_combined_pvalues(conn)
 
@@ -592,7 +593,7 @@ class TestPvalueCollection:
             return {}
 
         with patch(
-            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+            "processing.combined_pvalues.r_runner.call_r_combine", side_effect=mock_r
         ):
             compute_combined_pvalues(conn)
 
@@ -628,7 +629,7 @@ class TestPvalueCollection:
             return {}
 
         with patch(
-            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+            "processing.combined_pvalues.r_runner.call_r_combine", side_effect=mock_r
         ):
             compute_combined_pvalues(conn)
 
@@ -669,7 +670,7 @@ class TestPvalueCollection:
             return {}
 
         with patch(
-            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+            "processing.combined_pvalues.r_runner.call_r_combine", side_effect=mock_r
         ):
             compute_combined_pvalues(conn)
 
@@ -708,7 +709,7 @@ class TestPvalueCollection:
             return {}
 
         with patch(
-            "processing.combined_pvalues.r_runner._call_r_combine", side_effect=mock_r
+            "processing.combined_pvalues.r_runner.call_r_combine", side_effect=mock_r
         ):
             compute_combined_pvalues(conn)
 
@@ -906,7 +907,7 @@ class TestEndToEnd:
         conn.commit()
 
         with patch(
-            "processing.combined_pvalues.r_runner._call_r_combine", return_value={}
+            "processing.combined_pvalues.r_runner.call_r_combine", return_value={}
         ):
             compute_combined_pvalues(conn)
 
@@ -930,7 +931,7 @@ class TestEndToEnd:
         conn.commit()
 
         with patch(
-            "processing.combined_pvalues.r_runner._call_r_combine", return_value={}
+            "processing.combined_pvalues.r_runner.call_r_combine", return_value={}
         ):
             compute_combined_pvalues(conn)
 

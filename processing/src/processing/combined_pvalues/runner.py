@@ -6,7 +6,7 @@
   3. enumerate `ComputeGroup` specs (`ComputeGroupBuilder`)
   4. master scan: collect p-values per direction once
   5. derive each group's `CollectedPvalues` by filtering, applying min_tables
-  6. submit non-empty groups to a thread pool calling `_call_r_combine`
+  6. submit non-empty groups to a thread pool calling `call_r_combine`
   7. create per-group output tables + the `combined_pvalue_groups` index
 
 `compute_combined_pvalues` is a thin wrapper kept for backwards compatibility
@@ -51,7 +51,7 @@ class MetaAnalysisRun:
       5. `_derive_collected_groups` — filter the masters down to each group's
          table subset, dropping groups below their `min_tables` threshold.
       6. `_run_r_jobs` — submit non-empty groups to a thread pool, each
-         calling `_call_r_combine`.
+         calling `call_r_combine`.
       7. `_write_all_results` — create per-group output tables and the
          `combined_pvalue_groups` index.
     """
@@ -191,8 +191,8 @@ class MetaAnalysisRun:
         self, collected: list[CollectedGroup]
     ) -> dict[int, dict[int, GeneCombinedPvalues]]:
         # Submit non-empty groups to the thread pool. We dispatch through
-        # `r_runner._call_r_combine` (rather than a local import) so test
-        # patches at `processing.combined_pvalues.r_runner._call_r_combine`
+        # `r_runner.call_r_combine` (rather than a local import) so test
+        # patches at `processing.combined_pvalues.r_runner.call_r_combine`
         # take effect.
         r_jobs: list[RJobInput] = [
             RJobInput(idx=i, pvalues=cg.pvalues, label=cg.label)

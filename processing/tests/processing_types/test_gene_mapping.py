@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -224,17 +225,137 @@ def test_dispatch_record_values_creates_stub(
     assert new_entry.human_symbol == "SGK494"
 
 
+def _fallback_warnings(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+    return [
+        r
+        for r in caplog.records
+        if r.name == "sspsygene_logger" and r.levelno == logging.WARNING
+    ]
+
+
 def test_dispatch_fallback_warns_and_records(
     central_gene_stub: CentralGeneTable,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    # No non_resolving entry covers WEIRDGENE → fallback path: warn +
-    # create stub + link. Test verifies the link/stub side; warning
-    # output goes through the standard logger.
+    # No non_resolving entry covers WEIRDGENE → fallback path: aggregated
+    # warn + create stub + link.
+    caplog.set_level(logging.WARNING, logger="sspsygene_logger")
     cfg = _base_mapping()
     df = pd.DataFrame({"id": [1], "target_gene": ["WEIRDGENE"]})
     gm = GeneMapping.from_json(cfg)
-    link = gm.resolve_to_central_gene_table("t", df, Path("/dev/null"))
+    link = gm.resolve_to_central_gene_table("t", df, Path("/tmp/in.csv"))
     [(_, cg_id)] = link.central_gene_table_links
     assert cg_id is not None
     assert central_gene_stub.entries[cg_id].human_symbol == "WEIRDGENE"
     assert central_gene_stub.entries[cg_id].manually_added is True
+
+    [warning] = _fallback_warnings(caplog)
+    assert "t.target_gene" in warning.message
+    assert "in.csv" in warning.message
+    assert "1/1 rows (100.0%)" in warning.message
+    assert "WEIRDGENE" in warning.message
+
+
+def test_fallback_aggregates_per_column(
+    central_gene_stub: CentralGeneTable,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # 100 rows, 5 distinct unresolvable values (counts: 1, 1, 1, 1, 1) →
+    # 5/100 affected = 5%. Exactly one aggregate warning.
+    caplog.set_level(logging.WARNING, logger="sspsygene_logger")
+    df = pd.DataFrame(
+        {
+            "id": list(range(100)),
+            "target_gene": ["BRCA1"] * 95
+            + ["WEIRD1", "WEIRD2", "WEIRD3", "WEIRD4", "WEIRD1"],
+        }
+    )
+    gm = GeneMapping.from_json(_base_mapping())
+    gm.resolve_to_central_gene_table("ds", df, Path("/tmp/in.csv"))
+
+    [warning] = _fallback_warnings(caplog)
+    assert "ds.target_gene" in warning.message
+    assert "5/100 rows (5.0%)" in warning.message
+    # Most-common value first; WEIRD1 appears twice.
+    assert "WEIRD1 (x2)" in warning.message
+
+
+def test_fallback_under_threshold_no_ansi(
+    central_gene_stub: CentralGeneTable,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING, logger="sspsygene_logger")
+    df = pd.DataFrame(
+        {
+            "id": list(range(100)),
+            "target_gene": ["BRCA1"] * 98 + ["WEIRD1", "WEIRD2"],
+        }
+    )
+    gm = GeneMapping.from_json(_base_mapping())
+    gm.resolve_to_central_gene_table("ds", df, Path("/tmp/in.csv"))
+
+    [warning] = _fallback_warnings(caplog)
+    # 2/100 = 2.0% which is <= 3% → plain text, no ANSI escape.
+    assert "2/100 rows (2.0%)" in warning.message
+    assert "\x1b[" not in warning.message
+
+
+def test_fallback_over_threshold_uses_red_bold_ansi(
+    central_gene_stub: CentralGeneTable,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING, logger="sspsygene_logger")
+    df = pd.DataFrame(
+        {
+            "id": list(range(100)),
+            "target_gene": ["BRCA1"] * 90 + [f"WEIRD{i}" for i in range(10)],
+        }
+    )
+    gm = GeneMapping.from_json(_base_mapping())
+    gm.resolve_to_central_gene_table("ds", df, Path("/tmp/in.csv"))
+
+    [warning] = _fallback_warnings(caplog)
+    # 10/100 = 10% > 3% → click.style emits ANSI.
+    assert "10/100 rows (10.0%)" in warning.message
+    assert "\x1b[" in warning.message
+
+
+def test_fallback_sample_capped_at_10(
+    central_gene_stub: CentralGeneTable,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING, logger="sspsygene_logger")
+    # 12 distinct unresolvable values, each appearing once.
+    weird = [f"WEIRD{i}" for i in range(12)]
+    df = pd.DataFrame(
+        {
+            "id": list(range(100)),
+            "target_gene": ["BRCA1"] * 88 + weird,
+        }
+    )
+    gm = GeneMapping.from_json(_base_mapping())
+    gm.resolve_to_central_gene_table("ds", df, Path("/tmp/in.csv"))
+
+    [warning] = _fallback_warnings(caplog)
+    # Only 10 sample entries, then "+2 more".
+    assert warning.message.count("(x1)") == 10
+    assert "+2 more" in warning.message
+
+
+def test_multi_gene_separator_counts_row_once(
+    central_gene_stub: CentralGeneTable,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # One row, three unresolvable genes inside it. Affected rows = 1, not 3.
+    caplog.set_level(logging.WARNING, logger="sspsygene_logger")
+    cfg = _base_mapping()
+    cfg["multi_gene_separator"] = ","
+    df = pd.DataFrame({"id": [0], "target_gene": ["WEIRD1,WEIRD2,WEIRD3"]})
+    gm = GeneMapping.from_json(cfg)
+    gm.resolve_to_central_gene_table("ds", df, Path("/tmp/in.csv"))
+
+    [warning] = _fallback_warnings(caplog)
+    assert "1/1 rows (100.0%)" in warning.message
+    # All three values appear in the sample.
+    for v in ("WEIRD1", "WEIRD2", "WEIRD3"):
+        assert v in warning.message
