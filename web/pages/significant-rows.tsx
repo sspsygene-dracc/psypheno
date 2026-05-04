@@ -418,7 +418,7 @@ export default function SignificantRowsPage() {
           </Link>
         </p>
 
-        {/* Regulation filter */}
+        {/* Regulation, assay, disease, organism filters */}
         <div
           style={{
             marginBottom: 12,
@@ -427,69 +427,60 @@ export default function SignificantRowsPage() {
             borderRadius: 8,
             padding: "10px 14px",
             fontSize: 13,
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            flexWrap: "wrap",
           }}
         >
-          <span
-            style={{
-              fontWeight: 600,
-              color: "#374151",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Regulation:
-          </span>
-          <label style={radioLabelStyle}>
-            <input
-              type="radio"
-              name="regulationFilter"
-              checked={regulation === "any"}
-              onChange={() => setRegulation("any")}
-            />
-            All
-          </label>
-          <label style={radioLabelStyle}>
-            <input
-              type="radio"
-              name="regulationFilter"
-              checked={regulation === "up"}
-              onChange={() => setRegulation("up")}
-            />
-            Up-regulated
-          </label>
-          <label style={radioLabelStyle}>
-            <input
-              type="radio"
-              name="regulationFilter"
-              checked={regulation === "down"}
-              onChange={() => setRegulation("down")}
-            />
-            Down-regulated
-          </label>
-          <span style={{ color: "#6b7280", fontSize: 12 }}>
-            Up/Down restricts to rows whose effect-size column is positive /
-            negative; datasets without an effect column are hidden.
-          </span>
-        </div>
-
-        {/* Assay type, disease, and organism filters */}
-        {(availableAssays.length > 0 ||
-          availableDiseases.length > 0 ||
-          availableOrganisms.length > 0) && (
           <div
             style={{
-              marginBottom: 12,
-              background: "#f9fafb",
-              border: "1px solid #e5e7eb",
-              borderRadius: 8,
-              padding: "10px 14px",
-              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              flexWrap: "wrap",
+              marginBottom:
+                availableAssays.length > 0 ||
+                availableDiseases.length > 0 ||
+                availableOrganisms.length > 0
+                  ? 8
+                  : 0,
             }}
           >
-            {availableAssays.length > 0 && (
+            <span
+              style={{
+                fontWeight: 600,
+                color: "#374151",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Regulation:
+            </span>
+            <label style={radioLabelStyle}>
+              <input
+                type="radio"
+                name="regulationFilter"
+                checked={regulation === "any"}
+                onChange={() => setRegulation("any")}
+              />
+              All
+            </label>
+            <label style={radioLabelStyle}>
+              <input
+                type="radio"
+                name="regulationFilter"
+                checked={regulation === "up"}
+                onChange={() => setRegulation("up")}
+              />
+              Up-regulated
+            </label>
+            <label style={radioLabelStyle}>
+              <input
+                type="radio"
+                name="regulationFilter"
+                checked={regulation === "down"}
+                onChange={() => setRegulation("down")}
+              />
+              Down-regulated
+            </label>
+          </div>
+          {availableAssays.length > 0 && (
               <div
                 style={{
                   display: "flex",
@@ -615,8 +606,7 @@ export default function SignificantRowsPage() {
                 ))}
               </div>
             )}
-          </div>
-        )}
+        </div>
 
         {/* Filter/sort controls */}
         <div
