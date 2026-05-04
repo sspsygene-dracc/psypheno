@@ -77,8 +77,8 @@ def cli(
     is_flag=True,
     default=False,
     help="Skip the DB rebuild and only regenerate the user-facing download "
-    "tree (exports/) from the existing out_db. Useful while iterating on "
-    "the export step.",
+    "blobs (export_files table) inside the existing out_db. Useful while "
+    "iterating on the export step.",
 )
 @click.option(
     "--test",
@@ -118,7 +118,7 @@ def load_db(
             write_exports(config.out_db)
             click.echo(
                 click.style(
-                    f"Wrote exports to {config.out_db.parent / 'exports'}",
+                    f"Wrote exports as BLOBs into {config.out_db}",
                     fg="green",
                     bold=True,
                 )

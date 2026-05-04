@@ -1,30 +1,32 @@
-"""Build the user-facing download artifacts after the SQLite DB is ready.
+"""Build the user-facing download artifacts inside the SQLite DB.
 
-Drops a self-contained `exports/` tree next to the DB:
+After load-db has populated the data tables, `write_exports()` builds:
 
-    exports/
-      tables/{table}.tsv          # full data-table dump, ENSG→symbol applied
-      metadata/{table}.yaml       # per-table metadata sidecar
-      ensembl_to_symbol.tsv       # closes #99
-      manifest.tsv                # one row per data table (counts, columns, …)
-      README.txt                  # short orientation + R snippet
-      all-tables.zip              # everything above (sans the SQLite copy)
-      sspsygene.db                # copy of the built SQLite
+    export_files                 SQLite table — one row per downloadable file:
+        path TEXT PRIMARY KEY,   "tables/foo.tsv", "metadata/foo.yaml",
+                                 "preprocessing/foo.yaml", "manifest.tsv",
+                                 "ensembl_to_symbol.tsv", "README.txt",
+                                 "all-tables.zip"
+        content_type TEXT,
+        content BLOB,
+        last_modified INTEGER    unix epoch
+        size INTEGER
 
-Atomic install via tmp-dir + rename so a concurrent web request can't observe
-a half-written tree.
+The `/api/download/[...path]` Next.js endpoint reads BLOBs from this table
+— there is no `exports/` directory on the filesystem and the API never
+opens a file by path. The SQLite DB itself is downloaded via a separate
+endpoint that streams `SSPSYGENE_DATA_DB`.
 """
 
 import csv
+import io
 import json
 import logging
 import os
 import re
-import shutil
 import sqlite3
+import time
 import zipfile
-from contextlib import closing
-from pathlib import Path
 from typing import Any, Iterator
 
 import yaml
@@ -65,7 +67,8 @@ def _list_data_tables(conn: sqlite3.Connection) -> list[sqlite3.Row]:
                   publication_author_count, publication_authors, publication_year,
                   publication_journal, publication_doi, publication_pmid,
                   publication_sspsygene_grants,
-                  pvalue_column, fdr_column, effect_column
+                  pvalue_column, fdr_column, effect_column,
+                  preprocessing
            FROM data_tables
            ORDER BY table_name"""
     ).fetchall()
@@ -122,7 +125,7 @@ def _stream_table_rows(
     table: str,
     columns: list[str],
 ) -> Iterator[tuple[Any, ...]]:
-    """Yield (row_count, row) tuples for the given table.
+    """Yield `(row, ...)` tuples for the given table.
 
     Uses a fresh cursor and selects only the requested columns; ordered by
     `id` for deterministic output. The SQL identifiers are validated upstream
@@ -136,34 +139,32 @@ def _stream_table_rows(
         yield row
 
 
-def _write_table_tsv(
+def _build_table_tsv(
     conn: sqlite3.Connection,
     table_row: sqlite3.Row,
-    out_path: Path,
     symbol_map: dict[str, str],
-) -> int:
+) -> tuple[bytes, int]:
+    """Return (tsv-bytes, row-count)."""
     columns = _split_csv(table_row["display_columns"])
     if not columns:
-        out_path.write_text("")
-        return 0
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+        return b"", 0
+    buf = io.StringIO()
+    writer = csv.writer(
+        buf, delimiter="\t", quoting=csv.QUOTE_MINIMAL, lineterminator="\n"
+    )
+    writer.writerow(columns)
     count = 0
-    with out_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(
-            f, delimiter="\t", quoting=csv.QUOTE_MINIMAL, lineterminator="\n"
-        )
-        writer.writerow(columns)
-        for row in _stream_table_rows(conn, table_row["table_name"], columns):
-            out_row: list[str] = []
-            for cell in row:
-                if cell is None:
-                    out_row.append("")
-                    continue
-                substituted = _substitute_ensgs(cell, symbol_map)
-                out_row.append(str(substituted))
-            writer.writerow(out_row)
-            count += 1
-    return count
+    for row in _stream_table_rows(conn, table_row["table_name"], columns):
+        out_row: list[str] = []
+        for cell in row:
+            if cell is None:
+                out_row.append("")
+                continue
+            substituted = _substitute_ensgs(cell, symbol_map)
+            out_row.append(str(substituted))
+        writer.writerow(out_row)
+        count += 1
+    return buf.getvalue().encode("utf-8"), count
 
 
 def _table_metadata_dict(table_row: sqlite3.Row) -> dict[str, object]:
@@ -218,9 +219,6 @@ def _table_metadata_dict(table_row: sqlite3.Row) -> dict[str, object]:
         publication["sspsygene_grants"] = grants
     if publication:
         md["publication"] = publication
-    # Drop keys whose value is None / empty list / empty dict to keep the YAML
-    # tidy. Empty collections in particular would otherwise render as `[]`/`{}`
-    # alongside the ones with real content.
     return {
         k: v
         for k, v in md.items()
@@ -228,17 +226,37 @@ def _table_metadata_dict(table_row: sqlite3.Row) -> dict[str, object]:
     }
 
 
-def _write_table_metadata_yaml(table_row: sqlite3.Row, out_path: Path) -> None:
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+def _build_table_metadata_yaml(table_row: sqlite3.Row) -> bytes:
     md = _table_metadata_dict(table_row)
-    with out_path.open("w", encoding="utf-8") as f:
-        yaml.safe_dump(md, f, sort_keys=False, allow_unicode=True, width=100)
+    return yaml.safe_dump(
+        md, sort_keys=False, allow_unicode=True, width=100
+    ).encode("utf-8")
 
 
-def _write_ensembl_symbol_tsv(
-    conn: sqlite3.Connection, out_path: Path
-) -> int:
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+def _build_preprocessing_yaml(table_row: sqlite3.Row) -> bytes | None:
+    """Per-table preprocessing provenance (#150). Returns None if absent."""
+    raw = table_row["preprocessing"]
+    if not raw:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        logger.warning(
+            "preprocessing JSON for %s is malformed; skipping",
+            table_row["table_name"],
+        )
+        return None
+    return yaml.safe_dump(
+        parsed, sort_keys=False, allow_unicode=True, width=100
+    ).encode("utf-8")
+
+
+def _build_ensembl_symbol_tsv(conn: sqlite3.Connection) -> tuple[bytes, int]:
+    buf = io.StringIO()
+    writer = csv.writer(
+        buf, delimiter="\t", quoting=csv.QUOTE_MINIMAL, lineterminator="\n"
+    )
+    writer.writerow(["ensembl_id", "symbol", "central_gene_id", "species"])
     count = 0
     try:
         cur = conn.execute(
@@ -246,61 +264,56 @@ def _write_ensembl_symbol_tsv(
             "FROM ensembl_to_symbol ORDER BY ensembl_id"
         )
     except sqlite3.OperationalError:
-        out_path.write_text("ensembl_id\tsymbol\tcentral_gene_id\tspecies\n")
-        return 0
-    with out_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(
-            f, delimiter="\t", quoting=csv.QUOTE_MINIMAL, lineterminator="\n"
-        )
-        writer.writerow(["ensembl_id", "symbol", "central_gene_id", "species"])
-        for row in cur:
-            writer.writerow(row)
-            count += 1
-    return count
+        return buf.getvalue().encode("utf-8"), 0
+    for row in cur:
+        writer.writerow(row)
+        count += 1
+    return buf.getvalue().encode("utf-8"), count
 
 
-def _write_manifest(
+def _build_manifest(
     table_rows: list[sqlite3.Row],
     row_counts: dict[str, int],
-    out_path: Path,
-) -> None:
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with out_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(
-            f, delimiter="\t", quoting=csv.QUOTE_MINIMAL, lineterminator="\n"
-        )
+) -> bytes:
+    buf = io.StringIO()
+    writer = csv.writer(
+        buf, delimiter="\t", quoting=csv.QUOTE_MINIMAL, lineterminator="\n"
+    )
+    writer.writerow([
+        "table_name",
+        "short_label",
+        "medium_label",
+        "row_count",
+        "columns",
+        "organism",
+        "assay",
+        "publication_doi",
+        "tsv_path",
+        "metadata_path",
+        "preprocessing_path",
+        "source_links",
+    ])
+    for r in table_rows:
+        tn = r["table_name"]
         writer.writerow([
-            "table_name",
-            "short_label",
-            "medium_label",
-            "row_count",
-            "columns",
-            "organism",
-            "assay",
-            "publication_doi",
-            "tsv_path",
-            "metadata_path",
-            "source_links",
+            tn,
+            r["short_label"] or "",
+            r["medium_label"] or "",
+            row_counts.get(tn, 0),
+            ",".join(_split_csv(r["display_columns"])),
+            r["organism"] or "",
+            r["assay"] or "",
+            r["publication_doi"] or "",
+            f"tables/{tn}.tsv",
+            f"metadata/{tn}.yaml",
+            f"preprocessing/{tn}.yaml" if r["preprocessing"] else "",
+            ";".join(
+                link["url"]
+                for link in _parse_json_list(r["links"])
+                if isinstance(link, dict) and "url" in link
+            ),
         ])
-        for r in table_rows:
-            tn = r["table_name"]
-            writer.writerow([
-                tn,
-                r["short_label"] or "",
-                r["medium_label"] or "",
-                row_counts.get(tn, 0),
-                ",".join(_split_csv(r["display_columns"])),
-                r["organism"] or "",
-                r["assay"] or "",
-                r["publication_doi"] or "",
-                f"tables/{tn}.tsv",
-                f"metadata/{tn}.yaml",
-                ";".join(
-                    link["url"]
-                    for link in _parse_json_list(r["links"])
-                    if isinstance(link, dict) and "url" in link
-                ),
-            ])
+    return buf.getvalue().encode("utf-8")
 
 
 _README = """\
@@ -319,6 +332,11 @@ Layout
   metadata/{table}.yaml       Per-table metadata: description, columns +
                               field labels, source, links, gene mappings,
                               and citation.
+  preprocessing/{table}.yaml  Per-table preprocessing provenance: which
+                              gene-symbol rescues fired, what was dropped,
+                              row counts before/after each step. Only
+                              present for tables whose dataset ships a
+                              preprocessing.yaml.
   ensembl_to_symbol.tsv       Ensembl ID ↔ gene symbol mapping used by
                               the website.
   README.txt                  This file.
@@ -343,100 +361,159 @@ the original publication when using a dataset.
 """
 
 
-def _write_readme(out_path: Path) -> None:
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(_README, encoding="utf-8")
+# MIME types for the export artifacts. Path extensions are matched in the
+# Next.js handler too, but storing them alongside the blob makes the API a
+# pure DB lookup with no extension-table duplication.
+_MIME_BY_EXT: dict[str, str] = {
+    ".tsv": "text/tab-separated-values; charset=utf-8",
+    ".csv": "text/csv; charset=utf-8",
+    ".yaml": "application/x-yaml; charset=utf-8",
+    ".yml": "application/x-yaml; charset=utf-8",
+    ".txt": "text/plain; charset=utf-8",
+    ".zip": "application/zip",
+}
 
 
-def _build_zip(staging: Path, zip_path: Path, exclude: set[str]) -> None:
-    """ZIP everything in `staging` except files whose relative path is in `exclude`."""
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
-        # Sorted walk → deterministic byte output run-to-run.
-        for root, dirs, files in os.walk(staging):
-            dirs.sort()
-            for name in sorted(files):
-                full = Path(root) / name
-                rel = str(full.relative_to(staging))
-                if rel in exclude:
-                    continue
-                zf.write(full, arcname=rel)
+def _content_type_for(path: str) -> str:
+    _, ext = os.path.splitext(path)
+    return _MIME_BY_EXT.get(ext.lower(), "application/octet-stream")
 
 
-def write_exports(db_path: Path, exports_dir: Path | None = None) -> None:
-    """Build the export tree from the freshly-built DB at `db_path`.
+def _ensure_export_files_table(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        DROP TABLE IF EXISTS export_files;
+        CREATE TABLE export_files (
+            path TEXT PRIMARY KEY,
+            content_type TEXT NOT NULL,
+            content BLOB NOT NULL,
+            size INTEGER NOT NULL,
+            last_modified INTEGER NOT NULL
+        ) WITHOUT ROWID;
+        """
+    )
 
-    Writes to a sibling tmp directory and then atomically renames into place,
-    so a concurrent web fetch can't observe a half-written tree.
+
+def _insert_export(
+    conn: sqlite3.Connection,
+    path: str,
+    content: bytes,
+    *,
+    last_modified: int,
+) -> None:
+    conn.execute(
+        "INSERT OR REPLACE INTO export_files "
+        "(path, content_type, content, size, last_modified) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (path, _content_type_for(path), content, len(content), last_modified),
+    )
+
+
+def _build_zip_from_blobs(conn: sqlite3.Connection, exclude: set[str]) -> bytes:
+    """Build all-tables.zip from the rows already in `export_files`.
+
+    Sorted walk → deterministic byte output run-to-run. Excludes any paths
+    in `exclude` (notably itself).
     """
-    if exports_dir is None:
-        exports_dir = db_path.parent / "exports"
-    exports_dir.parent.mkdir(parents=True, exist_ok=True)
+    rows = conn.execute(
+        "SELECT path, content FROM export_files ORDER BY path"
+    ).fetchall()
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        for r in rows:
+            path = r["path"]
+            if path in exclude:
+                continue
+            zf.writestr(path, r["content"])
+    return buf.getvalue()
 
-    # Build into a sibling tmp dir on the same filesystem so the final rename
-    # is atomic. Manual lifecycle (not TemporaryDirectory) because we need to
-    # rename the dir out from under ourselves on success.
-    tmp = exports_dir.with_name(exports_dir.name + ".new")
-    if tmp.exists():
-        shutil.rmtree(tmp)
-    tmp.mkdir(parents=True)
 
-    try:
-        logger.info("Writing exports to staging dir %s", tmp)
+def write_exports(db_path: object, exports_dir: object | None = None) -> None:
+    """Populate `export_files` in the DB at `db_path` with downloadable artifacts.
 
-        with closing(sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)) as conn:
-            symbol_map = _load_ensembl_symbol_map(conn)
-            logger.info("Loaded %d ensembl-to-symbol mappings", len(symbol_map))
+    `exports_dir` is accepted for back-compat with prior callers but is
+    ignored — the export tree no longer lives on the filesystem. Exports
+    are stored as BLOBs in the DB and served via the `/api/download` API
+    that queries them by path.
+    """
+    if exports_dir is not None:
+        logger.info("exports_dir argument ignored; exports now live in the DB")
 
-            table_rows = _list_data_tables(conn)
-            logger.info("Exporting %d data tables", len(table_rows))
+    last_modified = int(time.time())
 
-            row_counts: dict[str, int] = {}
-            for r in table_rows:
-                tn = r["table_name"]
-                tsv_path = tmp / "tables" / f"{tn}.tsv"
-                yaml_path = tmp / "metadata" / f"{tn}.yaml"
-                row_counts[tn] = _write_table_tsv(conn, r, tsv_path, symbol_map)
-                _write_table_metadata_yaml(r, yaml_path)
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        symbol_map = _load_ensembl_symbol_map(conn)
+        logger.info("Loaded %d ensembl-to-symbol mappings", len(symbol_map))
 
-            ensembl_count = _write_ensembl_symbol_tsv(
-                conn, tmp / "ensembl_to_symbol.tsv"
+        _ensure_export_files_table(conn)
+
+        table_rows = _list_data_tables(conn)
+        logger.info("Exporting %d data tables", len(table_rows))
+
+        row_counts: dict[str, int] = {}
+        preprocessing_count = 0
+        for r in table_rows:
+            tn = r["table_name"]
+
+            tsv_bytes, row_count = _build_table_tsv(conn, r, symbol_map)
+            row_counts[tn] = row_count
+            _insert_export(
+                conn, f"tables/{tn}.tsv", tsv_bytes, last_modified=last_modified
             )
-            logger.info("Wrote ensembl_to_symbol.tsv with %d rows", ensembl_count)
 
-            _write_manifest(table_rows, row_counts, tmp / "manifest.tsv")
-            _write_readme(tmp / "README.txt")
+            metadata_bytes = _build_table_metadata_yaml(r)
+            _insert_export(
+                conn,
+                f"metadata/{tn}.yaml",
+                metadata_bytes,
+                last_modified=last_modified,
+            )
 
-        # Build the all-tables.zip from everything written so far.
-        _build_zip(
-            tmp,
-            tmp / "all-tables.zip",
-            exclude={"sspsygene.db", "all-tables.zip"},
+            preprocessing_bytes = _build_preprocessing_yaml(r)
+            if preprocessing_bytes is not None:
+                _insert_export(
+                    conn,
+                    f"preprocessing/{tn}.yaml",
+                    preprocessing_bytes,
+                    last_modified=last_modified,
+                )
+                preprocessing_count += 1
+
+        logger.info(
+            "Wrote preprocessing YAML for %d / %d tables",
+            preprocessing_count,
+            len(table_rows),
         )
 
-        # Hardlink the SQLite DB if possible (cheap, zero copy, snapshots the
-        # current inode so a subsequent atomic-rename rebuild doesn't mutate
-        # the exported copy). Fall back to a full copy across filesystems.
-        sqlite_target = tmp / "sspsygene.db"
-        try:
-            os.link(db_path, sqlite_target)
-        except OSError:
-            shutil.copy2(db_path, sqlite_target)
+        ensembl_bytes, ensembl_rows = _build_ensembl_symbol_tsv(conn)
+        _insert_export(
+            conn,
+            "ensembl_to_symbol.tsv",
+            ensembl_bytes,
+            last_modified=last_modified,
+        )
+        logger.info("Wrote ensembl_to_symbol.tsv with %d rows", ensembl_rows)
 
-        # Atomic swap. Rename existing exports/ aside (if any), rename tmp
-        # into its slot, then remove the aside. Window of inconsistency is
-        # the gap between the two renames — effectively zero on POSIX.
-        old_aside = exports_dir.with_name(exports_dir.name + ".old")
-        if old_aside.exists():
-            shutil.rmtree(old_aside)
-        if exports_dir.exists():
-            os.rename(exports_dir, old_aside)
-        os.rename(tmp, exports_dir)
-        if old_aside.exists():
-            shutil.rmtree(old_aside)
-    finally:
-        # If we errored before the rename, tear down the tmp dir so we don't
-        # leak it. After a successful rename, tmp no longer exists.
-        if tmp.exists():
-            shutil.rmtree(tmp)
+        manifest_bytes = _build_manifest(table_rows, row_counts)
+        _insert_export(
+            conn, "manifest.tsv", manifest_bytes, last_modified=last_modified
+        )
+        _insert_export(
+            conn,
+            "README.txt",
+            _README.encode("utf-8"),
+            last_modified=last_modified,
+        )
 
-    logger.info("Exports written to %s", exports_dir)
+        # Build all-tables.zip from everything written so far. It excludes
+        # itself (would be a chicken-and-egg) and the SQLite DB (downloaded
+        # via a separate streaming endpoint).
+        zip_bytes = _build_zip_from_blobs(conn, exclude={"all-tables.zip"})
+        _insert_export(
+            conn, "all-tables.zip", zip_bytes, last_modified=last_modified
+        )
+
+        conn.commit()
+
+    logger.info("Exports written to %s as BLOBs in export_files", db_path)

@@ -27,6 +27,7 @@ export type Dataset = {
   publication_doi: string | null;
   publication_authors?: string[];
   publication_sspsygene_grants?: string[];
+  has_preprocessing?: boolean;
 };
 
 type DatasetItemProps = {

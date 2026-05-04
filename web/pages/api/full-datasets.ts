@@ -18,7 +18,8 @@ export default async function handler(
         `SELECT table_name, short_label, medium_label, long_label, description, gene_columns, gene_species, display_columns, scalar_columns, link_tables,
                 links, categories, source, assay, organism,
                 publication_first_author, publication_last_author, publication_author_count, publication_authors,
-                publication_year, publication_journal, publication_doi, publication_sspsygene_grants
+                publication_year, publication_journal, publication_doi, publication_sspsygene_grants,
+                preprocessing IS NOT NULL AS has_preprocessing
          FROM data_tables
          ORDER BY table_name ASC`
       )
@@ -46,10 +47,17 @@ export default async function handler(
       publication_journal: string | null;
       publication_doi: string | null;
       publication_sspsygene_grants: string | null;
+      has_preprocessing: 0 | 1;
     }>;
 
     const datasets = rows.map((r) => {
-      const { publication_authors, publication_sspsygene_grants, links, ...rest } = r;
+      const {
+        publication_authors,
+        publication_sspsygene_grants,
+        links,
+        has_preprocessing,
+        ...rest
+      } = r;
       let authors: string[] = [];
       if (publication_authors) {
         try {
@@ -73,6 +81,7 @@ export default async function handler(
         links: parseDatasetLinks(links),
         publication_authors: authors,
         publication_sspsygene_grants: grants,
+        has_preprocessing: has_preprocessing === 1,
       };
     });
 

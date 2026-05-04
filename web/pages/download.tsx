@@ -341,6 +341,15 @@ function DatasetRow({ dataset }: { dataset: Dataset }) {
           >
             Metadata (YAML)
           </a>
+          {dataset.has_preprocessing && (
+            <a
+              href={`/api/download/preprocessing/${encodeURIComponent(tn)}.yaml`}
+              style={downloadBtn}
+              title={`Download ${tn}.yaml preprocessing provenance — every action the wrangler's preprocess.py applied to this table`}
+            >
+              Preprocessing (YAML)
+            </a>
+          )}
         </div>
       </div>
       {sourceLinks.length > 0 && (

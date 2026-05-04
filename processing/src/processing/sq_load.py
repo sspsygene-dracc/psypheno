@@ -5,6 +5,7 @@ import sqlite3
 import sys
 
 import click
+import yaml
 
 from processing.central_gene_table import get_central_gene_table
 from processing.combined_pvalues.runner import compute_combined_pvalues
@@ -177,6 +178,39 @@ def load_gene_tables(
     conn.commit()
 
 
+def _load_preprocessing_for_table(in_path: Path) -> dict[str, object] | None:
+    """Slice a dataset's preprocessing.yaml down to a single table.
+
+    `in_path` is the cleaned-data file referenced from config.yaml; its
+    parent directory holds an optional `preprocessing.yaml` (#150) that
+    documents every action a wrangler's preprocess.py applied. Returns
+    a per-table dict shaped for storage on the data_tables row, or
+    None if no provenance exists for this table.
+    """
+    sidecar = in_path.parent / "preprocessing.yaml"
+    if not sidecar.exists():
+        return None
+    try:
+        loaded = yaml.safe_load(sidecar.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        logging.getLogger(__name__).warning(
+            "preprocessing.yaml at %s is not valid YAML; skipping", sidecar
+        )
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    tables = loaded.get("tables") or {}
+    actions = tables.get(in_path.name) if isinstance(tables, dict) else None
+    if not actions:
+        return None
+    return {
+        "generated": loaded.get("generated"),
+        "inputs": loaded.get("inputs", []),
+        "source_file": in_path.name,
+        "actions": actions,
+    }
+
+
 def load_data_tables(
     conn: sqlite3.Connection,
     table_configs: list[TableToProcessConfig],
@@ -218,7 +252,8 @@ def load_data_tables(
         publication_sspsygene_grants TEXT,
         pvalue_column TEXT,
         fdr_column TEXT,
-        effect_column TEXT)"""
+        effect_column TEXT,
+        preprocessing TEXT)"""
     )
     loaded: list[str] = []
     skipped: list[str] = []
@@ -267,6 +302,7 @@ def load_data_tables(
             k: v for k, v in table_config.field_labels.items() if k in display_col_set
         }
 
+        preprocessing_dict = _load_preprocessing_for_table(table_config.in_path)
         cur.execute(
             """INSERT INTO data_tables (
             table_name, short_label, medium_label, long_label, description, gene_columns,
@@ -275,8 +311,8 @@ def load_data_tables(
             links, categories, source, assay, disease, field_labels, organism, organism_key,
             publication_first_author, publication_last_author, publication_author_count, publication_authors, publication_year,
             publication_journal, publication_doi, publication_pmid, publication_sspsygene_grants,
-            pvalue_column, fdr_column, effect_column)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            pvalue_column, fdr_column, effect_column, preprocessing)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -317,6 +353,7 @@ def load_data_tables(
                 table_config.pvalue_column,
                 table_config.fdr_column,
                 table_config.effect_column,
+                json.dumps(preprocessing_dict) if preprocessing_dict else None,
             ),
         )
     # Create changelog_entries table
@@ -545,6 +582,19 @@ def load_db(
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)
 
+    # Build the user-facing download artifacts as BLOBs in the staging DB
+    # (per-table TSVs, metadata YAMLs, preprocessing YAMLs, manifest, README,
+    # all-tables.zip). They land in the `export_files` table and are served
+    # by /api/download — there is no exports/ directory on the filesystem.
+    # Done BEFORE the atomic swap so the swapped-in DB has both data tables
+    # and exports in one consistent observation.
+    try:
+        write_exports(staging)
+    except Exception:
+        logger.exception(
+            "write_exports failed — DB will be swapped without download bundles"
+        )
+
     # Checkpoint WAL into the main file and switch to rollback journal mode so
     # the final file is self-contained — no -wal/-shm sidecars needed by readers.
     with sqlite3.connect(staging) as swap_conn:
@@ -568,14 +618,3 @@ def load_db(
         db_name.with_name(db_name.name + "-shm"),
     ):
         old_sidecar.unlink(missing_ok=True)
-
-    # Build the user-facing download tree (per-table TSVs + metadata YAML +
-    # ensembl↔symbol mapping + manifest + zip + SQLite hardlink). Hosted as
-    # static files via /api/download in the web app.
-    try:
-        write_exports(db_name)
-    except Exception:
-        # Don't let an export hiccup invalidate a successful DB build — the
-        # site still serves fine without exports/, the /download page just
-        # 404s gracefully.
-        logger.exception("write_exports failed — DB is built; downloads will be missing")
