@@ -80,6 +80,38 @@ class ReadCsv(Step):
 
 
 @dataclass
+class FromDataFrame(Step):
+    """Start a pipeline from an already-loaded DataFrame.
+
+    Useful for multi-sheet Excel inputs: the wrangler reads the workbook
+    once with `pd.read_excel(sheet_name=None)`, then runs one Pipeline
+    per sheet using `from_dataframe(sheet_df)` as the starting step.
+    """
+
+    name: ClassVar[str] = "from_dataframe"
+
+    df: pd.DataFrame
+    label: str | None = None  # human-readable source label, e.g. "sheet=foo"
+
+    def apply(
+        self, df: pd.DataFrame | None, ctx: "Context"
+    ) -> pd.DataFrame:
+        if df is not None:
+            raise ValueError(
+                "from_dataframe called on a pipeline that already has a "
+                "DataFrame. Use a fresh Pipeline per starting frame."
+            )
+        ctx.tracker.record(
+            self.name,
+            table=ctx.table,
+            source=self.label,
+            rows=len(self.df),
+            columns=list(self.df.columns),
+        )
+        return self.df.copy()
+
+
+@dataclass
 class CleanGeneColumnStep(Step):
     """Resolve and annotate a gene-name column via `clean_gene_column`.
 

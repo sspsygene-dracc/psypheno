@@ -1,0 +1,5777 @@
+generated: '2026-05-04T11:00:23Z'
+inputs:
+- Supp_table_3_-_DE_results.xlsx
+- Supp_table_12_-_DE_targets_of_M5_TFs.xlsx
+tables:
+  supp3:15q13_025:
+  - step: from_dataframe
+    source: sheet=15q13_025
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: &id001
+        QARS: QARS1
+        SARS: SARS1
+        TAZ: TAFAZZIN
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 15q13
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '25'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: FAN1,MTMR10,TRPM1,KLF13,OTUD7A,CHRNA7
+  supp3:16p11del_025:
+  - step: from_dataframe
+    source: sheet=16p11del_025
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 16p11del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '25'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SPN,QPRT,C16orf54,ZG16,KIF22,MAZ,PRRT2,PAGR1,MVP,CDIPT,SEZ6L2,ASPHD1,KCTD13,TMEM219,TAOK2,HIRIP3,INO80E,DOC2A,C16orf92,FAM57B,ALDOA,PPP4C,TBX6,YPEL3,GDPD3,MAPK3,CORO1A
+  supp3:16p11dup_025:
+  - step: from_dataframe
+    source: sheet=16p11dup_025
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 16p11dup
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '25'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SPN,QPRT,C16orf54,ZG16,KIF22,MAZ,PRRT2,PAGR1,MVP,CDIPT,SEZ6L2,ASPHD1,KCTD13,TMEM219,TAOK2,HIRIP3,INO80E,DOC2A,C16orf92,FAM57B,ALDOA,PPP4C,TBX6,YPEL3,GDPD3,MAPK3,CORO1A
+  supp3:22q11del_025:
+  - step: from_dataframe
+    source: sheet=22q11del_025
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 22q11del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '25'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: DGCR6,PRODH,DGCR2,DGCR14,TSSK2,GSC2,SLC25A1,CLTCL1,HIRA,MRPL40,C22orf39,UFD1,CDC45,CLDN5,SEPT5,GP1BB,TBX1,GNB1L,TXNRD2,COMT,ARVCF,TANGO2,DGCR8,TRMT2A,RANBP1,ZDHHC8,RTN4R,DGCR6L,USP41,SCARF2,KLHL22,MED15,PI4KA,SERPIND1,SNAP29,CRKL,AIFM3,LZTR1,THAP7,P2RX6,SLC7A4,LRRC74B,HIC2,ZNF74
+  supp3:22q13del_025:
+  - step: from_dataframe
+    source: sheet=22q13del_025
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 22q13del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '25'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: BRD1,ZBED4,ALG12,CRELD2,PIM3,IL17REL,TTLL8,MLC1,MOV10L1,PANX2,TRABD,SELENOO,TUBGCP6,HDAC10,MAPK12,MAPK11,PLXNB2,DENND6B,PPP6R2,SBF1,ADM2,MIOX,LMF2,NCAPH2,SCO2,TYMP,CIMAP1B,KLHDC7B,SYCE3,CPT1B,CHKB,MAPK8IP2,ARSA,SHANK3,ACR,RABL2B
+  supp3:IdiopathicASD_025:
+  - step: from_dataframe
+    source: sheet=IdiopathicASD_025
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: IdiopathicASD
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '25'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: ''
+  supp3:PCDH19_025:
+  - step: from_dataframe
+    source: sheet=PCDH19_025
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: PCDH19
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '25'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: PCDH19
+  supp3:SHANK3_025:
+  - step: from_dataframe
+    source: sheet=SHANK3_025
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: SHANK3
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '25'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SHANK3
+  supp3:TS_025:
+  - step: from_dataframe
+    source: sheet=TS_025
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: TS
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '25'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: CACNA1C
+  supp3:15q13_050:
+  - step: from_dataframe
+    source: sheet=15q13_050
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 15q13
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '50'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: FAN1,MTMR10,TRPM1,KLF13,OTUD7A,CHRNA7
+  supp3:16p11del_050:
+  - step: from_dataframe
+    source: sheet=16p11del_050
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 16p11del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '50'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SPN,QPRT,C16orf54,ZG16,KIF22,MAZ,PRRT2,PAGR1,MVP,CDIPT,SEZ6L2,ASPHD1,KCTD13,TMEM219,TAOK2,HIRIP3,INO80E,DOC2A,C16orf92,FAM57B,ALDOA,PPP4C,TBX6,YPEL3,GDPD3,MAPK3,CORO1A
+  supp3:16p11dup_050:
+  - step: from_dataframe
+    source: sheet=16p11dup_050
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 16p11dup
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '50'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SPN,QPRT,C16orf54,ZG16,KIF22,MAZ,PRRT2,PAGR1,MVP,CDIPT,SEZ6L2,ASPHD1,KCTD13,TMEM219,TAOK2,HIRIP3,INO80E,DOC2A,C16orf92,FAM57B,ALDOA,PPP4C,TBX6,YPEL3,GDPD3,MAPK3,CORO1A
+  supp3:22q11del_050:
+  - step: from_dataframe
+    source: sheet=22q11del_050
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 22q11del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '50'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: DGCR6,PRODH,DGCR2,DGCR14,TSSK2,GSC2,SLC25A1,CLTCL1,HIRA,MRPL40,C22orf39,UFD1,CDC45,CLDN5,SEPT5,GP1BB,TBX1,GNB1L,TXNRD2,COMT,ARVCF,TANGO2,DGCR8,TRMT2A,RANBP1,ZDHHC8,RTN4R,DGCR6L,USP41,SCARF2,KLHL22,MED15,PI4KA,SERPIND1,SNAP29,CRKL,AIFM3,LZTR1,THAP7,P2RX6,SLC7A4,LRRC74B,HIC2,ZNF74
+  supp3:22q13del_050:
+  - step: from_dataframe
+    source: sheet=22q13del_050
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 22q13del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '50'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: BRD1,ZBED4,ALG12,CRELD2,PIM3,IL17REL,TTLL8,MLC1,MOV10L1,PANX2,TRABD,SELENOO,TUBGCP6,HDAC10,MAPK12,MAPK11,PLXNB2,DENND6B,PPP6R2,SBF1,ADM2,MIOX,LMF2,NCAPH2,SCO2,TYMP,CIMAP1B,KLHDC7B,SYCE3,CPT1B,CHKB,MAPK8IP2,ARSA,SHANK3,ACR,RABL2B
+  supp3:IdiopathicASD_050:
+  - step: from_dataframe
+    source: sheet=IdiopathicASD_050
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: IdiopathicASD
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '50'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: ''
+  supp3:PCDH19_050:
+  - step: from_dataframe
+    source: sheet=PCDH19_050
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: PCDH19
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '50'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: PCDH19
+  supp3:SHANK3_050:
+  - step: from_dataframe
+    source: sheet=SHANK3_050
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: SHANK3
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '50'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SHANK3
+  supp3:TS_050:
+  - step: from_dataframe
+    source: sheet=TS_050
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: TS
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '50'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: CACNA1C
+  supp3:15q13_075:
+  - step: from_dataframe
+    source: sheet=15q13_075
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 15q13
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '75'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: FAN1,MTMR10,TRPM1,KLF13,OTUD7A,CHRNA7
+  supp3:16p11del_075:
+  - step: from_dataframe
+    source: sheet=16p11del_075
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 16p11del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '75'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SPN,QPRT,C16orf54,ZG16,KIF22,MAZ,PRRT2,PAGR1,MVP,CDIPT,SEZ6L2,ASPHD1,KCTD13,TMEM219,TAOK2,HIRIP3,INO80E,DOC2A,C16orf92,FAM57B,ALDOA,PPP4C,TBX6,YPEL3,GDPD3,MAPK3,CORO1A
+  supp3:16p11dup_075:
+  - step: from_dataframe
+    source: sheet=16p11dup_075
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 16p11dup
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '75'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SPN,QPRT,C16orf54,ZG16,KIF22,MAZ,PRRT2,PAGR1,MVP,CDIPT,SEZ6L2,ASPHD1,KCTD13,TMEM219,TAOK2,HIRIP3,INO80E,DOC2A,C16orf92,FAM57B,ALDOA,PPP4C,TBX6,YPEL3,GDPD3,MAPK3,CORO1A
+  supp3:22q11del_075:
+  - step: from_dataframe
+    source: sheet=22q11del_075
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 22q11del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '75'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: DGCR6,PRODH,DGCR2,DGCR14,TSSK2,GSC2,SLC25A1,CLTCL1,HIRA,MRPL40,C22orf39,UFD1,CDC45,CLDN5,SEPT5,GP1BB,TBX1,GNB1L,TXNRD2,COMT,ARVCF,TANGO2,DGCR8,TRMT2A,RANBP1,ZDHHC8,RTN4R,DGCR6L,USP41,SCARF2,KLHL22,MED15,PI4KA,SERPIND1,SNAP29,CRKL,AIFM3,LZTR1,THAP7,P2RX6,SLC7A4,LRRC74B,HIC2,ZNF74
+  supp3:22q13del_075:
+  - step: from_dataframe
+    source: sheet=22q13del_075
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 22q13del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '75'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: BRD1,ZBED4,ALG12,CRELD2,PIM3,IL17REL,TTLL8,MLC1,MOV10L1,PANX2,TRABD,SELENOO,TUBGCP6,HDAC10,MAPK12,MAPK11,PLXNB2,DENND6B,PPP6R2,SBF1,ADM2,MIOX,LMF2,NCAPH2,SCO2,TYMP,CIMAP1B,KLHDC7B,SYCE3,CPT1B,CHKB,MAPK8IP2,ARSA,SHANK3,ACR,RABL2B
+  supp3:IdiopathicASD_075:
+  - step: from_dataframe
+    source: sheet=IdiopathicASD_075
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: IdiopathicASD
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '75'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: ''
+  supp3:PCDH19_075:
+  - step: from_dataframe
+    source: sheet=PCDH19_075
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: PCDH19
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '75'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: PCDH19
+  supp3:SHANK3_075:
+  - step: from_dataframe
+    source: sheet=SHANK3_075
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: SHANK3
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '75'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SHANK3
+  supp3:TS_075:
+  - step: from_dataframe
+    source: sheet=TS_075
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: TS
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '75'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: CACNA1C
+  supp3:15q13_100:
+  - step: from_dataframe
+    source: sheet=15q13_100
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 15q13
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '100'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: FAN1,MTMR10,TRPM1,KLF13,OTUD7A,CHRNA7
+  supp3:16p11del_100:
+  - step: from_dataframe
+    source: sheet=16p11del_100
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 16p11del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '100'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SPN,QPRT,C16orf54,ZG16,KIF22,MAZ,PRRT2,PAGR1,MVP,CDIPT,SEZ6L2,ASPHD1,KCTD13,TMEM219,TAOK2,HIRIP3,INO80E,DOC2A,C16orf92,FAM57B,ALDOA,PPP4C,TBX6,YPEL3,GDPD3,MAPK3,CORO1A
+  supp3:16p11dup_100:
+  - step: from_dataframe
+    source: sheet=16p11dup_100
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 16p11dup
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '100'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SPN,QPRT,C16orf54,ZG16,KIF22,MAZ,PRRT2,PAGR1,MVP,CDIPT,SEZ6L2,ASPHD1,KCTD13,TMEM219,TAOK2,HIRIP3,INO80E,DOC2A,C16orf92,FAM57B,ALDOA,PPP4C,TBX6,YPEL3,GDPD3,MAPK3,CORO1A
+  supp3:22q11del_100:
+  - step: from_dataframe
+    source: sheet=22q11del_100
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 22q11del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '100'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: DGCR6,PRODH,DGCR2,DGCR14,TSSK2,GSC2,SLC25A1,CLTCL1,HIRA,MRPL40,C22orf39,UFD1,CDC45,CLDN5,SEPT5,GP1BB,TBX1,GNB1L,TXNRD2,COMT,ARVCF,TANGO2,DGCR8,TRMT2A,RANBP1,ZDHHC8,RTN4R,DGCR6L,USP41,SCARF2,KLHL22,MED15,PI4KA,SERPIND1,SNAP29,CRKL,AIFM3,LZTR1,THAP7,P2RX6,SLC7A4,LRRC74B,HIC2,ZNF74
+  supp3:22q13del_100:
+  - step: from_dataframe
+    source: sheet=22q13del_100
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 22q13del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '100'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: BRD1,ZBED4,ALG12,CRELD2,PIM3,IL17REL,TTLL8,MLC1,MOV10L1,PANX2,TRABD,SELENOO,TUBGCP6,HDAC10,MAPK12,MAPK11,PLXNB2,DENND6B,PPP6R2,SBF1,ADM2,MIOX,LMF2,NCAPH2,SCO2,TYMP,CIMAP1B,KLHDC7B,SYCE3,CPT1B,CHKB,MAPK8IP2,ARSA,SHANK3,ACR,RABL2B
+  supp3:IdiopathicASD_100:
+  - step: from_dataframe
+    source: sheet=IdiopathicASD_100
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: IdiopathicASD
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '100'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: ''
+  supp3:PCDH19_100:
+  - step: from_dataframe
+    source: sheet=PCDH19_100
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: PCDH19
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '100'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: PCDH19
+  supp3:SHANK3_100:
+  - step: from_dataframe
+    source: sheet=SHANK3_100
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: SHANK3
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '100'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SHANK3
+  supp3:TS_100:
+  - step: from_dataframe
+    source: sheet=TS_100
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: TS
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: '100'
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: CACNA1C
+  supp3:15q13_all_timepoints:
+  - step: from_dataframe
+    source: sheet=15q13_all_timepoints
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 15q13
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: all timepoints
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: FAN1,MTMR10,TRPM1,KLF13,OTUD7A,CHRNA7
+  supp3:16p11del_all_timepoints:
+  - step: from_dataframe
+    source: sheet=16p11del_all_timepoints
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 16p11del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: all timepoints
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SPN,QPRT,C16orf54,ZG16,KIF22,MAZ,PRRT2,PAGR1,MVP,CDIPT,SEZ6L2,ASPHD1,KCTD13,TMEM219,TAOK2,HIRIP3,INO80E,DOC2A,C16orf92,FAM57B,ALDOA,PPP4C,TBX6,YPEL3,GDPD3,MAPK3,CORO1A
+  supp3:16p11dup_all_timepoints:
+  - step: from_dataframe
+    source: sheet=16p11dup_all_timepoints
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 16p11dup
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: all timepoints
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SPN,QPRT,C16orf54,ZG16,KIF22,MAZ,PRRT2,PAGR1,MVP,CDIPT,SEZ6L2,ASPHD1,KCTD13,TMEM219,TAOK2,HIRIP3,INO80E,DOC2A,C16orf92,FAM57B,ALDOA,PPP4C,TBX6,YPEL3,GDPD3,MAPK3,CORO1A
+  supp3:22q11del_all_timepoints:
+  - step: from_dataframe
+    source: sheet=22q11del_all_timepoints
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 22q11del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: all timepoints
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: DGCR6,PRODH,DGCR2,DGCR14,TSSK2,GSC2,SLC25A1,CLTCL1,HIRA,MRPL40,C22orf39,UFD1,CDC45,CLDN5,SEPT5,GP1BB,TBX1,GNB1L,TXNRD2,COMT,ARVCF,TANGO2,DGCR8,TRMT2A,RANBP1,ZDHHC8,RTN4R,DGCR6L,USP41,SCARF2,KLHL22,MED15,PI4KA,SERPIND1,SNAP29,CRKL,AIFM3,LZTR1,THAP7,P2RX6,SLC7A4,LRRC74B,HIC2,ZNF74
+  supp3:22q13del_all_timepoints:
+  - step: from_dataframe
+    source: sheet=22q13del_all_timepoints
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: 22q13del
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: all timepoints
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: BRD1,ZBED4,ALG12,CRELD2,PIM3,IL17REL,TTLL8,MLC1,MOV10L1,PANX2,TRABD,SELENOO,TUBGCP6,HDAC10,MAPK12,MAPK11,PLXNB2,DENND6B,PPP6R2,SBF1,ADM2,MIOX,LMF2,NCAPH2,SCO2,TYMP,CIMAP1B,KLHDC7B,SYCE3,CPT1B,CHKB,MAPK8IP2,ARSA,SHANK3,ACR,RABL2B
+  supp3:IdiopathicASD_all_timepoints:
+  - step: from_dataframe
+    source: sheet=IdiopathicASD_all_timepoints
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: IdiopathicASD
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: all timepoints
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: ''
+  supp3:PCDH19_all_timepoints:
+  - step: from_dataframe
+    source: sheet=PCDH19_all_timepoints
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: PCDH19
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: all timepoints
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: PCDH19
+  supp3:SHANK3_all_timepoints:
+  - step: from_dataframe
+    source: sheet=SHANK3_all_timepoints
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: SHANK3
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: all timepoints
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: SHANK3
+  supp3:TS_all_timepoints:
+  - step: from_dataframe
+    source: sheet=TS_all_timepoints
+    rows: 17964
+    columns:
+    - ensembl_gene_id
+    - hgnc_symbol
+    - logFC
+    - AveExpr
+    - t
+    - p
+    - fdr
+    - z.std
+    - chromosome_name
+    - band
+    - strand
+    - start_position
+    - end_position
+    - gene_biotype
+  - step: dropna
+    columns:
+    - hgnc_symbol
+    rows_before: 17964
+    rows_after: 16021
+    dropped: 1943
+  - step: filter_rows
+    description: non-empty hgnc_symbol
+    rows_before: 16021
+    rows_after: 16021
+    dropped: 0
+  - step: clean_gene_column
+    column: hgnc_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 16005
+      unresolved: 11
+      rescued_hgnc_id: 2
+      rescued_manual_alias: 3
+    dropped_rows: 0
+    sample_unresolved:
+    - NOV
+    - SMIM11B
+    - IQCA1
+    - C18orf21
+    - MPP6
+    - CBSL
+    - SEPT2
+    - U2AF1L5
+    - MUM1
+    - IQCD
+  - step: rename
+    mapping:
+      hgnc_symbol: target_gene
+      hgnc_symbol_raw: target_gene_raw
+      ensembl_gene_id: Ensembl_Gene_Id
+      AveExpr: Avg_Expr
+      p: P-Value
+      fdr: Adjusted_P-Value
+      z.std: z_std
+  - step: reorder
+    columns:
+    - target_gene
+    - target_gene_raw
+    - Ensembl_Gene_Id
+    - logFC
+    - Avg_Expr
+    - t
+    - P-Value
+    - Adjusted_P-Value
+    - z_std
+    - chromosome_name
+    - band
+    - gene_biotype
+  - step: insert_column
+    column: perturbation
+    position: 0
+    value: TS
+  - step: insert_column
+    column: organoid_age_(days)
+    position: 1
+    value: all timepoints
+  - step: insert_column
+    column: region_genes
+    position: null
+    value: CACNA1C
+  supplementary_table_3_DE_results.tsv:
+  - step: concat_and_write
+    sheets: 45
+    rows: 720945
+    destination: supplementary_table_3_DE_results.tsv
+  supp12:ATF7:
+  - step: from_dataframe
+    source: sheet=ATF7
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: ATF7
+  supp12:BACH2:
+  - step: from_dataframe
+    source: sheet=BACH2
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: BACH2
+  supp12:CNOT6:
+  - step: from_dataframe
+    source: sheet=CNOT6
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: CNOT6
+  supp12:EP300:
+  - step: from_dataframe
+    source: sheet=EP300
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      non_symbol_genbank_accession: 12
+      rescued_make_unique: 22
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - DEC1
+    - TEMN3-AS1
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: EP300
+  supp12:ETV5:
+  - step: from_dataframe
+    source: sheet=ETV5
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: ETV5
+  supp12:ETV6:
+  - step: from_dataframe
+    source: sheet=ETV6
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: ETV6
+  supp12:HCFC1:
+  - step: from_dataframe
+    source: sheet=HCFC1
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      non_symbol_contig: 19874
+      passed_through: 43220
+      unresolved: 50
+      rescued_make_unique: 22
+      rescued_manual_alias: 6
+      non_symbol_genbank_accession: 12
+    dropped_rows: 0
+    sample_unresolved:
+    - DEC1
+    - LOR
+    - U2AF1L5
+    - IQCD
+    - HGC6.3
+    - SMIM11B
+    - MPP6
+    - TEMN3-AS1
+    - ABALON
+    - SIK1B
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: HCFC1
+  supp12:HMBOX1:
+  - step: from_dataframe
+    source: sheet=HMBOX1
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - LOR
+    - C18orf21
+    - GATD3B
+    - IQCD
+    - KCNE1B
+    - OCLM
+    - TEMN3-AS1
+    - THRA1/BTR
+    - U2AF1L5
+    - ABALON
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: HMBOX1
+  supp12:KLF16:
+  - step: from_dataframe
+    source: sheet=KLF16
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: KLF16
+  supp12:MBTPS2:
+  - step: from_dataframe
+    source: sheet=MBTPS2
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      rescued_make_unique: 22
+      unresolved: 50
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: MBTPS2
+  supp12:MLXIP:
+  - step: from_dataframe
+    source: sheet=MLXIP
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      unresolved: 50
+      non_symbol_contig: 19874
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: MLXIP
+  supp12:POLR2A:
+  - step: from_dataframe
+    source: sheet=POLR2A
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      non_symbol_contig: 19874
+      passed_through: 43220
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - FAM243B
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: POLR2A
+  supp12:RBBP5:
+  - step: from_dataframe
+    source: sheet=RBBP5
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      rescued_manual_alias: 6
+      non_symbol_genbank_accession: 12
+    dropped_rows: 0
+    sample_unresolved:
+    - DEC1
+    - MPP6
+    - DEC1
+    - HGC6.3
+    - GATD3B
+    - TEMN3-AS1
+    - IQCA1
+    - LYST-AS1
+    - SIK1B
+    - ABALON
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: RBBP5
+  supp12:RELA:
+  - step: from_dataframe
+    source: sheet=RELA
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: RELA
+  supp12:RFX1:
+  - step: from_dataframe
+    source: sheet=RFX1
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: RFX1
+  supp12:RFX7:
+  - step: from_dataframe
+    source: sheet=RFX7
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: RFX7
+  supp12:SMARCA4:
+  - step: from_dataframe
+    source: sheet=SMARCA4
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - IQCD
+    - SMC5-AS1
+    - MPP6
+    - SIK1B
+    - HGC6.3
+    - CBSL
+    - TMEM155
+    - TEMN3-AS1
+    - DUSP27
+    - KCNE1B
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: SMARCA4
+  supp12:SMARCB1:
+  - step: from_dataframe
+    source: sheet=SMARCB1
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_manual_alias: 6
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+    dropped_rows: 0
+    sample_unresolved:
+    - DUSP27
+    - MPP6
+    - SIK1B
+    - IQCD
+    - SMC5-AS1
+    - C18orf21
+    - GATD3B
+    - CRIPAK
+    - KCNE1B
+    - OCLM
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: SMARCB1
+  supp12:SOX9:
+  - step: from_dataframe
+    source: sheet=SOX9
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - DEC1
+    - LOR
+    - SMIM11B
+    - DUSP27
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+    - IQCA1
+    - IQCD
+    - KCNE1B
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: SOX9
+  supp12:TBP:
+  - step: from_dataframe
+    source: sheet=TBP
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - MPP6
+    - DUSP27
+    - U2AF1L5
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - FAM243B
+    - FLJ45513
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: TBP
+  supp12:TCF7L2:
+  - step: from_dataframe
+    source: sheet=TCF7L2
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: TCF7L2
+  supp12:TP53:
+  - step: from_dataframe
+    source: sheet=TP53
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: TP53
+  supp12:ZCCHC14:
+  - step: from_dataframe
+    source: sheet=ZCCHC14
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: ZCCHC14
+  supp12:ZMIZ1:
+  - step: from_dataframe
+    source: sheet=ZMIZ1
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      non_symbol_contig: 19874
+      passed_through: 43220
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: ZMIZ1
+  supp12:ZNF362:
+  - step: from_dataframe
+    source: sheet=ZNF362
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: ZNF362
+  supp12:ZNF460:
+  - step: from_dataframe
+    source: sheet=ZNF460
+    rows: 63184
+    columns:
+    - '...1'
+    - cell_type
+    - gene
+    - avg_logFC
+    - 1.target.pct
+    - 2.NTC.pct
+    - 1.target.exp
+    - 2.NTC.exp
+    - p_val
+    - p_val_adj
+    - de_family
+    - de_method
+    - de_type
+    - log2FC
+  - step: drop_columns
+    columns:
+    - '...1'
+  - step: rename
+    mapping:
+      gene: target_gene
+      avg_logFC: Avg_logFC
+      1.target.pct: target_pct
+      2.NTC.pct: NTC_pct
+      1.target.exp: target_exp
+      2.NTC.exp: NTC_exp
+      p_val: P_Value
+      p_val_adj: Adjusted_P_Value
+  - step: clean_gene_column
+    column: target_gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      resolve_hgnc_id: true
+      manual_aliases: *id001
+      resolve_via_ensembl_map: true
+    counts:
+      passed_through: 43220
+      non_symbol_contig: 19874
+      unresolved: 50
+      rescued_make_unique: 22
+      non_symbol_genbank_accession: 12
+      rescued_manual_alias: 6
+    dropped_rows: 0
+    sample_unresolved:
+    - ABALON
+    - C18orf21
+    - CBSL
+    - CRIPAK
+    - DEC1
+    - DUSP27
+    - FAM243B
+    - FLJ45513
+    - GATD3B
+    - HGC6.3
+  - step: insert_column
+    column: perturbed_gene
+    position: 0
+    value: ZNF460
+  supplementary_table_12_DE_targets_M5_TFs.tsv:
+  - step: concat_and_write
+    sheets: 26
+    rows: 1642784
+    destination: supplementary_table_12_DE_targets_M5_TFs.tsv

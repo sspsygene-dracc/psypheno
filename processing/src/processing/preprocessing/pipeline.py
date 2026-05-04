@@ -161,6 +161,16 @@ class Pipeline:
 
         return self.add(ReadCsv(path=Path(path), sep=sep, dtype=dtype, read_kw=kw))
 
+    def from_dataframe(
+        self,
+        df: pd.DataFrame,
+        *,
+        label: str | None = None,
+    ) -> "Pipeline":
+        from processing.preprocessing.steps import FromDataFrame
+
+        return self.add(FromDataFrame(df=df, label=label))
+
     def read_tsv(
         self, path: str | Path, *, dtype: Any = str, **kw: Any
     ) -> "Pipeline":
