@@ -517,7 +517,6 @@ export default function MostSignificantPage() {
             color: "#4b5563",
             fontSize: 15,
             lineHeight: 1.7,
-            marginBottom: 20,
           }}
         >
           This page ranks genes by their aggregate cross-study significance
@@ -528,17 +527,12 @@ export default function MostSignificantPage() {
           compare how rankings change depending on the statistical combination
           approach.
         </p>
-        <div
+        <p
           style={{
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            borderLeft: "3px solid #2563eb",
-            borderRadius: 6,
-            padding: "12px 16px",
+            color: "#4b5563",
+            fontSize: 15,
+            lineHeight: 1.7,
             marginBottom: 20,
-            fontSize: 14,
-            lineHeight: 1.6,
-            color: "#374151",
           }}
         >
           <strong>Note on combined p-values.</strong> The values below are
@@ -555,7 +549,7 @@ export default function MostSignificantPage() {
             methods page
           </Link>{" "}
           for the exact pipeline.
-        </div>
+        </p>
         <p style={{ marginBottom: 20 }}>
           <Link
             href="/significant-rows"
