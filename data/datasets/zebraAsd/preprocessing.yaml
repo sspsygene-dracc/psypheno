@@ -1,0 +1,38 @@
+generated: '2026-05-04T11:02:02Z'
+inputs:
+- 1-s2.0-S2211124723002541-mmc5.txt
+tables:
+  1-s2.0-S2211124723002541-mmc5_cleaned.txt:
+  - step: read_csv
+    source: 1-s2.0-S2211124723002541-mmc5.txt
+    separator: "\t"
+    rows: 684
+    columns:
+    - Mutant_Experiment_Sample
+    - Forebrain
+    - Optic Tectum
+    - Thalamus
+    - Hypothalamus
+    - Cerebellum
+    - Hindbrain
+    - Habenula
+    - Posterior Tuberculum
+  - step: transform_column
+    column: Mutant_Experiment_Sample
+    description: split on '_', upper-case gene token, map SCN1LAB -> SCN1A (zebrafish paralog -> human
+      ortholog)
+    rows_changed: 684
+  - step: write_csv
+    destination: 1-s2.0-S2211124723002541-mmc5_cleaned.txt
+    separator: "\t"
+    rows: 684
+    columns:
+    - Mutant_Experiment_Sample
+    - Forebrain
+    - Optic Tectum
+    - Thalamus
+    - Hypothalamus
+    - Cerebellum
+    - Hindbrain
+    - Habenula
+    - Posterior Tuberculum

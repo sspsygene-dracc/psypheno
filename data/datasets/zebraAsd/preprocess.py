@@ -13,6 +13,11 @@ These two transformations used to live at load-db time as
 `to_upper:` / `replace:` knobs. Both have been retired in favor of
 explicit preprocessing.
 
+Writes a sibling `preprocessing.yaml` (#150) recording the
+transformation. This dataset doesn't go through `clean_gene_column`
+(its gene is embedded in a compound column, not a standalone gene
+column), so the only tracked action is the custom transform.
+
 Usage:
     python preprocess.py
 """
@@ -20,6 +25,8 @@ Usage:
 from pathlib import Path
 
 import pandas as pd
+
+from processing.preprocessing import Pipeline, Tracker
 
 DIR = Path(__file__).resolve().parent
 
@@ -37,13 +44,27 @@ def transform_sample(value: str) -> str:
     return "_".join([gene, *parts[1:]])
 
 
+def _transform_sample_column(s: pd.Series) -> pd.Series:
+    return pd.Series([transform_sample(v) for v in s], index=s.index)
+
+
 def main() -> None:
-    df = pd.read_csv(IN_FILE, sep="\t", dtype=str)
-    df["Mutant_Experiment_Sample"] = df["Mutant_Experiment_Sample"].apply(
-        transform_sample
+    tracker = Tracker()
+    (
+        Pipeline(OUT_FILE.name, tracker=tracker)
+        .read_tsv(IN_FILE)
+        .transform_column(
+            "Mutant_Experiment_Sample",
+            _transform_sample_column,
+            description=(
+                "split on '_', upper-case gene token, "
+                "map SCN1LAB -> SCN1A (zebrafish paralog -> human ortholog)"
+            ),
+        )
+        .write_tsv(OUT_FILE)
+        .run()
     )
-    df.to_csv(OUT_FILE, sep="\t", index=False)
-    print(f"Wrote {len(df)} rows to {OUT_FILE}")
+    tracker.write(DIR / "preprocessing.yaml")
 
 
 if __name__ == "__main__":
