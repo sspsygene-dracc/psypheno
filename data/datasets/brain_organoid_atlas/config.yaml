@@ -74,10 +74,10 @@ tables:
         link_table_name: gene
         species: human
         perturbed_or_target: perturbed
-        non_resolving:
-          drop_values:
-            - not_available
-            - none identified
+        # Placeholder values (`not_available`, `none identified`) are
+        # filtered out at preprocess.py time via a tracked filter_rows
+        # step — see preprocessing.yaml for the dropped count. This
+        # block intentionally has no `non_resolving:` entry.
   - table: brain_organoid_atlas_nebula_gene_0_05_FDR
     changelog:
       - date: "2025-11-05"

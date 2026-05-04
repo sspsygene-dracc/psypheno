@@ -11,10 +11,11 @@ families fire across the NEBULA DEG and S10/S11 tables:
   * Manual aliases (retired-with-known-successor): SARS -> SARS1,
     QARS -> QARS1, TAZ -> TAFAZZIN.
 
-`patient_list.tsv` has clean human gene symbols today (plus the
-`not_available` / `none identified` placeholders that the load-db
-`non_resolving.drop_values:` block orphans); it's copied through
-unchanged so every input file is routed through preprocess.
+`patient_list.tsv` has clean human gene symbols today, plus a small
+number of `not_available` / `none identified` placeholder rows on the
+`Pathologic causative mutation` column. The placeholders are dropped
+here via a tracked `filter_rows` step (count recorded in
+preprocessing.yaml); the rest of the rows pass through unchanged.
 
 Writes a sibling `preprocessing.yaml` (#150) recording every action
 across the four cleaned tables and the copy_file step.
@@ -28,12 +29,24 @@ import ...` resolves.
 
 from pathlib import Path
 
+import pandas as pd
+
 from processing.preprocessing import (
     GeneSymbolNormalizer,
     Pipeline,
     Tracker,
-    copy_file,
 )
+
+
+PATIENT_LIST_GENE_COLUMN = "Pathologic causative mutation"
+PATIENT_LIST_PLACEHOLDERS = ["not_available", "none identified"]
+
+
+def _non_placeholder_mutation(df: pd.DataFrame) -> pd.Series:
+    return pd.Series(
+        [v not in PATIENT_LIST_PLACEHOLDERS for v in df[PATIENT_LIST_GENE_COLUMN]],
+        index=df.index,
+    )
 
 DIR = Path(__file__).resolve().parent
 
@@ -71,10 +84,22 @@ def main() -> None:
             .run()
         )
 
-    copy_file(
-        DIR / "patient_list.tsv",
-        DIR / "patient_list_cleaned.tsv",
-        tracker=tracker,
+    # patient_list goes through a small pipeline so the placeholder-row
+    # drop is tracked in preprocessing.yaml. The gene column is kept as-is
+    # (no clean_gene step) — the values are pathogenic-mutation labels
+    # already in canonical HGNC form, not raw symbols needing rescue.
+    (
+        Pipeline("patient_list_cleaned.tsv", tracker=tracker, normalizer=normalizer)
+        .read_tsv(DIR / "patient_list.tsv")
+        .filter_rows(
+            _non_placeholder_mutation,
+            description=(
+                f"drop rows where {PATIENT_LIST_GENE_COLUMN!r} is a placeholder "
+                f"({', '.join(PATIENT_LIST_PLACEHOLDERS)})"
+            ),
+        )
+        .write_tsv(DIR / "patient_list_cleaned.tsv")
+        .run()
     )
 
     tracker.write(DIR / "preprocessing.yaml")

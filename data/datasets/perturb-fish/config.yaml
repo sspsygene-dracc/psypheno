@@ -78,7 +78,7 @@ tables:
         species: human
         perturbed_or_target: perturbed
         non_resolving:
-          drop_values:
+          control_values:
             - Control_ST
       - column_name: gene
         link_table_name: gene

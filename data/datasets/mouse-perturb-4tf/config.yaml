@@ -79,17 +79,20 @@ tables:
         species: mouse
         perturbed_or_target: target
         # Predicted-only mouse gene models that aren't in the loaded MGI
-        # symbol set; orphan the link without creating a stub.
+        # symbol set. Recorded as manually-added stubs so the rows stay
+        # linked and searchable.
         non_resolving:
-          drop_values:
+          record_values:
             - Gm16091
             - Gm42864
       - column_name: _perturbation_gene
         link_table_name: perturbation_gene
         species: mouse
         perturbed_or_target: perturbed
+        # Non-targeting CRISPR controls — searchable as kind='control'
+        # in central_gene; excluded from per-gene aggregates.
         non_resolving:
-          drop_values:
+          control_values:
             - NonTarget1
             - SafeTarget
     pvalue_column: PValue
@@ -139,8 +142,10 @@ tables:
         link_table_name: guide_gene
         species: mouse
         perturbed_or_target: perturbed
+        # Non-targeting CRISPR controls — searchable as kind='control'
+        # in central_gene; excluded from per-gene aggregates.
         non_resolving:
-          drop_values:
+          control_values:
             - NonTarget1
             - SafeTarget
             - GFP
