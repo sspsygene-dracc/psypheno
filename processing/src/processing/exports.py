@@ -27,6 +27,7 @@ import re
 import sqlite3
 import time
 import zipfile
+from contextlib import closing
 from typing import Any, Iterator
 
 import yaml
@@ -441,7 +442,12 @@ def write_exports(db_path: object, exports_dir: object | None = None) -> None:
 
     last_modified = int(time.time())
 
-    with sqlite3.connect(str(db_path)) as conn:
+    # Wrap the connection in `closing(...)` so it actually closes when the
+    # block exits — sqlite3.Connection.__exit__ only commits/rollbacks the
+    # transaction, it does NOT close the connection. Without this wrapper
+    # the lock on `db_path` would persist into the WAL-checkpoint step in
+    # sq_load.py and trigger "database is locked".
+    with closing(sqlite3.connect(str(db_path))) as conn, conn:
         conn.row_factory = sqlite3.Row
         symbol_map = _load_ensembl_symbol_map(conn)
         logger.info("Loaded %d ensembl-to-symbol mappings", len(symbol_map))
