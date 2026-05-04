@@ -10,7 +10,7 @@ import {
 } from "@/lib/gene-query";
 import { parseDatasetLinks } from "@/lib/links";
 
-const DATASET_PAGE_LIMIT = 25;
+const DATASET_PAGE_LIMIT = 10;
 
 const querySchema = z.object({
   tableName: z.string().min(1),
