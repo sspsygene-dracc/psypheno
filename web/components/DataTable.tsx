@@ -88,6 +88,7 @@ export default function DataTable({
   geneColumns,
   pvalueColumn,
   fdrColumn,
+  highlightSignificantRows = true,
   sortColumn: controlledSortColumn,
   sortMode: controlledSortMode,
   onSort,
@@ -104,6 +105,9 @@ export default function DataTable({
   geneColumns?: string[];
   pvalueColumn?: string | null;
   fdrColumn?: string | null;
+  // Skip the per-row green tint when every row is significant by construction
+  // (significant-rows view) — the highlight only conveys signal in mixed sets.
+  highlightSignificantRows?: boolean;
   sortColumn?: string | null;
   sortMode?: SortMode;
   onSort?: (column: string, mode: SortMode) => void;
@@ -308,7 +312,9 @@ export default function DataTable({
         <tbody>
           {rowsToDisplay.map((row, idx) => {
             const significant =
-              sigCols.length > 0 && isRowSignificant(row, sigCols);
+              highlightSignificantRows &&
+              sigCols.length > 0 &&
+              isRowSignificant(row, sigCols);
             return (
             <tr
               key={idx}

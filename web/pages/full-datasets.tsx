@@ -31,6 +31,9 @@ type DatasetData = {
   } | null;
   displayColumns: string[];
   scalarColumns?: string[];
+  geneColumns?: string[];
+  pvalueColumn?: string | null;
+  fdrColumn?: string | null;
   rows: Record<string, unknown>[];
   totalRows?: number;
   page?: number;
@@ -486,6 +489,9 @@ export default function FullDatasets() {
                         columns={datasetData.displayColumns}
                         rows={datasetData.rows}
                         scalarColumns={datasetData.scalarColumns}
+                        geneColumns={datasetData.geneColumns}
+                        pvalueColumn={datasetData.pvalueColumn}
+                        fdrColumn={datasetData.fdrColumn}
                         fieldLabels={datasetData.fieldLabels}
                         showSummary={false}
                         sortColumn={sortBy}

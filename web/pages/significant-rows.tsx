@@ -255,6 +255,7 @@ function DatasetSection({
             geneColumns={result.geneColumns}
             pvalueColumn={result.pvalueColumn}
             fdrColumn={result.fdrColumn}
+            highlightSignificantRows={false}
             fieldLabels={result.fieldLabels ?? undefined}
             showSummary={false}
           />

@@ -59,6 +59,7 @@ export default async function handler(
       .prepare(
         `SELECT display_columns, scalar_columns, description, short_label, medium_label, long_label,
                 links, categories, source, assay, field_labels, organism,
+                gene_columns, pvalue_column, fdr_column,
                 publication_first_author, publication_last_author, publication_year,
                 publication_journal, publication_doi, publication_pmid
          FROM data_tables WHERE table_name = ?`
@@ -76,6 +77,9 @@ export default async function handler(
         assay: string | null;
         field_labels: string | null;
         organism: string | null;
+        gene_columns: string | null;
+        pvalue_column: string | null;
+        fdr_column: string | null;
         publication_first_author: string | null;
         publication_last_author: string | null;
         publication_year: number | null;
@@ -192,6 +196,12 @@ export default async function handler(
       },
       displayColumns: displayCols,
       scalarColumns: Array.from(scalarCols),
+      geneColumns: (metadata.gene_columns || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      pvalueColumn: metadata.pvalue_column ?? null,
+      fdrColumn: metadata.fdr_column ?? null,
       rows,
       totalRows,
     });
