@@ -27,6 +27,8 @@ type DatasetSigResult = {
   displayColumns: string[];
   scalarColumns: string[];
   geneColumns: string[];
+  pvalueColumn: string | null;
+  fdrColumn: string | null;
   fieldLabels: Record<string, string> | null;
   page: number;
 };
@@ -192,6 +194,8 @@ function DatasetSection({
           displayColumns: data.displayColumns,
           scalarColumns: data.scalarColumns,
           geneColumns: data.geneColumns ?? [],
+          pvalueColumn: data.pvalueColumn ?? null,
+          fdrColumn: data.fdrColumn ?? null,
           fieldLabels: data.fieldLabels,
           page: data.page,
         });
@@ -249,6 +253,8 @@ function DatasetSection({
             rows={result.rows}
             scalarColumns={result.scalarColumns}
             geneColumns={result.geneColumns}
+            pvalueColumn={result.pvalueColumn}
+            fdrColumn={result.fdrColumn}
             fieldLabels={result.fieldLabels ?? undefined}
             showSummary={false}
           />
