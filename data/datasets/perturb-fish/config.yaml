@@ -26,6 +26,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
+      - date: "2026-05-04"
+        message: "Declare effect_column: lfc so the table contributes to up/down combined-p groups (#74)"
     shortLabel: perturb_fish_astrocyte_screen
     mediumLabel: Binan 2025 - Perturb-FISH Astrocyte Screen
     longLabel: CRISPR screening with spatial transcriptomics in astrocytes
@@ -86,3 +88,4 @@ tables:
         species: human
         perturbed_or_target: target
     fdr_column: qVal
+    effect_column: lfc
