@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import { parseLinkTablesForDirection, type SearchDirection } from "@/lib/gene-query";
 import { SearchSuggestion } from "@/state/SearchSuggestion";
 import type Database from "better-sqlite3";
 
@@ -11,67 +12,136 @@ interface GeneSuggestionRow {
   dataset_count: number;
 }
 
-// Pre-prepared statements, cached on first use
+type StmtTriple = {
+  stmtHuman: Database.Statement;
+  stmtMouse: Database.Statement;
+  stmtSynonym: Database.Statement;
+};
+
+// Per-direction prepared statements, cached on first use. The directional
+// subquery is baked into the SQL because it's derived from data_tables and
+// changes only when the DB is rebuilt (which swaps the connection identity).
 let stmtsDb: Database.Database | null = null;
-let stmtHuman: Database.Statement | null = null;
-let stmtMouse: Database.Statement | null = null;
-let stmtSynonym: Database.Statement | null = null;
+let stmtsAll: StmtTriple | null = null;
+let stmtsPerturbed: StmtTriple | null = null;
+let stmtsTarget: StmtTriple | null = null;
 
-function getStmts(db: Database.Database) {
-  if (stmtsDb === db && stmtHuman && stmtMouse && stmtSynonym) {
-    return { stmtHuman, stmtMouse, stmtSynonym };
+function buildDirectionalSubquery(
+  db: Database.Database,
+  direction: SearchDirection,
+): string | null {
+  const rows = db
+    .prepare(`SELECT link_tables FROM data_tables`)
+    .all() as Array<{ link_tables: string | null }>;
+  const linkTables = new Set<string>();
+  for (const r of rows) {
+    if (!r.link_tables) continue;
+    for (const lt of parseLinkTablesForDirection(r.link_tables, direction)) {
+      linkTables.add(lt);
+    }
   }
+  if (linkTables.size === 0) return null;
+  return [...linkTables]
+    .map((lt) => `SELECT central_gene_id FROM ${lt}`)
+    .join(" UNION ");
+}
 
-  // Stage 1: human symbol — no JOINs needed, query central_gene directly
-  stmtHuman = db.prepare(`
+function prepareTriple(
+  db: Database.Database,
+  directionalSubquery: string | null,
+): StmtTriple {
+  const filterDirect = directionalSubquery
+    ? `AND id IN (${directionalSubquery})`
+    : "";
+  const filterJoined = directionalSubquery
+    ? `AND cg.id IN (${directionalSubquery})`
+    : "";
+
+  const stmtHuman = db.prepare(`
     SELECT id, human_symbol, mouse_symbols, human_synonyms, mouse_synonyms,
            num_datasets AS dataset_count
     FROM central_gene
     WHERE human_symbol LIKE ? COLLATE NOCASE
+    ${filterDirect}
     ORDER BY num_datasets DESC, human_symbol ASC
     LIMIT ?
   `);
 
-  // Stage 2: mouse symbol — start from extra_mouse_symbols, join to central_gene
-  stmtMouse = db.prepare(`
+  const stmtMouse = db.prepare(`
     SELECT cg.id AS id, cg.human_symbol AS human_symbol,
            cg.mouse_symbols AS mouse_symbols, cg.human_synonyms AS human_synonyms,
            cg.mouse_synonyms AS mouse_synonyms, cg.num_datasets AS dataset_count
     FROM extra_mouse_symbols ms
     JOIN central_gene cg ON cg.id = ms.central_gene_id
     WHERE ms.symbol LIKE ? COLLATE NOCASE
+    ${filterJoined}
     GROUP BY cg.id
     ORDER BY cg.num_datasets DESC, cg.human_symbol ASC
     LIMIT ?
   `);
 
-  // Stage 3: synonym — start from extra_gene_synonyms, join to central_gene
-  stmtSynonym = db.prepare(`
+  const stmtSynonym = db.prepare(`
     SELECT cg.id AS id, cg.human_symbol AS human_symbol,
            cg.mouse_symbols AS mouse_symbols, cg.human_synonyms AS human_synonyms,
            cg.mouse_synonyms AS mouse_synonyms, cg.num_datasets AS dataset_count
     FROM extra_gene_synonyms gs
     JOIN central_gene cg ON cg.id = gs.central_gene_id
     WHERE gs.synonym LIKE ? COLLATE NOCASE
+    ${filterJoined}
     GROUP BY cg.id
     ORDER BY cg.num_datasets DESC, cg.human_symbol ASC
     LIMIT ?
   `);
 
-  stmtsDb = db;
   return { stmtHuman, stmtMouse, stmtSynonym };
+}
+
+function getStmts(
+  db: Database.Database,
+  direction: SearchDirection | null,
+): StmtTriple | null {
+  if (stmtsDb !== db) {
+    stmtsAll = null;
+    stmtsPerturbed = null;
+    stmtsTarget = null;
+    stmtsDb = db;
+  }
+
+  if (direction == null) {
+    if (!stmtsAll) stmtsAll = prepareTriple(db, null);
+    return stmtsAll;
+  }
+
+  if (direction === "perturbed") {
+    if (!stmtsPerturbed) {
+      const sub = buildDirectionalSubquery(db, "perturbed");
+      // No link tables in this direction → no autocomplete results.
+      if (!sub) return null;
+      stmtsPerturbed = prepareTriple(db, sub);
+    }
+    return stmtsPerturbed;
+  }
+
+  if (!stmtsTarget) {
+    const sub = buildDirectionalSubquery(db, "target");
+    if (!sub) return null;
+    stmtsTarget = prepareTriple(db, sub);
+  }
+  return stmtsTarget;
 }
 
 export function fetchGeneSuggestions(
   text: string,
-  pageLimit: number = 8
+  pageLimit: number = 8,
+  direction: SearchDirection | null = null,
 ): SearchSuggestion[] {
   const db = getDb();
   const searchText = text.trim().replace(/['"]/g, "");
   if (!searchText) return [];
 
   const likePrefix = `${searchText}%`;
-  const stmts = getStmts(db);
+  const stmts = getStmts(db, direction);
+  if (!stmts) return [];
   const stages = [stmts.stmtHuman, stmts.stmtMouse, stmts.stmtSynonym];
 
   const seenIds = new Set<number>();

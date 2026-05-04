@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const querySchema = z.object({
   text: z.string(),
+  direction: z.enum(["perturbed", "target"]).optional(),
 });
 
 export default async function handler(
@@ -30,7 +31,11 @@ export default async function handler(
   }
 
   try {
-    const suggestions: SearchSuggestion[] = fetchGeneSuggestions(searchText, pageLimit);
+    const suggestions: SearchSuggestion[] = fetchGeneSuggestions(
+      searchText,
+      pageLimit,
+      parseResult.data.direction ?? null,
+    );
     return res.status(200).json({ suggestions, searchText: origText });
   } catch (err) {
     console.error("Error querying search suggestions", err);

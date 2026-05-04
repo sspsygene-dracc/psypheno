@@ -303,6 +303,12 @@ export default function Home() {
                 placeholder="Perturbed gene"
                 onSelect={(s) => setPerturbed(s)}
                 value={perturbed}
+                extraBody={{ direction: "perturbed" }}
+              />
+              <ClearButton
+                visible={perturbed != null}
+                onClick={() => setPerturbed(null)}
+                label="Clear perturbed gene"
               />
             </div>
             <div>
@@ -326,6 +332,12 @@ export default function Home() {
                 placeholder="Target gene"
                 onSelect={(s) => setTarget(s)}
                 value={target}
+                extraBody={{ direction: "target" }}
+              />
+              <ClearButton
+                visible={target != null}
+                onClick={() => setTarget(null)}
+                label="Clear target gene"
               />
             </div>
           </div>
@@ -434,5 +446,38 @@ export default function Home() {
         <Footer />
       </div>
     </>
+  );
+}
+
+function ClearButton({
+  visible,
+  onClick,
+  label,
+}: {
+  visible: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <div style={{ minHeight: 22, padding: "4px 6px 0", textAlign: "right" }}>
+      {visible && (
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={label}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#2563eb",
+            fontSize: 12,
+            padding: "2px 4px",
+            cursor: "pointer",
+            textDecoration: "underline",
+          }}
+        >
+          Clear
+        </button>
+      )}
+    </div>
   );
 }

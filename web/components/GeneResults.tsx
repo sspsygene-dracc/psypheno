@@ -525,6 +525,7 @@ export default function GeneResults({
             geneSymbol={perturbedGene.humanSymbol ?? "—"}
             info={perturbedInfo}
             assayTypeLabels={assayTypeLabels}
+            tone="perturbed"
           />
         )}
         {targetGene && (
@@ -533,6 +534,7 @@ export default function GeneResults({
             geneSymbol={targetGene.humanSymbol ?? "—"}
             info={targetInfo}
             assayTypeLabels={assayTypeLabels}
+            tone="target"
           />
         )}
         {data.length === 0 && (
@@ -973,7 +975,11 @@ export default function GeneResults({
                             targetCentralGeneId={
                               targetCentralGeneId ?? undefined
                             }
-                            geneSymbol={geneDisplayName ?? undefined}
+                            geneSymbol={
+                              targetGene?.humanSymbol ??
+                              perturbedGene?.humanSymbol ??
+                              undefined
+                            }
                           />
                         </div>
                       )}
@@ -994,18 +1000,27 @@ function GeneSidePanel({
   geneSymbol,
   info,
   assayTypeLabels,
+  tone,
 }: {
   label: "Perturbed" | "Target";
   geneSymbol: string;
   info: GeneInfoData | null;
   assayTypeLabels: Record<string, string>;
+  tone: "perturbed" | "target";
 }) {
+  // Match the volcano plot's red-up / blue-down convention so the perturbed
+  // (red) and target (blue) panels are visually distinct.
+  const tint =
+    tone === "perturbed"
+      ? { background: "#fef2f2", border: "#fecaca", labelColor: "#b91c1c" }
+      : { background: "#eff6ff", border: "#bfdbfe", labelColor: "#1e40af" };
   return (
     <div
       style={{
         marginBottom: 16,
         padding: "12px 14px",
-        border: "1px solid #e5e7eb",
+        border: `1px solid ${tint.border}`,
+        background: tint.background,
         borderRadius: 8,
       }}
     >
@@ -1013,7 +1028,7 @@ function GeneSidePanel({
         style={{
           fontSize: 13,
           fontWeight: 600,
-          color: "#1e40af",
+          color: tint.labelColor,
           marginBottom: 8,
           textTransform: "uppercase",
           letterSpacing: "0.04em",
