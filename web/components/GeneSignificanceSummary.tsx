@@ -47,7 +47,7 @@ export default function GeneSignificanceSummary({
   contributingTables: ContributingTable[];
   assayTypeLabels?: Record<string, string>;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   if (!combinedPvalues) return null;
 
@@ -73,6 +73,7 @@ export default function GeneSignificanceSummary({
   return (
     <div
       style={{
+        marginTop: 16,
         marginBottom: 16,
         border: "1px solid #dbeafe",
         borderRadius: 8,
