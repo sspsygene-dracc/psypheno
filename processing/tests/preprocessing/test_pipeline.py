@@ -28,7 +28,9 @@ def test_tracker_round_trip(tmp_path: Path) -> None:
         species="human",
         counts={"passed_through": 10, "rescued_excel": 2},
     )
-    tracker.record("drop_columns", table="cleaned.csv", columns=["_target_gene_resolution"])
+    tracker.record(
+        "drop_columns", table="cleaned.csv", columns=["_target_gene_resolution"]
+    )
 
     out = tmp_path / "preprocessing.yaml"
     tracker.write(out)
@@ -51,9 +53,9 @@ def test_pipeline_clean_gene_then_drop(
 ) -> None:
     """End-to-end: read CSV → clean gene column → drop resolution col → write."""
     raw = tmp_path / "raw.csv"
-    pd.DataFrame({"target_gene": ["BRCA1", "9-Sep", "WHO_KNOWS"], "x": [1, 2, 3]}).to_csv(
-        raw, index=False
-    )
+    pd.DataFrame(
+        {"target_gene": ["BRCA1", "9-Sep", "WHO_KNOWS"], "x": [1, 2, 3]}
+    ).to_csv(raw, index=False)
     out_path = tmp_path / "cleaned.csv"
 
     tracker = Tracker()
@@ -106,7 +108,7 @@ def test_pipeline_dropna_records_before_after(
         .read_csv(raw)
         .dropna(["hgnc_symbol"])
         .filter_rows(
-            lambda d: d["hgnc_symbol"].astype(str).str.strip() != "",
+            lambda d: d["hgnc_symbol"].astype(str).str.strip() != "",  # type: ignore
             description="non-empty hgnc_symbol",
         )
         .write_csv(out)
@@ -168,7 +170,7 @@ def test_pipeline_transform_column_records_description(
         .read_csv(raw)
         .transform_column(
             "name",
-            lambda s: s.str.rstrip("."),
+            lambda s: s.str.rstrip("."),  # type: ignore
             description="strip trailing dots from MarkerName",
         )
         .write_csv(out)

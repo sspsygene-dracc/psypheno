@@ -32,7 +32,6 @@ Output files:
 
 import json
 from pathlib import Path
-from typing import cast
 
 import pandas as pd
 
@@ -119,7 +118,6 @@ def process_supp3(
     frames: list[pd.DataFrame] = []
     for sheet_name, sheet_df in all_sheets.items():
         deletion_type = get_deletion_type(sheet_name)
-        sheet_df = cast(pd.DataFrame, sheet_df)
 
         cleaned = (
             Pipeline(
@@ -205,7 +203,6 @@ def process_supp12(
 
     frames: list[pd.DataFrame] = []
     for sheet_name, sheet_df in all_sheets.items():
-        sheet_df = cast(pd.DataFrame, sheet_df)
         cleaned = (
             Pipeline(
                 f"supp12:{sheet_name}",

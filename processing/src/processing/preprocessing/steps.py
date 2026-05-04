@@ -13,7 +13,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ClassVar
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
 
 import pandas as pd
 
@@ -34,9 +34,7 @@ class Step(ABC):
     name: ClassVar[str]
 
     @abstractmethod
-    def apply(
-        self, df: pd.DataFrame | None, ctx: "Context"
-    ) -> pd.DataFrame | None: ...
+    def apply(self, df: pd.DataFrame | None, ctx: "Context") -> pd.DataFrame | None: ...
 
 
 def _require_df(df: pd.DataFrame | None, step: str) -> pd.DataFrame:
@@ -58,9 +56,7 @@ class ReadCsv(Step):
     dtype: Any = str
     read_kw: dict[str, Any] = field(default_factory=dict)
 
-    def apply(
-        self, df: pd.DataFrame | None, ctx: "Context"
-    ) -> pd.DataFrame:
+    def apply(self, df: pd.DataFrame | None, ctx: "Context") -> pd.DataFrame:
         if df is not None:
             raise ValueError(
                 f"read_csv({self.path}) called on a pipeline that already has a "
@@ -93,9 +89,7 @@ class FromDataFrame(Step):
     df: pd.DataFrame
     label: str | None = None  # human-readable source label, e.g. "sheet=foo"
 
-    def apply(
-        self, df: pd.DataFrame | None, ctx: "Context"
-    ) -> pd.DataFrame:
+    def apply(self, df: pd.DataFrame | None, ctx: "Context") -> pd.DataFrame:
         if df is not None:
             raise ValueError(
                 "from_dataframe called on a pipeline that already has a "
@@ -233,7 +227,7 @@ class FilterRows(Step):
             rows_after=after,
             dropped=before - after,
         )
-        return out
+        return cast(pd.DataFrame, out)
 
 
 @dataclass
@@ -279,7 +273,7 @@ class Reorder(Step):
             table=ctx.table,
             columns=list(self.columns),
         )
-        return out
+        return cast(pd.DataFrame, out)
 
 
 @dataclass
@@ -327,7 +321,7 @@ class TransformColumn(Step):
             )
         out = df.copy()
         before = out[self.column].copy()
-        out[self.column] = self.func(out[self.column])
+        out[self.column] = self.func(cast(pd.Series, out[self.column]))
         changed = int((before != out[self.column]).fillna(False).sum())
         ctx.tracker.record(
             self.name,
