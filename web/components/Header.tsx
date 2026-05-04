@@ -113,6 +113,7 @@ export default function Header() {
       <style>{`
         .header-nav-desktop { display: flex; gap: 8px; align-items: center; }
         .header-menu-btn { display: none; }
+        .header-other-item:hover { background: #f3f4f6 !important; }
         @media (max-width: ${MOBILE_BREAKPOINT}px) {
           .header-nav-desktop { display: none !important; }
           .header-menu-btn { display: flex !important; }
@@ -212,6 +213,7 @@ export default function Header() {
                     key={href}
                     href={href}
                     role="menuitem"
+                    className="header-other-item"
                     style={otherDropdownItemStyle(href)}
                     onClick={() => setOtherOpen(false)}
                   >
