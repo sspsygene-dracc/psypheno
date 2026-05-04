@@ -1,0 +1,203 @@
+generated: '2026-05-04T10:55:51Z'
+inputs:
+- nebula_gene_0.05_FDR.txt
+- nebula_gene_0.2_FDR.tsv
+- s10.tsv
+- Table_8_Selected_validate_genes.txt
+- patient_list.tsv
+tables:
+  nebula_gene_0.05_FDR_cleaned.txt:
+  - step: read_csv
+    source: nebula_gene_0.05_FDR.txt
+    separator: "\t"
+    rows: 79757
+    columns:
+    - cell_type
+    - gene_symbol
+    - disease
+    - pvalue
+    - FDR
+    - logFC
+  - step: clean_gene_column
+    column: gene_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      manual_aliases: &id001
+        SARS: SARS1
+        QARS: QARS1
+        TAZ: TAFAZZIN
+    counts:
+      passed_through: 72529
+      non_symbol_contig: 7100
+      rescued_make_unique: 15
+      rescued_excel: 51
+      unresolved: 34
+      rescued_manual_alias: 28
+    dropped_rows: 0
+    sample_unresolved:
+    - MPP6
+    - GATD3B
+    - SMC5-AS1
+    - IQCD
+    - C18orf21
+    - IQCA1
+    - SMC5-AS1
+    - IQCA1
+    - CRIPAK
+    - MPP6
+  - step: write_csv
+    destination: nebula_gene_0.05_FDR_cleaned.txt
+    separator: "\t"
+    rows: 79757
+    columns:
+    - cell_type
+    - gene_symbol
+    - disease
+    - pvalue
+    - FDR
+    - logFC
+    - gene_symbol_raw
+    - _gene_symbol_resolution
+  nebula_gene_0.2_FDR_cleaned.tsv:
+  - step: read_csv
+    source: nebula_gene_0.2_FDR.tsv
+    separator: "\t"
+    rows: 144267
+    columns:
+    - cell_type
+    - gene_symbol
+    - disease
+    - pvalue
+    - FDR
+    - logFC
+  - step: clean_gene_column
+    column: gene_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      manual_aliases: *id001
+    counts:
+      passed_through: 131320
+      non_symbol_contig: 12708
+      rescued_make_unique: 25
+      rescued_excel: 102
+      unresolved: 73
+      rescued_manual_alias: 39
+    dropped_rows: 0
+    sample_unresolved:
+    - IQCA1
+    - MPP6
+    - IQCD
+    - C18orf21
+    - GATD3B
+    - IQCA1
+    - CRIPAK
+    - MPP6
+    - MPP6
+    - SMC5-AS1
+  - step: write_csv
+    destination: nebula_gene_0.2_FDR_cleaned.tsv
+    separator: "\t"
+    rows: 144267
+    columns:
+    - cell_type
+    - gene_symbol
+    - disease
+    - pvalue
+    - FDR
+    - logFC
+    - gene_symbol_raw
+    - _gene_symbol_resolution
+  s10_cleaned.tsv:
+  - step: read_csv
+    source: s10.tsv
+    separator: "\t"
+    rows: 762972
+    columns:
+    - cell_type
+    - gene_symbol
+    - disease
+    - pvalue
+    - FDR
+    - logFC
+  - step: clean_gene_column
+    column: gene_symbol
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      manual_aliases: *id001
+    counts:
+      passed_through: 683632
+      non_symbol_contig: 78020
+      rescued_manual_alias: 144
+      rescued_excel: 572
+      rescued_make_unique: 236
+      unresolved: 368
+    dropped_rows: 0
+    sample_unresolved:
+    - IQCA1
+    - IQCA1
+    - IQCA1
+    - IQCA1
+    - CRIPAK
+    - CRIPAK
+    - CRIPAK
+    - CRIPAK
+    - MPP6
+    - MPP6
+  - step: write_csv
+    destination: s10_cleaned.tsv
+    separator: "\t"
+    rows: 762972
+    columns:
+    - cell_type
+    - gene_symbol
+    - disease
+    - pvalue
+    - FDR
+    - logFC
+    - gene_symbol_raw
+    - _gene_symbol_resolution
+  Table_8_Selected_validate_genes_cleaned.txt:
+  - step: read_csv
+    source: Table_8_Selected_validate_genes.txt
+    separator: "\t"
+    rows: 360
+    columns:
+    - gene
+    - diagnosis
+    - cell_type
+    - statistic
+    - p
+    - p_adjust
+  - step: clean_gene_column
+    column: gene
+    species: human
+    flags:
+      excel_demangle: true
+      strip_make_unique: true
+      manual_aliases: *id001
+    counts:
+      passed_through: 360
+    dropped_rows: 0
+    sample_unresolved: []
+  - step: write_csv
+    destination: Table_8_Selected_validate_genes_cleaned.txt
+    separator: "\t"
+    rows: 360
+    columns:
+    - gene
+    - diagnosis
+    - cell_type
+    - statistic
+    - p
+    - p_adjust
+    - gene_raw
+    - _gene_resolution
+  patient_list_cleaned.tsv:
+  - step: copy_file
+    source: patient_list.tsv

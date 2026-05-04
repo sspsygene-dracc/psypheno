@@ -1,8 +1,7 @@
 """Preprocess Wang et al. 2025 brain-organoid atlas tables.
 
-Cleans every gene-name column referenced by config.yaml using the
-shared cleaner from #120. Three rescue families fire across the NEBULA
-DEG and S10/S11 tables:
+Cleans every gene-name column referenced by config.yaml. Three rescue
+families fire across the NEBULA DEG and S10/S11 tables:
 
   * Tier A (excel_demangle): `1-Mar` ... `11-Mar` -> MARCHF*; `1-Dec`
     -> DELEC1.
@@ -17,6 +16,9 @@ DEG and S10/S11 tables:
 `non_resolving.drop_values:` block orphans); it's copied through
 unchanged so every input file is routed through preprocess.
 
+Writes a sibling `preprocessing.yaml` (#150) recording every action
+across the four cleaned tables and the copy_file step.
+
 Usage:
     python preprocess.py
 
@@ -24,12 +26,14 @@ Run inside the `processing` venv so `from processing.preprocessing
 import ...` resolves.
 """
 
-import shutil
 from pathlib import Path
 
-import pandas as pd
-
-from processing.preprocessing import GeneSymbolNormalizer, clean_gene_column
+from processing.preprocessing import (
+    GeneSymbolNormalizer,
+    Pipeline,
+    Tracker,
+    copy_file,
+)
 
 DIR = Path(__file__).resolve().parent
 
@@ -49,26 +53,31 @@ JOBS: list[tuple[str, str, str]] = [
 
 
 def main() -> None:
+    tracker = Tracker()
     normalizer = GeneSymbolNormalizer.from_env()
 
     for in_name, column, out_name in JOBS:
-        df = pd.read_csv(DIR / in_name, sep="\t", dtype=str)
-        cleaned, report = clean_gene_column(
-            df,
-            column,
-            species="human",
-            normalizer=normalizer,
-            excel_demangle=True,
-            strip_make_unique=True,
-            manual_aliases=MANUAL_ALIASES,
+        (
+            Pipeline(out_name, tracker=tracker, normalizer=normalizer)
+            .read_tsv(DIR / in_name)
+            .clean_gene(
+                column,
+                species="human",
+                excel_demangle=True,
+                strip_make_unique=True,
+                manual_aliases=MANUAL_ALIASES,
+            )
+            .write_tsv(DIR / out_name)
+            .run()
         )
-        print(f"{in_name}: {report.summary()}")
-        cleaned = cleaned.drop(columns=[f"_{column}_resolution"])
-        cleaned.to_csv(DIR / out_name, sep="\t", index=False)
-        print(f"  wrote {len(cleaned)} rows to {out_name}")
 
-    shutil.copyfile(DIR / "patient_list.tsv", DIR / "patient_list_cleaned.tsv")
-    print("  copied patient_list.tsv -> patient_list_cleaned.tsv")
+    copy_file(
+        DIR / "patient_list.tsv",
+        DIR / "patient_list_cleaned.tsv",
+        tracker=tracker,
+    )
+
+    tracker.write(DIR / "preprocessing.yaml")
 
 
 if __name__ == "__main__":
