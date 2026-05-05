@@ -1,0 +1,15 @@
+fieldLabels:
+  pvalue: "Nominal p-value"
+  padj: "BH-adjusted p-value"
+  logfc: "Log fold change"
+
+assayTypes:
+  perturbation: "Perturbation Screen"
+  expression: "Gene Expression (RNA-seq)"
+
+diseaseTypes:
+  asd: "Autism Spectrum Disorder"
+
+organismTypes:
+  mouse: "Mouse"
+  human: "Human"

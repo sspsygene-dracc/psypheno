@@ -1,0 +1,12 @@
+generated: "2026-05-05T00:00:00Z"
+inputs:
+  - deg_raw.tsv
+actions:
+  - kind: read_csv
+    table: deg.tsv
+    source: deg_raw.tsv
+  - kind: rename_columns
+    table: deg.tsv
+    mapping:
+      Gene: gene
+      Perturbation: perturbation_gene

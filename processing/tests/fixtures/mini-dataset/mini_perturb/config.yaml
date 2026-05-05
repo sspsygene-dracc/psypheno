@@ -1,0 +1,53 @@
+publication:
+  authors:
+    - Jane Doe
+    - John Roe
+  year: 2024
+  journal: Test Journal of Mouse Genetics
+  doi: 10.0000/test.0001
+  pmid: "12345678"
+  sspsygene_grants: ["R01HG000000"]
+tables:
+  - table: mini_perturb_deg
+    changelog:
+      - date: "2025-10-01"
+        message: "Initial fixture data load"
+      - date: "2026-01-15"
+        message: "Added an additional row"
+    shortLabel: mini_perturb_degs
+    mediumLabel: Mini Perturb DEGs (test fixture)
+    longLabel: Synthetic differential-expression rows used by the Python test suite
+    description:
+      Tiny synthetic perturb-seq DEG table built for the backend test suite.
+      Covers the common gene-mapping cases (resolved mouse symbols, control
+      values, and record_values stubs).
+    source: "Test fixture"
+    assay: perturbation
+    fieldLabels:
+      gene: "Mouse target gene whose expression was measured"
+      perturbation_gene: "Gene targeted by the gRNA in this row"
+    categories:
+      - test fixture
+      - perturb-seq
+    organism: Mus musculus (test fixture)
+    organism_key: mouse
+    in_path: deg.tsv
+    separator: "\t"
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: mouse
+        perturbed_or_target: target
+        non_resolving:
+          record_values:
+            - Gm99999
+      - column_name: perturbation_gene
+        link_table_name: perturbation_gene
+        species: mouse
+        perturbed_or_target: perturbed
+        non_resolving:
+          control_values:
+            - NonTarget1
+    pvalue_column: pvalue
+    fdr_column: padj
+    effect_column: logfc
