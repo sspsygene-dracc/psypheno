@@ -151,7 +151,7 @@ tables:
     fdr_column: padj
     effect_column: log2FoldChange
     fieldLabels:
-      gene: "Gene symbol (or Ensembl ID for unnamed transcripts)"
+      gene: "Resolved gene symbol (HGNC). The original source identifier (which may be an Ensembl ID for unnamed transcripts) is preserved in gene_raw."
       basemean: "Mean of normalized read counts across all donors"
       log2foldchange: "log2 fold change in expression: old (70–90y) vs young (25–70y) healthy donors. Positive = upregulated in old. Pseudobulk DESeq2 (likelihood-ratio test) per cell type."
       lfcse: "Standard error of the log2 fold change"
@@ -219,7 +219,7 @@ tables:
     fdr_column: padj
     effect_column: log2FoldChange
     fieldLabels:
-      gene: "Gene symbol (or Ensembl ID for unnamed transcripts)"
+      gene: "Resolved gene symbol (HGNC). The original source identifier (which may be an Ensembl ID for unnamed transcripts) is preserved in gene_raw."
       basemean: "Mean of normalized read counts across all donors"
       log2foldchange: "log2 fold change in expression: ASD vs neurotypical control. Positive = upregulated in ASD. Pseudobulk DESeq2 (likelihood-ratio test) per cell type."
       lfcse: "Standard error of the log2 fold change"
@@ -287,7 +287,7 @@ tables:
     fdr_column: padj
     effect_column: log2FoldChange
     fieldLabels:
-      gene: "Gene symbol (or Ensembl ID for unnamed transcripts)"
+      gene: "Resolved gene symbol (HGNC). The original source identifier (which may be an Ensembl ID for unnamed transcripts) is preserved in gene_raw."
       basemean: "Mean of normalized read counts across all donors"
       log2foldchange: "log2 fold change in expression: bipolar disorder vs neurotypical control. Positive = upregulated in bipolar. Pseudobulk DESeq2 (likelihood-ratio test) per cell type."
       lfcse: "Standard error of the log2 fold change"
@@ -355,7 +355,7 @@ tables:
     fdr_column: padj
     effect_column: log2FoldChange
     fieldLabels:
-      gene: "Gene symbol (or Ensembl ID for unnamed transcripts)"
+      gene: "Resolved gene symbol (HGNC). The original source identifier (which may be an Ensembl ID for unnamed transcripts) is preserved in gene_raw."
       basemean: "Mean of normalized read counts across all donors"
       log2foldchange: "log2 fold change in expression: schizophrenia vs neurotypical control. Positive = upregulated in schizophrenia. Pseudobulk DESeq2 (likelihood-ratio test) per cell type."
       lfcse: "Standard error of the log2 fold change"

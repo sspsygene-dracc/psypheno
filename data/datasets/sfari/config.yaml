@@ -26,6 +26,7 @@ tables:
     source: "SFARI Gene database export (07-08-2025 release)"
     assay: curated
     fieldLabels:
+      gene_symbol: "Gene symbol (HGNC) of the autism candidate gene. Original identifier preserved in gene_symbol_raw."
       status: "Curation status"
       human_gene_score: "SFARI gene score (strength of ASD evidence)"
       human_syndromic: "Whether gene is linked to a syndromic form of ASD"
@@ -61,6 +62,7 @@ tables:
     source: "SFARI Gene database export (07-08-2025 release)"
     assay: curated
     fieldLabels:
+      model_symbol: "Gene symbol (HGNC) of the gene perturbed in the animal model (the autism candidate's ortholog). Original identifier in model_symbol_raw."
       status: "Curation status"
       model_id: "SFARI model identifier"
       model_type: "Type of animal model (genetic, rescue, inbred, CNV, induced)"
@@ -97,6 +99,7 @@ tables:
     source: "SFARI Gene database export (07-08-2025 release)"
     assay: curated
     fieldLabels:
+      gene_symbol: "Gene symbol (HGNC) of the SFARI autism candidate gene. Original identifier in gene_symbol_raw."
       status: "Curation status"
       ensembl_id: "Human symbol resolved from Ensembl gene ID (raw ID in ensembl_id_raw)"
       ensembl_id_raw: "Original Ensembl gene ID (pre-resolution)"

@@ -57,6 +57,8 @@ tables:
       padj: "Benjamini–Hochberg FDR-adjusted p-value"
       cell_type: "Cell-type cluster from scRNA-seq of developing mouse cortex (excitatory and inhibitory neuron subtypes; glia)"
       perturbation: "CRISPR perturbation identifier (target gene name + replicate index, e.g. Foxg1_1; NonTarget1/SafeTarget for controls)"
+      _perturbation_gene: "Gene targeted by the gRNA in this row, extracted as the prefix of the perturbation column. NonTarget/SafeTarget for non-targeting controls."
+      _perturbation_gene_idx: "gRNA replicate index — the suffix after the underscore in the perturbation column (e.g. '1' from 'Foxg1_1')."
     links:
       - url: https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
         label: Supplementary Table S8 (mmc4.xlsx)
@@ -114,6 +116,8 @@ tables:
     fieldLabels:
       subcluster: "Cell-subcluster identity from scRNA-seq clustering of developing mouse cortex"
       guide: "gRNA identifier (target gene name + replicate index, e.g. Foxg1_1; NonTarget1/SafeTarget/GFP for controls)"
+      _guide_gene: "Gene targeted by the gRNA in this row, extracted as the prefix of the guide column."
+      _guide_gene_idx: "gRNA replicate index — the suffix after the underscore in the guide column."
       propmean_treatnontarget2: "Mean fraction of cells in the non-targeting-control condition (NonTarget2 gRNA) belonging to this subcluster, averaged across replicates"
       propmean_treatguide: "Mean fraction of cells in the target-gRNA condition belonging to this subcluster, averaged across replicates"
       propratio: "Ratio of cell-fraction means: target-gRNA / non-targeting control. >1 = subcluster expanded under perturbation; <1 = subcluster reduced."

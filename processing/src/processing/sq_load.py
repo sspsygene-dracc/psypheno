@@ -32,6 +32,21 @@ def create_indexes(
         conn.execute(sql)
 
 
+# Default tooltips for pipeline-generated companion columns from
+# clean_gene_column. Update wording (and add a doc URL) once #147
+# (gene-parser docs super-page) ships.
+_RAW_COLUMN_DEFAULT_TOOLTIP = (
+    "Original identifier from the source data, before gene-symbol "
+    "resolution by the sspsygene pipeline. The resolved symbol is "
+    "shown in the corresponding non-_raw column."
+)
+_RESOLUTION_COLUMN_DEFAULT_TOOLTIP = (
+    "How the displayed gene symbol was derived from the source value "
+    "(e.g. hgnc_approved, rescued_ensembl_map, unresolved). Internal "
+    "pipeline tag — see the gene-parser docs for tag meanings."
+)
+
+
 # Columns that need case-insensitive indexes for autocomplete search
 _NOCASE_INDEXES: dict[str, list[str]] = {
     "central_gene": ["human_symbol"],
@@ -313,6 +328,20 @@ def load_data_tables(
         filtered_field_labels = {
             k: v for k, v in table_config.field_labels.items() if k in display_col_set
         }
+
+        # Auto-inject default tooltips for pipeline-generated companion
+        # columns from clean_gene_column. Per-table YAML wins (we only inject
+        # when a label isn't already set), and we gate on the base column
+        # being present so unrelated columns ending in "_raw" aren't tagged.
+        for col in display_col_set:
+            if col in filtered_field_labels:
+                continue
+            if col.endswith("_raw") and col[: -len("_raw")] in display_col_set:
+                filtered_field_labels[col] = _RAW_COLUMN_DEFAULT_TOOLTIP
+            elif col.startswith("_") and col.endswith("_resolution"):
+                base = col[1 : -len("_resolution")]
+                if base in display_col_set:
+                    filtered_field_labels[col] = _RESOLUTION_COLUMN_DEFAULT_TOOLTIP
 
         preprocessing_dict = _load_preprocessing_for_table(table_config.in_path)
         cur.execute(
