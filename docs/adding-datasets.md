@@ -248,7 +248,13 @@ tables:
                                     # numbers, and underscores ONLY (a-z, 0-9, _).
                                     # No spaces, no hyphens, no uppercase.
 
-    mediumLabel: "My Dataset DEGs"  # Short display name (shown in table headers)
+    mediumLabel: "Smith 2026 - bulk RNA-seq DEGs in iPSC Cortical Neurons"
+                                    # Short display name (shown in table
+                                    # headers and dataset cards). MUST follow
+                                    # the standardized format:
+                                    #   "First Author Year - Assay Medium"
+                                    # See "Dataset title format" below for the
+                                    # full rule.
 
     longLabel: "Differentially expressed genes from My Dataset (Smith et al. 2026)"
                                     # Longer descriptive title
@@ -462,7 +468,7 @@ maintainers:
 tables:
   - table: smith_2026_degs
     shortLabel: smith_2026_degs
-    mediumLabel: "Smith 2026 DEGs"
+    mediumLabel: "Smith 2026 - bulk RNA-seq DEGs in Postmortem Brain"
     longLabel: "Differentially expressed genes (Smith et al. 2026)"
     description: "DEGs from RNA-seq of postmortem brain tissue."
     source: "Supplementary Table 1"
@@ -592,6 +598,40 @@ index):
 ```
 
 This keeps the original column and adds two new columns.
+
+### Dataset title format
+
+Every table's `mediumLabel` MUST follow the consortium-wide format:
+
+```
+First Author Last Name Year - Assay Medium
+```
+
+Example: `"Deans 2026 - arrayed CRISPRa/shRNA ECCITE-seq in iGLUT Neurons"`.
+
+The pieces:
+
+- **First Author Last Name** — the surname of the **first author of the
+  dataset's actual publication** (the paper listed in `publication.authors`).
+  Use this even when the data is redistributed by a portal or aggregator
+  paper with a different author — the portal/source can be acknowledged in
+  parentheses at the end of the title (e.g. `"… (via PsychSCREEN)"`) or in
+  the `source:` field. Compound surnames are kept whole — write
+  `"Fernandez Garcia 2026"`, not `"Garcia 2026"`.
+- **Year** — the publication year as a 4-digit number.
+- **` - `** — a space-dash-space, not a colon (per the 4/21/2026 wrangler
+  meeting).
+- **Assay** — the technique that produced the data
+  (e.g. `bulk RNA-seq`, `Perturb-seq`, `CRISPRi screen`, `Perturb-FISH`,
+  `snRNA-seq Pseudobulk DEGs`, `Curated Annotations`).
+- **Medium** — what biological system the assay was applied to
+  (e.g. `iPSC Cortical Neurons`, `Mouse Cortex`, `iPSC-derived Astrocytes`,
+  `Postmortem Brain`, `Zebrafish`).
+
+Datasets with multiple tables from one paper share the author/year prefix and
+differentiate by the Assay/Medium half — see e.g. `data/datasets/zebraAsd/`
+(`Mendes 2023 - in vivo Functional Screen …` vs
+`Mendes 2023 - Sleep-Wake and Visual-Startle Behavior …`).
 
 ### Common mistakes
 
