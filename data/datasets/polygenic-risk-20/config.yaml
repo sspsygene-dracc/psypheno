@@ -35,7 +35,7 @@ maintainers:
 tables:
   - table: SCZ_Risk_Arrayed_RNAseq_supp_1
     shortLabel: scz_risk_arrayed_bulk_rnaseq
-    mediumLabel: "Deans 2026 - arrayed CRISPRa/shRNA ECCITE-seq in iGLUT Neurons"
+    mediumLabel: "Deans 2026 - arrayed CRISPRa/shRNA bulk RNA-seq in iGLUT Neurons"
     longLabel: Polygenic risk for schizophrenia -arrayed assay perturbation on CALN1 CLCN3 CUL9 DOC2A FURIN GATAD2A INO80E PCCB PLCL1 SF3B1 SNAP91 SNCA THOC7 TMEM219 TSNARE1 ZNF823
     description:
         "This data shows effects of arrayed perturbation data fromn bulk RNA-seq DEG tables
