@@ -1,7 +1,7 @@
 # SSPsyGene Data Website
 
 A web platform for exploring neuropsychiatric genetics data from the
-[SSPsyGene consortium](https://sspsygene.org) at UCSC. Integrates differential
+[SSPsyGene consortium](https://sspsygene.ucsc.edu/) at UCSC. Integrates differential
 expression, perturbation screens, phenotype annotations, and curated databases
 into a searchable gene-centric interface.
 
