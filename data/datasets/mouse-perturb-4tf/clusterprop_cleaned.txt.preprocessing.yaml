@@ -1,7 +1,53 @@
-generated: '2026-05-05T10:22:04Z'
+generated: '2026-05-05T11:50:46Z'
 output: clusterprop_cleaned.txt
 inputs:
 - clusterprop.txt
 actions:
-- step: copy_file
+- step: read_csv
   source: clusterprop.txt
+  separator: "\t"
+  rows: 225
+  columns:
+  - subcluster
+  - guide
+  - PropMean.treatNonTarget2
+  - PropMean.treatGuide
+  - PropRatio
+  - limma_coef
+  - Tstatistic
+  - P.Value
+  - FDR
+- step: split_column
+  source: guide
+  new_col1: guide_gene
+  new_col2: guide_gene_idx
+  sep: _
+- step: reorder
+  columns:
+  - guide_gene
+  - subcluster
+  - P.Value
+  - FDR
+  - limma_coef
+  - Tstatistic
+  - PropRatio
+  - PropMean.treatGuide
+  - PropMean.treatNonTarget2
+  - guide
+  - guide_gene_idx
+- step: write_csv
+  destination: clusterprop_cleaned.txt
+  separator: "\t"
+  rows: 225
+  columns:
+  - guide_gene
+  - subcluster
+  - P.Value
+  - FDR
+  - limma_coef
+  - Tstatistic
+  - PropRatio
+  - PropMean.treatGuide
+  - PropMean.treatNonTarget2
+  - guide
+  - guide_gene_idx

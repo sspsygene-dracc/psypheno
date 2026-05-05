@@ -261,7 +261,12 @@ class FilterRows(Step):
 
 @dataclass
 class Rename(Step):
-    """Rename columns via a mapping. Records the mapping for provenance."""
+    """Rename columns via a mapping. Records the mapping for provenance.
+
+    Raises KeyError if any source column in the mapping is absent from the
+    DataFrame — silent skips have hidden bugs in the past where the rename
+    was a no-op and downstream steps acted on the unrenamed column.
+    """
 
     name: ClassVar[str] = "rename"
 
@@ -269,20 +274,31 @@ class Rename(Step):
 
     def apply(self, df: pd.DataFrame | None, ctx: "Context") -> pd.DataFrame:
         df = _require_df(df, self.name)
-        # Only record entries whose source column is actually present.
-        applied = {k: v for k, v in self.mapping.items() if k in df.columns}
-        out = df.rename(columns=applied)
+        missing = [k for k in self.mapping if k not in df.columns]
+        if missing:
+            raise KeyError(
+                f"rename: source columns missing from DataFrame: {missing}; "
+                f"available: {list(df.columns)}"
+            )
+        out = df.rename(columns=dict(self.mapping))
         ctx.tracker.record(
             self.name,
             table=ctx.table,
-            mapping=dict(applied),
+            mapping=dict(self.mapping),
         )
         return out
 
 
 @dataclass
 class Reorder(Step):
-    """Subset and reorder columns to the given list."""
+    """Reorder columns to the given list — must list every column exactly once.
+
+    Raises KeyError both if a listed column is missing from the DataFrame,
+    *and* if a DataFrame column is missing from the list. Use ``drop_columns``
+    explicitly when you intend to drop something — silently dropping unlisted
+    columns has caused real bugs (e.g. losing ``_<col>_resolution`` when
+    ``clean_gene`` ran but ``reorder`` didn't know to keep it).
+    """
 
     name: ClassVar[str] = "reorder"
 
@@ -291,11 +307,17 @@ class Reorder(Step):
     def apply(self, df: pd.DataFrame | None, ctx: "Context") -> pd.DataFrame:
         df = _require_df(df, self.name)
         missing = [c for c in self.columns if c not in df.columns]
-        if missing:
-            raise KeyError(
-                f"reorder: columns missing from DataFrame: {missing}; "
-                f"available: {list(df.columns)}"
-            )
+        extra = [c for c in df.columns if c not in self.columns]
+        if missing or extra:
+            parts = []
+            if missing:
+                parts.append(f"missing from DataFrame: {missing}")
+            if extra:
+                parts.append(
+                    f"present in DataFrame but not listed (would be silently "
+                    f"dropped — list them or call drop_columns explicitly): {extra}"
+                )
+            raise KeyError(f"reorder: {'; '.join(parts)}")
         out = df[list(self.columns)]
         ctx.tracker.record(
             self.name,
@@ -358,6 +380,49 @@ class TransformColumn(Step):
             column=self.column,
             description=self.description,
             rows_changed=changed,
+        )
+        return out
+
+
+@dataclass
+class SplitColumn(Step):
+    """Split `source` into two new columns at the first occurrence of `sep`.
+
+    The source column is preserved (the parsed parts get appended). Useful
+    for compound identifiers like ``Foxg1_3`` (gene + replicate index) or
+    ``CHD8_HOM_3`` (gene + experiment + sample). Replaces the deprecated
+    load-db ``split_column_map`` knob — every dataset that needs splits
+    should do them here in preprocess.py instead.
+    """
+
+    name: ClassVar[str] = "split_column"
+
+    source: str
+    new_col1: str
+    new_col2: str
+    sep: str
+
+    def apply(self, df: pd.DataFrame | None, ctx: "Context") -> pd.DataFrame:
+        df = _require_df(df, self.name)
+        if self.source not in df.columns:
+            raise KeyError(
+                f"split_column: {self.source!r} not in DataFrame; "
+                f"available: {list(df.columns)}"
+            )
+        out = df.copy()
+        parts: Any = cast(
+            Any,
+            out[self.source].astype("string").str.split(self.sep, n=1, expand=True),
+        )
+        out[self.new_col1] = parts[0]
+        out[self.new_col2] = parts[1] if parts.shape[1] > 1 else None
+        ctx.tracker.record(
+            self.name,
+            table=ctx.table,
+            source=self.source,
+            new_col1=self.new_col1,
+            new_col2=self.new_col2,
+            sep=self.sep,
         )
         return out
 

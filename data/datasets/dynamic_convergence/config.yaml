@@ -86,7 +86,6 @@ tables:
     organism: Homo sapiens (hiPSC-derived neurons)
     organism_key: human
     in_path: Supplemental_Data_2(META_DEGs)_cleaned.csv
-    split_column_map: []
     separator: ","
     gene_mappings:
       - column_name: MarkerName
@@ -168,7 +167,6 @@ tables:
     organism_key: zebrafish
     in_path: HumanName_Baseline_behavior_pvalues_cleaned.csv
     separator: ","
-    split_column_map: []
     gene_mappings:
       - column_name: human_gene_name
         link_table_name: gene

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type TocItem = {
   tableName: string;
@@ -74,6 +74,69 @@ export default function DatasetToc({
 }) {
   const hasMultipleGroups = groups.length > 1;
 
+  // Scroll-spy: highlight the TOC entry whose section is currently in
+  // the viewport. Use IntersectionObserver with a rootMargin that biases
+  // "active" to whatever's near the top of the viewport, so a long
+  // section near the bottom doesn't keep stealing focus from the one
+  // the user is actually reading.
+  const [activeId, setActiveId] = useState<string | null>(null);
+  // Track each section's intersection ratio so we can pick the most
+  // visible one, not just the most recently changed.
+  const ratios = useRef<Map<string, number>>(new Map());
+
+  const allTableNames = useMemo(
+    () => groups.flatMap((g) => g.items.map((i) => i.tableName)),
+    [groups],
+  );
+
+  useEffect(() => {
+    if (allTableNames.length === 0) return;
+    const elements = allTableNames
+      .map((name) => document.getElementById(`${anchorPrefix}${name}`))
+      .filter((el): el is HTMLElement => el !== null);
+    if (elements.length === 0) return;
+
+    const localRatios = ratios.current;
+    const recompute = () => {
+      let bestId: string | null = null;
+      let bestRatio = 0;
+      for (const [id, ratio] of localRatios) {
+        if (ratio > bestRatio) {
+          bestRatio = ratio;
+          bestId = id;
+        }
+      }
+      setActiveId(bestId);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const id = entry.target.id;
+          if (entry.isIntersecting) {
+            localRatios.set(id, entry.intersectionRatio);
+          } else {
+            localRatios.delete(id);
+          }
+        }
+        recompute();
+      },
+      {
+        // Top 60% of the viewport is the "active zone" — anything below
+        // is treated as not yet read. The wide threshold list lets the
+        // observer fire as a section gradually scrolls in/out.
+        rootMargin: "0px 0px -40% 0px",
+        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
+      },
+    );
+
+    for (const el of elements) observer.observe(el);
+    return () => {
+      observer.disconnect();
+      localRatios.clear();
+    };
+  }, [allTableNames, anchorPrefix]);
+
   const scrollTo = (id: string) => {
     document
       .getElementById(id)
@@ -130,34 +193,42 @@ export default function DatasetToc({
               {group.label}
             </div>
           )}
-          {group.items.map((item) => (
-            <button
-              key={item.tableName}
-              onClick={() => scrollTo(`${anchorPrefix}${item.tableName}`)}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: hasMultipleGroups
-                  ? "6px 14px 6px 22px"
-                  : "8px 14px",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                fontSize: 13,
-                color: "#2563eb",
-                lineHeight: 1.4,
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#e5e7eb")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "transparent")
-              }
-            >
-              {formatTableName(item)}
-            </button>
-          ))}
+          {group.items.map((item) => {
+            const id = `${anchorPrefix}${item.tableName}`;
+            const isActive = activeId === id;
+            return (
+              <button
+                key={item.tableName}
+                onClick={() => scrollTo(id)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  padding: hasMultipleGroups
+                    ? "6px 14px 6px 22px"
+                    : "8px 14px",
+                  background: isActive ? "#dbeafe" : "transparent",
+                  border: "none",
+                  borderLeft: isActive
+                    ? "3px solid #2563eb"
+                    : "3px solid transparent",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  color: "#2563eb",
+                  fontWeight: isActive ? 700 : 400,
+                  lineHeight: 1.4,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.background = "#e5e7eb";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) e.currentTarget.style.background = "transparent";
+                }}
+              >
+                {formatTableName(item)}
+              </button>
+            );
+          })}
         </div>
       ))}
     </nav>

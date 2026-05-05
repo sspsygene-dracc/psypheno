@@ -77,7 +77,6 @@ tables:
     organism: Homo sapiens (iPSC-derived astrocytes)
     organism_key: human
     in_path: perturbfish-astro.csv
-    split_column_map: []
     separator: "\t"
     gene_mappings:
       - column_name: perturbGene

@@ -86,6 +86,7 @@ export default function DataTable({
   scalarColumns,
   fieldLabels,
   geneColumns,
+  perturbedGeneColumns,
   pvalueColumn,
   fdrColumn,
   highlightSignificantRows = true,
@@ -103,6 +104,10 @@ export default function DataTable({
   scalarColumns?: string[];
   fieldLabels?: Record<string, string> | null;
   geneColumns?: string[];
+  // Subset of geneColumns whose role is "perturbed" (gRNA target) rather
+  // than the measured "target" gene. Cells in these columns link with
+  // /?perturbed=…; everything else in geneColumns falls back to /?target=…
+  perturbedGeneColumns?: string[];
   pvalueColumn?: string | null;
   fdrColumn?: string | null;
   // Skip the per-row green tint when every row is significant by construction
@@ -330,7 +335,11 @@ export default function DataTable({
                 const isGeneCol = geneColumns?.some(
                   (g) => normalizeColName(g) === colNorm,
                 );
+                const isPerturbedGeneCol = perturbedGeneColumns?.some(
+                  (g) => normalizeColName(g) === colNorm,
+                );
                 const text = formatCellValue(val);
+                const linkParam = isPerturbedGeneCol ? "perturbed" : "target";
                 return (
                   <td
                     key={col}
@@ -341,7 +350,7 @@ export default function DataTable({
                   >
                     {isGeneCol && text ? (
                       <Link
-                        href={`/?target=${encodeURIComponent(text)}`}
+                        href={`/?${linkParam}=${encodeURIComponent(text)}`}
                         style={{
                           color: "#2563eb",
                           textDecoration: "none",

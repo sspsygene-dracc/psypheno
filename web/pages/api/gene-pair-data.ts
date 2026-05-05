@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import {
   sanitizeIdentifier,
   parseDisplayColumns,
+  parseSourceColumnsForDirection,
   buildGeneQuery,
   queryFirstPage,
   pickDefaultSortColumn,
@@ -69,6 +70,7 @@ export default async function handler(
       displayColumns: string[];
       scalarColumns: string[];
       geneColumns: string[];
+      perturbedGeneColumns: string[];
       pvalueColumn: string | null;
       fdrColumn: string | null;
       effectColumn: string | null;
@@ -139,6 +141,10 @@ export default async function handler(
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean),
+          perturbedGeneColumns: parseSourceColumnsForDirection(
+            t.link_tables || "",
+            "perturbed",
+          ),
           pvalueColumn: t.pvalue_column ?? null,
           fdrColumn: t.fdr_column ?? null,
           effectColumn: t.effect_column ?? null,

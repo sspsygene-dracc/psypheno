@@ -73,7 +73,6 @@ tables:
     organism: Homo sapiens
     organism_key: human
     in_path: patient_list_cleaned.tsv
-    split_column_map: []
     separator: "\t"
     gene_mappings:
       - column_name: Pathologic causative mutation
@@ -113,7 +112,6 @@ tables:
     organism: Homo sapiens (organoids)
     organism_key: human
     in_path: nebula_gene_0.05_FDR_cleaned.txt
-    split_column_map: []
     separator: "\t"
     gene_mappings:
       - column_name: gene_symbol
@@ -168,7 +166,6 @@ tables:
     organism: Homo sapiens (organoids)
     organism_key: human
     in_path: nebula_gene_0.2_FDR_cleaned.tsv
-    split_column_map: []
     separator: "\t"
     gene_mappings:
       - column_name: gene_symbol
@@ -223,7 +220,6 @@ tables:
     organism: Homo sapiens (organoids)
     organism_key: human
     in_path: s10_cleaned.tsv
-    split_column_map: []
     separator: "\t"
     gene_mappings:
       - column_name: gene_symbol
@@ -278,7 +274,6 @@ tables:
     organism: Homo sapiens (organoids)
     organism_key: human
     in_path: Table_8_Selected_validate_genes_cleaned.txt
-    split_column_map: []
     separator: "\t"
     gene_mappings:
       - column_name: gene

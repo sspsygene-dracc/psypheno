@@ -377,6 +377,25 @@ class Pipeline:
             TransformColumn(column=column, func=func, description=description)
         )
 
+    def split_column(
+        self,
+        source: str,
+        new_col1: str,
+        new_col2: str,
+        *,
+        sep: str,
+    ) -> Pipeline:
+        from processing.preprocessing.steps import SplitColumn
+
+        return self.add(
+            SplitColumn(
+                source=source,
+                new_col1=new_col1,
+                new_col2=new_col2,
+                sep=sep,
+            )
+        )
+
     def insert_column(
         self,
         name: str,

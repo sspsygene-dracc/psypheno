@@ -30,6 +30,7 @@ type DatasetSigResult = {
   displayColumns: string[];
   scalarColumns: string[];
   geneColumns: string[];
+  perturbedGeneColumns: string[];
   pvalueColumn: string | null;
   fdrColumn: string | null;
   fieldLabels: Record<string, string> | null;
@@ -200,6 +201,7 @@ function DatasetSection({
           displayColumns: data.displayColumns,
           scalarColumns: data.scalarColumns,
           geneColumns: data.geneColumns ?? [],
+          perturbedGeneColumns: data.perturbedGeneColumns ?? [],
           pvalueColumn: data.pvalueColumn ?? null,
           fdrColumn: data.fdrColumn ?? null,
           fieldLabels: data.fieldLabels,
@@ -259,6 +261,7 @@ function DatasetSection({
             rows={result.rows}
             scalarColumns={result.scalarColumns}
             geneColumns={result.geneColumns}
+            perturbedGeneColumns={result.perturbedGeneColumns}
             pvalueColumn={result.pvalueColumn}
             fdrColumn={result.fdrColumn}
             highlightSignificantRows={false}

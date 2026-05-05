@@ -10,7 +10,6 @@ from processing.types.data_load_result import DataLoadResult
 from processing.types.gene_mapping import GeneMapping
 from processing.types.entrez_gene import EntrezGene
 from processing.types.link_table import LinkTable
-from processing.types.split_column_entry import SplitColumnEntry
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +78,6 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "links",
         "in_path",
         "separator",
-        "split_column_map",
         "gene_mappings",
         "pvalue_column",
         "fdr_column",
@@ -185,7 +183,6 @@ class TableToProcessConfig:
     table: str
     description: str
     in_path: Path
-    split_column_map: list[SplitColumnEntry]
     gene_mappings: list[GeneMapping]
     separator: str
     short_label: str | None = None
@@ -348,10 +345,6 @@ class TableToProcessConfig:
             table=json_data["table"],
             description=json_data["description"],
             in_path=base_dir / json_data["in_path"],
-            split_column_map=[
-                SplitColumnEntry.from_json(split_column_map)
-                for split_column_map in json_data["split_column_map"]
-            ],
             gene_mappings=[
                 GeneMapping.from_json(gene_mapping)
                 for gene_mapping in json_data["gene_mappings"]
@@ -407,8 +400,6 @@ class TableToProcessConfig:
         # add id column:
         display_columns = get_sql_friendly_columns(data)
         data["id"] = list(range(len(data)))
-        for split_column in self.split_column_map:
-            split_column.split_column(data)
         if test_central_gene_ids is not None and self.gene_mappings:
             data = _filter_to_test_genes(
                 data=data,

@@ -6,12 +6,16 @@ import {
   parseDisplayColumns,
   parseLinkTablesForDirection,
   buildGeneQuery,
+  ALL_CONTROLS_SENTINEL_ID,
 } from "@/lib/gene-query";
 
+// IDs are non-negative auto-increment ints in central_gene, plus the
+// reserved sentinel for "all controls" — accept either, reject anything
+// else by lower-bounding at the sentinel.
 const bodySchema = z.object({
   tableName: z.string().regex(/^[A-Za-z0-9_]+$/),
-  perturbedCentralGeneId: z.number().int().min(0).optional(),
-  targetCentralGeneId: z.number().int().min(0).optional(),
+  perturbedCentralGeneId: z.number().int().min(ALL_CONTROLS_SENTINEL_ID).optional(),
+  targetCentralGeneId: z.number().int().min(ALL_CONTROLS_SENTINEL_ID).optional(),
 });
 
 // Volcano sample shape: ~100 always-included top-by-p rows + a hash-sorted
@@ -118,22 +122,33 @@ export default async function handler(
     const perturbedLTs = parseLinkTablesForDirection(linkTablesRaw, "perturbed");
     let backgroundFilter = "";
     const backgroundParams: unknown[] = [];
+    const isAllControls = perturbedCentralGeneId === ALL_CONTROLS_SENTINEL_ID;
     if (perturbedCentralGeneId && perturbedLTs.length === 1) {
-      backgroundFilter = `AND b.id IN (SELECT id FROM ${perturbedLTs[0]} WHERE central_gene_id = ?)`;
-      backgroundParams.push(perturbedCentralGeneId);
+      if (isAllControls) {
+        // "All controls" → restrict the background to control-perturbation
+        // rows. Inverse of the default-exclusion below; users searching
+        // for controls actively want them.
+        backgroundFilter = `AND b.id IN (SELECT lt.id FROM ${perturbedLTs[0]} lt JOIN central_gene cg ON cg.id = lt.central_gene_id WHERE cg.kind = 'control')`;
+      } else {
+        backgroundFilter = `AND b.id IN (SELECT id FROM ${perturbedLTs[0]} WHERE central_gene_id = ?)`;
+        backgroundParams.push(perturbedCentralGeneId);
+      }
     }
 
     // Exclude rows whose perturbed-gene link points at a kind='control'
     // entry (NonTarget1, SafeTarget, GFP, …). Without this, the volcano
     // background in the unrestricted case (no perturbedCentralGeneId, or
     // multiple perturbed link tables) would include control rows and
-    // bias the distribution toward "no biological perturbation."
-    for (const lt of perturbedLTs) {
-      backgroundFilter +=
-        ` AND b.id NOT IN (` +
-        `SELECT lt.id FROM ${lt} lt ` +
-        `JOIN central_gene cg ON cg.id = lt.central_gene_id ` +
-        `WHERE cg.kind = 'control')`;
+    // bias the distribution toward "no biological perturbation." Skip
+    // when the user is explicitly searching for controls.
+    if (!isAllControls) {
+      for (const lt of perturbedLTs) {
+        backgroundFilter +=
+          ` AND b.id NOT IN (` +
+          `SELECT lt.id FROM ${lt} lt ` +
+          `JOIN central_gene cg ON cg.id = lt.central_gene_id ` +
+          `WHERE cg.kind = 'control')`;
+      }
     }
 
     const fdrSelect = fdrCol ? `b.${fdrCol}` : "NULL";

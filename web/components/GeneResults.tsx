@@ -67,7 +67,10 @@ export default function GeneResults({
 
   useEffect(() => {
     let cancelled = false;
-    if (perturbedCentralGeneId == null) {
+    // The "all controls" sentinel isn't a real gene — skip the
+    // combined-pvalues lookup; per-gene aggregates are meaningless for
+    // a synthetic gene set.
+    if (perturbedCentralGeneId == null || perturbedCentralGeneId < 0) {
       setPerturbedInfo(null);
       return;
     }
@@ -97,7 +100,7 @@ export default function GeneResults({
 
   useEffect(() => {
     let cancelled = false;
-    if (targetCentralGeneId == null) {
+    if (targetCentralGeneId == null || targetCentralGeneId < 0) {
       setTargetInfo(null);
       return;
     }
@@ -782,6 +785,7 @@ export default function GeneResults({
                       scalarColumns={section.scalarColumns}
                       fieldLabels={section.fieldLabels}
                       geneColumns={section.geneColumns}
+                      perturbedGeneColumns={section.perturbedGeneColumns}
                       pvalueColumn={section.pvalueColumn}
                       fdrColumn={section.fdrColumn}
                       showSummary={false}

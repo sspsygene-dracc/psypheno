@@ -122,7 +122,6 @@ tables:
     organism: Homo sapiens (postmortem brain)
     organism_key: human
     in_path: Age_DEGcombined_cleaned.csv
-    split_column_map: []
     separator: ","
     gene_mappings:
       - column_name: gene
@@ -192,7 +191,6 @@ tables:
     organism: Homo sapiens (postmortem brain)
     organism_key: human
     in_path: ASD_DEGcombined_cleaned.csv
-    split_column_map: []
     separator: ","
     gene_mappings:
       - column_name: gene
@@ -262,7 +260,6 @@ tables:
     organism: Homo sapiens (postmortem brain)
     organism_key: human
     in_path: Bipolar_DEGcombined_cleaned.csv
-    split_column_map: []
     separator: ","
     gene_mappings:
       - column_name: gene
@@ -332,7 +329,6 @@ tables:
     organism: Homo sapiens (postmortem brain)
     organism_key: human
     in_path: Schizophrenia_DEGcombined_cleaned.csv
-    split_column_map: []
     separator: ","
     gene_mappings:
       - column_name: gene

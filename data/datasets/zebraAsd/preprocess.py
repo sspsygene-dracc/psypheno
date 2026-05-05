@@ -9,14 +9,14 @@ symbols, so we:
   * map the zebrafish-only `scn1lab` paralog onto its human ortholog
     `SCN1A` so the cross-species link is correct.
 
-These two transformations used to live at load-db time as
-`to_upper:` / `replace:` knobs. Both have been retired in favor of
-explicit preprocessing.
+We then split the compound column into a parsed gene column
+(`Mutant_Experiment_Sample_gene`) and a sample-suffix column. The split
+used to live at load-db time as `split_column_map:`; that knob is being
+retired in favor of explicit preprocessing.
 
-Writes a sibling `preprocessing.yaml` (#150) recording the
-transformation. This dataset doesn't go through `clean_gene_column`
-(its gene is embedded in a compound column, not a standalone gene
-column), so the only tracked action is the custom transform.
+Writes a sibling `preprocessing.yaml` (#150) recording every step. This
+dataset doesn't go through `clean_gene_column` (its gene is embedded in
+a compound column, not a standalone gene column).
 
 Usage:
     python preprocess.py
@@ -60,6 +60,27 @@ def main() -> None:
                 "split on '_', upper-case gene token, "
                 "map SCN1LAB -> SCN1A (zebrafish paralog -> human ortholog)"
             ),
+        )
+        .split_column(
+            "Mutant_Experiment_Sample",
+            "Mutant_Experiment_Sample_gene",
+            "Mutant_Experiment_Sample_gene_idx",
+            sep="_",
+        )
+        .reorder(
+            [
+                "Mutant_Experiment_Sample_gene",
+                "Forebrain",
+                "Optic Tectum",
+                "Thalamus",
+                "Hypothalamus",
+                "Cerebellum",
+                "Hindbrain",
+                "Habenula",
+                "Posterior Tuberculum",
+                "Mutant_Experiment_Sample",
+                "Mutant_Experiment_Sample_gene_idx",
+            ]
         )
         .write_tsv(OUT_FILE)
         .run()

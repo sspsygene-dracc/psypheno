@@ -134,6 +134,15 @@ function escapeLike(s: string): string {
 export type SearchDirection = "target" | "perturbed";
 
 /**
+ * Sentinel central_gene_id meaning "match every kind='control' gene".
+ * Used by the home page search to let users query all control genes
+ * with a single CONTROL pseudo-suggestion instead of picking one of
+ * NonTarget1 / SafeTarget / GFP / … individually. Negative because
+ * real central_gene_id rows are non-negative auto-increment ints.
+ */
+export const ALL_CONTROLS_SENTINEL_ID = -1;
+
+/**
  * Parse link table names for a specific search direction. Mirrors the Python
  * helper of the same name in processing/src/processing/combined_pvalues.py.
  *
@@ -160,6 +169,33 @@ export function parseLinkTablesForDirection(
       e.name !== null && e.direction === direction,
     )
     .map((e) => e.name);
+}
+
+/**
+ * Return the source-column names whose link-table entry has the given
+ * direction. Used by data-table renderers to decide whether a clicked
+ * gene cell should search as perturbed or target. Mirrors
+ * parseLinkTablesForDirection but pulls field 0 (column) instead of 1.
+ */
+export function parseSourceColumnsForDirection(
+  linkTablesRaw: string,
+  direction: SearchDirection,
+): string[] {
+  return (linkTablesRaw || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const parts = entry.split(":");
+      return {
+        column: parts[0] ? sanitizeIdentifier(parts[0]) : null,
+        direction: parts[2] ?? null,
+      };
+    })
+    .filter((e): e is { column: string; direction: string } =>
+      e.column !== null && e.direction === direction,
+    )
+    .map((e) => e.column);
 }
 
 export function parseDisplayColumns(raw: string): string[] {
@@ -197,15 +233,30 @@ export function buildGeneQuery(opts: {
   const targetLTs = parseLinkTablesForDirection(linkTablesRaw || "", "target");
 
   const subqueries: string[] = [];
+  // Sentinel id means "all control genes" — expand to a kind='control'
+  // subquery instead of an exact-match `central_gene_id = ?`.
+  const allControls = `SELECT id FROM central_gene WHERE kind = 'control'`;
   if (opts.perturbedCentralGeneId) {
     if (perturbedLTs.length !== 1) return null;
-    subqueries.push(`SELECT id FROM ${perturbedLTs[0]} WHERE central_gene_id = ?`);
-    params.push(String(opts.perturbedCentralGeneId));
+    if (opts.perturbedCentralGeneId === ALL_CONTROLS_SENTINEL_ID) {
+      subqueries.push(
+        `SELECT id FROM ${perturbedLTs[0]} WHERE central_gene_id IN (${allControls})`,
+      );
+    } else {
+      subqueries.push(`SELECT id FROM ${perturbedLTs[0]} WHERE central_gene_id = ?`);
+      params.push(String(opts.perturbedCentralGeneId));
+    }
   }
   if (opts.targetCentralGeneId) {
     if (targetLTs.length !== 1) return null;
-    subqueries.push(`SELECT id FROM ${targetLTs[0]} WHERE central_gene_id = ?`);
-    params.push(String(opts.targetCentralGeneId));
+    if (opts.targetCentralGeneId === ALL_CONTROLS_SENTINEL_ID) {
+      subqueries.push(
+        `SELECT id FROM ${targetLTs[0]} WHERE central_gene_id IN (${allControls})`,
+      );
+    } else {
+      subqueries.push(`SELECT id FROM ${targetLTs[0]} WHERE central_gene_id = ?`);
+      params.push(String(opts.targetCentralGeneId));
+    }
   }
 
   if (subqueries.length === 0) return null;

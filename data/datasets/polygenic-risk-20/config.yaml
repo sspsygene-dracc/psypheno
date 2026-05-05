@@ -63,7 +63,6 @@ tables:
     organism_key: human
     in_path: Supp_1_all_cleaned.csv
     separator: ","
-    split_column_map: []
     gene_mappings:
       - column_name: target_gene
         link_table_name: Target_Gene
@@ -131,7 +130,6 @@ tables:
     organism_key: human
     in_path: Supp_2_all_cleaned.csv
     separator: ","
-    split_column_map: []
     gene_mappings:
       - column_name: target_gene
         link_table_name: Target_Gene

@@ -32,6 +32,7 @@ type DatasetData = {
   displayColumns: string[];
   scalarColumns?: string[];
   geneColumns?: string[];
+  perturbedGeneColumns?: string[];
   pvalueColumn?: string | null;
   fdrColumn?: string | null;
   rows: Record<string, unknown>[];
@@ -490,6 +491,7 @@ export default function FullDatasets() {
                         rows={datasetData.rows}
                         scalarColumns={datasetData.scalarColumns}
                         geneColumns={datasetData.geneColumns}
+                        perturbedGeneColumns={datasetData.perturbedGeneColumns}
                         pvalueColumn={datasetData.pvalueColumn}
                         fdrColumn={datasetData.fdrColumn}
                         fieldLabels={datasetData.fieldLabels}

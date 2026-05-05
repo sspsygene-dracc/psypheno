@@ -1,4 +1,4 @@
-generated: '2026-05-05T10:22:04Z'
+generated: '2026-05-05T11:50:46Z'
 output: deg_cleaned.txt
 inputs:
 - deg.txt
@@ -28,18 +28,39 @@ actions:
   sample_unresolved:
   - Gm16091
   - Gm42864
+- step: split_column
+  source: perturbation
+  new_col1: perturbation_gene
+  new_col2: perturbation_gene_idx
+  sep: _
+- step: reorder
+  columns:
+  - perturbation_gene
+  - Gene
+  - PValue
+  - padj
+  - logFC
+  - logCPM
+  - LR
+  - cell type
+  - perturbation
+  - perturbation_gene_idx
+  - Gene_raw
+  - _Gene_resolution
 - step: write_csv
   destination: deg_cleaned.txt
   separator: "\t"
   rows: 1627
   columns:
+  - perturbation_gene
   - Gene
+  - PValue
+  - padj
   - logFC
   - logCPM
   - LR
-  - PValue
-  - padj
   - cell type
   - perturbation
+  - perturbation_gene_idx
   - Gene_raw
   - _Gene_resolution

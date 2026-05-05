@@ -160,16 +160,24 @@ metadata download by the `load-db` pipeline (follow-up PR).
 
 ## Migration guidance for wranglers
 
-If you currently rely on the loader's `to_upper`, `multi_gene_separator`,
-`replace`, or `ignore_missing` knobs in `config.yaml`, the migration
-path is:
+If you currently rely on the loader's `to_upper`, `replace`,
+`split_column_map`, or `ignore_missing` knobs in `config.yaml`, the
+migration path is:
 
 1. Add or extend `data/datasets/<name>/preprocess.py` using `Pipeline`.
 2. Build `tracker = Tracker()` once at the top of `main()`.
 3. Add steps for each transformation; `clean_gene(...)` for gene-name
-   columns.
+   columns, `split_column(...)` for compound identifiers like
+   `Foxg1_3` → `(Foxg1, 3)`.
 4. Call `tracker.write(DIR / "preprocessing.yaml")` at the end.
 5. Drop the corresponding YAML knobs once the migration lands.
+
+`multi_gene_separator` stays in `config.yaml` — it isn't a value
+transform, it's a link-table semantic (one displayed row → multiple
+`(row_id, central_gene_id)` link tuples, e.g. a CNV row whose
+`region_genes` cell lists every gene the CNV affects). Pulling it
+into preprocess.py would force one-row-per-gene, breaking the
+one-row-per-CNV display.
 
 Issue [#121](https://github.com/sspsygene-dracc/psypheno/issues/121)
 tracks the per-dataset migration. Issue

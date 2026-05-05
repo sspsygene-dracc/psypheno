@@ -131,15 +131,12 @@ def process_supp3(
             # Row count drops from 808,380 to 720,945 across all 45 sheets.
             .dropna(["hgnc_symbol"])
             .filter_rows(_non_empty_hgnc, description="non-empty hgnc_symbol")
-            .clean_gene(
-                "hgnc_symbol",
-                species="human",
-                manual_aliases=MANUAL_ALIASES,
-            )
+            # Rename first so clean_gene's _raw and _resolution columns
+            # come out as target_gene_raw and _target_gene_resolution
+            # (mirrors process_supp12 below).
             .rename(
                 {
                     "hgnc_symbol": "target_gene",
-                    "hgnc_symbol_raw": "target_gene_raw",
                     "ensembl_gene_id": "Ensembl_Gene_Id",
                     "AveExpr": "Avg_Expr",
                     "p": "P-Value",
@@ -147,10 +144,16 @@ def process_supp3(
                     "z.std": "z_std",
                 }
             )
+            .clean_gene(
+                "target_gene",
+                species="human",
+                manual_aliases=MANUAL_ALIASES,
+            )
             .reorder(
                 [
                     "target_gene",
                     "target_gene_raw",
+                    "_target_gene_resolution",
                     "Ensembl_Gene_Id",
                     "logFC",
                     "Avg_Expr",
@@ -160,6 +163,9 @@ def process_supp3(
                     "z_std",
                     "chromosome_name",
                     "band",
+                    "strand",
+                    "start_position",
+                    "end_position",
                     "gene_biotype",
                 ]
             )

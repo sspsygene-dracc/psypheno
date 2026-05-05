@@ -1,7 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { sanitizeIdentifier, parseDisplayColumns } from "@/lib/gene-query";
+import {
+  sanitizeIdentifier,
+  parseDisplayColumns,
+  parseSourceColumnsForDirection,
+} from "@/lib/gene-query";
 
 const bodySchema = z.object({
   tableName: z.string(),
@@ -97,6 +101,7 @@ export default async function handler(
           .map((s) => s.trim())
           .filter(Boolean),
         geneColumns: [],
+        perturbedGeneColumns: [],
         rows: [],
         totalRows: 0,
         page,
@@ -151,14 +156,20 @@ export default async function handler(
       }
     }
 
-    // Get gene_columns for linking
+    // Get gene_columns and link_tables for linking. link_tables encodes
+    // direction so DataTable can route perturbed-cell clicks to /?perturbed=
+    // and target-cell clicks to /?target=.
     const geneColsMeta = db
-      .prepare("SELECT gene_columns FROM data_tables WHERE table_name = ?")
-      .get(tableName) as { gene_columns: string | null } | undefined;
+      .prepare("SELECT gene_columns, link_tables FROM data_tables WHERE table_name = ?")
+      .get(tableName) as { gene_columns: string | null; link_tables: string | null } | undefined;
     const geneColumns = (geneColsMeta?.gene_columns || "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+    const perturbedGeneColumns = parseSourceColumnsForDirection(
+      geneColsMeta?.link_tables || "",
+      "perturbed",
+    );
 
     return res.status(200).json({
       tableName: tableMeta.table_name,
@@ -174,6 +185,7 @@ export default async function handler(
         .map((s) => s.trim())
         .filter(Boolean),
       geneColumns,
+      perturbedGeneColumns,
       rows,
       totalRows: countResult.cnt,
       page,

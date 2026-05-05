@@ -11,6 +11,10 @@ export interface TableResult {
   displayColumns: string[];
   scalarColumns?: string[];
   geneColumns?: string[];
+  // Subset of geneColumns whose link-table entry direction is "perturbed".
+  // Anything in geneColumns not listed here is treated as a target column.
+  // Used by DataTable to pick `/?perturbed=` vs `/?target=` for cell links.
+  perturbedGeneColumns?: string[];
   pvalueColumn?: string | null;
   fdrColumn?: string | null;
   effectColumn?: string | null;

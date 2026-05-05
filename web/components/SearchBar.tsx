@@ -1,4 +1,5 @@
 import { SearchSuggestion } from "@/state/SearchSuggestion";
+import { ALL_CONTROLS_SENTINEL_ID } from "@/lib/gene-query";
 import { useEffect, useRef, useState } from "react";
 
 export default function SearchBar({
@@ -25,7 +26,7 @@ export default function SearchBar({
   useEffect(() => {
     if (value) {
       setSuppress(true);
-      setQuery(value.searchQuery);
+      setQuery(value.displayLabel ?? value.searchQuery);
     } else {
       setQuery("");
     }
@@ -107,7 +108,7 @@ export default function SearchBar({
       const chosen = suggestions[highlightIndex >= 0 ? highlightIndex : 0];
       if (chosen) {
         onSelect(chosen);
-        setQuery(chosen.searchQuery);
+        setQuery(chosen.displayLabel ?? chosen.searchQuery);
         setSuppress(true);
         setOpen(false);
       }
@@ -118,7 +119,7 @@ export default function SearchBar({
 
   const choose = (s: SearchSuggestion) => {
     onSelect(s);
-    setQuery(s.searchQuery);
+    setQuery(s.displayLabel ?? s.searchQuery);
     setSuppress(true);
     setOpen(false);
   };
@@ -168,11 +169,12 @@ export default function SearchBar({
         value={query}
         onChange={(e) => {
           if (suppress) setSuppress(false);
-          const next = e.target.value;
-          setQuery(next);
-          // If the user erases the input while a value is selected, propagate
-          // the clear up — otherwise the parent stays "stuck" on the old gene.
-          if (next.trim() === "" && value) onSelect(null);
+          setQuery(e.target.value);
+          // Manual edits (typing, backspace) update the input text and the
+          // suggestions dropdown only — the previously selected gene stays
+          // selected until the user explicitly clears via the X button or
+          // picks a new suggestion. This avoids surprise resets when the
+          // user is just refining their query.
         }}
         onFocus={() => {
           if (query && !suppress) {
@@ -248,28 +250,41 @@ export default function SearchBar({
                     control
                   </span>
                 )}
-                {/* Show human symbol */}
-                {s.humanSymbol && (
-                  <span style={{ fontWeight: 600 }}>
-                    {s.humanSymbol} (human)
-                  </span>
+                {/* Show human symbol. The synthetic "all controls" entry
+                    drops the (human) species suffix and gets a distinct
+                    secondary label, since it's not a real gene. */}
+                {s.centralGeneId === ALL_CONTROLS_SENTINEL_ID ? (
+                  <>
+                    <span style={{ fontWeight: 600 }}>CONTROL</span>
+                    <span style={{ opacity: 0.7, fontSize: 12, marginLeft: 10 }}>
+                      All control genes ({s.datasetCount} entries)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {s.humanSymbol && (
+                      <span style={{ fontWeight: 600 }}>
+                        {s.humanSymbol} (human)
+                      </span>
+                    )}
+                    {/* Show first mouse symbol, if any */}
+                    {s.mouseSymbols && (
+                      <span style={{ marginLeft: 8 }}>
+                        {s.mouseSymbols.join(", ")} (mouse)
+                      </span>
+                    )}
+                    {/* Show matching synonym and its species if it triggered the match */}
+                    {s.searchQuery &&
+                      getDisplaySynonyms(
+                        s.searchQuery,
+                        s.humanSynonyms,
+                        s.mouseSynonyms
+                      )}
+                    <span style={{ opacity: 0.7, fontSize: 12, marginLeft: 10 }}>
+                      {s.datasetCount} datasets
+                    </span>
+                  </>
                 )}
-                {/* Show first mouse symbol, if any */}
-                {s.mouseSymbols && (
-                  <span style={{ marginLeft: 8 }}>
-                    {s.mouseSymbols.join(", ")} (mouse)
-                  </span>
-                )}
-                {/* Show matching synonym and its species if it triggered the match */}
-                {s.searchQuery &&
-                  getDisplaySynonyms(
-                    s.searchQuery,
-                    s.humanSynonyms,
-                    s.mouseSynonyms
-                  )}
-                <span style={{ opacity: 0.7, fontSize: 12, marginLeft: 10 }}>
-                  {s.datasetCount} datasets
-                </span>
               </div>
             </div>
           ))}

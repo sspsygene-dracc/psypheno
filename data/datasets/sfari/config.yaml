@@ -50,7 +50,6 @@ tables:
       - animal models
     organism: Multiple model organisms
     in_path: SFARI-Gene_animal-genes_07-08-2025release_10-03-2025export.csv
-    split_column_map: []
     separator: ","
     gene_mappings:
       - column_name: gene-symbol
@@ -90,7 +89,6 @@ tables:
       - therapeutic targets
     organism: Multiple model organisms
     in_path: SFARI-Gene_animal-rescues_07-08-2025release_10-03-2025export.csv
-    split_column_map: []
     separator: ","
     gene_mappings:
       - column_name: model-symbol
@@ -133,7 +131,6 @@ tables:
     organism: Homo sapiens
     organism_key: human
     in_path: SFARI-Gene_genes_07-08-2025release_10-03-2025export_cleaned.csv
-    split_column_map: []
     separator: ","
     gene_mappings:
       - column_name: gene-symbol

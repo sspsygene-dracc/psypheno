@@ -93,22 +93,26 @@ export default async function handler(
       dataset_count: number;
     }>;
 
-    const genes: SearchSuggestion[] = rows.map((r) => ({
-      centralGeneId: r.id,
-      searchQuery: "",
-      humanSymbol: r.human_symbol,
-      mouseSymbols: r.mouse_symbols
+    const genes: SearchSuggestion[] = rows.map((r) => {
+      const mouseSymbols = r.mouse_symbols
         ? r.mouse_symbols.split(",").filter(Boolean)
-        : null,
-      humanSynonyms: r.human_synonyms
-        ? r.human_synonyms.split(",").filter(Boolean)
-        : null,
-      mouseSynonyms: r.mouse_synonyms
-        ? r.mouse_synonyms.split(",").filter(Boolean)
-        : null,
-      datasetCount: r.dataset_count,
-      kind: "gene",  // /api/all-genes filters to kind='gene' above
-    }));
+        : null;
+      return {
+        centralGeneId: r.id,
+        searchQuery: "",
+        displayLabel: r.human_symbol ?? mouseSymbols?.[0] ?? null,
+        humanSymbol: r.human_symbol,
+        mouseSymbols,
+        humanSynonyms: r.human_synonyms
+          ? r.human_synonyms.split(",").filter(Boolean)
+          : null,
+        mouseSynonyms: r.mouse_synonyms
+          ? r.mouse_synonyms.split(",").filter(Boolean)
+          : null,
+        datasetCount: r.dataset_count,
+        kind: "gene",  // /api/all-genes filters to kind='gene' above
+      };
+    });
 
     return res
       .status(200)

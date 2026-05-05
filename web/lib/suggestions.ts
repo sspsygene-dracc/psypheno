@@ -1,6 +1,13 @@
 import { getDb } from "@/lib/db";
-import { parseLinkTablesForDirection, type SearchDirection } from "@/lib/gene-query";
-import { SearchSuggestion, type CentralGeneKind } from "@/state/SearchSuggestion";
+import {
+  parseLinkTablesForDirection,
+  type SearchDirection,
+} from "@/lib/gene-query";
+import {
+  SearchSuggestion,
+  buildAllControlsSuggestion,
+  type CentralGeneKind,
+} from "@/state/SearchSuggestion";
 import type Database from "better-sqlite3";
 
 interface GeneSuggestionRow {
@@ -214,13 +221,15 @@ function rowToSuggestion(
   r: GeneSuggestionRow,
   searchText: string,
 ): SearchSuggestion {
+  const mouseSymbols = r.mouse_symbols
+    ? r.mouse_symbols.split(",").filter(Boolean)
+    : null;
   return {
     centralGeneId: r.id,
     searchQuery: searchText,
+    displayLabel: r.human_symbol ?? mouseSymbols?.[0] ?? null,
     humanSymbol: r.human_symbol,
-    mouseSymbols: r.mouse_symbols
-      ? r.mouse_symbols.split(",").filter(Boolean)
-      : null,
+    mouseSymbols,
     humanSynonyms: r.human_synonyms
       ? r.human_synonyms.split(",").filter(Boolean)
       : null,
@@ -242,16 +251,22 @@ export function fetchGeneSuggestions(
   if (!searchText) return [];
 
   // Keyword path: "control" / "controls" → return every kind='control'
-  // entry. Documented in docs/wrangler_gene_cleanup.md so users can
-  // discover it. Bypasses the LIKE-prefix three-stage flow entirely.
+  // entry, with a synthetic "all controls" aggregate suggestion at the
+  // top so the user can pick "every control across this dataset" with
+  // one click instead of selecting NonTarget1 / SafeTarget / GFP / …
+  // individually. Documented in docs/wrangler_gene_cleanup.md so users
+  // can discover it. Bypasses the LIKE-prefix three-stage flow.
   if (CONTROL_KEYWORDS.has(searchText.toLowerCase())) {
     // Ensure directional temp tables are materialized (getStmts has the
     // db-identity invalidation logic).
     getStmts(db, direction);
     const ctlStmt = getControlsStmt(db, direction);
     if (!ctlStmt) return [];
-    const rows = ctlStmt.all(pageLimit) as GeneSuggestionRow[];
-    return rows.map((r) => rowToSuggestion(r, searchText));
+    const rows = ctlStmt.all(pageLimit - 1) as GeneSuggestionRow[];
+    return [
+      buildAllControlsSuggestion(rows.length),
+      ...rows.map((r) => rowToSuggestion(r, searchText)),
+    ];
   }
 
   const likePrefix = `${searchText}%`;

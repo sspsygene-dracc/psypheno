@@ -55,7 +55,6 @@ tables:
     organism: Homo sapiens (hiPSC-derived neural progenitors)
     organism_key: human
     in_path: supplementary_table_12_DE_targets_M5_TFs.tsv
-    split_column_map: []
     separator: "\t"
     gene_mappings:
       - column_name: target_gene
@@ -145,6 +144,9 @@ tables:
       z_std: "Effect-size z-score (t-statistic on the standard-normal scale; used for cross-timepoint meta-analysis via metafor)"
       chromosome_name: "Chromosome"
       band: "Cytogenetic band"
+      strand: "Genomic strand of the gene (+/- or 1/-1)"
+      start_position: "Gene start coordinate (Ensembl, GRCh38)"
+      end_position: "Gene end coordinate (Ensembl, GRCh38)"
       gene_biotype: "Gene biotype"
       region_genes: "Genes in the affected CNV region or the perturbed gene for single-gene mutations"
     links:
@@ -158,7 +160,6 @@ tables:
     organism: Homo sapiens (hiPSC-derived cortical organoids)
     organism_key: human
     in_path: supplementary_table_3_DE_results.tsv
-    split_column_map: []
     separator: "\t"
     gene_mappings:
       - column_name: target_gene

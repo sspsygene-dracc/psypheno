@@ -65,8 +65,8 @@ tables:
     disease: ["asd", "ndd"]
     fieldLabels:
       mutant_experiment_sample: "Combined identifier: mutant gene + experiment + genotype (HOM/HET/WT) + larva replicate"
-      _mutant_experiment_sample_gene: "Zebrafish mutant gene symbol — the first token of mutant_experiment_sample, mapped to its human ortholog."
-      _mutant_experiment_sample_gene_idx: "Experiment + sample suffix — everything after the first underscore of mutant_experiment_sample (e.g. 'HOM_3' from 'CHD8_HOM_3')."
+      mutant_experiment_sample_gene: "Zebrafish mutant gene symbol — the first token of mutant_experiment_sample, mapped to its human ortholog."
+      mutant_experiment_sample_gene_idx: "Experiment + sample suffix — everything after the first underscore of mutant_experiment_sample (e.g. 'HOM_3' from 'CHD8_HOM_3')."
       forebrain: "Forebrain pERK/tERK ratio — neural-activity readout (phosphorylated ERK normalized by total ERK) at 6 dpf"
       optic_tectum: "Optic tectum pERK/tERK ratio (neural activity at 6 dpf)"
       thalamus: "Thalamus pERK/tERK ratio (neural activity at 6 dpf)"
@@ -86,14 +86,9 @@ tables:
     organism: Danio rerio
     organism_key: zebrafish
     in_path: 1-s2.0-S2211124723002541-mmc5_cleaned.txt
-    split_column_map:
-      - source_col: Mutant_Experiment_Sample
-        new_col1: _Mutant_Experiment_Sample_gene
-        new_col2: _Mutant_Experiment_Sample_gene_idx
-        sep: _
     separator: "\t"
     gene_mappings:
-      - column_name: _Mutant_Experiment_Sample_gene
+      - column_name: Mutant_Experiment_Sample_gene
         link_table_name: Mutant_Experiment_Sample_gene
         species: human
         perturbed_or_target: perturbed
@@ -133,7 +128,6 @@ tables:
     organism_key: zebrafish
     in_path: RestWake_VisStart_byGene.csv
     separator: ","
-    split_column_map: []
     gene_mappings:
       - column_name: human_gene_name
         link_table_name: gene

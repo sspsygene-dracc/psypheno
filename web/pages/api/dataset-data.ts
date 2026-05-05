@@ -6,6 +6,7 @@ import {
   validateSortColumn,
   buildOrderByClause,
   buildFilterClause,
+  parseSourceColumnsForDirection,
   type ApiSortMode,
 } from "@/lib/gene-query";
 import { parseDatasetLinks } from "@/lib/links";
@@ -59,7 +60,7 @@ export default async function handler(
       .prepare(
         `SELECT display_columns, scalar_columns, description, short_label, medium_label, long_label,
                 links, categories, source, assay, field_labels, organism,
-                gene_columns, pvalue_column, fdr_column,
+                gene_columns, link_tables, pvalue_column, fdr_column,
                 publication_first_author, publication_last_author, publication_year,
                 publication_journal, publication_doi, publication_pmid
          FROM data_tables WHERE table_name = ?`
@@ -78,6 +79,7 @@ export default async function handler(
         field_labels: string | null;
         organism: string | null;
         gene_columns: string | null;
+        link_tables: string | null;
         pvalue_column: string | null;
         fdr_column: string | null;
         publication_first_author: string | null;
@@ -200,6 +202,10 @@ export default async function handler(
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
+      perturbedGeneColumns: parseSourceColumnsForDirection(
+        metadata.link_tables || "",
+        "perturbed",
+      ),
       pvalueColumn: metadata.pvalue_column ?? null,
       fdrColumn: metadata.fdr_column ?? null,
       rows,

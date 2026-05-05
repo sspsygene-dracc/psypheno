@@ -55,7 +55,7 @@ tables:
     source: "Table S8"
     assay: perturbation
     fieldLabels:
-      gene: "Mouse gene symbol (MGI)"
+      gene: "Mouse gene symbol (MGI) whose expression was measured (target gene)"
       logfc: "log2 fold change in expression: target-gRNA cells vs non-targeting-control cells. Positive = upregulated when perturbed. Computed by edgeR pseudobulk likelihood-ratio test per cell type."
       logcpm: "Average log2 counts-per-million expression of the gene across cells (edgeR scale)"
       lr: "Likelihood-ratio test statistic (edgeR glmLRT)"
@@ -63,8 +63,8 @@ tables:
       padj: "Benjamini–Hochberg FDR-adjusted p-value"
       cell_type: "Cell-type cluster from scRNA-seq of developing mouse cortex (excitatory and inhibitory neuron subtypes; glia)"
       perturbation: "CRISPR perturbation identifier (target gene name + replicate index, e.g. Foxg1_1; NonTarget1/SafeTarget for controls)"
-      _perturbation_gene: "Gene targeted by the gRNA in this row, extracted as the prefix of the perturbation column. NonTarget/SafeTarget for non-targeting controls."
-      _perturbation_gene_idx: "gRNA replicate index — the suffix after the underscore in the perturbation column (e.g. '1' from 'Foxg1_1')."
+      perturbation_gene: "Gene targeted by the gRNA in this row, extracted as the prefix of the perturbation column. NonTarget/SafeTarget for non-targeting controls."
+      perturbation_gene_idx: "gRNA replicate index — the suffix after the underscore in the perturbation column (e.g. '1' from 'Foxg1_1')."
     links:
       - url: https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
         label: Supplementary Table S8 (mmc4.xlsx)
@@ -75,11 +75,6 @@ tables:
     organism: Mus musculus (embryonic cortex)
     organism_key: mouse
     in_path: deg_cleaned.txt
-    split_column_map:
-      - source_col: perturbation
-        new_col1: _perturbation_gene
-        new_col2: _perturbation_gene_idx
-        sep: _
     separator: "\t"
     gene_mappings:
       - column_name: Gene
@@ -93,7 +88,7 @@ tables:
           record_values:
             - Gm16091
             - Gm42864
-      - column_name: _perturbation_gene
+      - column_name: perturbation_gene
         link_table_name: perturbation_gene
         species: mouse
         perturbed_or_target: perturbed
@@ -124,8 +119,8 @@ tables:
     fieldLabels:
       subcluster: "Cell-subcluster identity from scRNA-seq clustering of developing mouse cortex"
       guide: "gRNA identifier (target gene name + replicate index, e.g. Foxg1_1; NonTarget1/SafeTarget/GFP for controls)"
-      _guide_gene: "Gene targeted by the gRNA in this row, extracted as the prefix of the guide column."
-      _guide_gene_idx: "gRNA replicate index — the suffix after the underscore in the guide column."
+      guide_gene: "Gene targeted by the gRNA in this row, extracted as the prefix of the guide column."
+      guide_gene_idx: "gRNA replicate index — the suffix after the underscore in the guide column."
       propmean_treatnontarget2: "Mean fraction of cells in the non-targeting-control condition (NonTarget2 gRNA) belonging to this subcluster, averaged across replicates"
       propmean_treatguide: "Mean fraction of cells in the target-gRNA condition belonging to this subcluster, averaged across replicates"
       propratio: "Ratio of cell-fraction means: target-gRNA / non-targeting control. >1 = subcluster expanded under perturbation; <1 = subcluster reduced."
@@ -143,14 +138,9 @@ tables:
     organism: Mus musculus (embryonic cortex)
     organism_key: mouse
     in_path: clusterprop_cleaned.txt
-    split_column_map:
-      - source_col: guide
-        new_col1: _guide_gene
-        new_col2: _guide_gene_idx
-        sep: _
     separator: "\t"
     gene_mappings:
-      - column_name: _guide_gene
+      - column_name: guide_gene
         link_table_name: guide_gene
         species: mouse
         perturbed_or_target: perturbed
