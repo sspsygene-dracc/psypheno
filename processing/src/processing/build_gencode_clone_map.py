@@ -33,6 +33,11 @@ Where `kind` is one of:
   - current_ensg          (resolution = stable ENSG anchor)
   - current_ac_accession  (resolution = AC/AL/AP accession)
 
+Resolution preference: HGNC symbol > ENSG > AC accession > silencer.
+The build emits the highest-ranked identifier available; ENSG is always
+present in the GTF, so `current_ac_accession` rows are produced only as
+a defensive fallback that's effectively unreachable in practice.
+
 The fourth #139 kind, `retired`, is intentionally not produced — see
 the GencodeCloneIndex docstring.
 """
@@ -124,25 +129,24 @@ def build_clone_map(
             if not (is_clone or is_ac):
                 continue
             seen.add(name)
-            # HGNC-symbol lookup applies to both clone-shaped and
-            # AC-shaped gene_names: HGNC sometimes promotes a locus to a
-            # symbol after the pinned GENCODE release, in which case the
-            # GTF still carries the older AC name. Without this lookup
-            # we'd miss ~15% of AC-shaped loci that have a current
-            # symbol.
+            # Preference order: HGNC symbol -> ENSG -> AC accession.
+            # Both the HGNC and the ENSG steps work for clone-shaped
+            # *and* AC-shaped gene_names (HGNC sometimes promotes a
+            # locus after the pinned GENCODE release; the GTF's
+            # `gene_id` is always present even when `gene_name` is
+            # already an AC accession). The AC fallback is therefore
+            # effectively unreachable today — kept only as a defensive
+            # branch should `_iter_gtf_genes` ever yield an empty ENSG.
             symbol = hgnc_ensg_to_symbol.get(ensg)
             if symbol is not None:
                 rows.append((name, symbol, "hgnc_symbol"))
                 counts["hgnc_symbol"] += 1
-            elif is_ac:
-                # No HGNC symbol; the AC accession itself is the
-                # canonical name we'll surface.
-                rows.append((name, name, "current_ac_accession"))
-                counts["current_ac_accession"] += 1
-            else:
-                # Clone-shaped, no symbol; ENSG is the stable anchor.
+            elif ensg:
                 rows.append((name, ensg, "current_ensg"))
                 counts["current_ensg"] += 1
+            elif is_ac:
+                rows.append((name, name, "current_ac_accession"))
+                counts["current_ac_accession"] += 1
 
     rows.sort(key=lambda r: r[0])
     out_path.parent.mkdir(parents=True, exist_ok=True)
