@@ -79,16 +79,26 @@ export default async function handler(
         }
       | undefined;
 
-    if (!tableMeta || !tableMeta.effect_column || !tableMeta.pvalue_column) {
+    // The volcano plot needs an effect column and a y-axis significance
+    // column. Prefer raw p-value when available; fall back to FDR when the
+    // dataset only ships FDR (e.g. perturb_fish_astro publishes qval but no
+    // raw pvalue). The frontend renders `-log10(<column-name>)` from
+    // `pvalueColumn`, so it'll say `-log10(qval)` automatically.
+    if (
+      !tableMeta ||
+      !tableMeta.effect_column ||
+      (!tableMeta.pvalue_column && !tableMeta.fdr_column)
+    ) {
       return res
         .status(404)
-        .json({ error: "Table has no effect/pvalue columns" });
+        .json({ error: "Table has no effect or significance columns" });
     }
 
     const baseTable = sanitizeIdentifier(tableName);
     const displayCols = parseDisplayColumns(tableMeta.display_columns);
     const effectCol = sanitizeIdentifier(tableMeta.effect_column);
-    const pvalueCol = sanitizeIdentifier(tableMeta.pvalue_column.split(",")[0]);
+    const pvalueSource = tableMeta.pvalue_column || tableMeta.fdr_column!;
+    const pvalueCol = sanitizeIdentifier(pvalueSource.split(",")[0]);
     const fdrCol = tableMeta.fdr_column
       ? sanitizeIdentifier(tableMeta.fdr_column.split(",")[0])
       : null;
@@ -96,7 +106,7 @@ export default async function handler(
     if (!displayCols.includes(effectCol) || !displayCols.includes(pvalueCol)) {
       return res
         .status(404)
-        .json({ error: "effect/pvalue columns not in display_columns" });
+        .json({ error: "effect/significance columns not in display_columns" });
     }
 
     let fieldLabels: Record<string, string> = {};
@@ -248,7 +258,9 @@ export default async function handler(
 
     return res.status(200).json({
       effectColumn: tableMeta.effect_column,
-      pvalueColumn: tableMeta.pvalue_column,
+      // pvalueColumn names the y-axis source — when the table only ships
+      // FDR, that's `qval`/etc., and the frontend renders `-log10(qval)`.
+      pvalueColumn: pvalueCol,
       fdrColumn: tableMeta.fdr_column,
       nTotal: nNonNull,
       nNonNull,
