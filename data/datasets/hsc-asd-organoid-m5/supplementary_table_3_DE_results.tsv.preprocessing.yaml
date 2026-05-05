@@ -1,0 +1,9 @@
+generated: '2026-05-05T10:23:31Z'
+output: supplementary_table_3_DE_results.tsv
+inputs:
+- Supp_table_3_-_DE_results.xlsx
+actions:
+- step: concat_and_write
+  destination: supplementary_table_3_DE_results.tsv
+  sheets: 45
+  rows: 720945

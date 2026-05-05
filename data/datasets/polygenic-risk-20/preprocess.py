@@ -68,8 +68,6 @@ def main() -> None:
             )
         pipe.write_csv(DIR / out_name).run()
 
-    tracker.write(DIR / "preprocessing.yaml")
-
 
 if __name__ == "__main__":
     main()

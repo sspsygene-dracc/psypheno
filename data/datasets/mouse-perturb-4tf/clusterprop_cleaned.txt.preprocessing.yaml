@@ -1,0 +1,7 @@
+generated: '2026-05-05T10:22:04Z'
+output: clusterprop_cleaned.txt
+inputs:
+- clusterprop.txt
+actions:
+- step: copy_file
+  source: clusterprop.txt

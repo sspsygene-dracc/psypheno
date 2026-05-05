@@ -18,9 +18,10 @@ from processing.preprocessing import (
 )
 
 
-def test_tracker_round_trip(tmp_path: Path) -> None:
+def test_tracker_write_sidecar_round_trip(tmp_path: Path) -> None:
     tracker = Tracker()
     tracker.note_input("raw.csv")
+    tracker.record("read_csv", table="cleaned.csv", source="raw.csv")
     tracker.record(
         "clean_gene_column",
         table="cleaned.csv",
@@ -32,19 +33,24 @@ def test_tracker_round_trip(tmp_path: Path) -> None:
         "drop_columns", table="cleaned.csv", columns=["_target_gene_resolution"]
     )
 
-    out = tmp_path / "preprocessing.yaml"
-    tracker.write(out)
+    out = tmp_path / "cleaned.csv"
+    sidecar = tracker.write_sidecar(out)
 
-    loaded = yaml.safe_load(out.read_text())
+    assert sidecar == tmp_path / "cleaned.csv.preprocessing.yaml"
+    loaded = yaml.safe_load(sidecar.read_text())
+    assert loaded["output"] == "cleaned.csv"
     assert loaded["inputs"] == ["raw.csv"]
     assert "generated" in loaded
-    assert list(loaded["tables"].keys()) == ["cleaned.csv"]
-    actions = loaded["tables"]["cleaned.csv"]
-    assert len(actions) == 2
-    assert actions[0]["step"] == "clean_gene_column"
-    assert actions[0]["counts"]["passed_through"] == 10
-    assert actions[1]["step"] == "drop_columns"
-    assert actions[1]["columns"] == ["_target_gene_resolution"]
+    actions = loaded["actions"]
+    assert [a["step"] for a in actions] == [
+        "read_csv",
+        "clean_gene_column",
+        "drop_columns",
+    ]
+    assert actions[1]["counts"]["passed_through"] == 10
+    assert actions[2]["columns"] == ["_target_gene_resolution"]
+    # No `tables:` dict in the new flat schema.
+    assert "tables" not in loaded
 
 
 def test_pipeline_clean_gene_then_drop(
@@ -224,6 +230,13 @@ def test_copy_file_records_pass_through(tmp_path: Path) -> None:
     assert rec.table == "patient_list.tsv"
     assert rec.summary["source"] == "patient_list.tsv"
 
+    sidecar = dst.parent / "patient_list.tsv.preprocessing.yaml"
+    assert sidecar.exists()
+    loaded = yaml.safe_load(sidecar.read_text())
+    assert loaded["output"] == "patient_list.tsv"
+    assert loaded["inputs"] == ["patient_list.tsv"]
+    assert [a["step"] for a in loaded["actions"]] == ["copy_file"]
+
 
 def test_pipeline_keeps_resolution_column_by_default(
     normalizer: GeneSymbolNormalizer, tmp_path: Path
@@ -265,7 +278,7 @@ def test_pipeline_run_without_write_raises(
 def test_two_pipelines_share_one_tracker(
     normalizer: GeneSymbolNormalizer, tmp_path: Path
 ) -> None:
-    """One dataset → two output tables → one preprocessing.yaml."""
+    """Two outputs → two per-output sidecars, each with its own scoped inputs."""
     raw1 = tmp_path / "a.csv"
     raw2 = tmp_path / "b.csv"
     pd.DataFrame({"target_gene": ["BRCA1"]}).to_csv(raw1, index=False)
@@ -281,11 +294,56 @@ def test_two_pipelines_share_one_tracker(
             .run()
         )
 
-    yaml_path = tmp_path / "preprocessing.yaml"
-    tracker.write(yaml_path)
-    loaded = yaml.safe_load(yaml_path.read_text())
-    assert set(loaded["tables"].keys()) == {"a_clean.csv", "b_clean.csv"}
-    assert loaded["inputs"] == ["a.csv", "b.csv"]
+    sidecar_a = tmp_path / "a_clean.csv.preprocessing.yaml"
+    sidecar_b = tmp_path / "b_clean.csv.preprocessing.yaml"
+    assert sidecar_a.exists() and sidecar_b.exists()
+    loaded_a = yaml.safe_load(sidecar_a.read_text())
+    loaded_b = yaml.safe_load(sidecar_b.read_text())
+    # Per-output inputs are scoped to that pipeline's read step, not the
+    # tracker's global inputs list (which contains both a.csv and b.csv).
+    assert loaded_a["output"] == "a_clean.csv"
+    assert loaded_a["inputs"] == ["a.csv"]
+    assert loaded_b["output"] == "b_clean.csv"
+    assert loaded_b["inputs"] == ["b.csv"]
+    # Each sidecar contains only its own pipeline's actions.
+    assert all(
+        a["step"] != "read_csv" or a["source"] == "a.csv"
+        for a in loaded_a["actions"]
+    )
+    assert all(
+        a["step"] != "read_csv" or a["source"] == "b.csv"
+        for a in loaded_b["actions"]
+    )
+
+
+def test_write_concat_emits_sidecar_with_explicit_inputs(tmp_path: Path) -> None:
+    """hsc-asd-style multi-sheet → one combined output with explicit inputs."""
+    out = tmp_path / "supp3_combined.tsv"
+    out.write_text("col\nval\n")
+    tracker = Tracker()
+    tracker.note_input("supp3.xlsx")
+    tracker.note_input("supp12.xlsx")
+    # Sub-pipeline records (would be written by Pipeline.run normally) tagged
+    # with sub-pipeline names; these must NOT leak into the combined sidecar.
+    tracker.record("clean_gene_column", table="supp3:Adult_PFC", column="hgnc_symbol")
+
+    sidecar = tracker.write_concat(
+        out,
+        inputs=["supp3.xlsx"],
+        sheets=2,
+        rows=42,
+    )
+
+    assert sidecar == tmp_path / "supp3_combined.tsv.preprocessing.yaml"
+    loaded = yaml.safe_load(sidecar.read_text())
+    assert loaded["output"] == "supp3_combined.tsv"
+    # Explicit inputs win over the tracker's global list (which has supp12 too).
+    assert loaded["inputs"] == ["supp3.xlsx"]
+    actions = loaded["actions"]
+    assert [a["step"] for a in actions] == ["concat_and_write"]
+    assert actions[0]["sheets"] == 2
+    assert actions[0]["rows"] == 42
+    assert actions[0]["destination"] == "supp3_combined.tsv"
 
 
 def test_clean_gene_with_ensembl_mapper(

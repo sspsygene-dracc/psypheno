@@ -64,7 +64,6 @@ def main() -> None:
         .write_tsv(OUT_FILE)
         .run()
     )
-    tracker.write(DIR / "preprocessing.yaml")
 
 
 if __name__ == "__main__":

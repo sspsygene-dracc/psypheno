@@ -1,0 +1,71 @@
+generated: '2026-05-05T10:21:58Z'
+output: Supplemental_Data_2(META_DEGs)_cleaned.csv
+inputs:
+- Supplemental_Data_2(META_DEGs).csv
+actions:
+- step: read_csv
+  source: Supplemental_Data_2(META_DEGs).csv
+  separator: ','
+  rows: 16873
+  columns:
+  - MarkerName
+  - Weight
+  - Zscore
+  - P-value
+  - Direction
+  - HetISq
+  - HetChiSq
+  - HetDf
+  - HetPVal
+- step: transform_column
+  column: MarkerName
+  description: strip trailing '.' (catches ABALON., SGK494.)
+  rows_changed: 0
+- step: clean_gene_column
+  column: MarkerName
+  species: human
+  flags:
+    manual_aliases:
+      NOV: CCN3
+      MUM1: PWWP3A
+      QARS: QARS1
+      SARS: SARS1
+      TAZ: TAFAZZIN
+  counts:
+    passed_through: 14916
+    rescued_excel: 46
+    non_symbol_contig: 1822
+    rescued_make_unique: 19
+    rescued_manual_alias: 5
+    rescued_gencode_clone_current_ensg: 42
+    rescued_gencode_clone_hgnc_symbol: 12
+    unresolved: 10
+    non_symbol_genbank_accession: 1
+  dropped_rows: 0
+  sample_unresolved:
+  - IQCD
+  - C18orf21
+  - SIK1B
+  - GATD3B
+  - U2AF1L5
+  - ABALON
+  - IQCA1
+  - SMIM11B
+  - SGK494
+  - MPP6
+- step: write_csv
+  destination: Supplemental_Data_2(META_DEGs)_cleaned.csv
+  separator: ','
+  rows: 16873
+  columns:
+  - MarkerName
+  - Weight
+  - Zscore
+  - P-value
+  - Direction
+  - HetISq
+  - HetChiSq
+  - HetDf
+  - HetPVal
+  - MarkerName_raw
+  - _MarkerName_resolution

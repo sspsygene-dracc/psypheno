@@ -88,16 +88,17 @@ simplest real example, or `data/datasets/hsc-asd-organoid-m5/preprocess.py`
 for a multi-sheet Excel case.
 
 Use the **`processing.preprocessing` library** to build a `Pipeline` of
-tracked steps. Every step records what it did into a sidecar
-`preprocessing.yaml` so downstream users can audit exactly which manual
-changes were applied.
+tracked steps. Every step records what it did, and `Pipeline.run()`
+auto-emits a per-output sidecar `<output>.preprocessing.yaml` next to
+the cleaned data file (#158) so downstream users can audit exactly
+which manual changes were applied.
 
 ```python
 """
 Preprocess My Dataset.
 
 Reads the supplementary Excel file and produces a clean TSV plus a
-preprocessing.yaml provenance log.
+sidecar results.tsv.preprocessing.yaml provenance log.
 
 Usage:
     python preprocess.py
@@ -131,8 +132,8 @@ def main() -> None:
         .write_tsv(DIR / "results.tsv")
         .run()
     )
-
-    tracker.write(DIR / "preprocessing.yaml")
+    # Sidecar results.tsv.preprocessing.yaml has been written next to the
+    # cleaned TSV — no explicit tracker.write() call is needed.
 
 
 if __name__ == "__main__":
@@ -164,8 +165,12 @@ needed.
   typically NOT committed to git.
 - The cleaned output is committed (or pointed at by `in_path` in
   `config.yaml`).
-- `preprocessing.yaml` is committed to git so reviewers can see exactly
-  what manual cleanup was applied.
+- One `<output>.preprocessing.yaml` sidecar is written per output file
+  (next to the cleaned data) and committed to git so reviewers can see
+  exactly what manual cleanup was applied. For multi-sheet patterns that
+  pd.concat several sub-pipelines into one combined output, call
+  `tracker.write_concat(out_path, inputs=[...], **summary)` once after
+  the manual `to_csv` to record the concat and emit the sidecar.
 - Document where the input data came from in the script's docstring.
 
 Run your script to generate the output file:

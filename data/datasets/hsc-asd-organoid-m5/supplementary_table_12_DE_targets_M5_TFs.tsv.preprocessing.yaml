@@ -1,0 +1,9 @@
+generated: '2026-05-05T10:25:11Z'
+output: supplementary_table_12_DE_targets_M5_TFs.tsv
+inputs:
+- Supp_table_12_-_DE_targets_of_M5_TFs.xlsx
+actions:
+- step: concat_and_write
+  destination: supplementary_table_12_DE_targets_M5_TFs.tsv
+  sheets: 26
+  rows: 1642784

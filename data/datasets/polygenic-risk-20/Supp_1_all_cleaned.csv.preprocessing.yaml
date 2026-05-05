@@ -1,0 +1,84 @@
+generated: '2026-05-05T10:22:09Z'
+output: Supp_1_all_cleaned.csv
+inputs:
+- Supp_1_all.csv
+actions:
+- step: read_csv
+  source: Supp_1_all.csv
+  separator: ','
+  rows: 415360
+  columns:
+  - perturbed_gene
+  - target_gene
+  - description
+  - logFC
+  - CI.L
+  - CI.R
+  - AveExpr
+  - t
+  - P.Value
+  - adj.P.Val
+  - B
+- step: clean_gene_column
+  column: perturbed_gene
+  species: human
+  flags:
+    manual_aliases: &id001
+      NOV: CCN3
+      MUM1: PWWP3A
+      QARS: QARS1
+      SARS: SARS1
+      TAZ: TAFAZZIN
+  counts:
+    passed_through: 415360
+  dropped_rows: 0
+  sample_unresolved: []
+- step: clean_gene_column
+  column: target_gene
+  species: human
+  flags:
+    manual_aliases: *id001
+  counts:
+    passed_through: 313659
+    rescued_excel: 400
+    non_symbol_gencode_clone: 25872
+    non_symbol_contig: 8720
+    rescued_gencode_clone_current_ensg: 49552
+    rescued_gencode_clone_hgnc_symbol: 13216
+    non_symbol_rna_family: 2880
+    unresolved: 741
+    non_symbol_genbank_accession: 144
+    rescued_make_unique: 96
+    rescued_manual_alias: 80
+  dropped_rows: 0
+  sample_unresolved:
+  - HDGFRP3
+  - FKSG62
+  - HDGFRP2
+  - FLJ27365
+  - DKFZP434E1119
+  - DKFZP667F0711
+  - UPP2-IT1
+  - OCLM
+  - SGK110
+  - SGK494
+- step: write_csv
+  destination: Supp_1_all_cleaned.csv
+  separator: ','
+  rows: 415360
+  columns:
+  - perturbed_gene
+  - target_gene
+  - description
+  - logFC
+  - CI.L
+  - CI.R
+  - AveExpr
+  - t
+  - P.Value
+  - adj.P.Val
+  - B
+  - perturbed_gene_raw
+  - _perturbed_gene_resolution
+  - target_gene_raw
+  - _target_gene_resolution

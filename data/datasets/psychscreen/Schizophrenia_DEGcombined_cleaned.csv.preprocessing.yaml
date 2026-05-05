@@ -1,0 +1,63 @@
+generated: '2026-05-05T10:22:20Z'
+output: Schizophrenia_DEGcombined_cleaned.csv
+inputs:
+- Schizophrenia_DEGcombined.csv
+actions:
+- step: read_csv
+  source: Schizophrenia_DEGcombined.csv
+  separator: ','
+  rows: 333485
+  columns:
+  - gene
+  - baseMean
+  - log2FoldChange
+  - lfcSE
+  - stat
+  - pvalue
+  - padj
+  - cell_type
+- step: clean_gene_column
+  column: gene
+  species: human
+  flags:
+    manual_aliases:
+      QARS: QARS1
+      SARS: SARS1
+  counts:
+    non_symbol_contig: 59272
+    passed_through: 271324
+    rescued_gencode_clone_hgnc_symbol: 461
+    rescued_gencode_clone_current_ensg: 1775
+    rescued_excel: 254
+    unresolved: 204
+    rescued_make_unique: 28
+    rescued_symbol_ensg: 128
+    rescued_manual_alias: 38
+    non_symbol_genbank_accession: 1
+  dropped_rows: 0
+  sample_unresolved:
+  - LOR
+  - CRIPAK
+  - C18orf21
+  - SMIM11B
+  - GATD3B
+  - SMC5-AS1
+  - TMEM155
+  - MPP6
+  - IQCA1
+  - U2AF1L5
+- step: write_csv
+  destination: Schizophrenia_DEGcombined_cleaned.csv
+  separator: ','
+  rows: 333485
+  columns:
+  - gene
+  - baseMean
+  - log2FoldChange
+  - lfcSE
+  - stat
+  - pvalue
+  - padj
+  - cell_type
+  - gene_raw
+  - _gene_resolution

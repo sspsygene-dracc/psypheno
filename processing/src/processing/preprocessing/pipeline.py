@@ -2,8 +2,10 @@
 
 Per-dataset `preprocess.py` scripts compose a `Pipeline` of `Step`s that
 read a raw input, clean it, and write the result. Every step records an
-`ActionRecord` on a shared `Tracker`; at the end the wrangler calls
-`tracker.write(<dataset>/preprocessing.yaml)` to persist the provenance.
+`ActionRecord` on a shared `Tracker`. At the end of `Pipeline.run()` the
+tracker automatically emits a per-table sidecar
+`<output>.preprocessing.yaml` next to the cleaned data file (#158); the
+wrangler does not need an explicit `tracker.write(...)` call.
 
 Typical use:
 
@@ -19,11 +21,14 @@ Typical use:
         .write_csv("Supp_1_all_cleaned.csv")
         .run()
     )
-    tracker.write(Path("preprocessing.yaml"))
+    # Sidecar Supp_1_all_cleaned.csv.preprocessing.yaml has been written.
 
 One `Tracker` per dataset; one `Pipeline` per output table; multiple
-pipelines may share a tracker. See `processing/preprocessing/steps.py`
-for the built-in step types.
+pipelines share a tracker so global state stays coherent. For multi-sheet
+patterns that pd.concat sub-pipelines into one output, use
+`tracker.write_concat(output_path, inputs=[...], **summary)` to record
+the concat and emit the sidecar in one call. See
+`processing/preprocessing/steps.py` for the built-in step types.
 """
 
 from __future__ import annotations
@@ -67,7 +72,13 @@ class ActionRecord:
 
 @dataclass
 class Tracker:
-    """Collects ActionRecords across all pipelines for a dataset."""
+    """Collects ActionRecords across all pipelines for a dataset.
+
+    Each output table gets its own sidecar `<output>.preprocessing.yaml`
+    written next to the cleaned data file. Auto-emitted by
+    `Pipeline.run()` (last `WriteCsv` step), `copy_file()`, and
+    `tracker.write_concat(...)`.
+    """
 
     inputs: list[str] = field(default_factory=list)
     actions: list[ActionRecord] = field(default_factory=list)
@@ -79,38 +90,89 @@ class Tracker:
         if path not in self.inputs:
             self.inputs.append(path)
 
-    def to_yaml_dict(self) -> dict[str, Any]:
-        """Render the tracker state as the dict that gets dumped to YAML.
-
-        Actions are grouped by `table`; actions without a table land under
-        the special key `"_dataset"`.
-        """
-        tables: dict[str, list[dict[str, Any]]] = {}
+    def _actions_for(self, table_key: str) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
         for rec in self.actions:
+            if rec.table != table_key:
+                continue
             entry: dict[str, Any] = {"step": rec.step}
             entry.update(rec.summary)
-            key = rec.table or "_dataset"
-            tables.setdefault(key, []).append(entry)
-        out: dict[str, Any] = {
-            "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
-        if self.inputs:
-            out["inputs"] = list(self.inputs)
-        if tables:
-            out["tables"] = tables
+            out.append(entry)
         return out
 
-    def write(self, path: Path) -> None:
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", encoding="utf-8") as f:
+    def _derive_inputs(self, action_entries: list[dict[str, Any]]) -> list[str]:
+        # Per-table inputs: prefer the read_csv source for this output; if
+        # the pipeline started from_dataframe (no read_csv), fall back to
+        # the dataset-wide inputs list.
+        derived: list[str] = []
+        for entry in action_entries:
+            if entry.get("step") == "read_csv":
+                src = entry.get("source")
+                if isinstance(src, str) and src not in derived:
+                    derived.append(src)
+        if derived:
+            return derived
+        return list(self.inputs)
+
+    def write_sidecar(
+        self,
+        output_path: Path,
+        *,
+        table_key: str | None = None,
+        inputs: list[str] | None = None,
+    ) -> Path:
+        """Emit `<output_path>.preprocessing.yaml` next to the data file.
+
+        `table_key` defaults to `output_path.name` — the convention used
+        by both `Pipeline` (where `Pipeline.name` matches the output
+        basename) and the wrangler-facing `write_concat` helper.
+        Returns the sidecar path.
+        """
+        output_path = Path(output_path)
+        key = table_key if table_key is not None else output_path.name
+        action_entries = self._actions_for(key)
+        resolved_inputs = inputs if inputs is not None else self._derive_inputs(action_entries)
+        payload: dict[str, Any] = {
+            "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "output": output_path.name,
+            "inputs": list(resolved_inputs),
+            "actions": action_entries,
+        }
+        sidecar = output_path.parent / (output_path.name + ".preprocessing.yaml")
+        sidecar.parent.mkdir(parents=True, exist_ok=True)
+        with sidecar.open("w", encoding="utf-8") as f:
             yaml.safe_dump(
-                self.to_yaml_dict(),
+                payload,
                 f,
                 sort_keys=False,
                 allow_unicode=True,
                 width=100,
             )
+        return sidecar
+
+    def write_concat(
+        self,
+        output_path: Path,
+        *,
+        inputs: list[str] | None = None,
+        **summary: Any,
+    ) -> Path:
+        """Record a `concat_and_write` action and emit a sidecar.
+
+        Used by multi-sheet preprocess.py scripts (e.g.
+        hsc-asd-organoid-m5) that build N sub-pipelines and pd.concat
+        their outputs into one combined file. The wrangler calls this
+        once after the manual `to_csv`; it tags the action with
+        `output_path.name` and writes the sidecar in one shot.
+        """
+        output_path = Path(output_path)
+        self.record(
+            "concat_and_write",
+            table=output_path.name,
+            destination=output_path.name,
+            **summary,
+        )
+        return self.write_sidecar(output_path, inputs=inputs)
 
 
 @dataclass
@@ -338,6 +400,8 @@ class Pipeline:
         return self.write_csv(path, sep="\t")
 
     def run(self) -> pd.DataFrame:
+        from processing.preprocessing.steps import WriteCsv
+
         ctx = Context(
             tracker=self.tracker,
             table=self.name,
@@ -353,6 +417,14 @@ class Pipeline:
                 f"Pipeline {self.name!r} ended without a DataFrame — did you "
                 "forget a read_*/write_* step?"
             )
+        # Auto-emit the per-output sidecar based on the last WriteCsv. A
+        # pipeline without a write step (rare; only the hsc-asd sub-
+        # pipelines do this) skips emission — its caller handles the
+        # eventual aggregate via tracker.write_concat.
+        for step in reversed(self.steps):
+            if isinstance(step, WriteCsv):
+                self.tracker.write_sidecar(step.path, table_key=self.name)
+                break
         return df
 
 
@@ -361,7 +433,8 @@ def copy_file(src: str | Path, dst: str | Path, *, tracker: Tracker) -> None:
 
     Used for files that need to ship to load-db unchanged (e.g. a patient
     list that's referenced from another table). The `dst` filename is the
-    table key in the provenance YAML.
+    table key in the provenance YAML, and a sidecar
+    `<dst>.preprocessing.yaml` is written next to it.
     """
     src = Path(src)
     dst = Path(dst)
@@ -369,3 +442,4 @@ def copy_file(src: str | Path, dst: str | Path, *, tracker: Tracker) -> None:
     shutil.copyfile(src, dst)
     tracker.note_input(src.name)
     tracker.record("copy_file", table=dst.name, source=src.name)
+    tracker.write_sidecar(dst, inputs=[src.name])

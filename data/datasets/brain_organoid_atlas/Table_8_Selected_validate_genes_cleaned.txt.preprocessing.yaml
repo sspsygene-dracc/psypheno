@@ -1,0 +1,41 @@
+generated: '2026-05-05T10:21:55Z'
+output: Table_8_Selected_validate_genes_cleaned.txt
+inputs:
+- Table_8_Selected_validate_genes.txt
+actions:
+- step: read_csv
+  source: Table_8_Selected_validate_genes.txt
+  separator: "\t"
+  rows: 360
+  columns:
+  - gene
+  - diagnosis
+  - cell_type
+  - statistic
+  - p
+  - p_adjust
+- step: clean_gene_column
+  column: gene
+  species: human
+  flags:
+    manual_aliases:
+      SARS: SARS1
+      QARS: QARS1
+      TAZ: TAFAZZIN
+  counts:
+    passed_through: 360
+  dropped_rows: 0
+  sample_unresolved: []
+- step: write_csv
+  destination: Table_8_Selected_validate_genes_cleaned.txt
+  separator: "\t"
+  rows: 360
+  columns:
+  - gene
+  - diagnosis
+  - cell_type
+  - statistic
+  - p
+  - p_adjust
+  - gene_raw
+  - _gene_resolution

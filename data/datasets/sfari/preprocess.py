@@ -59,8 +59,6 @@ def main() -> None:
         .run()
     )
 
-    tracker.write(DIR / "preprocessing.yaml")
-
 
 if __name__ == "__main__":
     main()

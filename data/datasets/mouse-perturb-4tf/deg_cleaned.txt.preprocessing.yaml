@@ -1,0 +1,45 @@
+generated: '2026-05-05T10:22:04Z'
+output: deg_cleaned.txt
+inputs:
+- deg.txt
+actions:
+- step: read_csv
+  source: deg.txt
+  separator: "\t"
+  rows: 1627
+  columns:
+  - Gene
+  - logFC
+  - logCPM
+  - LR
+  - PValue
+  - padj
+  - cell type
+  - perturbation
+- step: clean_gene_column
+  column: Gene
+  species: mouse
+  flags: {}
+  counts:
+    passed_through: 1622
+    rescued_excel: 3
+    unresolved: 2
+  dropped_rows: 0
+  sample_unresolved:
+  - Gm16091
+  - Gm42864
+- step: write_csv
+  destination: deg_cleaned.txt
+  separator: "\t"
+  rows: 1627
+  columns:
+  - Gene
+  - logFC
+  - logCPM
+  - LR
+  - PValue
+  - padj
+  - cell type
+  - perturbation
+  - Gene_raw
+  - _Gene_resolution

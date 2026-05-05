@@ -1,0 +1,63 @@
+generated: '2026-05-05T10:22:17Z'
+output: ASD_DEGcombined_cleaned.csv
+inputs:
+- ASD_DEGcombined.csv
+actions:
+- step: read_csv
+  source: ASD_DEGcombined.csv
+  separator: ','
+  rows: 281935
+  columns:
+  - gene
+  - baseMean
+  - log2FoldChange
+  - lfcSE
+  - stat
+  - pvalue
+  - padj
+  - cell_type
+- step: clean_gene_column
+  column: gene
+  species: human
+  flags:
+    manual_aliases:
+      QARS: QARS1
+      SARS: SARS1
+  counts:
+    non_symbol_contig: 50571
+    rescued_gencode_clone_hgnc_symbol: 391
+    passed_through: 228911
+    rescued_gencode_clone_current_ensg: 1510
+    unresolved: 171
+    rescued_excel: 210
+    non_symbol_genbank_accession: 4
+    rescued_make_unique: 27
+    rescued_manual_alias: 30
+    rescued_symbol_ensg: 110
+  dropped_rows: 0
+  sample_unresolved:
+  - FLJ45513
+  - DUSP27
+  - U2AF1L5
+  - LOR
+  - SMIM11B
+  - SMC5-AS1
+  - C18orf21
+  - IQCA1
+  - CRIPAK
+  - IQCD
+- step: write_csv
+  destination: ASD_DEGcombined_cleaned.csv
+  separator: ','
+  rows: 281935
+  columns:
+  - gene
+  - baseMean
+  - log2FoldChange
+  - lfcSE
+  - stat
+  - pvalue
+  - padj
+  - cell_type
+  - gene_raw
+  - _gene_resolution

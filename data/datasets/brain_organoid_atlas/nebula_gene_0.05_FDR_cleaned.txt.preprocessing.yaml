@@ -1,0 +1,58 @@
+generated: '2026-05-05T10:21:52Z'
+output: nebula_gene_0.05_FDR_cleaned.txt
+inputs:
+- nebula_gene_0.05_FDR.txt
+actions:
+- step: read_csv
+  source: nebula_gene_0.05_FDR.txt
+  separator: "\t"
+  rows: 79757
+  columns:
+  - cell_type
+  - gene_symbol
+  - disease
+  - pvalue
+  - FDR
+  - logFC
+- step: clean_gene_column
+  column: gene_symbol
+  species: human
+  flags:
+    manual_aliases:
+      SARS: SARS1
+      QARS: QARS1
+      TAZ: TAFAZZIN
+  counts:
+    passed_through: 72529
+    non_symbol_contig: 6852
+    rescued_make_unique: 15
+    rescued_gencode_clone_current_ensg: 212
+    rescued_excel: 51
+    rescued_gencode_clone_hgnc_symbol: 36
+    unresolved: 34
+    rescued_manual_alias: 28
+  dropped_rows: 0
+  sample_unresolved:
+  - MPP6
+  - GATD3B
+  - SMC5-AS1
+  - IQCD
+  - C18orf21
+  - IQCA1
+  - SMC5-AS1
+  - IQCA1
+  - CRIPAK
+  - MPP6
+- step: write_csv
+  destination: nebula_gene_0.05_FDR_cleaned.txt
+  separator: "\t"
+  rows: 79757
+  columns:
+  - cell_type
+  - gene_symbol
+  - disease
+  - pvalue
+  - FDR
+  - logFC
+  - gene_symbol_raw
+  - _gene_symbol_resolution

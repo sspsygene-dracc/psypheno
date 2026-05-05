@@ -201,28 +201,26 @@ def load_gene_tables(
 
 
 def _load_preprocessing_for_table(in_path: Path) -> dict[str, object] | None:
-    """Slice a dataset's preprocessing.yaml down to a single table.
+    """Read the per-output sidecar `<in_path>.preprocessing.yaml`.
 
     `in_path` is the cleaned-data file referenced from config.yaml; its
-    parent directory holds an optional `preprocessing.yaml` (#150) that
-    documents every action a wrangler's preprocess.py applied. Returns
-    a per-table dict shaped for storage on the data_tables row, or
-    None if no provenance exists for this table.
+    sidecar (#158) documents every action a wrangler's preprocess.py
+    applied to produce it. Returns a dict shaped for storage on the
+    data_tables row, or None if no sidecar exists.
     """
-    sidecar = in_path.parent / "preprocessing.yaml"
+    sidecar = in_path.parent / (in_path.name + ".preprocessing.yaml")
     if not sidecar.exists():
         return None
     try:
         loaded = yaml.safe_load(sidecar.read_text(encoding="utf-8"))
     except yaml.YAMLError:
         logging.getLogger(__name__).warning(
-            "preprocessing.yaml at %s is not valid YAML; skipping", sidecar
+            "preprocessing sidecar at %s is not valid YAML; skipping", sidecar
         )
         return None
     if not isinstance(loaded, dict):
         return None
-    tables = loaded.get("tables") or {}
-    actions = tables.get(in_path.name) if isinstance(tables, dict) else None
+    actions = loaded.get("actions")
     if not actions:
         return None
     return {

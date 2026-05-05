@@ -1,0 +1,63 @@
+generated: '2026-05-05T10:22:18Z'
+output: Bipolar_DEGcombined_cleaned.csv
+inputs:
+- Bipolar_DEGcombined.csv
+actions:
+- step: read_csv
+  source: Bipolar_DEGcombined.csv
+  separator: ','
+  rows: 333485
+  columns:
+  - gene
+  - baseMean
+  - log2FoldChange
+  - lfcSE
+  - stat
+  - pvalue
+  - padj
+  - cell_type
+- step: clean_gene_column
+  column: gene
+  species: human
+  flags:
+    manual_aliases:
+      QARS: QARS1
+      SARS: SARS1
+  counts:
+    passed_through: 271324
+    non_symbol_contig: 59272
+    rescued_gencode_clone_current_ensg: 1775
+    unresolved: 204
+    rescued_gencode_clone_hgnc_symbol: 461
+    rescued_symbol_ensg: 128
+    rescued_manual_alias: 38
+    rescued_make_unique: 28
+    rescued_excel: 254
+    non_symbol_genbank_accession: 1
+  dropped_rows: 0
+  sample_unresolved:
+  - U2AF1L5
+  - IQCD
+  - C18orf21
+  - GATD3B
+  - SMC5-AS1
+  - SMIM11B
+  - MPP6
+  - IQCA1
+  - CRIPAK
+  - GATD3B
+- step: write_csv
+  destination: Bipolar_DEGcombined_cleaned.csv
+  separator: ','
+  rows: 333485
+  columns:
+  - gene
+  - baseMean
+  - log2FoldChange
+  - lfcSE
+  - stat
+  - pvalue
+  - padj
+  - cell_type
+  - gene_raw
+  - _gene_resolution

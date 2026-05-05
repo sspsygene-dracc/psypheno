@@ -1,0 +1,58 @@
+generated: '2026-05-05T10:21:55Z'
+output: s10_cleaned.tsv
+inputs:
+- s10.tsv
+actions:
+- step: read_csv
+  source: s10.tsv
+  separator: "\t"
+  rows: 762972
+  columns:
+  - cell_type
+  - gene_symbol
+  - disease
+  - pvalue
+  - FDR
+  - logFC
+- step: clean_gene_column
+  column: gene_symbol
+  species: human
+  flags:
+    manual_aliases:
+      SARS: SARS1
+      QARS: QARS1
+      TAZ: TAFAZZIN
+  counts:
+    passed_through: 683632
+    non_symbol_contig: 75112
+    rescued_manual_alias: 144
+    rescued_excel: 572
+    rescued_make_unique: 236
+    rescued_gencode_clone_current_ensg: 2388
+    rescued_gencode_clone_hgnc_symbol: 520
+    unresolved: 368
+  dropped_rows: 0
+  sample_unresolved:
+  - IQCA1
+  - IQCA1
+  - IQCA1
+  - IQCA1
+  - CRIPAK
+  - CRIPAK
+  - CRIPAK
+  - CRIPAK
+  - MPP6
+  - MPP6
+- step: write_csv
+  destination: s10_cleaned.tsv
+  separator: "\t"
+  rows: 762972
+  columns:
+  - cell_type
+  - gene_symbol
+  - disease
+  - pvalue
+  - FDR
+  - logFC
+  - gene_symbol_raw
+  - _gene_symbol_resolution

@@ -1,0 +1,50 @@
+generated: '2026-05-05T10:21:56Z'
+output: patient_list_cleaned.tsv
+inputs:
+- patient_list.tsv
+actions:
+- step: read_csv
+  source: patient_list.tsv
+  separator: "\t"
+  rows: 45
+  columns:
+  - iPSC line
+  - Category
+  - Sex
+  - Pathologic causative mutation
+  - Mutation genome information (hg19)
+  - HC at birth (SD)
+  - Onset
+  - Frequency
+  - Cognitive functions
+  - Cerebral cortex
+  - Ventriculo-megaly
+  - White matter
+  - Diameter of hBOs (DIV28 and 80 in mm)
+  - Neural rosettes
+  - Lamination (layers)
+- step: filter_rows
+  description: drop rows where 'Pathologic causative mutation' is a placeholder (not_available, none identified)
+  rows_before: 45
+  rows_after: 24
+  dropped: 21
+- step: write_csv
+  destination: patient_list_cleaned.tsv
+  separator: "\t"
+  rows: 24
+  columns:
+  - iPSC line
+  - Category
+  - Sex
+  - Pathologic causative mutation
+  - Mutation genome information (hg19)
+  - HC at birth (SD)
+  - Onset
+  - Frequency
+  - Cognitive functions
+  - Cerebral cortex
+  - Ventriculo-megaly
+  - White matter
+  - Diameter of hBOs (DIV28 and 80 in mm)
+  - Neural rosettes
+  - Lamination (layers)

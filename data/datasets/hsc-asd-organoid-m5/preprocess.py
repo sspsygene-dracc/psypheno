@@ -176,12 +176,11 @@ def process_supp3(
 
     combined = pd.concat(frames, ignore_index=True)
     combined.to_csv(SUPP3_OUT, sep="\t", index=False)
-    tracker.record(
-        "concat_and_write",
-        table=SUPP3_OUT.name,
+    tracker.write_concat(
+        SUPP3_OUT,
+        inputs=[SUPP3_EXCEL.name],
         sheets=len(frames),
         rows=len(combined),
-        destination=SUPP3_OUT.name,
     )
     print(f"Wrote {len(combined)} rows to {SUPP3_OUT}")
 
@@ -230,12 +229,11 @@ def process_supp12(
 
     combined = pd.concat(frames, ignore_index=True)
     combined.to_csv(SUPP12_OUT, sep="\t", index=False)
-    tracker.record(
-        "concat_and_write",
-        table=SUPP12_OUT.name,
+    tracker.write_concat(
+        SUPP12_OUT,
+        inputs=[SUPP12_EXCEL.name],
         sheets=len(frames),
         rows=len(combined),
-        destination=SUPP12_OUT.name,
     )
     print(f"Wrote {len(combined)} rows to {SUPP12_OUT}")
 
@@ -245,7 +243,6 @@ def main() -> None:
     normalizer = GeneSymbolNormalizer.from_env()
     process_supp3(tracker, normalizer)
     process_supp12(tracker, normalizer)
-    tracker.write(DIR / "preprocessing.yaml")
 
 
 if __name__ == "__main__":

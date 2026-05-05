@@ -4,8 +4,8 @@ Per-dataset preprocess.py scripts in `data/datasets/*/` import from
 this module to clean gene-name columns and record the changes they
 make. Goals: keep `load-db` strict and small, give wranglers a
 discoverable library to compose pipelines from, and make every manual
-change visible to downstream users via a per-dataset
-`preprocessing.yaml` provenance file.
+change visible to downstream users via per-output sidecar
+`<output>.preprocessing.yaml` provenance files (#158).
 
 Two layers:
 
@@ -14,8 +14,9 @@ Two layers:
    used by all the existing scripts.
 
 2. **Pipeline + Tracker** — composable `Pipeline` of `Step`s that
-   threads a `Tracker` through every operation. Records each action so
-   the resulting `preprocessing.yaml` describes exactly what was done.
+   threads a `Tracker` through every operation. Records each action;
+   `Pipeline.run()` auto-emits a per-output sidecar that describes
+   exactly what was done.
 
 Example (pipeline form):
 
@@ -36,7 +37,7 @@ Example (pipeline form):
         .write_csv(DIR / "cleaned.csv")
         .run()
     )
-    tracker.write(DIR / "preprocessing.yaml")
+    # Sidecar cleaned.csv.preprocessing.yaml has been written.
 """
 
 from processing.preprocessing.dataframe import CleanReport, clean_gene_column

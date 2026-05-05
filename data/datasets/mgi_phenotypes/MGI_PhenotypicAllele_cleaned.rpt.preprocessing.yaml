@@ -1,0 +1,55 @@
+generated: '2026-05-05T10:22:01Z'
+output: MGI_PhenotypicAllele_cleaned.rpt
+inputs:
+- MGI_PhenotypicAllele_annotated.rpt
+actions:
+- step: read_csv
+  source: MGI_PhenotypicAllele_annotated.rpt
+  separator: "\t"
+  rows: 46114
+  columns:
+  - MGI Allele Accession ID
+  - Allele Symbol
+  - High-level Mammalian Phenotype Names (comma-delimited)
+  - Allele Name
+  - Allele Type
+  - Allele Attribute
+  - PubMed ID for original reference
+  - MGI Marker Accession ID
+  - Marker Symbol
+  - Marker RefSeq ID
+  - Marker Ensembl ID
+  - High-level Mammalian Phenotype ID (comma-delimited)
+  - Synonyms (|-delimited)
+  - Marker Name
+- step: clean_gene_column
+  column: Marker Ensembl ID
+  species: mouse
+  flags: {}
+  counts:
+    rescued_ensembl_map: 38532
+    passed_through: 7570
+    non_symbol_ensembl_mouse: 12
+  dropped_rows: 0
+  sample_unresolved: []
+- step: write_csv
+  destination: MGI_PhenotypicAllele_cleaned.rpt
+  separator: "\t"
+  rows: 46114
+  columns:
+  - MGI Allele Accession ID
+  - Allele Symbol
+  - High-level Mammalian Phenotype Names (comma-delimited)
+  - Allele Name
+  - Allele Type
+  - Allele Attribute
+  - PubMed ID for original reference
+  - MGI Marker Accession ID
+  - Marker Symbol
+  - Marker RefSeq ID
+  - Marker Ensembl ID
+  - High-level Mammalian Phenotype ID (comma-delimited)
+  - Synonyms (|-delimited)
+  - Marker Name
+  - Marker Ensembl ID_raw
+  - _Marker Ensembl ID_resolution
