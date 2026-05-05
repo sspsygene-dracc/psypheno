@@ -1,0 +1,86 @@
+tables:
+  brain_organoid_atlas_S10:
+    raw_file: s10.tsv
+    pipeline_used: true
+    cleaned_file: s10_cleaned.tsv
+    raw_rows: 762972
+    cleaned_rows: 762972
+    expected_drops:
+    - step: clean_gene_column
+      column: gene_symbol
+      dropped_rows: 0
+      counts:
+        passed_through: 683632
+        non_symbol_contig: 75112
+        rescued_manual_alias: 144
+        rescued_excel: 572
+        rescued_make_unique: 236
+        rescued_gencode_clone_current_ensg: 2388
+        rescued_gencode_clone_hgnc_symbol: 520
+        unresolved: 368
+    db_rows: 762972
+  brain_organoid_atlas_S11:
+    raw_file: Table_8_Selected_validate_genes.txt
+    pipeline_used: true
+    cleaned_file: Table_8_Selected_validate_genes_cleaned.txt
+    raw_rows: 360
+    cleaned_rows: 360
+    expected_drops:
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        passed_through: 360
+    db_rows: 360
+  brain_organoid_atlas_nebula_gene_0_05_FDR:
+    raw_file: nebula_gene_0.05_FDR.txt
+    pipeline_used: true
+    cleaned_file: nebula_gene_0.05_FDR_cleaned.txt
+    raw_rows: 79757
+    cleaned_rows: 79757
+    expected_drops:
+    - step: clean_gene_column
+      column: gene_symbol
+      dropped_rows: 0
+      counts:
+        passed_through: 72529
+        non_symbol_contig: 6852
+        rescued_make_unique: 15
+        rescued_gencode_clone_current_ensg: 212
+        rescued_excel: 51
+        rescued_gencode_clone_hgnc_symbol: 36
+        unresolved: 34
+        rescued_manual_alias: 28
+    db_rows: 79757
+  brain_organoid_atlas_nebula_gene_0_2_FDR:
+    raw_file: nebula_gene_0.2_FDR.tsv
+    pipeline_used: true
+    cleaned_file: nebula_gene_0.2_FDR_cleaned.tsv
+    raw_rows: 144267
+    cleaned_rows: 144267
+    expected_drops:
+    - step: clean_gene_column
+      column: gene_symbol
+      dropped_rows: 0
+      counts:
+        passed_through: 131320
+        non_symbol_contig: 12259
+        rescued_make_unique: 25
+        rescued_gencode_clone_current_ensg: 378
+        rescued_excel: 102
+        rescued_gencode_clone_hgnc_symbol: 71
+        unresolved: 73
+        rescued_manual_alias: 39
+    db_rows: 144267
+  brain_organoid_atlas_patient_list:
+    raw_file: patient_list.tsv
+    pipeline_used: true
+    cleaned_file: patient_list_cleaned.tsv
+    raw_rows: 45
+    cleaned_rows: 24
+    expected_drops:
+    - step: filter_rows
+      description: drop rows where 'Pathologic causative mutation' is a placeholder (not_available, none
+        identified)
+      dropped: 21
+    db_rows: 24

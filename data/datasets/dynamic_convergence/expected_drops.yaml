@@ -1,0 +1,30 @@
+tables:
+  Perturbed_Baseline_behavior_pvalues:
+    raw_file: HumanName_Baseline_behavior_pvalues.csv
+    pipeline_used: true
+    cleaned_file: HumanName_Baseline_behavior_pvalues_cleaned.csv
+    raw_rows: 17
+    cleaned_rows: 17
+    expected_drops: []
+    db_rows: 17
+  dynamic_convergence_S2:
+    raw_file: Supplemental_Data_2(META_DEGs).csv
+    pipeline_used: true
+    cleaned_file: Supplemental_Data_2(META_DEGs)_cleaned.csv
+    raw_rows: 16873
+    cleaned_rows: 16873
+    expected_drops:
+    - step: clean_gene_column
+      column: MarkerName
+      dropped_rows: 0
+      counts:
+        passed_through: 14916
+        rescued_excel: 46
+        non_symbol_contig: 1822
+        rescued_make_unique: 19
+        rescued_manual_alias: 5
+        rescued_gencode_clone_current_ensg: 42
+        rescued_gencode_clone_hgnc_symbol: 12
+        unresolved: 10
+        non_symbol_genbank_accession: 1
+    db_rows: 16873

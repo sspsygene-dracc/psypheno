@@ -1,0 +1,24 @@
+tables:
+  mouse_perturb_clusterprop:
+    raw_file: clusterprop.txt
+    pipeline_used: true
+    cleaned_file: clusterprop_cleaned.txt
+    raw_rows: 225
+    cleaned_rows: 225
+    expected_drops: []
+    db_rows: 225
+  mouse_perturb_deg:
+    raw_file: deg.txt
+    pipeline_used: true
+    cleaned_file: deg_cleaned.txt
+    raw_rows: 1627
+    cleaned_rows: 1627
+    expected_drops:
+    - step: clean_gene_column
+      column: Gene
+      dropped_rows: 0
+      counts:
+        passed_through: 1622
+        rescued_excel: 3
+        unresolved: 2
+    db_rows: 1627

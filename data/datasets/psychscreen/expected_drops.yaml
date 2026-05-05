@@ -1,0 +1,89 @@
+tables:
+  psychscreen_age_deg:
+    raw_file: Age_DEGcombined.csv
+    pipeline_used: true
+    cleaned_file: Age_DEGcombined_cleaned.csv
+    raw_rows: 333485
+    cleaned_rows: 333485
+    expected_drops:
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        non_symbol_contig: 59272
+        rescued_gencode_clone_current_ensg: 1775
+        passed_through: 271324
+        rescued_gencode_clone_hgnc_symbol: 461
+        unresolved: 204
+        rescued_excel: 254
+        rescued_manual_alias: 38
+        rescued_symbol_ensg: 128
+        rescued_make_unique: 28
+        non_symbol_genbank_accession: 1
+    db_rows: 333485
+  psychscreen_asd_deg:
+    raw_file: ASD_DEGcombined.csv
+    pipeline_used: true
+    cleaned_file: ASD_DEGcombined_cleaned.csv
+    raw_rows: 281935
+    cleaned_rows: 281935
+    expected_drops:
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        non_symbol_contig: 50571
+        rescued_gencode_clone_hgnc_symbol: 391
+        passed_through: 228911
+        rescued_gencode_clone_current_ensg: 1510
+        unresolved: 171
+        rescued_excel: 210
+        non_symbol_genbank_accession: 4
+        rescued_make_unique: 27
+        rescued_manual_alias: 30
+        rescued_symbol_ensg: 110
+    db_rows: 281935
+  psychscreen_bipolar_deg:
+    raw_file: Bipolar_DEGcombined.csv
+    pipeline_used: true
+    cleaned_file: Bipolar_DEGcombined_cleaned.csv
+    raw_rows: 333485
+    cleaned_rows: 333485
+    expected_drops:
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        passed_through: 271324
+        non_symbol_contig: 59272
+        rescued_gencode_clone_current_ensg: 1775
+        unresolved: 204
+        rescued_gencode_clone_hgnc_symbol: 461
+        rescued_symbol_ensg: 128
+        rescued_manual_alias: 38
+        rescued_make_unique: 28
+        rescued_excel: 254
+        non_symbol_genbank_accession: 1
+    db_rows: 333485
+  psychscreen_schizophrenia_deg:
+    raw_file: Schizophrenia_DEGcombined.csv
+    pipeline_used: true
+    cleaned_file: Schizophrenia_DEGcombined_cleaned.csv
+    raw_rows: 333485
+    cleaned_rows: 333485
+    expected_drops:
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        non_symbol_contig: 59272
+        passed_through: 271324
+        rescued_gencode_clone_hgnc_symbol: 461
+        rescued_gencode_clone_current_ensg: 1775
+        rescued_excel: 254
+        unresolved: 204
+        rescued_make_unique: 28
+        rescued_symbol_ensg: 128
+        rescued_manual_alias: 38
+        non_symbol_genbank_accession: 1
+    db_rows: 333485

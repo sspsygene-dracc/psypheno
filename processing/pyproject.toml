@@ -38,7 +38,17 @@ processing = ["r/*.R"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-q"
+# `-m 'not slow'` default-excludes the data-correspondence slow tier
+# (raw-data reads + R recompute). Use `pytest -m slow` for that tier or
+# `pytest -m ""` to run absolutely everything.
+addopts = "-q -m 'not slow'"
 filterwarnings = [
     "ignore::DeprecationWarning:pandas",
+]
+# Custom markers used by tests/data_correspondence/. Registering them here
+# silences PytestUnknownMarkWarning and gives `-m slow` / `-m requires_r`
+# something to gate against.
+markers = [
+    "slow: tests that read raw datasets or call out to R; opt in with `-m slow`",
+    "requires_r: tests that need Rscript with poolr/ACAT/harmonicmeanp installed",
 ]

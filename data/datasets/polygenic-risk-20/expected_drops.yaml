@@ -1,0 +1,55 @@
+tables:
+  SCZ_Risk_Arrayed_RNAseq_supp_1:
+    raw_file: Supp_1_all.csv
+    pipeline_used: true
+    cleaned_file: Supp_1_all_cleaned.csv
+    raw_rows: 415360
+    cleaned_rows: 415360
+    expected_drops:
+    - step: clean_gene_column
+      column: perturbed_gene
+      dropped_rows: 0
+      counts:
+        passed_through: 415360
+    - step: clean_gene_column
+      column: target_gene
+      dropped_rows: 0
+      counts:
+        passed_through: 313659
+        rescued_excel: 400
+        non_symbol_gencode_clone: 25872
+        non_symbol_contig: 8720
+        rescued_gencode_clone_current_ensg: 49552
+        rescued_gencode_clone_hgnc_symbol: 13216
+        non_symbol_rna_family: 2880
+        unresolved: 741
+        non_symbol_genbank_accession: 144
+        rescued_make_unique: 96
+        rescued_manual_alias: 80
+    db_rows: 415360
+  SCZ_Risk_Pooled_ECCITEseq_supp_2:
+    raw_file: Supp_2_all.csv
+    pipeline_used: true
+    cleaned_file: Supp_2_all_cleaned.csv
+    raw_rows: 337020
+    cleaned_rows: 337020
+    expected_drops:
+    - step: clean_gene_column
+      column: perturbed_gene
+      dropped_rows: 0
+      counts:
+        passed_through: 337020
+    - step: clean_gene_column
+      column: target_gene
+      dropped_rows: 0
+      counts:
+        passed_through: 298320
+        unresolved: 200
+        rescued_make_unique: 380
+        non_symbol_contig: 36440
+        rescued_gencode_clone_hgnc_symbol: 240
+        rescued_gencode_clone_current_ensg: 840
+        non_symbol_genbank_accession: 20
+        rescued_excel: 480
+        rescued_manual_alias: 100
+    db_rows: 337020

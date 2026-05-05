@@ -1,0 +1,16 @@
+tables:
+  mgi_high_level_phenotypes:
+    raw_file: MGI_PhenotypicAllele_annotated.rpt
+    pipeline_used: true
+    cleaned_file: MGI_PhenotypicAllele_cleaned.rpt
+    raw_rows: 46114
+    cleaned_rows: 46114
+    expected_drops:
+    - step: clean_gene_column
+      column: Marker Ensembl ID
+      dropped_rows: 0
+      counts:
+        rescued_ensembl_map: 38532
+        passed_through: 7570
+        non_symbol_ensembl_mouse: 12
+    db_rows: 46114

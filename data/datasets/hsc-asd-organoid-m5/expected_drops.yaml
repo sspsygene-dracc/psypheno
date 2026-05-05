@@ -1,0 +1,15 @@
+tables:
+  hsc_asd_organoid_m5_DE_results:
+    raw_file: Supp_table_3_-_DE_results.xlsx
+    pipeline_used: true
+    cleaned_file: supplementary_table_3_DE_results.tsv
+    cleaned_rows: 720945
+    expected_drops: []
+    db_rows: 720945
+  hsc_asd_organoid_m5_DE_targets_M5_TFs:
+    raw_file: Supp_table_12_-_DE_targets_of_M5_TFs.xlsx
+    pipeline_used: true
+    cleaned_file: supplementary_table_12_DE_targets_M5_TFs.tsv
+    cleaned_rows: 1642784
+    expected_drops: []
+    db_rows: 1642784

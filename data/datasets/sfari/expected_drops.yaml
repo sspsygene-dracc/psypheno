@@ -1,0 +1,27 @@
+tables:
+  sfari_animal_genes:
+    raw_file: SFARI-Gene_animal-genes_07-08-2025release_10-03-2025export.csv
+    pipeline_used: false
+    expected_drops: []
+    raw_rows: 269
+    db_rows: 269
+  sfari_animal_rescues:
+    raw_file: SFARI-Gene_animal-rescues_07-08-2025release_10-03-2025export.csv
+    pipeline_used: false
+    expected_drops: []
+    raw_rows: 423
+    db_rows: 423
+  sfari_human_genes:
+    raw_file: SFARI-Gene_genes_07-08-2025release_10-03-2025export.csv
+    pipeline_used: true
+    cleaned_file: SFARI-Gene_genes_07-08-2025release_10-03-2025export_cleaned.csv
+    raw_rows: 1238
+    cleaned_rows: 1238
+    expected_drops:
+    - step: clean_gene_column
+      column: ensembl-id
+      dropped_rows: 0
+      counts:
+        rescued_ensembl_map: 1225
+        passed_through: 13
+    db_rows: 1238

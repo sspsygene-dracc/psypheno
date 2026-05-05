@@ -1,0 +1,15 @@
+tables:
+  RestWake_VisStart_byGene:
+    raw_file: RestWake_VisStart_byGene.csv
+    pipeline_used: false
+    expected_drops: []
+    raw_rows: 1128
+    db_rows: 1128
+  zebra_asd:
+    raw_file: 1-s2.0-S2211124723002541-mmc5.txt
+    pipeline_used: true
+    cleaned_file: 1-s2.0-S2211124723002541-mmc5_cleaned.txt
+    raw_rows: 684
+    cleaned_rows: 684
+    expected_drops: []
+    db_rows: 684
