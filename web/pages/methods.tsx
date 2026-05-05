@@ -619,26 +619,30 @@ export default function MethodsPage() {
         >
           <h2 style={h2Style}>A Note on the Uniform(0,1) Assumption</h2>
           <p>
-
-            Our p-value combiners (Fisher, Stouffer, CCT, HMP) assume
+            Our p-value combiners (Fisher, CCT, HMP) assume
             input p-values are <V>U</V>[0,&thinsp;1] under the null. Many of
-            our input tables don&apos;t fully satisfy this: some are stored
-            as DEG-only (only rows surviving an FDR threshold are reported), 
-            some have a large mass at <V>p</V>&nbsp;&asymp;&nbsp;1, 
-            and some are meta-analysis outputs.
-            Where input p-values are censored on the
-            right, combined-p magnitudes are biased downward. We still include these, 
-            as practically it turns out that the gene rankings at 
-            the top are quite stable under this type of censoring.
-
+            our input tables do not fully satisfy this: some are stored
+            as DEG-only (only rows surviving an FDR threshold are reported),
+            some have a large mass at <V>p</V>&nbsp;&asymp;&nbsp;1, and
+            some are meta-analysis outputs. Where input p-values are
+            censored on the right, combined-p magnitudes are biased
+            downward.
           </p>
           <p>
-            We tested this empirically by imposing a uniform DEG-only filter
-            (<V>p</V>&nbsp;&le;&nbsp;<V>T</V>) on uncensored input tables and
-            measuring top-<V>K</V> Jaccard overlap and Spearman&apos;s &rho;
-            between the censored and uncensored rankings. 
-            All three ranking methods (HMP, CCT, Fisher)
-            are very stable at the top of the list:
+            A practical question is whether the censoring also moves
+            the top-of-list gene <em>rankings</em> shown in the UI. We
+            cannot test this directly, as the rows the original
+            authors filtered out aren&apos;t available to us. Instead we
+            test the converse: take the input tables that are{" "}
+            <em>not</em> censored, artificially impose a uniform DEG-only
+            filter (<V>p</V>&nbsp;&le;&nbsp;<V>T</V>) on each, and measure
+            top-<V>K</V> Jaccard overlap and Spearman&apos;s &rho; against
+            the unfiltered baseline. If imposing this kind of censoring on
+            otherwise-clean tables does not move the top rankings,
+            that is evidence the censoring already present in some of
+            the production tables does not move them either. All three
+            ranking methods (HMP, CCT, Fisher) are very stable at the top
+            of the list:
           </p>
           <div style={{ overflowX: "auto", margin: "12px 0" }}>
             <table
@@ -703,13 +707,17 @@ export default function MethodsPage() {
           <p>
             Top-50 Jaccard &ge; 0.96 and top-50 &rho; = 1.00 across all three
             methods means the user-visible ranking at the top of the list is
-            essentially unchanged whether or not the full non-significant tail
-            is preserved. Stouffer&apos;s method, which earlier versions of
-            this page also exposed, did <em>not</em> share this stability
-            (top-50 Jaccard 0.74&ndash;0.78 in the same audit, with &rho;
-            falling to ~0.56) — qnorm gives moderate-<V>p</V> rows real
-            weight, so the censored bulk drives Stouffer&apos;s rankings.
-            Stouffer is therefore no longer offered.
+            essentially unchanged whether or not the full non-significant
+            tail is preserved. We therefore keep all input tables in the
+            production combine, including the censored ones.
+          </p>
+          <p>
+            Stouffer&apos;s method, which earlier versions of this page also
+            exposed, did <em>not</em> share this stability (top-50 Jaccard
+            0.74&ndash;0.78 in the same audit, with &rho; falling to ~0.56)
+            &mdash; qnorm gives moderate-<V>p</V> rows real weight, so the
+            censored bulk drives Stouffer&apos;s rankings. Stouffer is
+            therefore no longer offered.
           </p>
           <p>
             <strong>Bottom line:</strong> read combined-<V>p</V> as a
