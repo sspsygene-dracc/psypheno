@@ -1,15 +1,3 @@
-for the issue 139 workflow:
-- let's also look at other gencode identifiers that we
-  may want to look at
-- should consider whether all this symbol resolution that are currently optional
-  should just be enabled by default
-- in 139, after above done, let's do another pass over the current preprocessing
-  scripts and ensure they're user friendly.
-- the method types in class Pipeline are too generic. Even though it's a bit
-  cumbersome, I'd like to explicitly write the actual arguments from the
-  underlying classes (e.g., ReadCsv) wherever possible, as this enables much
-  more helpful type checking
-
 - the deployment scripts should take another flag to re-run preprocessing
   optionally
 

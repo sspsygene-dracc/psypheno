@@ -5,7 +5,9 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _isolate_r_cache(tmp_path_factory, monkeypatch):
+def _isolate_r_cache(
+    tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Point SSPSYGENE_R_CACHE_DIR at a per-session tmp dir.
 
     Without this, tests that mock the R subprocess and let the real
