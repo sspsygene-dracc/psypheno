@@ -172,10 +172,23 @@ export function parseLinkTablesForDirection(
 }
 
 /**
+ * Mirror the Python `normalize_column_name` (table_to_process_config.py):
+ * lowercase, then replace any non-[a-z0-9_] run with a single underscore.
+ * data_tables.display_columns is always normalized form, so anything we
+ * compare against display_columns must be normalized too.
+ */
+function toSqlFriendlyColumn(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9_]+/g, "_");
+}
+
+/**
  * Return the source-column names whose link-table entry has the given
  * direction. Used by data-table renderers to decide whether a clicked
  * gene cell should search as perturbed or target. Mirrors
- * parseLinkTablesForDirection but pulls field 0 (column) instead of 1.
+ * parseLinkTablesForDirection but pulls field 0 (column) instead of 1,
+ * and normalizes via toSqlFriendlyColumn so the result matches what's
+ * in data_tables.display_columns / data_tables.gene_columns (e.g.
+ * `gene-symbol` from YAML → `gene_symbol`).
  */
 export function parseSourceColumnsForDirection(
   linkTablesRaw: string,
@@ -188,7 +201,7 @@ export function parseSourceColumnsForDirection(
     .map((entry) => {
       const parts = entry.split(":");
       return {
-        column: parts[0] ? sanitizeIdentifier(parts[0]) : null,
+        column: parts[0] ? toSqlFriendlyColumn(parts[0]) : null,
         direction: parts[2] ?? null,
       };
     })

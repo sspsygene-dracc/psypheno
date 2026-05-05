@@ -127,9 +127,6 @@ export default function GeneResults({
       cancelled = true;
     };
   }, [targetCentralGeneId]);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(),
-  );
   const [expandedDistributions, setExpandedDistributions] = useState<
     Set<string>
   >(new Set());
@@ -157,23 +154,15 @@ export default function GeneResults({
     return () => mql.removeEventListener("change", handler);
   }, []);
 
-  // Reset pagination overrides and seed default expansion + sort state when
-  // data changes (new gene selected).
-  //   #90: expand p-value tables and volcano plots by default.
+  // Reset pagination overrides and seed default volcano expansion + sort
+  // state when data changes (new gene selected).
+  //   #90: expand volcano plots by default.
   //   #86: mark each table's initial sort to match what the API pre-sorted by
   //   (FDR or pvalue ascending). Cosmetic — doesn't trigger a re-fetch.
   useEffect(() => {
     Object.values(abortControllers.current).forEach((c) => c.abort());
     abortControllers.current = {};
     setTablePageOverrides({});
-
-    setExpandedSections(
-      new Set(
-        data
-          .filter((s) => s.pvalueColumn || s.fdrColumn)
-          .map((s) => s.tableName),
-      ),
-    );
 
     setExpandedDistributions(
       new Set(data.filter((s) => s.effectColumn).map((s) => s.tableName)),
@@ -262,8 +251,6 @@ export default function GeneResults({
         },
       }));
 
-      // Auto-expand the table when paginating
-      setExpandedSections((prev) => new Set([...prev, tableName]));
     } catch (e: any) {
       if (e.name === "AbortError") return;
       setTablePageOverrides((prev) => ({
@@ -334,18 +321,6 @@ export default function GeneResults({
 
     return ordered;
   }, [data, assayTypeLabels]);
-
-  const toggleSection = (name: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) {
-        next.delete(name);
-      } else {
-        next.add(name);
-      }
-      return next;
-    });
-  };
 
   if (!geneDisplayName) {
     return null;
@@ -738,35 +713,6 @@ export default function GeneResults({
                       )}
                     </div>
                   )}
-                  {expandedSections.has(section.tableName) &&
-                    effectiveRows.length > 5 && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "flex-end",
-                          padding: "6px 14px",
-                          background: "#f9fafb",
-                          borderBottom: "1px solid #e5e7eb",
-                        }}
-                      >
-                        <button
-                          onClick={() => toggleSection(section.tableName)}
-                          style={{
-                            padding: "6px 12px",
-                            background: "#ffffff",
-                            border: "1px solid #d1d5db",
-                            color: "#1f2937",
-                            borderRadius: 10,
-                            fontSize: 13,
-                            fontWeight: 500,
-                            cursor: "pointer",
-                          }}
-                        >
-                          Collapse
-                        </button>
-                      </div>
-                    )}
                   <div
                     style={{
                       opacity: isPageLoading ? 0.5 : 1,
@@ -778,9 +724,6 @@ export default function GeneResults({
                     <DataTable
                       columns={section.displayColumns}
                       rows={effectiveRows}
-                      maxRows={
-                        expandedSections.has(section.tableName) ? undefined : 5
-                      }
                       totalRows={effectiveTotalRows}
                       scalarColumns={section.scalarColumns}
                       fieldLabels={section.fieldLabels}
@@ -828,24 +771,15 @@ export default function GeneResults({
                     </div>
                   )}
                   {(() => {
-                    const showFooter =
-                      effectiveRows.length > 5 || hasPagination;
-                    if (!showFooter) return null;
-                    const isExpanded = expandedSections.has(section.tableName);
-                    const visibleCount = isExpanded
-                      ? effectiveRows.length
-                      : Math.min(5, effectiveRows.length);
+                    if (effectiveRows.length === 0 && !hasPagination) return null;
 
-                    // Summary text
                     let summaryText: string;
                     if (hasPagination) {
                       const rangeStart = (effectivePage - 1) * ROW_LIMIT + 1;
                       const rangeEnd = rangeStart + effectiveRows.length - 1;
-                      summaryText = `Showing ${visibleCount.toLocaleString()} of rows ${rangeStart.toLocaleString()}\u2013${rangeEnd.toLocaleString()} (${effectiveTotalRows.toLocaleString()} total)`;
-                    } else if (isExpanded) {
-                      summaryText = `Showing all ${effectiveRows.length}`;
+                      summaryText = `Showing rows ${rangeStart.toLocaleString()}\u2013${rangeEnd.toLocaleString()} of ${effectiveTotalRows.toLocaleString()}`;
                     } else {
-                      summaryText = `Showing 5 of ${effectiveRows.length}`;
+                      summaryText = `Showing all ${effectiveRows.length}`;
                     }
 
                     return (
@@ -864,7 +798,7 @@ export default function GeneResults({
                         <div style={{ opacity: 0.8, fontSize: 13 }}>
                           {summaryText}
                         </div>
-                        {hasPagination && isExpanded && (
+                        {hasPagination && (
                           <div
                             style={{
                               display: "flex",
@@ -915,23 +849,6 @@ export default function GeneResults({
                               Next
                             </button>
                           </div>
-                        )}
-                        {effectiveRows.length > 5 && (
-                          <button
-                            onClick={() => toggleSection(section.tableName)}
-                            style={{
-                              padding: "8px 12px",
-                              background: "#ffffff",
-                              border: "1px solid #d1d5db",
-                              color: "#1f2937",
-                              borderRadius: 10,
-                              fontSize: 14,
-                              fontWeight: 500,
-                              cursor: "pointer",
-                            }}
-                          >
-                            {isExpanded ? "Collapse" : "Expand"}
-                          </button>
                         )}
                       </div>
                     );

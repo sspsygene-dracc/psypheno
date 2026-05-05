@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import InfoTooltip from "@/components/InfoTooltip";
-import DoubleScrollX from "@/components/DoubleScrollX";
 
 function normalizeColName(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, "_");
@@ -233,8 +232,7 @@ export default function DataTable({
     scalarSet.has(col) ? "e.g. >0.5" : "Filter...";
 
   return (
-    <div>
-      <DoubleScrollX>
+    <div style={{ overflowX: "auto" }}>
       <table
         style={{
           width: "100%",
@@ -389,7 +387,6 @@ export default function DataTable({
           })()}
         </div>
       )}
-      </DoubleScrollX>
     </div>
   );
 }

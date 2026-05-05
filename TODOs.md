@@ -1,13 +1,7 @@
-- the deployment scripts should take another flag to re-run preprocessing
-  optionally
-
 - when user selects a target gene or perturbed gene while the other is already
   selected; if the perturbed-target combination exists anywhere in the DB, don't
   redirect to searching ONLY for the clicked gene, instead search for the
   COMBINATION of the currently selected other direction + the clicked gene
-
-- remove Collapse/Expand buttons on gene results search page; they're just
-  confusing and since we have pagination now they're not necessary anymore
 
 - fix preprocessing/test_pipeline.py test case
 
