@@ -129,7 +129,11 @@ export default function DownloadPage() {
           <p style={{ color: "#4b5563", marginBottom: 24, lineHeight: 1.5 }}>
             Bulk downloads of the SSPsyGene Knowledge Base data for offline
             analysis. Gene identifiers have been resolved to gene symbols (HGNC
-            for human, MGI for mouse) where mappings exist.
+            for human, MGI for mouse) where mappings exist (
+            <Link href="/gene-parser" style={{ color: "#2563eb" }}>
+              how does this work?
+            </Link>
+            ).
           </p>
 
           <section
@@ -238,7 +242,11 @@ export default function DownloadPage() {
                   resolved to symbols; <code>counts.unresolved</code> = rows
                   the cleaner could not resolve (kept as-is). The first ~10
                   unresolved values appear in <code>sample_unresolved</code>{" "}
-                  for inspection.
+                  for inspection. See{" "}
+                  <Link href="/gene-parser" style={{ color: "#2563eb" }}>
+                    the gene-parser doc
+                  </Link>{" "}
+                  for what each rescue step does.
                 </li>
                 <li>
                   <code>step: dropna</code> /{" "}
@@ -270,7 +278,11 @@ export default function DownloadPage() {
                 <code>_&lt;gene_col&gt;_resolution</code> (the per-row tag
                 — <code>passed_through</code>, <code>rescued_excel</code>,
                 <code>unresolved</code>, etc.). Cross-reference those with
-                the YAML to investigate any specific row.
+                the YAML to investigate any specific row. Full walkthrough:{" "}
+                <Link href="/gene-parser" style={{ color: "#2563eb" }}>
+                  how the gene parser works
+                </Link>
+                .
               </p>
             </div>
           </details>

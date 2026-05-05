@@ -16,6 +16,7 @@ const OTHER_LINKS = [
   { href: "/all-genes", label: "All Genes" },
   { href: "/significant-rows", label: "Significant Rows" },
   { href: "/methods", label: "Meta-Analysis Methods" },
+  { href: "/gene-parser", label: "Gene Parser" },
   { href: "/dataset-changelog", label: "Changelog" },
   { href: "/download", label: "Download" },
 ];
