@@ -122,14 +122,30 @@ def test_clean_gene_column_resolve_hgnc_id(
     ]
 
 
-def test_clean_gene_column_resolve_hgnc_id_disabled_by_default(
+def test_clean_gene_column_resolve_hgnc_id_on_by_default(
     normalizer: GeneSymbolNormalizer,
 ) -> None:
-    # Without the flag, HGNC:NNNNN values fall through to unresolved
-    # rather than being silently coerced.
+    # Defaults are opt-out: HGNC:NNNNN values resolve without the
+    # caller having to flip a flag.
     df = pd.DataFrame({"hgnc_symbol": ["HGNC:18790"]})
     out, report = clean_gene_column(
         df, "hgnc_symbol", species="human", normalizer=normalizer
+    )
+    assert out["hgnc_symbol"].tolist() == ["GATD3A"]
+    assert report.resolutions == ["rescued_hgnc_id"]
+
+
+def test_clean_gene_column_resolve_hgnc_id_can_opt_out(
+    normalizer: GeneSymbolNormalizer,
+) -> None:
+    # Wranglers can disable a specific resolver by passing False.
+    df = pd.DataFrame({"hgnc_symbol": ["HGNC:18790"]})
+    out, report = clean_gene_column(
+        df,
+        "hgnc_symbol",
+        species="human",
+        normalizer=normalizer,
+        resolve_hgnc_id=False,
     )
     assert out["hgnc_symbol"].tolist() == ["HGNC:18790"]
     assert report.resolutions == ["unresolved"]
@@ -314,18 +330,23 @@ def test_clean_gene_column_resolve_via_ensembl_map_mouse(
     ]
 
 
-def test_clean_gene_column_resolve_via_ensembl_map_requires_mapper(
+def test_clean_gene_column_resolve_via_ensembl_map_silent_skip_no_mapper(
     normalizer: GeneSymbolNormalizer,
 ) -> None:
-    df = pd.DataFrame({"target_gene": ["BRCA1"]})
-    with pytest.raises(ValueError, match="resolve_via_ensembl_map"):
-        clean_gene_column(
-            df,
-            "target_gene",
-            species="human",
-            normalizer=normalizer,
-            resolve_via_ensembl_map=True,
-        )
+    # When no ensembl_mapper is supplied, the resolver silently skips
+    # rather than raising — so the lower-level API stays callable from
+    # tests / one-off scripts that only want symbol normalization.
+    df = pd.DataFrame({"target_gene": ["BRCA1", "ENSG00000012048"]})
+    out, report = clean_gene_column(
+        df,
+        "target_gene",
+        species="human",
+        normalizer=normalizer,
+        # resolve_via_ensembl_map defaults to True; mapper omitted.
+    )
+    assert out["target_gene"].tolist() == ["BRCA1", "ENSG00000012048"]
+    # ENSG falls through to the silencer (no mapper to rescue it).
+    assert report.resolutions == ["passed_through", "non_symbol_ensembl_human"]
 
 
 def test_clean_gene_column_resolve_via_ensembl_map_runs_after_auto_rescues(
@@ -410,21 +431,22 @@ def test_clean_gene_column_resolve_gencode_clone(
     ]
 
 
-def test_clean_gene_column_resolve_gencode_clone_requires_index(
+def test_clean_gene_column_resolve_gencode_clone_silent_skip_no_index(
     normalizer: GeneSymbolNormalizer,
 ) -> None:
-    # Mirror of the resolve_via_ensembl_map guard: enabling the flag
-    # without supplying the index is a programmer error, not a silent
-    # no-op.
+    # When no gencode_clone_index is supplied, the resolver silently
+    # skips rather than raising — clones fall through to the existing
+    # gencode_clone silencer.
     df = pd.DataFrame({"target_gene": ["RP11-100A1.1"]})
-    with pytest.raises(ValueError, match="GencodeCloneIndex"):
-        clean_gene_column(
-            df,
-            "target_gene",
-            species="human",
-            normalizer=normalizer,
-            resolve_gencode_clone=True,
-        )
+    out, report = clean_gene_column(
+        df,
+        "target_gene",
+        species="human",
+        normalizer=normalizer,
+        # resolve_gencode_clone defaults to True; index omitted.
+    )
+    assert out["target_gene"].tolist() == ["RP11-100A1.1"]
+    assert report.resolutions == ["non_symbol_gencode_clone"]
 
 
 def test_clean_gene_column_resolve_gencode_clone_ordering(

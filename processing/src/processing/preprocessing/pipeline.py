@@ -127,6 +127,14 @@ class Pipeline:
     Construct one Pipeline per output file. Multiple pipelines for the
     same dataset can share a Tracker; their actions all land in the same
     `preprocessing.yaml`.
+
+    The auxiliary mappers (`ensembl_mapper`, `gencode_clone_index`) are
+    auto-instantiated from `SSPSYGENE_DATA_DIR` lazily on first
+    `clean_gene` if not explicitly supplied. Pass them in only to use a
+    test fixture or a non-standard data directory; explicit `None`
+    cannot be distinguished from "not supplied", so to truly disable a
+    mapper either omit the corresponding `resolve_*` flag or set it to
+    False on the per-call `clean_gene(...)`.
     """
 
     def __init__(
@@ -141,9 +149,42 @@ class Pipeline:
         self.name = name
         self.tracker = tracker
         self.normalizer = normalizer
-        self.ensembl_mapper = ensembl_mapper
-        self.gencode_clone_index = gencode_clone_index
+        self._ensembl_mapper = ensembl_mapper
+        self._gencode_clone_index = gencode_clone_index
+        self._mappers_loaded = False
         self.steps: list[Step] = []
+
+    def _ensure_mappers(self) -> None:
+        """Lazily auto-instantiate aux mappers from SSPSYGENE_DATA_DIR.
+
+        Idempotent: only the first call attempts construction. Failures
+        (missing env var, missing files) leave the mapper as None and
+        the corresponding resolver becomes a silent no-op at
+        clean_gene_column time.
+        """
+        if self._mappers_loaded:
+            return
+        if self._ensembl_mapper is None:
+            try:
+                self._ensembl_mapper = EnsemblToSymbolMapper.from_env()
+            except (RuntimeError, FileNotFoundError):
+                pass
+        if self._gencode_clone_index is None:
+            try:
+                self._gencode_clone_index = GencodeCloneIndex.from_env()
+            except (RuntimeError, FileNotFoundError):
+                pass
+        self._mappers_loaded = True
+
+    @property
+    def ensembl_mapper(self) -> EnsemblToSymbolMapper | None:
+        self._ensure_mappers()
+        return self._ensembl_mapper
+
+    @property
+    def gencode_clone_index(self) -> GencodeCloneIndex | None:
+        self._ensure_mappers()
+        return self._gencode_clone_index
 
     def add(self, step: "Step") -> "Pipeline":
         self.steps.append(step)

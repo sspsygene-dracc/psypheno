@@ -324,20 +324,76 @@ def test_clean_gene_with_ensembl_mapper(
     assert rec.summary["counts"].get("rescued_ensembl_map") == 1
 
 
-def test_resolve_via_ensembl_map_requires_mapper(
-    normalizer: GeneSymbolNormalizer, tmp_path: Path
+def test_resolve_via_ensembl_map_silent_skip_no_mapper(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # Without SSPSYGENE_DATA_DIR, Pipeline can't auto-instantiate the
+    # mapper. The resolver silently skips rather than raising.
+    monkeypatch.delenv("SSPSYGENE_DATA_DIR", raising=False)
     raw = tmp_path / "raw.csv"
-    pd.DataFrame({"target_gene": ["BRCA1"]}).to_csv(raw, index=False)
+    out_path = tmp_path / "out.csv"
+    pd.DataFrame({"target_gene": ["ENSG00000012048"]}).to_csv(raw, index=False)
 
     tracker = Tracker()
-    pipe = (
+    (
         Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
         .read_csv(raw)
-        .clean_gene("target_gene", species="human", resolve_via_ensembl_map=True)
+        .clean_gene("target_gene", species="human")
+        .write_csv(out_path)
+        .run()
     )
-    with pytest.raises(ValueError, match="ensembl_mapper"):
-        pipe.run()
+
+    # ENSG falls through to the silencer (no mapper to rescue it).
+    written = pd.read_csv(out_path)
+    assert written["target_gene"].tolist() == ["ENSG00000012048"]
+    assert written["_target_gene_resolution"].tolist() == ["non_symbol_ensembl_human"]
+
+
+def test_pipeline_auto_instantiates_mappers_from_env(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # If SSPSYGENE_DATA_DIR points at a usable homology dir, Pipeline
+    # auto-instantiates EnsemblToSymbolMapper and GencodeCloneIndex
+    # without the caller having to pass them.
+    fixtures = Path(__file__).parent / "fixtures"
+    # Stage the homology fixtures under a `homology/` subdir to match
+    # the env-relative paths used by from_env().
+    homology = tmp_path / "homology"
+    homology.mkdir()
+    (homology / "hgnc_complete_set.txt").write_text(
+        (fixtures / "hgnc_stub.txt").read_text()
+    )
+    (homology / "MGI_EntrezGene.rpt").write_text(
+        (fixtures / "mgi_stub.rpt").read_text()
+    )
+    (homology / "HGNC_AllianceHomology.rpt").write_text(
+        (fixtures / "alliance_homology_stub.rpt").read_text()
+    )
+    (homology / "gencode_clone_map.tsv").write_text(
+        (fixtures / "gencode_clone_map_stub.tsv").read_text()
+    )
+    monkeypatch.setenv("SSPSYGENE_DATA_DIR", str(tmp_path))
+
+    raw = tmp_path / "raw.csv"
+    out_path = tmp_path / "out.csv"
+    pd.DataFrame({"target_gene": ["BRCA1", "RP11-100A1.1"]}).to_csv(raw, index=False)
+
+    tracker = Tracker()
+    (
+        Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
+        .read_csv(raw)
+        .clean_gene("target_gene", species="human")
+        .write_csv(out_path)
+        .run()
+    )
+
+    written = pd.read_csv(out_path)
+    # RP11-100A1.1 -> BRCA1 via the GencodeCloneIndex auto-loaded from env.
+    assert written["target_gene"].tolist() == ["BRCA1", "BRCA1"]
+    assert written["_target_gene_resolution"].tolist() == [
+        "passed_through",
+        "rescued_gencode_clone_hgnc_symbol",
+    ]
 
 
 def test_manual_aliases_human_constant_unchanged() -> None:

@@ -76,8 +76,6 @@ def main() -> None:
             .clean_gene(
                 column,
                 species="human",
-                excel_demangle=True,
-                strip_make_unique=True,
                 manual_aliases=MANUAL_ALIASES,
             )
             .write_tsv(DIR / out_name)

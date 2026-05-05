@@ -77,8 +77,6 @@ def main() -> None:
         .clean_gene(
             "MarkerName",
             species="human",
-            excel_demangle=True,
-            strip_make_unique=True,
             manual_aliases=MANUAL_ALIASES_HUMAN,
         )
         .write_csv(META_OUT)

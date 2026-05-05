@@ -44,7 +44,7 @@ def main() -> None:
     (
         Pipeline("deg_cleaned.txt", tracker=tracker, normalizer=normalizer)
         .read_tsv(DIR / "deg.txt")
-        .clean_gene("Gene", species="mouse", excel_demangle=True)
+        .clean_gene("Gene", species="mouse")
         .write_tsv(DIR / "deg_cleaned.txt")
         .run()
     )

@@ -8,10 +8,13 @@ TSVs.
 Both reads pass `dtype=str` so any Excel-mangled date cells (e.g.
 `1-Mar`, `9-Sep`) survive as strings rather than being silently
 converted to Timestamps. Each sheet's gene column flows through a
-per-sheet `Pipeline` that calls `clean_gene` with `excel_demangle=True`,
-`strip_make_unique=True`, and `resolve_via_ensembl_map=True`. Numeric
-columns become strings on the way through and re-parse to numerics
-when the TSV is loaded downstream.
+per-sheet `Pipeline` that calls `clean_gene` — Pipeline's defaults
+turn on every shape-gated resolver (excel_demangle,
+strip_make_unique, resolve_hgnc_id, resolve_via_ensembl_map,
+resolve_gencode_clone, split_symbol_ensg) so the script only needs
+to specify the per-dataset `manual_aliases`. Numeric columns become
+strings on the way through and re-parse to numerics when the TSV is
+loaded downstream.
 
 The per-sheet pipelines all share one `Tracker`, so the resulting
 `preprocessing.yaml` (#150) records every action across all 45+26
@@ -36,7 +39,6 @@ from pathlib import Path
 import pandas as pd
 
 from processing.preprocessing import (
-    EnsemblToSymbolMapper,
     GeneSymbolNormalizer,
     Pipeline,
     Tracker,
@@ -105,7 +107,6 @@ def _non_empty_hgnc(d: pd.DataFrame) -> pd.Series:
 def process_supp3(
     tracker: Tracker,
     normalizer: GeneSymbolNormalizer,
-    ensembl_mapper: EnsemblToSymbolMapper,
 ) -> None:
     region_genes_map = build_region_genes_map()
 
@@ -124,7 +125,6 @@ def process_supp3(
                 f"supp3:{sheet_name}",
                 tracker=tracker,
                 normalizer=normalizer,
-                ensembl_mapper=ensembl_mapper,
             )
             .from_dataframe(sheet_df, label=f"sheet={sheet_name}")
             # Rows without an HGNC symbol (e.g. non-coding RNAs) are dropped.
@@ -134,11 +134,7 @@ def process_supp3(
             .clean_gene(
                 "hgnc_symbol",
                 species="human",
-                excel_demangle=True,
-                strip_make_unique=True,
-                resolve_hgnc_id=True,
                 manual_aliases=MANUAL_ALIASES,
-                resolve_via_ensembl_map=True,
             )
             .rename(
                 {
@@ -193,7 +189,6 @@ def process_supp3(
 def process_supp12(
     tracker: Tracker,
     normalizer: GeneSymbolNormalizer,
-    ensembl_mapper: EnsemblToSymbolMapper,
 ) -> None:
     all_sheets = pd.read_excel(
         SUPP12_EXCEL, sheet_name=None, engine="openpyxl", dtype=str
@@ -208,7 +203,6 @@ def process_supp12(
                 f"supp12:{sheet_name}",
                 tracker=tracker,
                 normalizer=normalizer,
-                ensembl_mapper=ensembl_mapper,
             )
             .from_dataframe(sheet_df, label=f"sheet={sheet_name}")
             .drop_columns(["...1"], errors="ignore")
@@ -227,11 +221,7 @@ def process_supp12(
             .clean_gene(
                 "target_gene",
                 species="human",
-                excel_demangle=True,
-                strip_make_unique=True,
-                resolve_hgnc_id=True,
                 manual_aliases=MANUAL_ALIASES,
-                resolve_via_ensembl_map=True,
             )
             .insert_column("perturbed_gene", sheet_name, position=0)
             .run()
@@ -253,9 +243,8 @@ def process_supp12(
 def main() -> None:
     tracker = Tracker()
     normalizer = GeneSymbolNormalizer.from_env()
-    ensembl_mapper = EnsemblToSymbolMapper.from_env()
-    process_supp3(tracker, normalizer, ensembl_mapper)
-    process_supp12(tracker, normalizer, ensembl_mapper)
+    process_supp3(tracker, normalizer)
+    process_supp12(tracker, normalizer)
     tracker.write(DIR / "preprocessing.yaml")
 
 

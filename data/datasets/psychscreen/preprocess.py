@@ -62,9 +62,6 @@ def main() -> None:
             .clean_gene(
                 "gene",
                 species="human",
-                excel_demangle=True,
-                strip_make_unique=True,
-                split_symbol_ensg=True,
                 manual_aliases=MANUAL_ALIASES,
             )
             .write_csv(DIR / out_name)

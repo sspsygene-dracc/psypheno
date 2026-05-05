@@ -1,4 +1,4 @@
-generated: '2026-05-05T09:03:04Z'
+generated: '2026-05-05T09:32:12Z'
 inputs:
 - Supp_1_all.csv
 - Supp_2_all.csv
@@ -24,16 +24,12 @@ tables:
     column: perturbed_gene
     species: human
     flags:
-      excel_demangle: true
-      strip_make_unique: true
       manual_aliases: &id001
         NOV: CCN3
         MUM1: PWWP3A
         QARS: QARS1
         SARS: SARS1
         TAZ: TAFAZZIN
-      resolve_via_ensembl_map: true
-      resolve_gencode_clone: true
     counts:
       passed_through: 415360
     dropped_rows: 0
@@ -42,11 +38,7 @@ tables:
     column: target_gene
     species: human
     flags:
-      excel_demangle: true
-      strip_make_unique: true
       manual_aliases: *id001
-      resolve_via_ensembl_map: true
-      resolve_gencode_clone: true
     counts:
       passed_through: 313659
       rescued_excel: 400
@@ -111,11 +103,7 @@ tables:
     column: perturbed_gene
     species: human
     flags:
-      excel_demangle: true
-      strip_make_unique: true
       manual_aliases: *id001
-      resolve_via_ensembl_map: true
-      resolve_gencode_clone: true
     counts:
       passed_through: 337020
     dropped_rows: 0
@@ -124,11 +112,7 @@ tables:
     column: target_gene
     species: human
     flags:
-      excel_demangle: true
-      strip_make_unique: true
       manual_aliases: *id001
-      resolve_via_ensembl_map: true
-      resolve_gencode_clone: true
     counts:
       passed_through: 298320
       unresolved: 200

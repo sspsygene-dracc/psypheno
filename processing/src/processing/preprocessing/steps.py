@@ -129,17 +129,10 @@ class CleanGeneColumnStep(Step):
                 "clean_gene step requires a GeneSymbolNormalizer; pass "
                 "normalizer=... to Pipeline()."
             )
+        # Mapper-required resolvers silently skip when the mapper is
+        # absent — Pipeline auto-instantiates from env, but tests and
+        # one-off callers may legitimately omit them.
         flags = dict(self.flags)
-        if flags.get("resolve_via_ensembl_map") and ctx.ensembl_mapper is None:
-            raise ValueError(
-                "resolve_via_ensembl_map=True requires an EnsemblToSymbolMapper; "
-                "pass ensembl_mapper=... to Pipeline()."
-            )
-        if flags.get("resolve_gencode_clone") and ctx.gencode_clone_index is None:
-            raise ValueError(
-                "resolve_gencode_clone=True requires a GencodeCloneIndex; "
-                "pass gencode_clone_index=... to Pipeline()."
-            )
         out, report = clean_gene_column(
             df,
             self.column,

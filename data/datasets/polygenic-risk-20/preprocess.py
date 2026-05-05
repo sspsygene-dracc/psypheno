@@ -36,8 +36,6 @@ import ...` resolves.
 from pathlib import Path
 
 from processing.preprocessing import (
-    EnsemblToSymbolMapper,
-    GencodeCloneIndex,
     GeneSymbolNormalizer,
     MANUAL_ALIASES_HUMAN,
     Pipeline,
@@ -56,29 +54,17 @@ GENE_COLUMNS = ("perturbed_gene", "target_gene")
 def main() -> None:
     tracker = Tracker()
     normalizer = GeneSymbolNormalizer.from_env()
-    ensembl_mapper = EnsemblToSymbolMapper.from_env()
-    gencode_clone_index = GencodeCloneIndex.from_env()
 
     for in_name, out_name in JOBS:
         pipe = (
-            Pipeline(
-                out_name,
-                tracker=tracker,
-                normalizer=normalizer,
-                ensembl_mapper=ensembl_mapper,
-                gencode_clone_index=gencode_clone_index,
-            )
+            Pipeline(out_name, tracker=tracker, normalizer=normalizer)
             .read_csv(DIR / in_name)
         )
         for column in GENE_COLUMNS:
             pipe = pipe.clean_gene(
                 column,
                 species="human",
-                excel_demangle=True,
-                strip_make_unique=True,
                 manual_aliases=MANUAL_ALIASES_HUMAN,
-                resolve_via_ensembl_map=True,
-                resolve_gencode_clone=True,
             )
         pipe.write_csv(DIR / out_name).run()
 

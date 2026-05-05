@@ -32,7 +32,6 @@ Outputs (config.yaml reads these):
 from pathlib import Path
 
 from processing.preprocessing import (
-    EnsemblToSymbolMapper,
     GeneSymbolNormalizer,
     Pipeline,
     Tracker,
@@ -47,21 +46,11 @@ OUT_FILE = DIR / "MGI_PhenotypicAllele_cleaned.rpt"
 def main() -> None:
     tracker = Tracker()
     normalizer = GeneSymbolNormalizer.from_env()
-    ensembl_mapper = EnsemblToSymbolMapper.from_env()
 
     (
-        Pipeline(
-            OUT_FILE.name,
-            tracker=tracker,
-            normalizer=normalizer,
-            ensembl_mapper=ensembl_mapper,
-        )
+        Pipeline(OUT_FILE.name, tracker=tracker, normalizer=normalizer)
         .read_tsv(IN_FILE)
-        .clean_gene(
-            "Marker Ensembl ID",
-            species="mouse",
-            resolve_via_ensembl_map=True,
-        )
+        .clean_gene("Marker Ensembl ID", species="mouse")
         .write_tsv(OUT_FILE)
         .run()
     )

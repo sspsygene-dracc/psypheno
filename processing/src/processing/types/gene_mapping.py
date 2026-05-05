@@ -7,7 +7,10 @@ import click
 import pandas as pd
 from processing.central_gene_table import get_central_gene_table
 from processing.my_logger import get_sspsygene_logger
-from processing.preprocessing.helpers import NON_SYMBOL_CATEGORIES
+from processing.preprocessing.helpers import (
+    NON_SYMBOL_CATEGORIES,
+    is_non_symbol_identifier,
+)
 from processing.types.link_table import LinkTable, PerturbedOrTarget
 
 
@@ -50,6 +53,13 @@ class NonResolving:
         retired-but-still-meaningful symbols (`SGK494`, `GATD3B`) and
         pattern categories that legitimately belong in central_gene but
         cannot be auto-resolved.
+
+    Anything matching `is_non_symbol_identifier` (ENSG / ENSMUSG /
+    contig / gencode_clone / genbank_accession / rna_family) is also
+    auto-recorded — the warning would just be noise for known
+    non-symbol shapes. The explicit `record_patterns` field is now
+    redundant for those built-in categories but kept for backwards
+    compatibility.
 
     Anything not matched here falls through to the strict default:
     WARN + create stub + link.
@@ -105,6 +115,14 @@ class NonResolving:
             return "control"
         if gene_val in self.record_values:
             return "record"
+        # Built-in non-symbol shapes (ENSG, contig, gencode_clone,
+        # rna_family, genbank_accession) auto-record so load-db doesn't
+        # spam warnings about values it already knows aren't symbols.
+        if is_non_symbol_identifier(gene_val) is not None:
+            return "record"
+        # Legacy explicit record_patterns — redundant given the
+        # is_non_symbol_identifier check above (they're the same
+        # categories) but kept for backwards-compatible config parsing.
         for category in self.record_patterns:
             if NON_SYMBOL_CATEGORIES[category](gene_val):
                 return "record"

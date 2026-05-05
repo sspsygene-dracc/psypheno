@@ -41,6 +41,24 @@ def test_non_resolving_record_patterns() -> None:
     assert nr.classify("BRCA1") == "fallback"
 
 
+def test_non_resolving_auto_records_non_symbol_shapes() -> None:
+    # Empty NonResolving still auto-silences any value classified by
+    # is_non_symbol_identifier (ENSG / clone / contig / RNA family /
+    # GenBank). Datasets no longer need to add record_patterns to
+    # silence load-db warnings about these built-in shapes.
+    nr = NonResolving.from_json({})
+    assert nr.classify("ENSG00000123456") == "record"
+    assert nr.classify("ENSMUSG00000071265") == "record"
+    assert nr.classify("RP11-783K16.5") == "record"
+    assert nr.classify("AC012345.6") == "record"
+    assert nr.classify("KC877982") == "record"
+    assert nr.classify("Y_RNA") == "record"
+    assert nr.classify("MIR5096") == "record"
+    # Real symbols still fall through to the strict default.
+    assert nr.classify("BRCA1") == "fallback"
+    assert nr.classify("MATR3") == "fallback"
+
+
 def test_non_resolving_unknown_pattern_raises() -> None:
     with pytest.raises(ValueError, match="Unknown non_resolving pattern category"):
         NonResolving.from_json({"record_patterns": ["not_a_category"]})

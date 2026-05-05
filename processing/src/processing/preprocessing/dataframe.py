@@ -51,16 +51,16 @@ def clean_gene_column(
     *,
     species: Species,
     normalizer: GeneSymbolNormalizer,
-    resolve_hgnc_id: bool = False,
-    excel_demangle: bool = False,
-    strip_make_unique: bool = False,
-    split_symbol_ensg: bool = False,
+    resolve_hgnc_id: bool = True,
+    excel_demangle: bool = True,
+    strip_make_unique: bool = True,
+    split_symbol_ensg: bool = True,
     manual_aliases: dict[str, str] | None = None,
     drop_non_symbols: bool = False,
     ensembl_mapper: EnsemblToSymbolMapper | None = None,
-    resolve_via_ensembl_map: bool = False,
+    resolve_via_ensembl_map: bool = True,
     gencode_clone_index: GencodeCloneIndex | None = None,
-    resolve_gencode_clone: bool = False,
+    resolve_gencode_clone: bool = True,
 ) -> tuple[pd.DataFrame, CleanReport]:
     """Resolve and annotate a gene-name column.
 
@@ -97,19 +97,14 @@ def clean_gene_column(
     `rescued_gencode_clone_<kind>`. Clones absent from the index fall
     through to the existing Tier B `non_symbol_gencode_clone`
     classification, identical to today's behavior.
+
+    All shape-gated resolvers default to True (they're cheap no-ops on
+    inputs that don't match their patterns). The mapper-required ones
+    (`resolve_via_ensembl_map`, `resolve_gencode_clone`) silently skip
+    if their mapper is None — pass them explicitly to enable that
+    rescue path. `Pipeline` auto-instantiates both mappers from env, so
+    via the pipeline interface every resolver is always available.
     """
-    if resolve_via_ensembl_map and ensembl_mapper is None:
-        raise ValueError(
-            "resolve_via_ensembl_map=True requires an ensembl_mapper; "
-            "pass EnsemblToSymbolMapper.from_env() (or from_paths)."
-        )
-
-    if resolve_gencode_clone and gencode_clone_index is None:
-        raise ValueError(
-            "resolve_gencode_clone=True requires a gencode_clone_index; "
-            "pass GencodeCloneIndex.from_env() (or from_paths)."
-        )
-
     if column not in df.columns:
         raise KeyError(f"column {column!r} not in DataFrame columns: {list(df.columns)}")
 
@@ -194,8 +189,7 @@ def clean_gene_column(
             counts["rescued_manual_alias"] += 1
             continue
 
-        if resolve_via_ensembl_map:
-            assert ensembl_mapper is not None
+        if resolve_via_ensembl_map and ensembl_mapper is not None:
             rescued = ensembl_mapper.resolve_ensg(name, species)
             if rescued is not None:
                 resolved_symbol = normalizer.resolve(rescued, species)
@@ -205,8 +199,7 @@ def clean_gene_column(
                     counts["rescued_ensembl_map"] += 1
                     continue
 
-        if resolve_gencode_clone:
-            assert gencode_clone_index is not None
+        if resolve_gencode_clone and gencode_clone_index is not None:
             clone_rescue = helpers.resolve_gencode_clone(name, gencode_clone_index)
             if clone_rescue is not None:
                 kind, replacement = clone_rescue
