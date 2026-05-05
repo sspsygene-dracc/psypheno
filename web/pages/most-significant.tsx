@@ -898,24 +898,34 @@ export default function MostSignificantPage() {
             <div
               style={{
                 marginBottom: 12,
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 6,
                 fontSize: 13,
                 color: "#6b7280",
-                lineHeight: 1.6,
               }}
             >
-              <span style={{ fontWeight: 600, color: "#374151" }}>
+              <span
+                style={{ fontWeight: 600, color: "#374151", marginRight: 4 }}
+              >
                 {filtered.length} dataset{filtered.length !== 1 ? "s" : ""} included:
-              </span>{" "}
-              {filtered.map((t, i) => (
-                <span key={t.tableName}>
-                  {i > 0 && ", "}
-                  <Link
-                    href={`/full-datasets?select=${encodeURIComponent(t.shortLabel ? t.shortLabel.replace(/\s+/g, "_") : t.tableName)}`}
-                    style={{ color: "#2563eb", textDecoration: "none" }}
-                  >
-                    {formatName(t)}
-                  </Link>
-                </span>
+              </span>
+              {filtered.map((t) => (
+                <Link
+                  key={t.tableName}
+                  href={`/full-datasets?select=${encodeURIComponent(t.shortLabel ? t.shortLabel.replace(/\s+/g, "_") : t.tableName)}`}
+                  style={{
+                    padding: "2px 8px",
+                    background: "#eff6ff",
+                    color: "#2563eb",
+                    borderRadius: 9999,
+                    textDecoration: "none",
+                    fontSize: 12,
+                  }}
+                >
+                  {formatName(t)}
+                </Link>
               ))}
             </div>
           );

@@ -590,10 +590,11 @@ export default function GeneResults({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
+                      flexWrap: "wrap",
                       gap: 12,
                     }}
                   >
-                    <div style={{ minWidth: 0 }}>
+                    <div style={{ minWidth: 0, flex: "1 1 240px" }}>
                       {formatTableName(section)}
                       {section.source && (
                         <InfoTooltip

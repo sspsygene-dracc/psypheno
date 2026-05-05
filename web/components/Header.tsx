@@ -23,7 +23,7 @@ const OTHER_LINKS = [
 
 const MOBILE_LINKS = [...PRIMARY_LINKS, ...OTHER_LINKS];
 
-const MOBILE_BREAKPOINT = 700;
+const MOBILE_BREAKPOINT = 820;
 
 export default function Header() {
   const router = useRouter();
@@ -237,7 +237,7 @@ export default function Header() {
               background: "none",
               border: "1px solid #d1d5db",
               borderRadius: 6,
-              padding: "8px 10px",
+              padding: "10px 11px",
               cursor: "pointer",
               alignItems: "center",
               justifyContent: "center",

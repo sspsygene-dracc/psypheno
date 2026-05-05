@@ -88,6 +88,16 @@ export default function AllGenes() {
       <Head>
         <title>All Genes &mdash; SSPsyGene</title>
       </Head>
+      <style>{`
+        @media (max-width: 640px) {
+          .all-genes-pager {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+          }
+          .all-genes-pager > div { justify-content: center !important; }
+        }
+      `}</style>
       <div
         style={{
           minHeight: "100vh",
@@ -101,6 +111,7 @@ export default function AllGenes() {
           style={{
             maxWidth: "1200px",
             width: "100%",
+            boxSizing: "border-box",
             margin: "0 auto",
             padding: "32px 16px",
             flex: 1,
@@ -129,6 +140,7 @@ export default function AllGenes() {
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
                 width: "100%",
+                boxSizing: "border-box",
                 padding: "12px 16px",
                 background: "#ffffff",
                 border: "1px solid #d1d5db",
@@ -155,13 +167,15 @@ export default function AllGenes() {
                   background: "#ffffff",
                   border: "1px solid #e5e7eb",
                   borderRadius: 12,
-                  overflow: "hidden",
+                  overflowX: "auto",
                 }}
               >
+                <div style={{ minWidth: 720 }}>
                 <div
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1.2fr 1fr 1fr 1fr 100px",
+                    columnGap: 16,
                     padding: "16px",
                     background: "#f9fafb",
                     color: "#6b7280",
@@ -219,6 +233,7 @@ export default function AllGenes() {
                           style={{
                             display: "grid",
                             gridTemplateColumns: "1.2fr 1fr 1fr 1fr 100px",
+                            columnGap: 16,
                             padding: "16px",
                             borderTop: "1px solid #e5e7eb",
                             color: "#1f2937",
@@ -274,6 +289,7 @@ export default function AllGenes() {
                     })
                   )}
                 </div>
+                </div>
               </div>
 
               <div style={{ marginTop: 16, color: "#6b7280", fontSize: 14 }}>
@@ -281,12 +297,14 @@ export default function AllGenes() {
               </div>
 
               <div
+                className="all-genes-pager"
                 style={{
                   marginTop: 12,
                   display: "flex",
                   gap: 8,
                   alignItems: "center",
                   justifyContent: "space-between",
+                  flexWrap: "wrap",
                 }}
               >
                 <div style={{ display: "flex", gap: 8 }}>

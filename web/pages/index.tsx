@@ -225,6 +225,11 @@ export default function Home() {
       <Head>
         <title>SSPsyGene Datasets</title>
       </Head>
+      <style>{`
+        @media (max-width: 640px) {
+          .home-pair-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       <div
         style={{
           minHeight: "100vh",
@@ -352,6 +357,7 @@ export default function Home() {
           </div>
 
           <div
+            className="home-pair-grid"
             style={{
               width: "min(720px, 92%)",
               boxSizing: "border-box",
