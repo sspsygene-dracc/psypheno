@@ -124,19 +124,23 @@ def build_clone_map(
             if not (is_clone or is_ac):
                 continue
             seen.add(name)
-            if is_ac:
-                # The GTF already names this with a current AC/AL/AP
-                # accession; treat the gene_name itself as the resolution.
-                rows.append((name, name, "current_ac_accession"))
-                counts["current_ac_accession"] += 1
-                continue
-            # Clone-shaped: either promoted to an HGNC symbol, or still a
-            # current ENSG anchor.
+            # HGNC-symbol lookup applies to both clone-shaped and
+            # AC-shaped gene_names: HGNC sometimes promotes a locus to a
+            # symbol after the pinned GENCODE release, in which case the
+            # GTF still carries the older AC name. Without this lookup
+            # we'd miss ~15% of AC-shaped loci that have a current
+            # symbol.
             symbol = hgnc_ensg_to_symbol.get(ensg)
             if symbol is not None:
                 rows.append((name, symbol, "hgnc_symbol"))
                 counts["hgnc_symbol"] += 1
+            elif is_ac:
+                # No HGNC symbol; the AC accession itself is the
+                # canonical name we'll surface.
+                rows.append((name, name, "current_ac_accession"))
+                counts["current_ac_accession"] += 1
             else:
+                # Clone-shaped, no symbol; ENSG is the stable anchor.
                 rows.append((name, ensg, "current_ensg"))
                 counts["current_ensg"] += 1
 

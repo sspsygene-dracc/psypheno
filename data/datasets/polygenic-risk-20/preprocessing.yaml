@@ -1,4 +1,4 @@
-generated: '2026-05-05T08:34:06Z'
+generated: '2026-05-05T09:00:41Z'
 inputs:
 - Supp_1_all.csv
 - Supp_2_all.csv
@@ -53,8 +53,8 @@ tables:
       non_symbol_gencode_clone: 25872
       non_symbol_contig: 8720
       rescued_gencode_clone_current_ensg: 41952
-      rescued_gencode_clone_hgnc_symbol: 11056
-      rescued_gencode_clone_current_ac_accession: 9760
+      rescued_gencode_clone_hgnc_symbol: 13216
+      rescued_gencode_clone_current_ac_accession: 7600
       non_symbol_rna_family: 2880
       unresolved: 741
       non_symbol_genbank_accession: 144
@@ -135,7 +135,8 @@ tables:
       unresolved: 200
       rescued_make_unique: 380
       non_symbol_contig: 36440
-      rescued_gencode_clone_current_ac_accession: 1080
+      rescued_gencode_clone_hgnc_symbol: 240
+      rescued_gencode_clone_current_ac_accession: 840
       non_symbol_genbank_accession: 20
       rescued_excel: 480
       rescued_manual_alias: 100
