@@ -43,11 +43,17 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2025-11-28"
     comment: Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-05"
+    comment: Standardized table titles, added column tooltips, expanded the behavioral fingerprint source description per Catharina's wrangler-meeting feedback, and updated paper reference to the published Nature Neuroscience version.
 tables:
   - table: dynamic_convergence_S2
     changelog:
       - date: "2025-11-07"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title to first-author/year/assay/medium format, added column tooltips, and updated paper reference now that the Nature Neuroscience version is out."
     shortLabel: meta_degs_ndd_convergence
     mediumLabel: Fernandez Garcia 2026 - Meta-DEGs across 29 NDD Perturbations in hiPSC NPCs and Neurons
     longLabel: Meta-analysis of convergent NDD risk gene effects across development
@@ -112,6 +118,8 @@ tables:
     changelog:
       - date: "2026-02-17"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title, expanded source description per Catharina's wrangler-meeting feedback, added column tooltips, and updated paper reference to the published Nature Neuroscience version."
     shortLabel: mutant_behavior_fingerprints
     mediumLabel: Fernandez Garcia 2026 - Behavioral Fingerprints of NDD Mutant and Crispant Zebrafish
     source: "Supplemental Data 3 download media-5.xlsx ; log10(pvalue) Baseline comparison behaviors of stable mutant to background-matched wild-type fish"

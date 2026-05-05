@@ -42,11 +42,17 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2025-11-28"
     comment: Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-05"
+    comment: Standardized table titles, used the full surname Weinschutz Mendes, corrected the organism description to stable mutants, added column header tooltips, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: zebra_asd
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title (full surname Weinschutz Mendes; organism corrected to stable mutants) and added column header tooltips."
     shortLabel: zebrafish_asd_functional_screen
     mediumLabel: Weinschutz Mendes 2023 - in vivo Functional Screen of 10 ASD Risk Genes in Zebrafish
     longLabel: High-throughput in vivo screen of autism risk genes in zebrafish
@@ -95,6 +101,8 @@ tables:
     changelog:
       - date: "2026-02-23"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title (full surname Weinschutz Mendes) and added column header tooltips."
     shortLabel: mutant_behavior_rest_wake_visual_startle
     mediumLabel: Weinschutz Mendes 2023 - Sleep-Wake and Visual-Startle Behavior in 10 ASD Zebrafish Mutants
     source: "Supplemental Table S2, Related to Figure 2"

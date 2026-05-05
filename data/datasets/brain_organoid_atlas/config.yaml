@@ -31,11 +31,17 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2025-11-28"
     comment: Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-05"
+    comment: Standardized table titles, added paper-tailored column tooltips, declared p-value/FDR/effect columns on the NEBULA tables, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: brain_organoid_atlas_patient_list
     changelog:
       - date: "2025-11-05"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title to first-author/year/assay/medium format and added column tooltips."
     shortLabel: ndd_patient_list
     mediumLabel: Wang 2025 - NDD Patient Metadata for Brain Organoids
     longLabel: Brain organoid atlas patient metadata with pathogenic variants
@@ -82,6 +88,8 @@ tables:
     changelog:
       - date: "2025-11-05"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title (snRNA-seq → scRNA-seq fix), added column tooltips, declared p-value/FDR/effect columns for cross-dataset stats."
     shortLabel: nebula_degs_fdr_005
     mediumLabel: Wang 2025 - NEBULA scRNA-seq DEGs in NDD Brain Organoids (FDR 0.05)
     longLabel: NEBULA differential expression analysis at 0.05 FDR threshold
@@ -135,6 +143,8 @@ tables:
     changelog:
       - date: "2025-11-05"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title (snRNA-seq → scRNA-seq fix), added column tooltips, declared p-value/FDR/effect columns for cross-dataset stats."
     shortLabel: nebula_degs_fdr_02
     mediumLabel: Wang 2025 - NEBULA scRNA-seq DEGs in NDD Brain Organoids (FDR 0.2)
     longLabel: NEBULA differential expression analysis at 0.2 FDR threshold
@@ -188,6 +198,8 @@ tables:
     changelog:
       - date: "2025-11-05"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title (snRNA-seq → scRNA-seq fix) and added column tooltips."
     shortLabel: full_nebula_gene_list
     mediumLabel: Wang 2025 - Full NEBULA scRNA-seq DEG List in NDD Brain Organoids
     longLabel: Complete list of differentially expressed genes from NEBULA analysis
@@ -241,6 +253,8 @@ tables:
     changelog:
       - date: "2025-11-05"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title and added column tooltips."
     shortLabel: pseudobulk_validation_genes
     mediumLabel: Wang 2025 - Pseudobulk Validation DEGs in NDD Brain Organoids
     longLabel: Selected validation genes from cell subclass pseudobulk analysis

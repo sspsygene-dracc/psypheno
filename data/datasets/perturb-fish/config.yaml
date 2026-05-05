@@ -21,6 +21,10 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2025-11-28"
     comment: Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-05"
+    comment: Standardized table title, added paper-tailored column tooltips, declared effect_column on perturb_fish_astro, and migrated off drop_values to the new patient_list filter.
 tables:
   - table: perturb_fish_astro
     changelog:
@@ -28,6 +32,8 @@ tables:
         message: "Initial data load"
       - date: "2026-05-04"
         message: "Declare effect_column: lfc so the table contributes to up/down combined-p groups (#74)"
+      - date: "2026-05-05"
+        message: "Standardized title and added paper-tailored column tooltips."
     shortLabel: perturb_fish_astrocyte_screen
     mediumLabel: Binan 2025 - Perturb-FISH CRISPRi Screen of 127 ASD Genes in iPSC Astrocytes
     longLabel: CRISPR screening with spatial transcriptomics in astrocytes

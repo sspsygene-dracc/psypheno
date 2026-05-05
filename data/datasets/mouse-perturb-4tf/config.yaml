@@ -34,11 +34,17 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2025-11-28"
     comment: Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-05"
+    comment: Standardized table titles, added column header tooltips, migrated off drop_values to the new patient_list filter, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: mouse_perturb_deg
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title and added column header tooltips."
     shortLabel: 4tf_perturb_seq_degs
     mediumLabel: Zheng 2024 - in vivo Perturb-seq DEGs of 4 TFs in Mouse Cortex
     longLabel: Differential expression from in vivo Perturb-seq of four transcription factors
@@ -104,6 +110,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title and added column header tooltips."
     shortLabel: 4tf_cell_proportion_changes
     mediumLabel: Zheng 2024 - in vivo Perturb-seq Cell-Type Proportion Shifts in Mouse Cortex
     longLabel: Cell type proportion shifts from transcription factor perturbations

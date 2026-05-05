@@ -26,8 +26,15 @@ maintainers:
     email: bwick@ucsc.edu
     date: "2026-02-17"
     comment: Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-05"
+    comment: Standardized table titles, added column tooltips, merged the geschwind_2026_cnv data into DE_results with HGNC/chromosome/biotype columns, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: hsc_asd_organoid_m5_DE_targets_M5_TFs
+    changelog:
+      - date: "2026-05-05"
+        message: "Standardized title to first-author/year/assay/medium format and added column tooltips."
     shortLabel: asd_m5_transcription_factor_de_targets
     mediumLabel: Gordon 2026 - CRISPRi DEGs of 26 ASD Module-5 Transcriptional Regulators in NGN2-induced hiPSC NPCs
     longLabel: Differentially expressed genes following perturbation of Module 5 transcription factors in ASD
@@ -112,6 +119,8 @@ tables:
     changelog:
       - date: "2026-04-28"
         message: "Converted ENSG IDs to HGNC gene symbols. Added chromosome_name, band, gene_biotype columns."
+      - date: "2026-05-05"
+        message: "Standardized title and added column tooltips."
     shortLabel: asd_organoid_de_results
     mediumLabel: Gordon 2026 - ASD Genetic-Form DEGs in iPSC Cortical Organoids
     longLabel: Differential expression results across ASD genetic perturbations and developmental timepoints

@@ -12,11 +12,17 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2025-11-28"
     comment: Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-05"
+    comment: Standardized table titles, resolved Ensembl-ID columns to HGNC symbols at preprocess time, added column header tooltips and a /gene-parser link tooltip, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: sfari_animal_genes
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title, resolved Ensembl IDs to HGNC symbols at preprocess time, added column tooltips and a /gene-parser link tooltip."
     shortLabel: sfari_animal_model_genes
     mediumLabel: Banerjee-Basu 2010 - SFARI Curated Animal Model Genes for ASD
     longLabel: SFARI Gene animal model evidence for autism genes
@@ -55,6 +61,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title, resolved Ensembl IDs to HGNC symbols at preprocess time, added column tooltips and a /gene-parser link tooltip."
     shortLabel: sfari_animal_rescue_models
     mediumLabel: Banerjee-Basu 2010 - SFARI Curated Animal Rescue Models for ASD
     longLabel: SFARI Gene animal rescue experiment data
@@ -93,6 +101,8 @@ tables:
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title, resolved Ensembl IDs to HGNC symbols at preprocess time, added column tooltips and a /gene-parser link tooltip."
     shortLabel: sfari_human_gene_scores
     mediumLabel: Banerjee-Basu 2010 - SFARI Curated Human Gene Scores for ASD
     longLabel: SFARI Gene human genetic evidence and scoring

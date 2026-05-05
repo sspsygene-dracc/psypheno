@@ -32,8 +32,15 @@ maintainers:
     email: brianlee@ucsc.edu
     date: "2026-02-02"
     comment: Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-05"
+    comment: Standardized table titles, resolved GENCODE clone IDs and AC-shaped accessions to HGNC symbols / ENSGs at preprocess time, added column tooltips, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: SCZ_Risk_Arrayed_RNAseq_supp_1
+    changelog:
+      - date: "2026-05-05"
+        message: "Standardized title and added column tooltips. Resolved GENCODE clone IDs and AC-shaped accessions to HGNC symbols / ENSGs at preprocess time."
     shortLabel: scz_risk_arrayed_bulk_rnaseq
     mediumLabel: "Deans 2026 - arrayed CRISPRa/shRNA bulk RNA-seq in iGLUT Neurons"
     longLabel: Polygenic risk for schizophrenia -arrayed assay perturbation on CALN1 CLCN3 CUL9 DOC2A FURIN GATAD2A INO80E PCCB PLCL1 SF3B1 SNAP91 SNCA THOC7 TMEM219 TSNARE1 ZNF823
@@ -100,6 +107,9 @@ tables:
       adj_p_val: "Benjamini–Hochberg FDR-adjusted p-value"
       b: "Log-odds that the gene is differentially expressed"
   - table: SCZ_Risk_Pooled_ECCITEseq_supp_2
+    changelog:
+      - date: "2026-05-05"
+        message: "Standardized title (dropped /shRNA from pooled label), added column tooltips. Resolved GENCODE clone IDs and AC-shaped accessions to HGNC symbols / ENSGs at preprocess time."
     shortLabel: scz_risk_pooled_eccite_seq
     mediumLabel: "Deans 2026 - pooled CRISPRa ECCITE-seq in iGLUT Neurons"
     longLabel: Polygenic risk for schizophrenia - pooled assay perturbation on CALN1 CLCN3 FES NAGA PLCL1 SF3B1 TMEM219 UBE2Q2L ZNF804A ZNF823

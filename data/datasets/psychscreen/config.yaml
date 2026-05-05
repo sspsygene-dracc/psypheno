@@ -90,11 +90,17 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2025-11-28"
     comment: Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-05"
+    comment: Standardized table titles, tightened the tissue label from Brain to PFC, added column header tooltips, declared effect_columns, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: psychscreen_age_deg
     changelog:
       - date: "2025-10-14"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title (tissue tightened from Brain to PFC), added column header tooltips, declared effect_column."
     shortLabel: psychscreen_age_degs
     mediumLabel: Emani 2024 - snRNA-seq Pseudobulk DEGs of Aging in Postmortem PFC (via PsychSCREEN)
     longLabel: Age-related differential expression in psychiatric disorders
@@ -163,6 +169,8 @@ tables:
     changelog:
       - date: "2025-10-14"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title (tissue tightened from Brain to PFC), added column header tooltips, declared effect_column."
     shortLabel: psychscreen_asd_degs
     mediumLabel: Emani 2024 - snRNA-seq Pseudobulk DEGs of ASD in Postmortem PFC (via PsychSCREEN)
     longLabel: Autism spectrum disorder differential expression signatures
@@ -231,6 +239,8 @@ tables:
     changelog:
       - date: "2025-10-14"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title (tissue tightened from Brain to PFC), added column header tooltips, declared effect_column."
     shortLabel: psychscreen_bipolar_degs
     mediumLabel: Emani 2024 - snRNA-seq Pseudobulk DEGs of Bipolar Disorder in Postmortem PFC (via PsychSCREEN)
     longLabel: Bipolar disorder differential expression signatures
@@ -299,6 +309,8 @@ tables:
     changelog:
       - date: "2025-10-14"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title (tissue tightened from Brain to PFC), added column header tooltips, declared effect_column."
     shortLabel: psychscreen_schizophrenia_degs
     mediumLabel: Emani 2024 - snRNA-seq Pseudobulk DEGs of Schizophrenia in Postmortem PFC (via PsychSCREEN)
     longLabel: Schizophrenia differential expression signatures

@@ -15,11 +15,17 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2025-11-28"
     comment: Initial table creation
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-05"
+    comment: Standardized table title, narrowed it to match the ingested artifact, migrated the Ensembl-ID column to HGNC symbols at preprocess time, added column tooltips and a /gene-parser link tooltip, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: mgi_high_level_phenotypes
     changelog:
       - date: "2025-10-27"
         message: "Initial data load"
+      - date: "2026-05-05"
+        message: "Standardized title and narrowed scope to match the ingested artifact, resolved Ensembl IDs to HGNC symbols at preprocess time, added column tooltips and a /gene-parser link tooltip."
     shortLabel: mgi_phenotype_annotations
     mediumLabel: Baldarelli 2024 - Allele-level Mammalian Phenotype Ontology Annotations (MGI)
     longLabel: Mouse Genome Informatics phenotypic allele annotations
