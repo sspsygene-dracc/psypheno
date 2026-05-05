@@ -4,6 +4,14 @@
   * agents should read all papers and make sure our updated dataset titles are
     actually correct
 
+for the issue 139 workflow:
+- let's also look at other gencode identifiers that we
+  may want to look at
+- should consider whether all this symbol resolution that are currently optional
+  should just be enabled by default
+
+Gencode: Add as first-class identifier? But that's kind of implicitly done anways
+
 - Bug: I still can't search for ALL control genes by entering CONTROL in the
   gene search fields. Also add that searching for CONTROL searches for ALL
   control genes (all names of control genes) across all tables. Add this info
@@ -23,9 +31,11 @@
 - One separate dataset_name.preprocessing.yaml per table, not per
   preprocess.py #158
 - Complete column header tooltips #160
-- Cache results of R computations. By computing a hash over the actual input
-  to R, and saving results, we're probably able to save a huge chunk of
-  re-computation on load-db
+- Cache results of R computations. By computing a hash over the actual input to
+  R, and saving results, we're probably able to save a huge chunk of
+  re-computation on load-db. The implementation should specifically ensure that
+  --test runs don't cache results that are loaded by production later, but the
+  hashing methodology should actually prevent this
 
 - Security review #157
 - Test-suite buildout: Python backend, frontend unit, frontend e2e,

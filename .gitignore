@@ -20,3 +20,6 @@ docs/db-size-analysis.md
 docs/db-region-gene-optimization.md
 .claude/
 .playwright-mcp/
+
+# Original papers (cannot be redistributed; download with download-papers.sh)
+papers/
