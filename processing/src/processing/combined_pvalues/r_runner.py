@@ -20,6 +20,7 @@ from pathlib import Path
 
 import click
 
+from . import r_cache
 from .collection import precollapse
 from .data import CollectedPvalues, GeneCombinedPvalues
 
@@ -198,37 +199,15 @@ def parse_r_results(results_path: Path) -> dict[int, GeneCombinedPvalues]:
 
 def call_r_combine(
     pvalues: CollectedPvalues,
+    use_cache: bool = True,
 ) -> dict[int, GeneCombinedPvalues] | None:
     """Call R to compute combined p-values and FDR corrections.
 
     Writes input CSVs, invokes Rscript, reads result CSV. Returns the
-    per-gene combined p-values, or None if R is unavailable.
+    per-gene combined p-values, or None if R is unavailable. When
+    `use_cache` is True (default), checks the content-addressed cache
+    in `r_cache` before invoking R, and stores results on miss.
     """
-    rscript = shutil.which("Rscript")
-    if rscript is None:
-        click.echo(
-            click.style(
-                "\n  WARNING: Rscript not found on PATH. "
-                "Combined p-values will not be computed.\n"
-                "  Install R to enable this feature: brew install r (macOS) "
-                "or apt install r-base (Ubuntu)\n",
-                fg="yellow",
-                bold=True,
-            )
-        )
-        return None
-
-    if not _ensure_r_packages(rscript):
-        click.echo(
-            click.style(
-                "\n  WARNING: Required R packages could not be installed. "
-                "Combined p-values will not be computed.\n",
-                fg="yellow",
-                bold=True,
-            )
-        )
-        return None
-
     if not _R_SCRIPT.exists():
         click.echo(
             click.style(
@@ -243,6 +222,39 @@ def call_r_combine(
     tmp_dir = Path(tempfile.mkdtemp(prefix="sspsygene_combine_"))
     try:
         write_r_inputs(tmp_dir, pvalues)
+
+        cache_key: str | None = None
+        if use_cache:
+            cache_key = r_cache.compute_key(tmp_dir, _R_SCRIPT)
+            hit = r_cache.lookup(cache_key)
+            if hit is not None:
+                click.echo(f"  R cache hit ({cache_key[:12]})")
+                return parse_r_results(hit)
+
+        rscript = shutil.which("Rscript")
+        if rscript is None:
+            click.echo(
+                click.style(
+                    "\n  WARNING: Rscript not found on PATH. "
+                    "Combined p-values will not be computed.\n"
+                    "  Install R to enable this feature: brew install r (macOS) "
+                    "or apt install r-base (Ubuntu)\n",
+                    fg="yellow",
+                    bold=True,
+                )
+            )
+            return None
+
+        if not _ensure_r_packages(rscript):
+            click.echo(
+                click.style(
+                    "\n  WARNING: Required R packages could not be installed. "
+                    "Combined p-values will not be computed.\n",
+                    fg="yellow",
+                    bold=True,
+                )
+            )
+            return None
 
         result = subprocess.run(
             [rscript, str(_R_SCRIPT), str(tmp_dir)],
@@ -265,6 +277,9 @@ def call_r_combine(
         results_path = tmp_dir / "results.csv"
         if not results_path.exists():
             raise RuntimeError(f"R script did not produce {results_path}")
+
+        if use_cache and cache_key is not None:
+            r_cache.store(cache_key, results_path)
 
         return parse_r_results(results_path)
 

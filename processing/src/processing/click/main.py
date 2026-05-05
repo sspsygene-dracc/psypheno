@@ -73,6 +73,14 @@ def cli(
     help="Skip computing combined p-values (meta-analysis). Speeds up loading for test purposes.",
 )
 @click.option(
+    "--no-r-cache",
+    is_flag=True,
+    default=False,
+    help="Bypass the R meta-analysis result cache (processing/r-cache/). "
+    "Forces every R job to re-run; useful when iterating on the R script "
+    "before its bytes change.",
+)
+@click.option(
     "--export-only",
     is_flag=True,
     default=False,
@@ -96,6 +104,7 @@ def load_db(
     no_index: bool,
     skip_gene_descriptions: bool,
     skip_meta_analysis: bool,
+    no_r_cache: bool,
     export_only: bool,
     test_mode: bool,
 ) -> None:
@@ -151,6 +160,7 @@ def load_db(
             tf_list_path=config.gene_map_config.tf_list_file,
             skip_meta_analysis=skip_meta_analysis,
             test_central_gene_ids=test_central_gene_ids,
+            use_r_cache=not no_r_cache,
         )
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)

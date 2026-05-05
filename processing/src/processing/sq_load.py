@@ -542,6 +542,7 @@ def load_db(
     tf_list_path: Path | None = None,
     skip_meta_analysis: bool = False,
     test_central_gene_ids: set[int] | None = None,
+    use_r_cache: bool = True,
 ) -> None:
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
@@ -581,6 +582,7 @@ def load_db(
                 no_index=no_index,
                 nimh_csv_path=nimh_csv_path,
                 tf_list_path=tf_list_path,
+                use_r_cache=use_r_cache,
             )
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)

@@ -460,7 +460,7 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+        def mock_r(pvalues: CollectedPvalues, use_cache: bool = True) -> dict[int, GeneCombinedPvalues]:
             per_table = pvalues.per_table
             all_pvals = pvalues.all_pvalues
             captured["per_table"] = {k: dict(v) for k, v in per_table.items()}
@@ -493,7 +493,7 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+        def mock_r(pvalues: CollectedPvalues, use_cache: bool = True) -> dict[int, GeneCombinedPvalues]:
             all_pvals = pvalues.all_pvalues
             captured["all_pvals"] = dict(all_pvals)
             return {}
@@ -521,7 +521,7 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+        def mock_r(pvalues: CollectedPvalues, use_cache: bool = True) -> dict[int, GeneCombinedPvalues]:
             all_pvals = pvalues.all_pvalues
             captured["all_pvals"] = dict(all_pvals)
             return {}
@@ -549,7 +549,7 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+        def mock_r(pvalues: CollectedPvalues, use_cache: bool = True) -> dict[int, GeneCombinedPvalues]:
             all_pvals = pvalues.all_pvalues
             captured["all_pvals"] = dict(all_pvals)
             return {}
@@ -577,7 +577,7 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+        def mock_r(pvalues: CollectedPvalues, use_cache: bool = True) -> dict[int, GeneCombinedPvalues]:
             all_pvals = pvalues.all_pvalues
             captured["all_pvals"] = dict(all_pvals)
             return {}
@@ -613,7 +613,7 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+        def mock_r(pvalues: CollectedPvalues, use_cache: bool = True) -> dict[int, GeneCombinedPvalues]:
             per_table = pvalues.per_table
             captured["per_table"] = {k: dict(v) for k, v in per_table.items()}
             return {}
@@ -652,7 +652,7 @@ class TestPvalueCollection:
 
         captured = {}
 
-        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+        def mock_r(pvalues: CollectedPvalues, use_cache: bool = True) -> dict[int, GeneCombinedPvalues]:
             per_table = pvalues.per_table
             all_pvals = pvalues.all_pvalues
             captured["per_table"] = {k: dict(v) for k, v in per_table.items()}
@@ -694,7 +694,7 @@ class TestPvalueCollection:
 
         captures: list[dict[int, list[float]]] = []
 
-        def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+        def mock_r(pvalues: CollectedPvalues, use_cache: bool = True) -> dict[int, GeneCombinedPvalues]:
             captures.append(dict(pvalues.all_pvalues))
             return {}
 
@@ -728,7 +728,7 @@ def _capture_runs():
     """
     captures: list[dict[int, dict[str, list[float]]]] = []
 
-    def mock_r(pvalues: CollectedPvalues) -> dict[int, GeneCombinedPvalues]:
+    def mock_r(pvalues: CollectedPvalues, use_cache: bool = True) -> dict[int, GeneCombinedPvalues]:
         snapshot: dict[int, dict[str, list[float]]] = {}
         for gid, tbl_dict in pvalues.per_table.items():
             snapshot[gid] = {tbl: list(pvals) for tbl, pvals in tbl_dict.items()}

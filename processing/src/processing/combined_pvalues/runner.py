@@ -71,12 +71,14 @@ class MetaAnalysisRun:
         no_index: bool = False,
         nimh_csv_path: Path | None = None,
         tf_list_path: Path | None = None,
+        use_r_cache: bool = True,
     ):
         self.conn = conn
         self.hgnc_path = hgnc_path
         self.no_index = no_index
         self.nimh_csv_path = nimh_csv_path
         self.tf_list_path = tf_list_path
+        self.use_r_cache = use_r_cache
 
     # -- top-level pipeline --------------------------------------------------
 
@@ -241,7 +243,9 @@ class MetaAnalysisRun:
             future_to_idx: dict[Any, tuple[int, str]] = {}
             for job in r_jobs:
                 click.echo(f"  {job.label}Submitting R job...")
-                future = executor.submit(r_runner.call_r_combine, job.pvalues)
+                future = executor.submit(
+                    r_runner.call_r_combine, job.pvalues, self.use_r_cache,
+                )
                 future_to_idx[future] = (job.idx, job.label)
 
             for future in as_completed(future_to_idx):
@@ -343,6 +347,7 @@ def compute_combined_pvalues(
     no_index: bool = False,
     nimh_csv_path: Path | None = None,
     tf_list_path: Path | None = None,
+    use_r_cache: bool = True,
 ) -> None:
     """Compute and store combined p-values per gene across all datasets,
     then separately per assay / disease / organism (and their combinations)."""
@@ -352,4 +357,5 @@ def compute_combined_pvalues(
         no_index=no_index,
         nimh_csv_path=nimh_csv_path,
         tf_list_path=tf_list_path,
+        use_r_cache=use_r_cache,
     ).run()
