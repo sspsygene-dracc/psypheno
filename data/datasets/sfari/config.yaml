@@ -27,7 +27,9 @@ tables:
     assay: curated
     fieldLabels:
       gene_symbol: "Gene symbol (HGNC) of the autism candidate gene. Original identifier preserved in gene_symbol_raw."
+      gene_name: "Human-readable name of the autism candidate gene"
       status: "Curation status"
+      model_species: "Animal-model organism (e.g. mouse, zebrafish, rat)"
       human_gene_score: "SFARI gene score (strength of ASD evidence)"
       human_syndromic: "Whether gene is linked to a syndromic form of ASD"
       syntenic: "Syntenic region conserved across species"
@@ -65,6 +67,7 @@ tables:
       model_symbol: "Gene symbol (HGNC) of the gene perturbed in the animal model (the autism candidate's ortholog). Original identifier in model_symbol_raw."
       status: "Curation status"
       model_id: "SFARI model identifier"
+      model_species: "Animal-model organism (e.g. mouse, zebrafish, rat)"
       model_type: "Type of animal model (genetic, rescue, inbred, CNV, induced)"
       rescue_type: "Type of rescue intervention"
       rescue_agent: "Rescue agent or compound used"
@@ -100,6 +103,8 @@ tables:
     assay: curated
     fieldLabels:
       gene_symbol: "Gene symbol (HGNC) of the SFARI autism candidate gene. Original identifier in gene_symbol_raw."
+      gene_name: "Human-readable name of the SFARI autism candidate gene"
+      chromosome: "Chromosome on which the gene is located"
       status: "Curation status"
       ensembl_id: "Human symbol resolved from Ensembl gene ID (raw ID in ensembl_id_raw)"
       ensembl_id_raw: "Original Ensembl gene ID (pre-resolution)"

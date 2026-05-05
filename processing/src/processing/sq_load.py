@@ -33,17 +33,18 @@ def create_indexes(
 
 
 # Default tooltips for pipeline-generated companion columns from
-# clean_gene_column. Update wording (and add a doc URL) once #147
-# (gene-parser docs super-page) ships.
+# clean_gene_column. The /gene-parser docs page (#147) explains the
+# resolution pipeline and the meaning of each resolution tag.
 _RAW_COLUMN_DEFAULT_TOOLTIP = (
     "Original identifier from the source data, before gene-symbol "
     "resolution by the sspsygene pipeline. The resolved symbol is "
-    "shown in the corresponding non-_raw column."
+    "shown in the corresponding non-_raw column. See /gene-parser "
+    "for how raw values are mapped to symbols."
 )
 _RESOLUTION_COLUMN_DEFAULT_TOOLTIP = (
     "How the displayed gene symbol was derived from the source value "
     "(e.g. hgnc_approved, rescued_ensembl_map, unresolved). Internal "
-    "pipeline tag — see the gene-parser docs for tag meanings."
+    "pipeline tag — see /gene-parser for tag meanings."
 )
 
 

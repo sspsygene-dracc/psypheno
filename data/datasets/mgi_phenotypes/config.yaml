@@ -31,6 +31,9 @@ tables:
     fieldLabels:
       mgi_allele_accession_id: "MGI accession ID for the allele"
       allele_symbol: "Standard allele symbol notation"
+      allele_name: "Human-readable name of the allele"
+      marker_symbol: "Mouse gene marker symbol (MGI)"
+      marker_name: "Human-readable name of the gene marker"
       high_level_mammalian_phenotype_names_comma_delimited_: "Top-level Mammalian Phenotype ontology terms"
       allele_type: "Type of allele (targeted, gene trap, endonuclease-mediated, etc.)"
       allele_attribute: "Allele attributes (null/knockout, conditional ready, etc.)"
