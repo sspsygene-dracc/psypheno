@@ -48,7 +48,7 @@ tables:
       - date: "2025-10-06"
         message: "Initial data load"
     shortLabel: zebrafish_asd_functional_screen
-    mediumLabel: Mendes 2023 - Zebrafish ASD Functional Screen
+    mediumLabel: Mendes 2023 - in vivo Functional Screen of 10 ASD Risk Genes in Zebrafish
     longLabel: High-throughput in vivo screen of autism risk genes in zebrafish
     description:
       Parallel functional analysis of 10 autism spectrum disorder risk genes in zebrafish, measuring
@@ -94,7 +94,7 @@ tables:
       - date: "2026-02-23"
         message: "Initial data load"
     shortLabel: mutant_behavior_rest_wake_visual_startle
-    mediumLabel: Mendes 2023 - Mutant behavior rest-wake and visual-startle
+    mediumLabel: Mendes 2023 - Sleep-Wake and Visual-Startle Behavior in 10 ASD Zebrafish Mutants
     source: "Supplemental Table S2, Related to Figure 2"
     longLabel: "Sleep-wake and Visual-Startle Parameters in Zebrafish Mutants of 10 ASD Genes"
     description:
