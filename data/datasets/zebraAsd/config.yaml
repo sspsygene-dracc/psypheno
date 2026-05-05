@@ -48,7 +48,7 @@ tables:
       - date: "2025-10-06"
         message: "Initial data load"
     shortLabel: zebrafish_asd_functional_screen
-    mediumLabel: Mendes 2023 - in vivo Functional Screen of 10 ASD Risk Genes in Zebrafish
+    mediumLabel: Weinschutz Mendes 2023 - in vivo Functional Screen of 10 ASD Risk Genes in Zebrafish
     longLabel: High-throughput in vivo screen of autism risk genes in zebrafish
     description:
       Parallel functional analysis of 10 autism spectrum disorder risk genes in zebrafish, measuring
@@ -94,7 +94,7 @@ tables:
       - date: "2026-02-23"
         message: "Initial data load"
     shortLabel: mutant_behavior_rest_wake_visual_startle
-    mediumLabel: Mendes 2023 - Sleep-Wake and Visual-Startle Behavior in 10 ASD Zebrafish Mutants
+    mediumLabel: Weinschutz Mendes 2023 - Sleep-Wake and Visual-Startle Behavior in 10 ASD Zebrafish Mutants
     source: "Supplemental Table S2, Related to Figure 2"
     longLabel: "Sleep-wake and Visual-Startle Parameters in Zebrafish Mutants of 10 ASD Genes"
     description:
@@ -119,7 +119,7 @@ tables:
       mutant_sd: "Standard deviation of the behavioral parameter across mutant larvae"
       beta: "Linear mixed-model regression coefficient for the mutation effect on this behavior (mutant minus wild-type, on the parameter's native scale)"
       pvalue: "Nominal p-value for the mutation effect from the linear mixed model"
-    organism: Danio rerio (crispant mutants)
+    organism: Danio rerio (stable mutants)
     organism_key: zebrafish
     in_path: RestWake_VisStart_byGene.csv
     separator: ","
