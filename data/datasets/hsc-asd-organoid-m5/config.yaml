@@ -29,7 +29,7 @@ maintainers:
 tables:
   - table: hsc_asd_organoid_m5_DE_targets_M5_TFs
     shortLabel: asd_m5_transcription_factor_de_targets
-    mediumLabel: Gordon 2026 - CRISPRi DEGs of 26 ASD Module-5 TFs in iPSC Neural Progenitors
+    mediumLabel: Gordon 2026 - CRISPRi DEGs of 26 ASD Module-5 Transcriptional Regulators in NGN2-induced hiPSC NPCs
     longLabel: Differentially expressed genes following perturbation of Module 5 transcription factors in ASD
     description:
       Cell-type specific differential expression following CRISPRi perturbation of 26 Module 5
@@ -113,7 +113,7 @@ tables:
       - date: "2026-04-28"
         message: "Converted ENSG IDs to HGNC gene symbols. Added chromosome_name, band, gene_biotype columns."
     shortLabel: asd_organoid_de_results
-    mediumLabel: Gordon 2026 - ASD Perturbation DEGs in iPSC Cortical Organoids
+    mediumLabel: Gordon 2026 - ASD Genetic-Form DEGs in iPSC Cortical Organoids
     longLabel: Differential expression results across ASD genetic perturbations and developmental timepoints
     description:
       Differential expression results from bulk RNA-seq of human cortical organoids with
