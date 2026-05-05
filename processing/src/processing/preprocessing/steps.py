@@ -13,11 +13,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Literal, cast
 
 import pandas as pd
 
 from processing.preprocessing.dataframe import clean_gene_column
+from processing.preprocessing.symbol_index import Species
 
 if TYPE_CHECKING:
     from processing.preprocessing.pipeline import Context
@@ -113,13 +114,25 @@ class CleanGeneColumnStep(Step):
     to the tracker. Keeps `<column>_raw` and `_<column>_resolution` in the
     output by default — wranglers can chain `.drop_columns(...)` to remove
     them, and that drop will be tracked too.
+
+    Each resolver flag mirrors the corresponding `clean_gene_column`
+    parameter — `True` defaults match the opt-out philosophy (shape-gated
+    rescues are no-ops on inputs that don't match their patterns;
+    mapper-required ones silently skip when the mapper is absent).
     """
 
     name: ClassVar[str] = "clean_gene_column"
 
     column: str
-    species: str
-    flags: dict[str, Any]
+    species: Species
+    resolve_hgnc_id: bool = True
+    excel_demangle: bool = True
+    strip_make_unique: bool = True
+    split_symbol_ensg: bool = True
+    manual_aliases: dict[str, str] | None = None
+    drop_non_symbols: bool = False
+    resolve_via_ensembl_map: bool = True
+    resolve_gencode_clone: bool = True
     sample_unresolved_size: int = 10
 
     def apply(self, df: pd.DataFrame | None, ctx: "Context") -> pd.DataFrame:
@@ -129,18 +142,21 @@ class CleanGeneColumnStep(Step):
                 "clean_gene step requires a GeneSymbolNormalizer; pass "
                 "normalizer=... to Pipeline()."
             )
-        # Mapper-required resolvers silently skip when the mapper is
-        # absent — Pipeline auto-instantiates from env, but tests and
-        # one-off callers may legitimately omit them.
-        flags = dict(self.flags)
         out, report = clean_gene_column(
             df,
             self.column,
-            species=self.species,  # type: ignore[arg-type]
+            species=self.species,
             normalizer=ctx.normalizer,
             ensembl_mapper=ctx.ensembl_mapper,
             gencode_clone_index=ctx.gencode_clone_index,
-            **flags,
+            resolve_hgnc_id=self.resolve_hgnc_id,
+            excel_demangle=self.excel_demangle,
+            strip_make_unique=self.strip_make_unique,
+            split_symbol_ensg=self.split_symbol_ensg,
+            manual_aliases=self.manual_aliases,
+            drop_non_symbols=self.drop_non_symbols,
+            resolve_via_ensembl_map=self.resolve_via_ensembl_map,
+            resolve_gencode_clone=self.resolve_gencode_clone,
         )
 
         # Pull a small sample of unresolved values to make the YAML useful
@@ -153,14 +169,28 @@ class CleanGeneColumnStep(Step):
                 if len(unresolved_values) >= self.sample_unresolved_size:
                     break
 
-        # Serialize flags as plain JSON-compatible types (drop callables /
-        # objects). Manual aliases are explicitly serializable; ensembl_mapper
-        # is supplied through the context, never through flags.
-        flags_for_record = {
-            k: v
-            for k, v in flags.items()
-            if isinstance(v, (bool, int, float, str, dict, list))
-        }
+        # Record only flags whose value differs from the default — keeps
+        # preprocessing.yaml focused on what the wrangler customized.
+        flags_for_record: dict[str, Any] = {}
+        if not self.resolve_hgnc_id:
+            flags_for_record["resolve_hgnc_id"] = False
+        if not self.excel_demangle:
+            flags_for_record["excel_demangle"] = False
+        if not self.strip_make_unique:
+            flags_for_record["strip_make_unique"] = False
+        if not self.split_symbol_ensg:
+            flags_for_record["split_symbol_ensg"] = False
+        if self.drop_non_symbols:
+            flags_for_record["drop_non_symbols"] = True
+        if not self.resolve_via_ensembl_map:
+            flags_for_record["resolve_via_ensembl_map"] = False
+        if not self.resolve_gencode_clone:
+            flags_for_record["resolve_gencode_clone"] = False
+        if self.manual_aliases is not None:
+            # Stored by reference (not copied) so PyYAML emits a single
+            # `&id001`/`*id001` anchor when the same dict is shared
+            # across multiple `clean_gene` calls in the pipeline.
+            flags_for_record["manual_aliases"] = self.manual_aliases
 
         ctx.tracker.record(
             self.name,
@@ -282,12 +312,12 @@ class DropColumns(Step):
     name: ClassVar[str] = "drop_columns"
 
     columns: list[str]
-    errors: str = "raise"
+    errors: Literal["raise", "ignore"] = "raise"
 
     def apply(self, df: pd.DataFrame | None, ctx: "Context") -> pd.DataFrame:
         df = _require_df(df, self.name)
         applied = [c for c in self.columns if c in df.columns]
-        out = df.drop(columns=self.columns, errors=self.errors)  # type: ignore[arg-type]
+        out = df.drop(columns=self.columns, errors=self.errors)
         ctx.tracker.record(
             self.name,
             table=ctx.table,

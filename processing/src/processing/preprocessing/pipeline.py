@@ -32,14 +32,17 @@ import shutil
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import pandas as pd
 import yaml
 
 from processing.preprocessing.ensembl_index import EnsemblToSymbolMapper
 from processing.preprocessing.gencode_clone_index import GencodeCloneIndex
-from processing.preprocessing.symbol_index import GeneSymbolNormalizer
+from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
+
+if TYPE_CHECKING:
+    from processing.preprocessing.steps import Step
 
 
 # Superset of manual aliases used across human datasets. Wranglers import
@@ -186,13 +189,15 @@ class Pipeline:
         self._ensure_mappers()
         return self._gencode_clone_index
 
-    def add(self, step: "Step") -> "Pipeline":
+    def add(self, step: Step) -> Pipeline:
         self.steps.append(step)
         return self
 
-    # --- Builder methods (defined in steps.py via monkey-patch at import
-    # time would be fragile; instead, the builder methods import their
-    # Step classes lazily inside each method to avoid circular imports). ---
+    # --- Builder methods. Each delegates to a Step dataclass in
+    # steps.py; the corresponding constructor signatures are mirrored
+    # here so call-site type checking flags wrong arg shapes (vs the
+    # previous `**kw: Any` / `predicate: Any` opacity).
+    # ----------------------------------------------------------------
 
     def read_csv(
         self,
@@ -201,7 +206,11 @@ class Pipeline:
         sep: str = ",",
         dtype: Any = str,
         **kw: Any,
-    ) -> "Pipeline":
+    ) -> Pipeline:
+        # `dtype` and `**kw` are pandas pass-throughs; pandas itself
+        # accepts a wide Union (type / Mapping / extension dtype / None)
+        # and doesn't expose a TypedDict for the rest of read_csv's
+        # kwargs, so these stay `Any`.
         from processing.preprocessing.steps import ReadCsv
 
         return self.add(ReadCsv(path=Path(path), sep=sep, dtype=dtype, read_kw=kw))
@@ -211,30 +220,50 @@ class Pipeline:
         df: pd.DataFrame,
         *,
         label: str | None = None,
-    ) -> "Pipeline":
+    ) -> Pipeline:
         from processing.preprocessing.steps import FromDataFrame
 
         return self.add(FromDataFrame(df=df, label=label))
 
     def read_tsv(
         self, path: str | Path, *, dtype: Any = str, **kw: Any
-    ) -> "Pipeline":
+    ) -> Pipeline:
         return self.read_csv(path, sep="\t", dtype=dtype, **kw)
 
     def clean_gene(
         self,
         column: str,
         *,
-        species: str,
-        **flags: Any,
-    ) -> "Pipeline":
+        species: Species,
+        resolve_hgnc_id: bool = True,
+        excel_demangle: bool = True,
+        strip_make_unique: bool = True,
+        split_symbol_ensg: bool = True,
+        manual_aliases: dict[str, str] | None = None,
+        drop_non_symbols: bool = False,
+        resolve_via_ensembl_map: bool = True,
+        resolve_gencode_clone: bool = True,
+    ) -> Pipeline:
+        # Defaults mirror `clean_gene_column`'s opt-out behavior — call
+        # sites override individual flags with `=False` when needed.
         from processing.preprocessing.steps import CleanGeneColumnStep
 
         return self.add(
-            CleanGeneColumnStep(column=column, species=species, flags=dict(flags))
+            CleanGeneColumnStep(
+                column=column,
+                species=species,
+                resolve_hgnc_id=resolve_hgnc_id,
+                excel_demangle=excel_demangle,
+                strip_make_unique=strip_make_unique,
+                split_symbol_ensg=split_symbol_ensg,
+                manual_aliases=manual_aliases,
+                drop_non_symbols=drop_non_symbols,
+                resolve_via_ensembl_map=resolve_via_ensembl_map,
+                resolve_gencode_clone=resolve_gencode_clone,
+            )
         )
 
-    def dropna(self, columns: str | list[str]) -> "Pipeline":
+    def dropna(self, columns: str | list[str]) -> Pipeline:
         from processing.preprocessing.steps import DropNa
 
         if isinstance(columns, str):
@@ -243,20 +272,20 @@ class Pipeline:
 
     def filter_rows(
         self,
-        predicate: Any,
+        predicate: Callable[[pd.DataFrame], pd.Series],
         *,
         description: str,
-    ) -> "Pipeline":
+    ) -> Pipeline:
         from processing.preprocessing.steps import FilterRows
 
         return self.add(FilterRows(predicate=predicate, description=description))
 
-    def rename(self, mapping: dict[str, str]) -> "Pipeline":
+    def rename(self, mapping: dict[str, str]) -> Pipeline:
         from processing.preprocessing.steps import Rename
 
         return self.add(Rename(mapping=dict(mapping)))
 
-    def reorder(self, columns: list[str]) -> "Pipeline":
+    def reorder(self, columns: list[str]) -> Pipeline:
         from processing.preprocessing.steps import Reorder
 
         return self.add(Reorder(columns=list(columns)))
@@ -265,8 +294,8 @@ class Pipeline:
         self,
         columns: str | list[str],
         *,
-        errors: str = "raise",
-    ) -> "Pipeline":
+        errors: Literal["raise", "ignore"] = "raise",
+    ) -> Pipeline:
         from processing.preprocessing.steps import DropColumns
 
         if isinstance(columns, str):
@@ -276,10 +305,10 @@ class Pipeline:
     def transform_column(
         self,
         column: str,
-        func: Any,
+        func: Callable[[pd.Series], pd.Series],
         *,
         description: str,
-    ) -> "Pipeline":
+    ) -> Pipeline:
         from processing.preprocessing.steps import TransformColumn
 
         return self.add(
@@ -292,17 +321,20 @@ class Pipeline:
         value: Any,
         *,
         position: int | None = None,
-    ) -> "Pipeline":
+    ) -> Pipeline:
+        # `value` accepts scalar / list / Series / callable per
+        # InsertColumn — the union is genuinely heterogeneous so
+        # tightening below `Any` would just push casts onto callers.
         from processing.preprocessing.steps import InsertColumn
 
         return self.add(InsertColumn(column=name, value=value, position=position))
 
-    def write_csv(self, path: str | Path, *, sep: str = ",") -> "Pipeline":
+    def write_csv(self, path: str | Path, *, sep: str = ",") -> Pipeline:
         from processing.preprocessing.steps import WriteCsv
 
         return self.add(WriteCsv(path=Path(path), sep=sep))
 
-    def write_tsv(self, path: str | Path) -> "Pipeline":
+    def write_tsv(self, path: str | Path) -> Pipeline:
         return self.write_csv(path, sep="\t")
 
     def run(self) -> pd.DataFrame:
@@ -337,8 +369,3 @@ def copy_file(src: str | Path, dst: str | Path, *, tracker: Tracker) -> None:
     shutil.copyfile(src, dst)
     tracker.note_input(src.name)
     tracker.record("copy_file", table=dst.name, source=src.name)
-
-
-# Lazy import — Step is defined in steps.py but typed here for the
-# Pipeline.add() signature.
-from processing.preprocessing.steps import Step  # noqa: E402
