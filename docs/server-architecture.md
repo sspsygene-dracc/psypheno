@@ -124,9 +124,10 @@ its connection on the next query. No restart, no sudo. See
 that handles `git push`, SSH to hgwdev for `git pull` + optional `load-db`
 + `npm run build` per site, and `kill`ing the Next.js processes on psygene
 so systemd restarts them with the new build. Target subsets with
-`--prod-only` / `--dev-only` / `--int-only`, rebuild data with `--load-db`,
-and pass `--restart` to restart the web servers. See
-[development.md](development.md) for the CLI reference.
+`--instances dev,int,prod` (any subset; rolls dev → int → prod regardless
+of input order), rebuild data with `--load-db`, re-run wrangler
+preprocessing with `--preprocess`, and pass `--restart` to restart the web
+servers. See [development.md](development.md) for the CLI reference.
 
 ## Environment Variables
 

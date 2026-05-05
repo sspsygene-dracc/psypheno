@@ -139,8 +139,12 @@ Commands:
     --test                             Restrict to bundled top-genes fixture
 
   deploy                             Deploy to prod, dev, and internal sites
-    --prod-only / --dev-only / --int-only   Target one environment
+    --instances dev,int,prod           Comma-separated subset of instances
+                                         (order ignored; always rolls
+                                         dev → int → prod). Default: all three.
     --load-db                          Rebuild DB during deploy
+    --preprocess                       Re-run each dataset's preprocess.py
+                                         on the selected sites before load-db
     --no-push                          Skip git push
     --restart                          Restart web servers (default: no restart;
                                          web auto-detects DB changes)

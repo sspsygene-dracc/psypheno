@@ -259,22 +259,12 @@ def run_llm_search(
     help="Skip the local git push step.",
 )
 @click.option(
-    "--prod-only",
-    is_flag=True,
-    default=False,
-    help="Deploy only the production site (skip dev and internal).",
-)
-@click.option(
-    "--dev-only",
-    is_flag=True,
-    default=False,
-    help="Deploy only the dev site (skip production and internal).",
-)
-@click.option(
-    "--int-only",
-    is_flag=True,
-    default=False,
-    help="Deploy only the internal site (skip production and dev).",
+    "--instances",
+    type=str,
+    default=None,
+    help="Comma-separated subset of {dev, int, prod} to deploy to. Order in "
+    "the list is ignored — deployment always rolls dev → int → prod. "
+    "Default: all three.",
 )
 @click.option(
     "--restart",
@@ -284,13 +274,20 @@ def run_llm_search(
     "restart — the web process auto-detects DB changes (see web/lib/db.ts). "
     "Pass this when JS code has changed and needs to be reloaded.",
 )
+@click.option(
+    "--preprocess",
+    is_flag=True,
+    default=False,
+    help="Run each dataset's preprocess.py on every selected site before "
+    "load-db. Independent of --load-db; running preprocess alone refreshes "
+    "the processed CSVs without rebuilding the DB.",
+)
 def deploy(
     load_db: bool,
     no_push: bool,
-    prod_only: bool,
-    dev_only: bool,
-    int_only: bool,
+    instances: str | None,
     restart: bool,
+    preprocess: bool,
 ) -> None:
     """Deploy to production, dev, and internal sites on hgwdev/psygene."""
     from processing.deploy import run_deploy
@@ -298,10 +295,9 @@ def deploy(
     run_deploy(
         load_db=load_db,
         no_push=no_push,
-        prod_only=prod_only,
-        dev_only=dev_only,
-        int_only=int_only,
+        instances=instances,
         restart=restart,
+        preprocess=preprocess,
     )
 
 

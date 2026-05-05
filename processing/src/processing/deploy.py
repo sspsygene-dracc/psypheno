@@ -9,6 +9,7 @@ Automates the full deployment workflow:
 
 from __future__ import annotations
 
+import shlex
 import subprocess
 
 import click
@@ -36,6 +37,13 @@ PROD_ENV = _site_env(PROD_PATH)
 DEV_ENV = _site_env(DEV_PATH)
 INT_ENV = _site_env(INT_PATH)
 
+# Canonical dev → int → prod ordering: deploys roll from lowest-stakes
+# (dev) to highest-stakes (prod) regardless of the order the user lists.
+INSTANCE_ORDER = ("dev", "int", "prod")
+INSTANCE_PATHS = {"dev": DEV_PATH, "int": INT_PATH, "prod": PROD_PATH}
+INSTANCE_ENVS = {"dev": DEV_ENV, "int": INT_ENV, "prod": PROD_ENV}
+INSTANCE_LABELS = {"dev": "Dev", "int": "Internal", "prod": "Production"}
+
 CONDA_ENV = "sspsygene"
 CONDA_INIT = "source $HOME/opt_rocky9/miniconda3/etc/profile.d/conda.sh"
 
@@ -44,6 +52,7 @@ LOCAL_TIMEOUT = 120
 SSH_TIMEOUT = 600
 BUILD_TIMEOUT = 900
 LOAD_DB_TIMEOUT = 1800
+PREPROCESS_TIMEOUT = 1800
 
 
 # ── Error handling ───────────────────────────────────────────────────────────
@@ -163,20 +172,48 @@ def _step_push() -> None:
     _run_local(["git", "push"], desc="git push")
 
 
-def _step_pull_all(*, do_prod: bool, do_dev: bool, do_int: bool) -> None:
-    """Pull latest code on all sites before any build/load-db steps.
+def _step_pull_all(instances: list[str]) -> None:
+    """Pull latest code on the selected sites before any build/load-db steps.
 
     This ensures shared resources (e.g. the processing package installed
     from one site but used by others) are up-to-date before any site
     runs load-db or npm build.
     """
     click.secho("\n[2/4] Pulling latest code on hgwdev", bold=True)
-    if do_prod:
-        _run_ssh(HGWDEV, f"cd {PROD_PATH} && git pull", desc=f"git pull ({PROD_PATH})")
-    if do_dev:
-        _run_ssh(HGWDEV, f"cd {DEV_PATH} && git pull", desc=f"git pull ({DEV_PATH})")
-    if do_int:
-        _run_ssh(HGWDEV, f"cd {INT_PATH} && git pull", desc=f"git pull ({INT_PATH})")
+    for inst in instances:
+        path = INSTANCE_PATHS[inst]
+        _run_ssh(HGWDEV, f"cd {path} && git pull", desc=f"git pull ({path})")
+
+
+def _step_preprocess_site(
+    path: str,
+    *,
+    label: str,
+    env_vars: dict[str, str],
+) -> None:
+    """Run every dataset's preprocess.py under the conda env. Aborts on first failure."""
+    click.echo(f"\n  --- {label} preprocess ({path}) ---")
+    env_prefix = " ".join(f"{k}={v}" for k, v in env_vars.items()) + " "
+    inner = (
+        "set -e; "
+        'for d in data/datasets/*/; do '
+        '  if [ -f "$d/preprocess.py" ]; then '
+        '    echo "[preprocess] $d"; '
+        '    (cd "$d" && python preprocess.py); '
+        "  fi; "
+        "done"
+    )
+    cmd = (
+        f"cd {path} && {CONDA_INIT} && "
+        f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} bash -c {shlex.quote(inner)}"
+    )
+    _run_ssh(
+        HGWDEV,
+        cmd,
+        desc="Running per-dataset preprocess.py scripts",
+        timeout=PREPROCESS_TIMEOUT,
+        stream=True,
+    )
 
 
 def _step_deploy_site(
@@ -254,28 +291,40 @@ def _step_restart_psygene() -> None:
 # ── Main entry point ────────────────────────────────────────────────────────
 
 
+def _resolve_instances(instances: str | None) -> list[str]:
+    """Parse the --instances string and return a list in canonical dev→int→prod order.
+
+    Accepts None (= all three) or a comma-separated subset. Unknown tokens raise
+    ClickException; duplicates are deduped silently.
+    """
+    if instances is None:
+        return list(INSTANCE_ORDER)
+    tokens = [t.strip() for t in instances.split(",") if t.strip()]
+    if not tokens:
+        raise click.ClickException(
+            "--instances must list at least one of: " + ", ".join(INSTANCE_ORDER)
+        )
+    valid = set(INSTANCE_ORDER)
+    unknown = sorted({t for t in tokens if t not in valid})
+    if unknown:
+        raise click.ClickException(
+            f"Unknown --instances value(s): {', '.join(unknown)}. "
+            f"Valid: {', '.join(INSTANCE_ORDER)}."
+        )
+    requested = set(tokens)
+    return [i for i in INSTANCE_ORDER if i in requested]
+
+
 def run_deploy(
     *,
     load_db: bool = False,
     no_push: bool = False,
-    prod_only: bool = False,
-    dev_only: bool = False,
-    int_only: bool = False,
+    instances: str | None = None,
     restart: bool = False,
+    preprocess: bool = False,
 ) -> None:
     """Run the full deployment pipeline."""
-    only_flags = [("--prod-only", prod_only), ("--dev-only", dev_only), ("--int-only", int_only)]
-    picked = [name for name, v in only_flags if v]
-    if len(picked) > 1:
-        raise click.ClickException(f"{' and '.join(picked)} are mutually exclusive.")
-
-    if picked:
-        do_prod = prod_only
-        do_dev = dev_only
-        do_int = int_only
-    else:
-        # Default: all three sites.
-        do_prod = do_dev = do_int = True
+    selected = _resolve_instances(instances)
 
     _preflight_checks()
 
@@ -288,16 +337,26 @@ def run_deploy(
     # Step 2 — git pull selected sites first (the processing package may be
     # installed from one site but used by others, so all selected must be
     # current before any runs load-db or npm build).
-    _step_pull_all(do_prod=do_prod, do_dev=do_dev, do_int=do_int)
+    _step_pull_all(selected)
 
-    # Step 3 — build/load-db per site
+    # Step 3 — build/load-db per site (canonical dev → int → prod order)
+    if preprocess:
+        click.secho("\n[3a/4] Running preprocess.py on selected sites", bold=True)
+        for inst in selected:
+            _step_preprocess_site(
+                INSTANCE_PATHS[inst],
+                label=INSTANCE_LABELS[inst],
+                env_vars=INSTANCE_ENVS[inst],
+            )
+
     click.secho("\n[3/4] Deploying sites on hgwdev", bold=True)
-    if do_prod:
-        _step_deploy_site(PROD_PATH, label="Production", load_db=load_db, env_vars=PROD_ENV)
-    if do_dev:
-        _step_deploy_site(DEV_PATH, label="Dev", load_db=load_db, env_vars=DEV_ENV)
-    if do_int:
-        _step_deploy_site(INT_PATH, label="Internal", load_db=load_db, env_vars=INT_ENV)
+    for inst in selected:
+        _step_deploy_site(
+            INSTANCE_PATHS[inst],
+            label=INSTANCE_LABELS[inst],
+            load_db=load_db,
+            env_vars=INSTANCE_ENVS[inst],
+        )
 
     # Step 4 — restart web servers (default is no restart; the web process
     # auto-detects DB changes via inode/mtime check in web/lib/db.ts, so
