@@ -620,7 +620,7 @@ export default function MethodsPage() {
           <h2 style={h2Style}>A Note on the Uniform(0,1) Assumption</h2>
           <p>
 
-            All four classical combiners (Fisher, Stouffer, CCT, HMP) assume
+            Our p-value combiners (Fisher, Stouffer, CCT, HMP) assume
             input p-values are <V>U</V>[0,&thinsp;1] under the null. Many of
             our input tables don&apos;t fully satisfy this: some are stored
             as DEG-only (only rows surviving an FDR threshold are reported), 
