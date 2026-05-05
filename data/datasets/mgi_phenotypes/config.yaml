@@ -21,7 +21,7 @@ tables:
       - date: "2025-10-27"
         message: "Initial data load"
     shortLabel: mgi_phenotype_annotations
-    mediumLabel: Baldarelli 2024 - Curated Mouse Phenotype Annotations (MGI)
+    mediumLabel: Baldarelli 2024 - Allele-level Mammalian Phenotype Ontology Annotations (MGI)
     longLabel: Mouse Genome Informatics phenotypic allele annotations
     description:
       Curated phenotypic annotations for mouse mutant alleles from MGI, mapping Mammalian Phenotype
