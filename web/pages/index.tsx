@@ -286,16 +286,69 @@ export default function Home() {
               color: "#1e40af",
             }}
           >
-            <span style={{ fontWeight: 600 }}>New</span>{" "}
-            <span style={{ color: "#6b7280", fontSize: 12 }}>(Mar 2026)</span>
-            {" — "}
-            <a
-              href="/most-significant"
-              style={{ color: "#2563eb", textDecoration: "none" }}
-            >
-              Gene ranking by cross-study significance across all datasets now
-              available!
-            </a>
+            <div>
+              <span style={{ fontWeight: 600 }}>New</span>{" "}
+              <span style={{ color: "#6b7280", fontSize: 12 }}>(May 2026)</span>
+            </div>
+            <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
+              <li>
+                <a
+                  href="/most-significant"
+                  style={{
+                    color: "#2563eb",
+                    textDecoration: "underline",
+                    fontWeight: 600,
+                  }}
+                >
+                  Up/down-regulation split in cross-study ranking
+                </a>{" "}
+                — pick a direction to filter the meta-analysis.
+              </li>
+              <li>
+                <a
+                  href="/full-datasets"
+                  style={{
+                    color: "#2563eb",
+                    textDecoration: "underline",
+                    fontWeight: 600,
+                  }}
+                >
+                  Per-column filters in full-dataset tables
+                </a>{" "}
+                — filter any column by text or numeric range.
+              </li>
+              <li>
+                <strong>Faster, more meaningful volcano plots</strong> —
+                background filtered by perturbed gene and sampled on the fly.
+              </li>
+              <li>
+                <strong>Controls are searchable</strong> — type{" "}
+                <code
+                  style={{
+                    background: "#dbeafe",
+                    padding: "0 4px",
+                    borderRadius: 3,
+                  }}
+                >
+                  CONTROL
+                </code>{" "}
+                to match all controls, or search named ones (NonTarget1,
+                SafeTarget, …) directly.
+              </li>
+              <li>
+                <a
+                  href="/gene-parser"
+                  style={{
+                    color: "#2563eb",
+                    textDecoration: "underline",
+                    fontWeight: 600,
+                  }}
+                >
+                  New "How gene names are parsed" doc page
+                </a>{" "}
+                — covers ENSG → symbol, GENCODE clones, and silencer rules.
+              </li>
+            </ul>
           </div>
 
           <div
