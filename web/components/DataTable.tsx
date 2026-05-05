@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import InfoTooltip from "@/components/InfoTooltip";
 
 function normalizeColName(s: string): string {
@@ -94,6 +95,8 @@ export default function DataTable({
   onSort,
   columnFilters,
   onColumnFilterChange,
+  currentPerturbedSymbol = null,
+  currentTargetSymbol = null,
 }: {
   columns: string[];
   rows: Record<string, unknown>[];
@@ -117,7 +120,14 @@ export default function DataTable({
   onSort?: (column: string, mode: SortMode) => void;
   columnFilters?: Record<string, string>;
   onColumnFilterChange?: (column: string, value: string) => void;
+  // When set, a click on a gene cell in the OTHER direction will check
+  // /api/gene-pair-exists and, if the pair has any data, navigate to the
+  // combined `/?perturbed=…&target=…` URL instead of the single-gene URL.
+  // Only the home page passes these.
+  currentPerturbedSymbol?: string | null;
+  currentTargetSymbol?: string | null;
 }) {
+  const router = useRouter();
   // (download buttons are rendered by callers — see full-datasets.tsx and
   // GeneResults.tsx — this component only owns the table itself.)
   const isControlled = onSort !== undefined;
@@ -338,6 +348,71 @@ export default function DataTable({
                 );
                 const text = formatCellValue(val);
                 const linkParam = isPerturbedGeneCol ? "perturbed" : "target";
+                const singleHref = `/?${linkParam}=${encodeURIComponent(text)}`;
+                // Other-direction symbol if the home page has one selected.
+                const otherSymbol = isPerturbedGeneCol
+                  ? currentTargetSymbol
+                  : currentPerturbedSymbol;
+                const sameSideSymbol = isPerturbedGeneCol
+                  ? currentPerturbedSymbol
+                  : currentTargetSymbol;
+                // Skip the existence check when there's no other-direction
+                // gene to preserve, when the click would just re-navigate
+                // to the same single-gene URL, or when the click matches
+                // the gene already selected in the other direction.
+                const shouldCheckPair =
+                  !!otherSymbol &&
+                  text !== sameSideSymbol &&
+                  text !== otherSymbol;
+                const handleClick = shouldCheckPair
+                  ? async (e: React.MouseEvent<HTMLAnchorElement>) => {
+                      // Let the user open in a new tab via cmd/ctrl-click —
+                      // those modifiers should bypass our async handling.
+                      if (
+                        e.metaKey ||
+                        e.ctrlKey ||
+                        e.shiftKey ||
+                        e.altKey ||
+                        e.button !== 0
+                      ) {
+                        return;
+                      }
+                      e.preventDefault();
+                      const perturbedSymbol = isPerturbedGeneCol
+                        ? text
+                        : otherSymbol;
+                      const targetSymbol = isPerturbedGeneCol
+                        ? otherSymbol
+                        : text;
+                      const combinedHref =
+                        `/?perturbed=${encodeURIComponent(perturbedSymbol!)}` +
+                        `&target=${encodeURIComponent(targetSymbol!)}`;
+                      let exists = false;
+                      try {
+                        const ctrl = new AbortController();
+                        const timer = setTimeout(() => ctrl.abort(), 1500);
+                        const res = await fetch("/api/gene-pair-exists", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            perturbedSymbol,
+                            targetSymbol,
+                          }),
+                          signal: ctrl.signal,
+                        });
+                        clearTimeout(timer);
+                        if (res.ok) {
+                          const data = (await res.json()) as {
+                            exists?: boolean;
+                          };
+                          exists = !!data.exists;
+                        }
+                      } catch {
+                        exists = false;
+                      }
+                      router.push(exists ? combinedHref : singleHref);
+                    }
+                  : undefined;
                 return (
                   <td
                     key={col}
@@ -348,7 +423,9 @@ export default function DataTable({
                   >
                     {isGeneCol && text ? (
                       <Link
-                        href={`/?${linkParam}=${encodeURIComponent(text)}`}
+                        href={singleHref}
+                        prefetch={false}
+                        onClick={handleClick}
                         style={{
                           color: "#2563eb",
                           textDecoration: "none",

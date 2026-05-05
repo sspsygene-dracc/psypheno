@@ -737,6 +737,10 @@ export default function GeneResults({
                       onSort={(col, mode) =>
                         handleTableSort(section.tableName, col, mode)
                       }
+                      currentPerturbedSymbol={
+                        perturbedGene?.humanSymbol ?? null
+                      }
+                      currentTargetSymbol={targetGene?.humanSymbol ?? null}
                     />
                     {isPageLoading && (
                       <div
