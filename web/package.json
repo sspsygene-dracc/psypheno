@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
@@ -25,15 +27,21 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "24.10.1",
     "@types/react": "19.2.7",
     "@types/react-dom": "^19",
     "@types/react-highlight-words": "^0.20.0",
+    "@vitejs/plugin-react": "^4.3.4",
     "baseline-browser-mapping": "^2.9.19",
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
+    "jsdom": "^25.0.1",
     "postcss": "^8",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^3.0.0"
   }
 }
