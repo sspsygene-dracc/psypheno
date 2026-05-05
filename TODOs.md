@@ -1,21 +1,24 @@
-- as soon as the plan for 79 is done, we want another plan:
-  * download all original papers as PDFs unless already done (gitignore them, we
-    can't republish them)
-  * agents should read all papers and make sure our updated dataset titles are
-    actually correct
-
 for the issue 139 workflow:
 - let's also look at other gencode identifiers that we
   may want to look at
 - should consider whether all this symbol resolution that are currently optional
   should just be enabled by default
+- in 139, after above done, let's do another pass over the current preprocessing
+  scripts and ensure they're user friendly.
+- the method types in class Pipeline are too generic. Even though it's a bit
+  cumbersome, I'd like to explicitly write the actual arguments from the
+  underlying classes (e.g., ReadCsv) wherever possible, as this enables much
+  more helpful type checking
 
-Gencode: Add as first-class identifier? But that's kind of implicitly done anways
+- the deployment scripts should take another flag to re-run preprocessing
+  optionally
 
 - Bug: I still can't search for ALL control genes by entering CONTROL in the
-  gene search fields. Also add that searching for CONTROL searches for ALL
-  control genes (all names of control genes) across all tables. Add this info
-  to the (i) tooltip for the perturbed and target genes
+  gene search fields. I want to be able to search for ALL controls (some kind of
+  placeholder) somehow. Also add instructions for this searching for CONTROL
+  searches for ALL control genes (all names of control genes) across all tables.
+  Add this info to the (i) tooltip for the perturbed and target genes if not
+  already there.
 - Bug: After selecting target gene from suggestion dropdown in gene search box,
   the search box doesn't update its text; just 2 letters visible (the ones I
   entered manually)
@@ -23,19 +26,13 @@ Gencode: Add as first-class identifier? But that's kind of implicitly done anway
   reminder: many changes have landed since Monday 2026-04-27; before the sprint
   email, sweep data/datasets/*/config.yaml changelog blocks and bring them up
   to date)
-- Improve dataset titles. (Max 3/24; [GH #79])
-- Parse GENBANK accessions to genes #139
 - Description of gene parser #147
-- P-values problems #148
 - Migrate zebraAsd if still necessary #156
 - One separate dataset_name.preprocessing.yaml per table, not per
-  preprocess.py #158
-- Complete column header tooltips #160
-- Cache results of R computations. By computing a hash over the actual input to
-  R, and saving results, we're probably able to save a huge chunk of
-  re-computation on load-db. The implementation should specifically ensure that
-  --test runs don't cache results that are loaded by production later, but the
-  hashing methodology should actually prevent this
+  preprocess.py #158 . Make sure to thread through to downloads page
+- Complete column header tooltips #160. Look up in the papers/ dir. Consider
+  downloading supplementary files where necessary. Instruct me what to download
+  manually, and where to, if automatic download fails.
 
 - Security review #157
 - Test-suite buildout: Python backend, frontend unit, frontend e2e,
