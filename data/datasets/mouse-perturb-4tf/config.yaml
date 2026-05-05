@@ -40,7 +40,7 @@ tables:
       - date: "2025-10-06"
         message: "Initial data load"
     shortLabel: 4tf_perturb_seq_degs
-    mediumLabel: Zheng 2024 - 4TF Perturb-seq DEGs
+    mediumLabel: Zheng 2024 - in vivo Perturb-seq DEGs of 4 TFs in Mouse Cortex
     longLabel: Differential expression from in vivo Perturb-seq of four transcription factors
     description:
       Cell-type-specific differential expression results from massively parallel in vivo Perturb-seq
@@ -103,7 +103,7 @@ tables:
       - date: "2025-10-06"
         message: "Initial data load"
     shortLabel: 4tf_cell_proportion_changes
-    mediumLabel: Zheng 2024 - 4TF Cell Proportion Changes
+    mediumLabel: Zheng 2024 - in vivo Perturb-seq Cell-Type Proportion Shifts in Mouse Cortex
     longLabel: Cell type proportion shifts from transcription factor perturbations
     description:
       Quantification of cell type and subcluster abundance changes resulting from CRISPR perturbations
