@@ -37,7 +37,7 @@ tables:
       - date: "2025-11-05"
         message: "Initial data load"
     shortLabel: ndd_patient_list
-    mediumLabel: Wang 2025 - NDD Patient List
+    mediumLabel: Wang 2025 - NDD Patient Metadata for Brain Organoids
     longLabel: Brain organoid atlas patient metadata with pathogenic variants
     description:
       Patient-level metadata linking individuals with neurodevelopmental disorders to their pathogenic
@@ -83,7 +83,7 @@ tables:
       - date: "2025-11-05"
         message: "Initial data load"
     shortLabel: nebula_degs_fdr_005
-    mediumLabel: Wang 2025 - NEBULA DEGs (FDR 0.05)
+    mediumLabel: Wang 2025 - NEBULA snRNA-seq DEGs in NDD Brain Organoids (FDR 0.05)
     longLabel: NEBULA differential expression analysis at 0.05 FDR threshold
     description:
       Differentially expressed genes identified using NEBULA (negative binomial mixed model)
@@ -136,7 +136,7 @@ tables:
       - date: "2025-11-05"
         message: "Initial data load"
     shortLabel: nebula_degs_fdr_02
-    mediumLabel: Wang 2025 - NEBULA DEGs (FDR 0.2)
+    mediumLabel: Wang 2025 - NEBULA snRNA-seq DEGs in NDD Brain Organoids (FDR 0.2)
     longLabel: NEBULA differential expression analysis at 0.2 FDR threshold
     description:
       Differentially expressed genes identified using NEBULA in brain organoids from neurodevelopmental
@@ -189,7 +189,7 @@ tables:
       - date: "2025-11-05"
         message: "Initial data load"
     shortLabel: full_nebula_gene_list
-    mediumLabel: Wang 2025 - Full NEBULA Gene List
+    mediumLabel: Wang 2025 - Full NEBULA snRNA-seq DEG List in NDD Brain Organoids
     longLabel: Complete list of differentially expressed genes from NEBULA analysis
     description:
       Comprehensive gene-level screen showing all differentially expressed genes across brain
@@ -242,7 +242,7 @@ tables:
       - date: "2025-11-05"
         message: "Initial data load"
     shortLabel: pseudobulk_validation_genes
-    mediumLabel: Wang 2025 - Pseudobulk Validation Genes
+    mediumLabel: Wang 2025 - Pseudobulk Validation DEGs in NDD Brain Organoids
     longLabel: Selected validation genes from cell subclass pseudobulk analysis
     description:
       Wilcoxon test results for selected genes across cell subclass pseudobulk comparisons, providing
