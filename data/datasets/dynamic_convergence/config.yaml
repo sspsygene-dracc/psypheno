@@ -49,7 +49,7 @@ tables:
       - date: "2025-11-07"
         message: "Initial data load"
     shortLabel: meta_degs_ndd_convergence
-    mediumLabel: Garcia 2026 - META-DEGs NDD Convergence
+    mediumLabel: Fernandez Garcia 2026 - Meta-DEGs across 29 NDD Perturbations in iPSC Neurons
     longLabel: Meta-analysis of convergent NDD risk gene effects across development
     description:
       Meta-differentially expressed genes showing convergent transcriptional effects across 29
@@ -113,7 +113,7 @@ tables:
       - date: "2026-02-17"
         message: "Initial data load"
     shortLabel: mutant_behavior_fingerprints
-    mediumLabel: Garcia 2026 - Mutant behavior fingerprints
+    mediumLabel: Fernandez Garcia 2026 - Behavioral Fingerprints of NDD Crispant Zebrafish
     source: "Supplemental Data 3 download media-5.xlsx ; log10(pvalue) Baseline comparison behaviors of stable mutant to background-matched wild-type fish"
     longLabel: Mutant zebrafish baseline behavioral fingerprint pvalues
     description:
