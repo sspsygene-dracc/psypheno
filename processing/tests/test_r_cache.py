@@ -1,6 +1,5 @@
 """Tests for the R meta-analysis result cache."""
 
-import csv
 import shutil
 import subprocess
 from pathlib import Path

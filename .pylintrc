@@ -20,5 +20,6 @@ disable=missing-docstring,
     unnecessary-pass,
     subprocess-run-check,
     f-string-without-interpolation,
-    use-implicit-booleaness-not-comparison
+    use-implicit-booleaness-not-comparison,
+    import-outside-toplevel,
 notes=FIXME,XXX

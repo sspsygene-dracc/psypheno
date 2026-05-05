@@ -5,7 +5,7 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _isolate_r_cache(
+def _isolate_r_cache(  # type: ignore
     tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Point SSPSYGENE_R_CACHE_DIR at a per-session tmp dir.
