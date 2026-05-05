@@ -619,29 +619,25 @@ export default function MethodsPage() {
         >
           <h2 style={h2Style}>A Note on the Uniform(0,1) Assumption</h2>
           <p>
+
             All four classical combiners (Fisher, Stouffer, CCT, HMP) assume
             input p-values are <V>U</V>[0,&thinsp;1] under the null. Many of
-            our input tables don&apos;t fully satisfy this — a few are stored
-            as DEG-only (only rows surviving an FDR threshold are reported), a
-            few have a large mass at <V>p</V>&nbsp;&asymp;&nbsp;1 (sentinels
-            for tests that were not run for that gene), and one
-            (<span style={codeStyle}>dynamic_convergence_S2</span>) is itself
-            a meta-analysis output. Where input p-values are censored on the
-            right, combined-p magnitudes are biased downward and should not
-            be read as calibrated FDR — but the more practical question is
-            whether the <em>rankings</em> the UI shows are stable.
+            our input tables don&apos;t fully satisfy this: some are stored
+            as DEG-only (only rows surviving an FDR threshold are reported), 
+            some have a large mass at <V>p</V>&nbsp;&asymp;&nbsp;1, 
+            and some are meta-analysis outputs.
+            Where input p-values are censored on the
+            right, combined-p magnitudes are biased downward. We still include these, 
+            as practically it turns out that the gene rankings at 
+            the top are quite stable under this type of censoring.
+
           </p>
           <p>
-            We tested this empirically with{" "}
-            <span style={codeStyle}>
-              processing/scripts/pvalue_filter_experiment.py
-            </span>
-            . The script imposes a uniform DEG-only filter
-            (<V>p</V>&nbsp;&le;&nbsp;<V>T</V>) on every input table and
-            measures top-<V>K</V> Jaccard overlap and Spearman&apos;s &rho;
-            between the censored and uncensored rankings. With the seven
-            problem tables already excluded
-            (<code>--exclude-censored</code>), all three remaining methods
+            We tested this empirically by imposing a uniform DEG-only filter
+            (<V>p</V>&nbsp;&le;&nbsp;<V>T</V>) on uncensored input tables and
+            measuring top-<V>K</V> Jaccard overlap and Spearman&apos;s &rho;
+            between the censored and uncensored rankings. 
+            All three ranking methods (HMP, CCT, Fisher)
             are very stable at the top of the list:
           </p>
           <div style={{ overflowX: "auto", margin: "12px 0" }}>

@@ -1,3 +1,9 @@
+- as soon as the plan for 79 is done, we want another plan:
+  * download all original papers as PDFs unless already done (gitignore them, we
+    can't republish them)
+  * agents should read all papers and make sure our updated dataset titles are
+    actually correct
+
 - Bug: I still can't search for ALL control genes by entering CONTROL in the
   gene search fields. Also add that searching for CONTROL searches for ALL
   control genes (all names of control genes) across all tables. Add this info
@@ -9,16 +15,10 @@
   reminder: many changes have landed since Monday 2026-04-27; before the sprint
   email, sweep data/datasets/*/config.yaml changelog blocks and bring them up
   to date)
-- Reconsider combining +/− effect sizes in the aggregation. (Max notes;
-  [GH #74])
 - Improve dataset titles. (Max 3/24; [GH #79])
 - Parse GENBANK accessions to genes #139
 - Description of gene parser #147
 - P-values problems #148
-- Rename "direction" throughout the codebase from perturbed/target to something
-  else; direction seems to suggest "up/downregulated", which is not what this
-  refers to. Disentangle from actual up/downregulated cases (should mostly be
-  in most-significant)
 - Migrate zebraAsd if still necessary #156
 - One separate dataset_name.preprocessing.yaml per table, not per
   preprocess.py #158
