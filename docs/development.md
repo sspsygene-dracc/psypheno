@@ -102,6 +102,65 @@ handle and opens the new file — no service restart needed.
 This means wranglers updating data just run `sspsygene load-db` on the
 server with the right env vars — no restart, no sudo.
 
+## Testing
+
+There is no CI. The contract is `scripts/test.sh` — run it before you push.
+
+```bash
+scripts/test.sh             # fast suites (default) — always safe to run
+scripts/test.sh all         # everything, including e2e and data-corr
+scripts/test.sh python      # pytest unit only
+scripts/test.sh web         # tsc --noEmit + vitest
+scripts/test.sh e2e         # playwright (needs a dev server on :3000)
+scripts/test.sh data-corr   # data-correspondence (needs the built DB)
+```
+
+The script fails fast: it stops at the first failing suite and prints the
+exact one-liner to re-run just that suite.
+
+### What's in each suite
+
+| Suite       | What runs                                              | Time    | Prereqs |
+|-------------|--------------------------------------------------------|---------|---------|
+| `python`    | `pytest processing/tests` (excl. `data_correspondence`) | ~10–20s | `data/homology/` payload (or `$SSPSYGENE_TEST_HOMOLOGY_DIR`) |
+| `web`       | `tsc --noEmit` + `vitest run`                          | ~10s    | `web/node_modules/` (run `npm install` once) |
+| `e2e`       | `playwright test`                                      | ~10s    | dev server on `:3000` (`cd web && npm run dev`) |
+| `data-corr` | `pytest processing/tests/data_correspondence`          | ~5s     | `data/db/sspsygene.db` (`sspsygene load-db`) |
+| `fast`      | `python` + `web`                                       | ~30s    | union of above |
+| `all`       | everything                                             | ~50s    | dev server + built DB |
+
+The `e2e` suite deliberately does **not** spawn its own dev server — it
+probes `localhost:3000` and refuses with a clear message if nothing
+answers, so it doesn't fight whatever you have running. Same idea for
+`data-corr`: it refuses if the SQLite file is missing rather than letting
+pytest crash deep inside a fixture.
+
+### When to run what
+
+- **Before every commit:** `scripts/test.sh` (fast). If you only touched
+  Python, `scripts/test.sh python` is fine; same for `web`.
+- **Before merging UI-touching changes:** also `scripts/test.sh e2e` —
+  type checks and unit tests don't catch render or routing regressions.
+- **Before merging dataset-preprocessing changes** (anything under
+  `data/datasets/*/preprocess.py`, `processing/src/processing/preprocessing/`,
+  or the `load-db` pipeline that affects loaded values): also
+  `scripts/test.sh data-corr`. Useful as an occasional periodic check
+  even when you didn't touch preprocessing — drift in upstream data can
+  break it.
+- **Before deploys:** `scripts/test.sh all`.
+
+### Why there's no CI
+
+Deliberate. The team is small (one full-time developer, a few wranglers),
+the repo is public so cost isn't the issue — the reason is operational
+simplicity: one entry point on the developer's machine is easier to
+reason about than a separate CI environment that has to mirror local
+setup (Python venv, R, payload data, the gitignored homology files).
+
+If we ever want CI, `scripts/test.sh` is already the contract: a single
+GitHub Actions workflow that checks out the repo, restores the venv and
+homology payload, and calls `scripts/test.sh` is all that's needed.
+
 ## Deployment
 
 Three independent server instances run on psygene, each with its own code

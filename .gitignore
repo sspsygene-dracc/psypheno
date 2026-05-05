@@ -13,6 +13,7 @@ processing/r-cache/
 gene_info.gz
 .env
 processing/logs/
+processing/.venv-claude
 .last-wrangler-notify
 notify-output/
 docs/post-sab-feedback-context.md
