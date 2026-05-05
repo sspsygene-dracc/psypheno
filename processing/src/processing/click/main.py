@@ -34,10 +34,14 @@ def cli(
     log_file: str | None,
 ) -> None:
     """SSPsyGene Website Data Processing"""
+    # Plain-message format keeps the INFO chatter readable; WARNINGs and
+    # ERRORs are styled inline by the call site (click.style) so the
+    # absence of a level prefix doesn't lose them visually.
+    fmt = "%(message)s"
     if log_file:
-        logging.basicConfig(filename=log_file, level=log_level)
+        logging.basicConfig(filename=log_file, level=log_level, format=fmt)
     else:
-        logging.basicConfig(level=log_level, stream=sys.stdout)
+        logging.basicConfig(level=log_level, stream=sys.stdout, format=fmt)
 
 
 @cli.command()

@@ -12,6 +12,7 @@ from processing.combined_pvalues.runner import compute_combined_pvalues
 from processing.ensembl_symbol_table import compute_ensembl_to_symbol
 from processing.exports import write_exports
 from processing.gene_descriptions import copy_gene_descriptions
+from processing.my_logger import get_sspsygene_logger
 from processing.new_sqlite3 import NewSqlite3
 from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import TableToProcessConfig
@@ -23,9 +24,10 @@ def create_indexes(
     if skip:
         return
     table = sanitize_identifier(table)
+    log = get_sspsygene_logger()
     for field in idx_fields:
         field = sanitize_identifier(field)
-        print(f"Creating index for {field}")
+        log.info("  index: %s(%s)", table, field)
         sql = f"CREATE INDEX {table}_{field}_idx ON {table} ({field})"
         conn.execute(sql)
 
@@ -44,10 +46,11 @@ def create_nocase_indexes(
     if skip:
         return
     table = sanitize_identifier(table)
+    log = get_sspsygene_logger()
     for field in _NOCASE_INDEXES.get(table, []):
         field = sanitize_identifier(field)
         idx_name = f"{table}_{field}_nocase_idx"
-        print(f"Creating NOCASE index {idx_name}")
+        log.info("  index: %s(%s COLLATE NOCASE)", table, field)
         conn.execute(f"CREATE INDEX {idx_name} ON {table} ({field} COLLATE NOCASE)")
 
 
@@ -258,6 +261,7 @@ def load_data_tables(
         effect_column TEXT,
         preprocessing TEXT)"""
     )
+    log = get_sspsygene_logger()
     loaded: list[str] = []
     skipped: list[str] = []
     for table_config in table_configs:
@@ -285,6 +289,11 @@ def load_data_tables(
                     err=True,
                 )
                 sys.exit(1)
+        log.info(
+            "Loading table %s from %s",
+            table_config.table,
+            table_config.in_path.name,
+        )
         data_and_meta = table_config.load_data_table(
             test_central_gene_ids=test_central_gene_ids,
         )

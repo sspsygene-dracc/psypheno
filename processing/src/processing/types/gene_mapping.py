@@ -215,9 +215,18 @@ class GeneMapping:
         # value resolve via species_map. Track the set of fallback-origin
         # values so we still count those rows as affected.
         fallback_values: set[str] = set()
+        # Per-disposition occurrence counts (resolutions, not rows — a
+        # multi_gene_separator row can contribute several). Logged at
+        # INFO so users see what each column did, not just what failed.
+        n_recognized = 0
+        n_recorded = 0
+        n_control = 0
+        n_fallback = 0
+        n_empty = 0
         for row_id, elem in zip(id_column, in_column):
             if self.ignore_empty and (pd.isna(elem) or not elem):
                 data_id_to_central_gene_id.append((row_id, None))
+                n_empty += 1
                 continue
 
             if self.multi_gene_separator:
@@ -234,6 +243,9 @@ class GeneMapping:
                     if gene_val in fallback_values:
                         affected_row_ids.add(row_id)
                         unresolvable_counts[gene_val] += 1
+                        n_fallback += 1
+                    else:
+                        n_recognized += 1
                     for entry in species_map[gene_val]:
                         data_id_to_central_gene_id.append((row_id, entry.row_id))
                         entry.add_used_name(
@@ -249,6 +261,11 @@ class GeneMapping:
                     fallback_values.add(gene_val)
                     affected_row_ids.add(row_id)
                     unresolvable_counts[gene_val] += 1
+                    n_fallback += 1
+                elif disposition == "control":
+                    n_control += 1
+                else:  # "record" — auto-recorded non-symbol or explicit record_value
+                    n_recorded += 1
                 # All three dispositions create a stub and link the row.
                 # Controls get kind='control' so per-gene aggregates can
                 # filter them out; record/fallback stay as ordinary genes.
@@ -261,6 +278,16 @@ class GeneMapping:
                 )
                 species_map[gene_val] = [new_entry]
                 data_id_to_central_gene_id.append((row_id, new_entry.row_id))
+
+        self._log_resolution_summary(
+            primary_table_name=primary_table_name,
+            total_rows=total_rows,
+            n_recognized=n_recognized,
+            n_recorded=n_recorded,
+            n_control=n_control,
+            n_fallback=n_fallback,
+            n_empty=n_empty,
+        )
 
         if affected_row_ids:
             self._log_aggregate_unresolvable_warning(
@@ -277,6 +304,45 @@ class GeneMapping:
             gene_column_name=self.column_name,
             link_table_name=link_table_full_name,
             perturbed_or_target=self.perturbed_or_target,
+        )
+
+    def _log_resolution_summary(
+        self,
+        *,
+        primary_table_name: str,
+        total_rows: int,
+        n_recognized: int,
+        n_recorded: int,
+        n_control: int,
+        n_fallback: int,
+        n_empty: int,
+    ) -> None:
+        """One INFO line per gene_mapping with the resolution breakdown.
+
+        `recognized` = resolved via central_gene's existing symbol map
+        (the happy path). `recorded` = auto-silenced non-symbol or
+        explicit record_value (`is_non_symbol_identifier` match,
+        record_values, record_patterns). `control` = perturbation
+        control via control_values. `fallback` = unrecognized symbol
+        candidate that produced a stub-with-warning (the only category
+        that still emits a WARNING below).
+        """
+        parts = [f"recognized {n_recognized}"]
+        if n_recorded:
+            parts.append(f"recorded {n_recorded}")
+        if n_control:
+            parts.append(f"control {n_control}")
+        if n_fallback:
+            parts.append(f"unresolved {n_fallback}")
+        if n_empty:
+            parts.append(f"empty {n_empty}")
+        get_sspsygene_logger().info(
+            "  %s.%s [%s]: %d row(s) — %s",
+            primary_table_name,
+            self.column_name,
+            self.species,
+            total_rows,
+            " / ".join(parts),
         )
 
     def _log_aggregate_unresolvable_warning(
