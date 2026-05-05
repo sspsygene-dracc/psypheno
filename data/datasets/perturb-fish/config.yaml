@@ -29,7 +29,7 @@ tables:
       - date: "2026-05-04"
         message: "Declare effect_column: lfc so the table contributes to up/down combined-p groups (#74)"
     shortLabel: perturb_fish_astrocyte_screen
-    mediumLabel: Binan 2025 - Perturb-FISH Astrocyte Screen
+    mediumLabel: Binan 2025 - Perturb-FISH CRISPRi Screen of 127 ASD Genes in iPSC Astrocytes
     longLabel: CRISPR screening with spatial transcriptomics in astrocytes
     description:
       Spatial transcriptomics and functional calcium imaging screen of 127 autism spectrum disorder
