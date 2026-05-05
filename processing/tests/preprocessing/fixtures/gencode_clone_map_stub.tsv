@@ -1,0 +1,7 @@
+clone_name	resolution	kind
+RP11-100A1.1	BRCA1	hgnc_symbol
+RP11-200B2.2	MATR3	hgnc_symbol
+RP11-300C3.3	ENSG00000999991	current_ensg
+CTD-444D4.4	ENSG00000999992	current_ensg
+RP11-555E5.5	AC012345.6	current_ac_accession
+KB-666F6.6	AL987654.3	current_ac_accession

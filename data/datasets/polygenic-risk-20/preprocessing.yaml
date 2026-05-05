@@ -1,4 +1,4 @@
-generated: '2026-05-04T10:53:39Z'
+generated: '2026-05-05T08:34:06Z'
 inputs:
 - Supp_1_all.csv
 - Supp_2_all.csv
@@ -33,6 +33,7 @@ tables:
         SARS: SARS1
         TAZ: TAFAZZIN
       resolve_via_ensembl_map: true
+      resolve_gencode_clone: true
     counts:
       passed_through: 415360
     dropped_rows: 0
@@ -45,11 +46,15 @@ tables:
       strip_make_unique: true
       manual_aliases: *id001
       resolve_via_ensembl_map: true
+      resolve_gencode_clone: true
     counts:
       passed_through: 313659
       rescued_excel: 400
-      non_symbol_gencode_clone: 78880
-      non_symbol_contig: 18480
+      non_symbol_gencode_clone: 25872
+      non_symbol_contig: 8720
+      rescued_gencode_clone_current_ensg: 41952
+      rescued_gencode_clone_hgnc_symbol: 11056
+      rescued_gencode_clone_current_ac_accession: 9760
       non_symbol_rna_family: 2880
       unresolved: 741
       non_symbol_genbank_accession: 144
@@ -111,6 +116,7 @@ tables:
       strip_make_unique: true
       manual_aliases: *id001
       resolve_via_ensembl_map: true
+      resolve_gencode_clone: true
     counts:
       passed_through: 337020
     dropped_rows: 0
@@ -123,11 +129,13 @@ tables:
       strip_make_unique: true
       manual_aliases: *id001
       resolve_via_ensembl_map: true
+      resolve_gencode_clone: true
     counts:
       passed_through: 298320
       unresolved: 200
       rescued_make_unique: 380
-      non_symbol_contig: 37520
+      non_symbol_contig: 36440
+      rescued_gencode_clone_current_ac_accession: 1080
       non_symbol_genbank_accession: 20
       rescued_excel: 480
       rescued_manual_alias: 100

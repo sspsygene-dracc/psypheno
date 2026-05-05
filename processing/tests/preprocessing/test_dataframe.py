@@ -3,6 +3,7 @@ import pytest
 
 from processing.preprocessing import (
     EnsemblToSymbolMapper,
+    GencodeCloneIndex,
     GeneSymbolNormalizer,
     clean_gene_column,
 )
@@ -363,3 +364,85 @@ def test_clean_gene_column_manual_aliases_runs_after_auto_rescues(
     )
     assert out["target_gene"].tolist() == ["SEPTIN9"]
     assert report.resolutions == ["rescued_excel"]
+
+
+# ---------------------------------------------------------------------------
+# resolve_gencode_clone
+# ---------------------------------------------------------------------------
+
+
+def test_clean_gene_column_resolve_gencode_clone(
+    normalizer: GeneSymbolNormalizer,
+    gencode_clone_index: GencodeCloneIndex,
+) -> None:
+    df = pd.DataFrame(
+        {
+            "target_gene": [
+                "BRCA1",            # passed_through (real symbol)
+                "RP11-100A1.1",     # rescued_gencode_clone_hgnc_symbol -> BRCA1
+                "RP11-300C3.3",     # rescued_gencode_clone_current_ensg
+                "RP11-555E5.5",     # rescued_gencode_clone_current_ac_accession
+                "RP11-NOPE-XYZ.9",  # falls through to non_symbol_gencode_clone
+            ]
+        }
+    )
+    out, report = clean_gene_column(
+        df,
+        "target_gene",
+        species="human",
+        normalizer=normalizer,
+        gencode_clone_index=gencode_clone_index,
+        resolve_gencode_clone=True,
+    )
+    assert out["target_gene"].tolist() == [
+        "BRCA1",
+        "BRCA1",
+        "ENSG00000999991",
+        "AC012345.6",
+        "RP11-NOPE-XYZ.9",
+    ]
+    assert report.resolutions == [
+        "passed_through",
+        "rescued_gencode_clone_hgnc_symbol",
+        "rescued_gencode_clone_current_ensg",
+        "rescued_gencode_clone_current_ac_accession",
+        "non_symbol_gencode_clone",
+    ]
+
+
+def test_clean_gene_column_resolve_gencode_clone_requires_index(
+    normalizer: GeneSymbolNormalizer,
+) -> None:
+    # Mirror of the resolve_via_ensembl_map guard: enabling the flag
+    # without supplying the index is a programmer error, not a silent
+    # no-op.
+    df = pd.DataFrame({"target_gene": ["RP11-100A1.1"]})
+    with pytest.raises(ValueError, match="GencodeCloneIndex"):
+        clean_gene_column(
+            df,
+            "target_gene",
+            species="human",
+            normalizer=normalizer,
+            resolve_gencode_clone=True,
+        )
+
+
+def test_clean_gene_column_resolve_gencode_clone_ordering(
+    normalizer: GeneSymbolNormalizer,
+    gencode_clone_index: GencodeCloneIndex,
+) -> None:
+    # Ordering invariant: a real symbol that happens to also be in the
+    # clone TSV (shouldn't happen in practice, but the guard is the
+    # initial `normalizer.resolve()` short-circuit at the top of the
+    # per-row loop) wins over the clone index.
+    df = pd.DataFrame({"target_gene": ["BRCA1"]})
+    out, report = clean_gene_column(
+        df,
+        "target_gene",
+        species="human",
+        normalizer=normalizer,
+        gencode_clone_index=gencode_clone_index,
+        resolve_gencode_clone=True,
+    )
+    assert out["target_gene"].tolist() == ["BRCA1"]
+    assert report.resolutions == ["passed_through"]

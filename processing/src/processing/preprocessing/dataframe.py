@@ -11,6 +11,7 @@ import pandas as pd
 from processing.my_logger import get_sspsygene_logger
 from processing.preprocessing import helpers
 from processing.preprocessing.ensembl_index import EnsemblToSymbolMapper
+from processing.preprocessing.gencode_clone_index import GencodeCloneIndex
 from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
 
 
@@ -58,6 +59,8 @@ def clean_gene_column(
     drop_non_symbols: bool = False,
     ensembl_mapper: EnsemblToSymbolMapper | None = None,
     resolve_via_ensembl_map: bool = False,
+    gencode_clone_index: GencodeCloneIndex | None = None,
+    resolve_gencode_clone: bool = False,
 ) -> tuple[pd.DataFrame, CleanReport]:
     """Resolve and annotate a gene-name column.
 
@@ -84,11 +87,27 @@ def clean_gene_column(
     `ensembl_mapper`. Tagged `rescued_ensembl_map`. Orphan IDs (no
     symbol mapping) fall through to the `non_symbol_ensembl_*`
     classification.
+
+    `resolve_gencode_clone=True` looks up legacy GENCODE/HAVANA clone
+    identifiers (`RP11-…`, `CTD-…`, `KB-…`, etc.) in the supplied
+    `gencode_clone_index`. The index returns one of three kinds — the
+    name's current HGNC symbol, its current ENSG (when no symbol has
+    been assigned), or its current AC/AL/AP accession — and we replace
+    the verbose clone label with the resolved value. Tagged
+    `rescued_gencode_clone_<kind>`. Clones absent from the index fall
+    through to the existing Tier B `non_symbol_gencode_clone`
+    classification, identical to today's behavior.
     """
     if resolve_via_ensembl_map and ensembl_mapper is None:
         raise ValueError(
             "resolve_via_ensembl_map=True requires an ensembl_mapper; "
             "pass EnsemblToSymbolMapper.from_env() (or from_paths)."
+        )
+
+    if resolve_gencode_clone and gencode_clone_index is None:
+        raise ValueError(
+            "resolve_gencode_clone=True requires a gencode_clone_index; "
+            "pass GencodeCloneIndex.from_env() (or from_paths)."
         )
 
     if column not in df.columns:
@@ -184,6 +203,34 @@ def clean_gene_column(
                     new_values.append(resolved_symbol)
                     resolutions.append("rescued_ensembl_map")
                     counts["rescued_ensembl_map"] += 1
+                    continue
+
+        if resolve_gencode_clone:
+            assert gencode_clone_index is not None
+            clone_rescue = helpers.resolve_gencode_clone(name, gencode_clone_index)
+            if clone_rescue is not None:
+                kind, replacement = clone_rescue
+                if kind == "hgnc_symbol":
+                    # The TSV stores the current HGNC symbol, but verify it
+                    # against the live normalizer in case HGNC has since
+                    # withdrawn or renamed it (the TSV is an artifact at
+                    # rest; the normalizer always reflects the latest
+                    # data/homology/hgnc_complete_set.txt).
+                    resolved_symbol = normalizer.resolve(replacement, species)
+                    if resolved_symbol is not None:
+                        new_values.append(resolved_symbol)
+                        resolutions.append("rescued_gencode_clone_hgnc_symbol")
+                        counts["rescued_gencode_clone_hgnc_symbol"] += 1
+                        continue
+                else:
+                    # current_ensg / current_ac_accession: replace the
+                    # verbose clone label with the stable anchor; Tier B's
+                    # silencer (ensembl_human / contig) keeps load-db quiet
+                    # about the resulting non-symbol value.
+                    new_values.append(replacement)
+                    tag = f"rescued_gencode_clone_{kind}"
+                    resolutions.append(tag)
+                    counts[tag] += 1
                     continue
 
         # New rescue helpers (e.g. #124's resolve_gencode_clone) MUST be

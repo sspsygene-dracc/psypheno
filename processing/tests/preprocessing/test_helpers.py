@@ -2,9 +2,11 @@ import pytest
 
 from processing.preprocessing import (
     NON_SYMBOL_CATEGORIES,
+    GencodeCloneIndex,
     GeneSymbolNormalizer,
     excel_demangle,
     is_non_symbol_identifier,
+    resolve_gencode_clone,
     split_symbol_ensg,
     strip_make_unique_suffix,
 )
@@ -247,3 +249,53 @@ def test_split_symbol_ensg_positive() -> None:
 )
 def test_split_symbol_ensg_negative(name: str) -> None:
     assert split_symbol_ensg(name) is None
+
+
+# ---------------------------------------------------------------------------
+# resolve_gencode_clone
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        ("RP11-100A1.1", ("hgnc_symbol", "BRCA1")),
+        ("RP11-200B2.2", ("hgnc_symbol", "MATR3")),
+        ("RP11-300C3.3", ("current_ensg", "ENSG00000999991")),
+        ("CTD-444D4.4", ("current_ensg", "ENSG00000999992")),
+        ("RP11-555E5.5", ("current_ac_accession", "AC012345.6")),
+        ("KB-666F6.6", ("current_ac_accession", "AL987654.3")),
+    ],
+)
+def test_resolve_gencode_clone_positive(
+    gencode_clone_index: GencodeCloneIndex,
+    name: str,
+    expected: tuple[str, str],
+) -> None:
+    assert resolve_gencode_clone(name, gencode_clone_index) == expected
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "BRCA1",                       # real symbol — not a clone
+        "RP11-NOT-IN-INDEX.1",         # clone-shaped but unknown
+        "ENSG00000123456",             # ENSG, not a clone
+        "",                            # empty
+    ],
+)
+def test_resolve_gencode_clone_negative(
+    gencode_clone_index: GencodeCloneIndex,
+    name: str,
+) -> None:
+    assert resolve_gencode_clone(name, gencode_clone_index) is None
+
+
+def test_gencode_clone_index_from_paths_loads_all_kinds(
+    gencode_clone_index: GencodeCloneIndex,
+) -> None:
+    # Sanity check on the loader: all six fixture rows make it in, with
+    # the right kinds, and lookup works for every one.
+    assert len(gencode_clone_index.clone_to_status) == 6
+    kinds = {kind for kind, _ in gencode_clone_index.clone_to_status.values()}
+    assert kinds == {"hgnc_symbol", "current_ensg", "current_ac_accession"}

@@ -135,12 +135,18 @@ class CleanGeneColumnStep(Step):
                 "resolve_via_ensembl_map=True requires an EnsemblToSymbolMapper; "
                 "pass ensembl_mapper=... to Pipeline()."
             )
+        if flags.get("resolve_gencode_clone") and ctx.gencode_clone_index is None:
+            raise ValueError(
+                "resolve_gencode_clone=True requires a GencodeCloneIndex; "
+                "pass gencode_clone_index=... to Pipeline()."
+            )
         out, report = clean_gene_column(
             df,
             self.column,
             species=self.species,  # type: ignore[arg-type]
             normalizer=ctx.normalizer,
             ensembl_mapper=ctx.ensembl_mapper,
+            gencode_clone_index=ctx.gencode_clone_index,
             **flags,
         )
 

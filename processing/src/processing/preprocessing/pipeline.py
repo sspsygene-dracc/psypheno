@@ -38,6 +38,7 @@ import pandas as pd
 import yaml
 
 from processing.preprocessing.ensembl_index import EnsemblToSymbolMapper
+from processing.preprocessing.gencode_clone_index import GencodeCloneIndex
 from processing.preprocessing.symbol_index import GeneSymbolNormalizer
 
 
@@ -117,6 +118,7 @@ class Context:
     table: str | None
     normalizer: GeneSymbolNormalizer | None
     ensembl_mapper: EnsemblToSymbolMapper | None
+    gencode_clone_index: GencodeCloneIndex | None = None
 
 
 class Pipeline:
@@ -134,11 +136,13 @@ class Pipeline:
         tracker: Tracker,
         normalizer: GeneSymbolNormalizer | None = None,
         ensembl_mapper: EnsemblToSymbolMapper | None = None,
+        gencode_clone_index: GencodeCloneIndex | None = None,
     ) -> None:
         self.name = name
         self.tracker = tracker
         self.normalizer = normalizer
         self.ensembl_mapper = ensembl_mapper
+        self.gencode_clone_index = gencode_clone_index
         self.steps: list[Step] = []
 
     def add(self, step: "Step") -> "Pipeline":
@@ -266,6 +270,7 @@ class Pipeline:
             table=self.name,
             normalizer=self.normalizer,
             ensembl_mapper=self.ensembl_mapper,
+            gencode_clone_index=self.gencode_clone_index,
         )
         df: pd.DataFrame | None = None
         for step in self.steps:

@@ -41,11 +41,13 @@ Example (pipeline form):
 
 from processing.preprocessing.dataframe import CleanReport, clean_gene_column
 from processing.preprocessing.ensembl_index import EnsemblToSymbolMapper
+from processing.preprocessing.gencode_clone_index import CloneKind, GencodeCloneIndex
 from processing.preprocessing.helpers import (
     NON_SYMBOL_CATEGORIES,
     NonSymbolCategory,
     excel_demangle,
     is_non_symbol_identifier,
+    resolve_gencode_clone,
     split_symbol_ensg,
     strip_make_unique_suffix,
 )
@@ -76,7 +78,9 @@ from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
 __all__ = [
     # Gene-cleanup core
     "CleanReport",
+    "CloneKind",
     "EnsemblToSymbolMapper",
+    "GencodeCloneIndex",
     "GeneSymbolNormalizer",
     "NON_SYMBOL_CATEGORIES",
     "NonSymbolCategory",
@@ -84,6 +88,7 @@ __all__ = [
     "clean_gene_column",
     "excel_demangle",
     "is_non_symbol_identifier",
+    "resolve_gencode_clone",
     "split_symbol_ensg",
     "strip_make_unique_suffix",
     # Pipeline / tracker

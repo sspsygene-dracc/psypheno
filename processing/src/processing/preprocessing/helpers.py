@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from typing import Callable, Literal
 
+from processing.preprocessing.gencode_clone_index import CloneKind, GencodeCloneIndex
 from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
 
 
@@ -198,3 +199,20 @@ def split_symbol_ensg(name: str) -> tuple[str, str] | None:
     if m is None:
         return None
     return m.group(1), m.group(2)
+
+
+def resolve_gencode_clone(
+    name: str, clone_index: GencodeCloneIndex
+) -> tuple[CloneKind, str] | None:
+    """Look up a legacy GENCODE/HAVANA clone identifier.
+
+    Returns `(kind, resolution)` for clones the prebuilt index knows
+    about; `None` for everything else (real symbols, unknown clones,
+    empty input). Callers should treat `None` the same as today's
+    behavior — fall through to the Tier B `gencode_clone` silencer.
+
+    See `GencodeCloneIndex` for the meaning of the four `kind` values.
+    """
+    if not name:
+        return None
+    return clone_index.resolve_clone(name)

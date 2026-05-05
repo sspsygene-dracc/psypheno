@@ -12,6 +12,13 @@ Cleans both gene-name columns in Supp_1_all.csv and Supp_2_all.csv:
     un-suffixed form resolves and the suffixed form does not, so
     GenBank composites like `KC877982.1` correctly pass through to
     Tier B's silencer.
+  * Tier C4 (resolve_gencode_clone): legacy GENCODE/HAVANA clone
+    identifiers (`RP11-…`, `CTD-…`, `KB-…`, `XXbac-…`, …). Roughly
+    5,100 unique clone-shaped target_gene values in Supp_1 alone; the
+    GENCODE v38 + HGNC cross-reference resolves ~66% of them to the
+    current HGNC symbol, the stable ENSG anchor, or a current AC
+    accession. The remainder fall through to the existing Tier B
+    `gencode_clone` silencer (#139).
 
 `perturbed_gene` columns hold a small set of canonical CRISPR-target
 symbols (no mangling today) but are routed through the cleaner for
@@ -30,6 +37,7 @@ from pathlib import Path
 
 from processing.preprocessing import (
     EnsemblToSymbolMapper,
+    GencodeCloneIndex,
     GeneSymbolNormalizer,
     MANUAL_ALIASES_HUMAN,
     Pipeline,
@@ -49,6 +57,7 @@ def main() -> None:
     tracker = Tracker()
     normalizer = GeneSymbolNormalizer.from_env()
     ensembl_mapper = EnsemblToSymbolMapper.from_env()
+    gencode_clone_index = GencodeCloneIndex.from_env()
 
     for in_name, out_name in JOBS:
         pipe = (
@@ -57,6 +66,7 @@ def main() -> None:
                 tracker=tracker,
                 normalizer=normalizer,
                 ensembl_mapper=ensembl_mapper,
+                gencode_clone_index=gencode_clone_index,
             )
             .read_csv(DIR / in_name)
         )
@@ -68,6 +78,7 @@ def main() -> None:
                 strip_make_unique=True,
                 manual_aliases=MANUAL_ALIASES_HUMAN,
                 resolve_via_ensembl_map=True,
+                resolve_gencode_clone=True,
             )
         pipe.write_csv(DIR / out_name).run()
 
