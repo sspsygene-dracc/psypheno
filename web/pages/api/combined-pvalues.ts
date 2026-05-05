@@ -44,7 +44,7 @@ export default async function handler(
     // Fetch pre-computed combined p-values for this direction.
     const combined = db
       .prepare(
-        `SELECT fisher_pvalue, fisher_fdr, stouffer_pvalue, stouffer_fdr,
+        `SELECT fisher_pvalue, fisher_fdr,
                 cauchy_pvalue, cauchy_fdr, hmp_pvalue, hmp_fdr,
                 num_tables, num_pvalues
          FROM ${combinedTable} WHERE central_gene_id = ?`
@@ -52,8 +52,6 @@ export default async function handler(
       .get(centralGeneId) as {
         fisher_pvalue: number | null;
         fisher_fdr: number | null;
-        stouffer_pvalue: number | null;
-        stouffer_fdr: number | null;
         cauchy_pvalue: number | null;
         cauchy_fdr: number | null;
         hmp_pvalue: number | null;
@@ -226,8 +224,6 @@ export default async function handler(
         ? {
             fisher: combined.fisher_pvalue,
             fisherFdr: combined.fisher_fdr,
-            stouffer: combined.stouffer_pvalue,
-            stoufferFdr: combined.stouffer_fdr,
             cauchy: combined.cauchy_pvalue,
             cauchyFdr: combined.cauchy_fdr,
             hmp: combined.hmp_pvalue,

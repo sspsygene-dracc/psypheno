@@ -30,7 +30,7 @@ type RankedRow = {
   gene_description: string | null;
 };
 
-type Method = "fisher" | "stouffer" | "cauchy" | "hmp";
+type Method = "fisher" | "cauchy" | "hmp";
 type Regulation = "any" | "up" | "down";
 
 /** Positive "show" flags \u2014 categories of interest. */
@@ -77,20 +77,13 @@ const METHOD_DESCRIPTIONS: {
   doi?: string;
 }[] = [
   {
-    key: "fisher",
-    label: "Fisher\u2019s Method",
-    shortLabel: "Fisher",
+    key: "hmp",
+    label: "Harmonic Mean P-value (HMP)",
+    shortLabel: "HMP",
     description:
-      "Combines -2\u00B7\u03A3ln(p) across tables. Pre-collapsed to one p-value per table using a Bonferroni-corrected minimum. Particularly sensitive to any single strong signal. Under H\u2080, the test statistic follows a \u03C7\u00B2 distribution with 2k degrees of freedom (k = number of tables).",
-    citation: "Fisher (1925), Statistical Methods for Research Workers",
-  },
-  {
-    key: "stouffer",
-    label: "Stouffer\u2019s Method",
-    shortLabel: "Stouffer",
-    description:
-      "Converts p-values to Z-scores via the inverse normal CDF and sums them. Pre-collapsed to one p-value per table. More balanced than Fisher\u2019s method, giving less weight to single extreme values.",
-    citation: "Stouffer et al. (1949), The American Soldier",
+      "Computes the weighted harmonic mean of p-values with Landau distribution calibration via R\u2019s harmonicmeanp package. Uses all individual p-values directly. Robust to dependency structure between tests.",
+    citation: "Wilson (2019), PNAS",
+    doi: "10.1073/pnas.1814092116",
   },
   {
     key: "cauchy",
@@ -102,13 +95,12 @@ const METHOD_DESCRIPTIONS: {
     doi: "10.1080/01621459.2018.1554485",
   },
   {
-    key: "hmp",
-    label: "Harmonic Mean P-value (HMP)",
-    shortLabel: "HMP",
+    key: "fisher",
+    label: "Fisher\u2019s Method",
+    shortLabel: "Fisher",
     description:
-      "Computes the weighted harmonic mean of p-values with Landau distribution calibration via R\u2019s harmonicmeanp package. Uses all individual p-values directly. Robust to dependency structure between tests.",
-    citation: "Wilson (2019), PNAS",
-    doi: "10.1073/pnas.1814092116",
+      "Combines -2\u00B7\u03A3ln(p) across tables. Pre-collapsed to one p-value per table using a Bonferroni-corrected minimum. Particularly sensitive to any single strong signal. Under H\u2080, the test statistic follows a \u03C7\u00B2 distribution with 2k degrees of freedom (k = number of tables).",
+    citation: "Fisher (1925), Statistical Methods for Research Workers",
   },
 ];
 
@@ -239,7 +231,7 @@ export default function MostSignificantPage() {
   const [rows, setRows] = useState<RankedRow[]>([]);
   const [totalRows, setTotalRows] = useState(0);
   const [page, setPage] = useState(1);
-  const [method, setMethod] = useState<Method>("fisher");
+  const [method, setMethod] = useState<Method>("hmp");
   const [direction, setDirection] = useState<"target" | "perturbed">("target");
   const [regulation, setRegulation] = useState<Regulation>("any");
   const [loading, setLoading] = useState(true);
@@ -316,7 +308,7 @@ export default function MostSignificantPage() {
     if (!router.isReady || urlInitialized) return;
     setUrlInitialized(true);
     const q = router.query;
-    if (typeof q.method === "string" && ["fisher", "stouffer", "cauchy", "hmp"].includes(q.method)) {
+    if (typeof q.method === "string" && ["fisher", "cauchy", "hmp"].includes(q.method)) {
       setMethod(q.method as Method);
     }
     if (typeof q.dir === "string" && ["target", "perturbed"].includes(q.dir)) {
@@ -354,7 +346,7 @@ export default function MostSignificantPage() {
       return;
     }
     const params: Record<string, string> = {};
-    if (method !== "fisher") params.method = method;
+    if (method !== "hmp") params.method = method;
     if (direction !== "target") params.dir = direction;
     if (regulation !== "any") params.reg = regulation;
     if (assayFilter) params.assay = assayFilter;
@@ -559,56 +551,7 @@ export default function MostSignificantPage() {
           </Link>
         </p>
 
-        {/* Method selector */}
-        <div
-          style={{
-            marginBottom: 12,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <label
-            htmlFor="method-select"
-            style={{ fontWeight: 600, fontSize: 14, color: "#374151" }}
-          >
-            Ranking method:
-          </label>
-          <select
-            id="method-select"
-            value={method}
-            onChange={(e) => {
-              setMethod(e.target.value as Method);
-              setPage(1);
-            }}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 6,
-              border: "1px solid #d1d5db",
-              fontSize: 14,
-            }}
-          >
-            {METHOD_DESCRIPTIONS.map((m) => (
-              <option key={m.key} value={m.key}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-          <Link
-            href="/methods"
-            style={{
-              color: "#2563eb",
-              textDecoration: "none",
-              fontSize: 13,
-              whiteSpace: "nowrap",
-            }}
-          >
-            Full methods documentation &rarr;
-          </Link>
-        </div>
-
-        {/* Direction + filter radios (assay / disease / organism) */}
+        {/* Method + Direction + filter radios (assay / disease / organism) */}
         {cpGroups.length > 0 &&
           (() => {
             const availableAssays = [
@@ -670,6 +613,35 @@ export default function MostSignificantPage() {
                   fontSize: 13,
                 }}
               >
+                <div style={{ ...filterRowStyle, marginBottom: 8 }}>
+                  <span style={filterLabelStyle}>Ranking method:</span>
+                  {METHOD_DESCRIPTIONS.map((m) => (
+                    <label key={m.key} style={radioLabelStyle}>
+                      <input
+                        type="radio"
+                        name="method"
+                        checked={method === m.key}
+                        onChange={() => {
+                          setMethod(m.key);
+                          setPage(1);
+                        }}
+                      />
+                      {m.shortLabel}
+                    </label>
+                  ))}
+                  <Link
+                    href="/methods"
+                    style={{
+                      color: "#2563eb",
+                      textDecoration: "none",
+                      fontSize: 12,
+                      whiteSpace: "nowrap",
+                      marginLeft: "auto",
+                    }}
+                  >
+                    Methods documentation &rarr;
+                  </Link>
+                </div>
                 <div
                   style={{
                     ...filterRowStyle,

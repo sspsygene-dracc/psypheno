@@ -65,7 +65,7 @@ def get_top_genes(db_path: Path, top_n: int) -> list[dict[str, Any]]:
     flag_where = f"WHERE (cp.gene_flags IS NULL OR NOT ({flag_conditions}))"
 
     # Get union of top-N from each method
-    methods = ["fisher_pvalue", "stouffer_pvalue", "cauchy_pvalue", "hmp_pvalue"]
+    methods = ["fisher_pvalue", "cauchy_pvalue", "hmp_pvalue"]
     all_gene_ids: set[int] = set()
     for method in methods:
         rows = conn.execute(

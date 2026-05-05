@@ -159,10 +159,10 @@ export default function MethodsPage() {
                 "Pre-Collapse: Bonferroni Within-Table Correction",
               ],
               ["fisher", "Fisher\u2019s Method"],
-              ["stouffer", "Stouffer\u2019s Method"],
               ["cauchy", "Cauchy Combination Test (CCT)"],
               ["hmp", "Harmonic Mean P-Value (HMP)"],
-              ["rationale", "Why All Four Methods?"],
+              ["uniformity", "A Note on the Uniform(0,1) Assumption"],
+              ["rationale", "Why These Three Methods?"],
             ].map(([id, label]) => (
               <li key={id} style={{ marginBottom: 2 }}>
                 <a
@@ -195,8 +195,8 @@ export default function MethodsPage() {
             is to combine these p-values into a single summary statistic per
             gene that captures total evidence across all experiments. This is
             exactly what p-value combination methods like Fisher&apos;s,
-            Stouffer&apos;s, CCT, and HMP are designed for. They take
-            multiple p-values and produce a single aggregate p-value.
+            CCT, and HMP are designed for. They take multiple p-values
+            and produce a single aggregate p-value.
           </p>
           <p>
             <strong>Are p-values from different assays comparable?</strong>{" "}
@@ -231,22 +231,22 @@ export default function MethodsPage() {
               </p>
             </li>
             <li>
-              <strong>Pre-collapse</strong> (for Fisher/Stouffer only): reduce
-              each table&apos;s p-values for that gene down to a single
-              per-table p-value using min(<V>p</V>)&thinsp;&times;&thinsp;
-              <V>n</V>, capped at 1.0.
+              <strong>Pre-collapse</strong> (for Fisher only): reduce each
+              table&apos;s p-values for that gene down to a single per-table
+              p-value using min(<V>p</V>)&thinsp;&times;&thinsp;<V>n</V>,
+              capped at 1.0.
             </li>
             <li>
-              <strong>Combine</strong> using four methods: Fisher and Stouffer
-              operate on the collapsed per-table p-values; CCT and HMP operate
+              <strong>Combine</strong> using three methods: Fisher operates
+              on the collapsed per-table p-values; CCT and HMP operate
               directly on all raw p-values.
             </li>
           </ol>
           <p>
-            Fisher and Stouffer require at least 2 collapsed table p-values
-            (both &lt; 1.0) to produce a result. CCT and HMP can operate on any
-            number of p-values &ge; 1. All statistical computations are
-            performed in R using reference implementations.
+            Fisher requires at least 2 collapsed table p-values (both &lt; 1.0)
+            to produce a result. CCT and HMP can operate on any number of
+            p-values &ge; 1. All statistical computations are performed in R
+            using reference implementations.
           </p>
         </section>
 
@@ -266,7 +266,7 @@ export default function MethodsPage() {
             p-values for <V>G</V> from a single table. These p-values are{" "}
             <em>not independent</em>; they all come from the same assay
             measuring the same gene, and we should not feed them individually
-            into Fisher or Stouffer as though they were independent studies.
+            into Fisher as though they were independent studies.
           </p>
           <p>
             <strong>Solution:</strong> For each gene-table combination, we
@@ -292,9 +292,9 @@ export default function MethodsPage() {
             p-values.
           </p>
           <p>
-            <strong>Who uses it:</strong> Fisher&apos;s method and
-            Stouffer&apos;s method. The CCT and HMP, being robust to
-            correlation, operate on the full set of raw p-values directly.
+            <strong>Who uses it:</strong> Fisher&apos;s method. The CCT and
+            HMP, being robust to correlation, operate on the full set of raw
+            p-values directly.
           </p>
         </section>
 
@@ -383,65 +383,7 @@ export default function MethodsPage() {
           </p>
         </section>
 
-        {/* 3. Stouffer */}
-        <section
-          id="sec-stouffer"
-          style={{ ...sectionStyle, scrollMarginTop: 16 }}
-        >
-          <h2 style={h2Style}>Stouffer&apos;s Method</h2>
-          <p>
-            Stouffer&apos;s method (1949) converts each p-value to a Z-score via
-            the inverse normal CDF, then sums and normalizes.
-          </p>
-          <p>
-            <strong>Test statistic:</strong>
-          </p>
-          <div style={mathBlock}>
-            <V>Z</V> ={" "}
-            <Frac
-              num={
-                <>
-                  &sum;
-                  <sub>
-                    <V>i</V>=1
-                  </sub>
-                  <sup>
-                    <V>k</V>
-                  </sup>{" "}
-                  &Phi;<sup>&minus;1</sup>(1 &minus; <V>p</V>
-                  <sub>
-                    <V>i</V>
-                  </sub>
-                  )
-                </>
-              }
-              den={
-                <>
-                  &radic;<V>k</V>
-                </>
-              }
-            />
-          </div>
-          <p>
-            Under H<sub>0</sub> with independent p-values, <V>Z</V> ~
-            Normal(0,&thinsp;1). The combined p-value is P(<V>Z</V> &ge;{" "}
-            <V>Z</V>
-            <sub>obs</sub>).
-          </p>
-          <p>
-            <strong>Comparison with Fisher:</strong> Fisher is more sensitive to
-            one very small p-value; Stouffer responds more evenly to moderate
-            signals across many studies.
-          </p>
-          <p>
-            Computed using <span style={codeStyle}>poolr::stouffer()</span>.
-          </p>
-          <p style={refStyle}>
-            Stouffer, S.A. et al. (1949). <em>The American Soldier</em>, Vol. 1.
-          </p>
-        </section>
-
-        {/* 4. CCT */}
+        {/* 3. CCT */}
         <section
           id="sec-cauchy"
           style={{ ...sectionStyle, scrollMarginTop: 16 }}
@@ -670,14 +612,125 @@ export default function MethodsPage() {
           </p>
         </section>
 
-        {/* 7. Why All Four Methods? */}
+        {/* 6. Uniform(0,1) caveat */}
+        <section
+          id="sec-uniformity"
+          style={{ ...sectionStyle, scrollMarginTop: 16 }}
+        >
+          <h2 style={h2Style}>A Note on the Uniform(0,1) Assumption</h2>
+          <p>
+            All four classical combiners (Fisher, Stouffer, CCT, HMP) assume
+            input p-values are <V>U</V>[0,&thinsp;1] under the null. Many of
+            our input tables don&apos;t fully satisfy this — a few are stored
+            as DEG-only (only rows surviving an FDR threshold are reported), a
+            few have a large mass at <V>p</V>&nbsp;&asymp;&nbsp;1 (sentinels
+            for tests that were not run for that gene), and one
+            (<span style={codeStyle}>dynamic_convergence_S2</span>) is itself
+            a meta-analysis output. Where input p-values are censored on the
+            right, combined-p magnitudes are biased downward and should not
+            be read as calibrated FDR — but the more practical question is
+            whether the <em>rankings</em> the UI shows are stable.
+          </p>
+          <p>
+            We tested this empirically with{" "}
+            <span style={codeStyle}>
+              processing/scripts/pvalue_filter_experiment.py
+            </span>
+            . The script imposes a uniform DEG-only filter
+            (<V>p</V>&nbsp;&le;&nbsp;<V>T</V>) on every input table and
+            measures top-<V>K</V> Jaccard overlap and Spearman&apos;s &rho;
+            between the censored and uncensored rankings. With the seven
+            problem tables already excluded
+            (<code>--exclude-censored</code>), all three remaining methods
+            are very stable at the top of the list:
+          </p>
+          <div style={{ overflowX: "auto", margin: "12px 0" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 13,
+              }}
+            >
+              <thead>
+                <tr style={{ borderBottom: "2px solid #d1d5db", textAlign: "left" }}>
+                  <th style={{ padding: "6px 10px" }}>
+                    <V>T</V>
+                  </th>
+                  <th style={{ padding: "6px 10px" }}>method</th>
+                  <th style={{ padding: "6px 10px", textAlign: "right" }}>
+                    top-50 Jaccard
+                  </th>
+                  <th style={{ padding: "6px 10px", textAlign: "right" }}>
+                    top-100 Jaccard
+                  </th>
+                  <th style={{ padding: "6px 10px", textAlign: "right" }}>
+                    top-50 &rho;
+                  </th>
+                  <th style={{ padding: "6px 10px", textAlign: "right" }}>
+                    top-100 &rho;
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["0.05", "HMP", "0.98", "1.00", "1.00", "1.00"],
+                  ["0.05", "CCT", "0.98", "0.97", "1.00", "1.00"],
+                  ["0.05", "Fisher", "0.96", "0.94", "1.00", "0.99"],
+                  ["0.10", "HMP", "0.98", "0.99", "1.00", "1.00"],
+                  ["0.10", "CCT", "0.98", "0.97", "1.00", "1.00"],
+                  ["0.10", "Fisher", "0.98", "0.95", "1.00", "0.99"],
+                  ["0.20", "HMP", "0.98", "1.00", "1.00", "1.00"],
+                  ["0.20", "CCT", "0.98", "0.97", "1.00", "1.00"],
+                  ["0.20", "Fisher", "0.96", "0.96", "1.00", "0.99"],
+                ].map(([T, method, j50, j100, r50, r100], i) => (
+                  <tr
+                    key={`${T}-${method}`}
+                    style={{
+                      borderBottom: "1px solid #e5e7eb",
+                      background: i % 2 === 0 ? "#f9fafb" : undefined,
+                    }}
+                  >
+                    <td style={{ padding: "5px 10px" }}>{T}</td>
+                    <td style={{ padding: "5px 10px", fontWeight: 600 }}>
+                      {method}
+                    </td>
+                    <td style={{ padding: "5px 10px", textAlign: "right" }}>{j50}</td>
+                    <td style={{ padding: "5px 10px", textAlign: "right" }}>{j100}</td>
+                    <td style={{ padding: "5px 10px", textAlign: "right" }}>{r50}</td>
+                    <td style={{ padding: "5px 10px", textAlign: "right" }}>{r100}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Top-50 Jaccard &ge; 0.96 and top-50 &rho; = 1.00 across all three
+            methods means the user-visible ranking at the top of the list is
+            essentially unchanged whether or not the full non-significant tail
+            is preserved. Stouffer&apos;s method, which earlier versions of
+            this page also exposed, did <em>not</em> share this stability
+            (top-50 Jaccard 0.74&ndash;0.78 in the same audit, with &rho;
+            falling to ~0.56) — qnorm gives moderate-<V>p</V> rows real
+            weight, so the censored bulk drives Stouffer&apos;s rankings.
+            Stouffer is therefore no longer offered.
+          </p>
+          <p>
+            <strong>Bottom line:</strong> read combined-<V>p</V> as a
+            ranking primitive, not a calibrated probability. Top-of-list
+            ordering is robust; small-magnitude differences between near-tied
+            genes are not.
+          </p>
+        </section>
+
+        {/* 7. Why these three methods? */}
         <section
           id="sec-rationale"
           style={{ ...sectionStyle, scrollMarginTop: 16 }}
         >
-          <h2 style={h2Style}>Why All Four Methods?</h2>
+          <h2 style={h2Style}>Why These Three Methods?</h2>
           <p>
-            We compute all four combination methods because they have
+            We compute all three combination methods because they have
             complementary strengths and the &ldquo;true&rdquo; dependency
             structure among our p-values is unknown:
           </p>
@@ -705,16 +758,10 @@ export default function MethodsPage() {
               <tbody>
                 {[
                   [
-                    "Fisher",
-                    "Collapsed (per-table)",
-                    "Requires independence",
-                    "Driven by strongest single signal",
-                  ],
-                  [
-                    "Stouffer",
-                    "Collapsed (per-table)",
-                    "Requires independence",
-                    "Responds evenly to moderate signals",
+                    "HMP",
+                    "All raw p-values",
+                    "Robust to arbitrary dependency",
+                    "Driven by small p-values (harmonic mean)",
                   ],
                   [
                     "CCT",
@@ -723,10 +770,10 @@ export default function MethodsPage() {
                     "Tail-driven (heavy-tail property)",
                   ],
                   [
-                    "HMP",
-                    "All raw p-values",
-                    "Robust to arbitrary dependency",
-                    "Driven by small p-values (harmonic mean)",
+                    "Fisher",
+                    "Collapsed (per-table)",
+                    "Requires independence",
+                    "Driven by strongest single signal",
                   ],
                 ].map(([method, input, dep, sens], i) => (
                   <tr
@@ -748,24 +795,33 @@ export default function MethodsPage() {
             </table>
           </div>
           <p>
-            <strong>Fisher and Stouffer</strong> are canonical and
-            well-understood. By using pre-collapsed per-table p-values, we
-            approximate independence. However, subtle dependencies may still
-            exist across datasets.
+            <strong>HMP</strong> is the default. It&apos;s easy to explain
+            (a harmonic mean of p-values, with a Landau-distribution
+            calibration step), uses all raw p-values directly, and is
+            empirically the most rank-stable of the three methods on this
+            dataset.
           </p>
           <p>
-            <strong>CCT and HMP</strong> are newer methods designed for unknown
-            or complex dependency structures. They use all raw p-values and do
-            not require pre-collapse. The trade-off is that they are
-            asymptotically valid (accurate for small combined p-values) rather
-            than exactly valid at all significance levels.
+            <strong>CCT</strong> uses the same raw-p-value input set as HMP
+            but combines via the heavy-tailed Cauchy transform. It is also
+            robust to arbitrary dependency between studies. In practice CCT
+            and HMP tend to produce nearly identical rankings at the top of
+            the list.
           </p>
           <p>
-            <strong>In practice</strong>, all four methods tend to produce
+            <strong>Fisher</strong> is canonical and well-understood, and is
+            the only method here that requires independence between inputs —
+            we approximate that with the per-table pre-collapse step. Fisher
+            is more sensitive than CCT/HMP to a single very small p-value
+            from one table, which can be useful for surfacing genes whose
+            evidence is concentrated in one dataset.
+          </p>
+          <p>
+            <strong>In practice</strong>, all three methods tend to produce
             similar gene rankings, especially at the top. When they diverge,
-            examining which method ranks a gene differently can provide insight:
-            for instance, a gene significant under Fisher but not HMP may be
-            driven by a single very small p-value from one table.
+            examining which method ranks a gene differently can provide
+            insight: for instance, a gene significant under Fisher but not
+            HMP may be driven by a single very small p-value from one table.
           </p>
         </section>
         <p style={{ marginTop: 36, textAlign: "right", fontFamily: "serif", fontSize: 16 }}>

@@ -20,16 +20,24 @@ gene rankings. If they disagree, the bias is real for ranking too.
 
 Combine is delegated to the same R script the production pipeline uses
 (`processing/src/processing/r/compute_combined.R`, which calls poolr::fisher,
-poolr::stouffer, ACAT::ACAT, harmonicmeanp::p.hmp), so all four reported
-methods match the production implementations exactly.
+ACAT::ACAT, harmonicmeanp::p.hmp), so the reported methods match the
+production implementations exactly.
 
 Usage:
     SSPSYGENE_DATA_DB=/path/to/sspsygene.db \\
         processing/.venv-claude/bin/python processing/scripts/pvalue_filter_experiment.py
+
+    # restrict the input set to non-censored tables (drops the 7 tables with
+    # DEG-only filtering, p=1 sentinel pile-ups, or which are themselves
+    # meta-analysis outputs):
+    SSPSYGENE_DATA_DB=/path/to/sspsygene.db \\
+        processing/.venv-claude/bin/python processing/scripts/pvalue_filter_experiment.py \\
+        --exclude-censored
 """
 
 # pylint: disable=invalid-name,too-many-locals
 
+import argparse
 import csv
 import math
 import os
@@ -54,10 +62,24 @@ R_SCRIPT = (
     / "compute_combined.R"
 )
 
-PREFILTERED = {
+# Tables that violate U[0,1] under H0 in ways that aren't just "real signal":
+#   §1 — DEG-only / FDR-thresholded (only significant rows are stored)
+#   §2 — large mass at p≈1 (literal sentinels for undefined / not-run tests,
+#        or otherwise saturated upper tail)
+#   §3 — already a cross-study meta-analysis output, so feeding it back into
+#        the combine is double-counting
+# See sspsygene-dracc/psypheno#148 for the audit that classified these.
+CENSORED = {
+    # §1 — DEG-only
     "brain_organoid_atlas_nebula_gene_0_05_FDR",
     "brain_organoid_atlas_nebula_gene_0_2_FDR",
     "mouse_perturb_deg",
+    # §2 — p=1 sentinel pile-ups / saturated upper tail
+    "SCZ_Risk_Pooled_ECCITEseq_supp_2",
+    "hsc_asd_organoid_m5_DE_targets_M5_TFs",
+    "brain_organoid_atlas_S10",
+    # §3 — already a meta-analysis output
+    "dynamic_convergence_S2",
 }
 
 ScenarioFilter = Callable[[str, float], bool]
@@ -80,6 +102,7 @@ def parse_link_tables(link_tables_raw: str, direction: str) -> list[tuple[str, s
 
 def load_data(
     cur: sqlite3.Cursor,
+    exclude_censored: bool = False,
 ) -> tuple[dict[str, dict[int, list[float]]], dict[str, str]]:
     """{table_name: {central_gene_id: [p, ...]}} for target-direction tables."""
     tables = cur.execute(
@@ -93,6 +116,8 @@ def load_data(
     gene_pvals: dict[str, dict[int, list[float]]] = {}
     short_label = {}
     for table_name, label, pcol, link_raw in tables:
+        if exclude_censored and table_name in CENSORED:
+            continue
         targets = parse_link_tables(link_raw, "target")
         if not targets:
             continue
@@ -192,7 +217,6 @@ def run_r_combine(
                 gid = int(row["gene_id"])
                 out[gid] = (
                     parse(row["fisher_p"]),
-                    parse(row["stouffer_p"]),
                     parse(row["cauchy_p"]),
                     parse(row["hmp_p"]),
                 )
@@ -250,6 +274,17 @@ def spearman_top(
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--exclude-censored",
+        action="store_true",
+        help=(
+            "Drop tables in CENSORED before running (DEG-only / p=1 sentinel "
+            "pile-ups / meta-analysis outputs); see #148."
+        ),
+    )
+    args = parser.parse_args()
+
     if not os.path.exists(DB):
         print(f"DB not found at {DB} (set SSPSYGENE_DATA_DB)", file=sys.stderr)
         return 1
@@ -257,11 +292,13 @@ def main() -> int:
     con = sqlite3.connect(DB)
     cur = con.cursor()
 
-    gene_pvals, short_label = load_data(cur)
+    gene_pvals, short_label = load_data(cur, exclude_censored=args.exclude_censored)
+    if args.exclude_censored:
+        print(f"Excluding {len(CENSORED)} censored tables (--exclude-censored).")
     print(f"Loaded {len(gene_pvals)} target-direction tables:")
     for tn, g in gene_pvals.items():
         n_rows = sum(len(v) for v in g.values())
-        flag = "  [pre-filtered]" if tn in PREFILTERED else ""
+        flag = "  [censored]" if tn in CENSORED else ""
         print(
             f"  {short_label[tn][:42]:<43} {tn:<45} genes={len(g):>6} rows={n_rows:>9}{flag}"
         )
@@ -280,7 +317,7 @@ def main() -> int:
         results[label] = run_r_combine(per, label)
         print(f"  [{label}] {len(results[label])} genes scored\n")
 
-    METHODS = [("Fisher", 0), ("Stouffer", 1), ("CCT", 2), ("HMP", 3)]
+    METHODS = [("Fisher", 0), ("CCT", 1), ("HMP", 2)]
     KS = [50, 100, 500, 1000]
     A = results["baseline"]
 

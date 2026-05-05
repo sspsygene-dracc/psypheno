@@ -3,8 +3,6 @@ import { useState } from "react";
 export type CombinedPvalues = {
   fisher: number | null;
   fisherFdr: number | null;
-  stouffer: number | null;
-  stoufferFdr: number | null;
   cauchy: number | null;
   cauchyFdr: number | null;
   hmp: number | null;

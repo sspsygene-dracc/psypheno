@@ -26,8 +26,6 @@ def write_combined_results(
         central_gene_id INTEGER PRIMARY KEY,
         fisher_pvalue REAL,
         fisher_fdr REAL,
-        stouffer_pvalue REAL,
-        stouffer_fdr REAL,
         cauchy_pvalue REAL,
         cauchy_fdr REAL,
         hmp_pvalue REAL,
@@ -46,16 +44,14 @@ def write_combined_results(
 
         conn.execute(
             f"""INSERT INTO {out_table}
-            (central_gene_id, fisher_pvalue, fisher_fdr, stouffer_pvalue,
-             stouffer_fdr, cauchy_pvalue, cauchy_fdr, hmp_pvalue, hmp_fdr,
+            (central_gene_id, fisher_pvalue, fisher_fdr,
+             cauchy_pvalue, cauchy_fdr, hmp_pvalue, hmp_fdr,
              num_tables, num_pvalues, gene_flags)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 gene_id,
                 r.fisher_p if r else None,
                 r.fisher_fdr if r else None,
-                r.stouffer_p if r else None,
-                r.stouffer_fdr if r else None,
                 r.cauchy_p if r else None,
                 r.cauchy_fdr if r else None,
                 r.hmp_p if r else None,

@@ -295,11 +295,9 @@ class TestCallRCombine:
                         [
                             "gene_id",
                             "fisher_p",
-                            "stouffer_p",
                             "cauchy_p",
                             "hmp_p",
                             "fisher_fdr",
-                            "stouffer_fdr",
                             "cauchy_fdr",
                             "hmp_fdr",
                         ]
@@ -308,11 +306,9 @@ class TestCallRCombine:
                         [
                             "1",
                             "1.00000000000000000e-03",
-                            "2.00000000000000000e-03",
                             "3.00000000000000000e-03",
                             "4.00000000000000000e-03",
                             "5.00000000000000000e-03",
-                            "6.00000000000000000e-03",
                             "7.00000000000000000e-03",
                             "8.00000000000000000e-03",
                         ]
@@ -333,7 +329,6 @@ class TestCallRCombine:
 
         assert result is not None
         assert result[1].fisher_p == pytest.approx(1e-3)
-        assert result[1].stouffer_p == pytest.approx(2e-3)
         assert result[1].cauchy_p == pytest.approx(3e-3)
         assert result[1].hmp_p == pytest.approx(4e-3)
         assert result[1].fisher_fdr == pytest.approx(5e-3)
@@ -353,11 +348,9 @@ class TestCallRCombine:
                         [
                             "gene_id",
                             "fisher_p",
-                            "stouffer_p",
                             "cauchy_p",
                             "hmp_p",
                             "fisher_fdr",
-                            "stouffer_fdr",
                             "cauchy_fdr",
                             "hmp_fdr",
                         ]
@@ -366,10 +359,8 @@ class TestCallRCombine:
                         [
                             "1",
                             "NA",
-                            "NaN",
                             "Inf",
                             "-Inf",
-                            "1.00000000000000000e-02",
                             "",
                             "NA",
                             "NaN",
@@ -390,11 +381,9 @@ class TestCallRCombine:
 
         assert result is not None
         assert result[1].fisher_p is None  # NA
-        assert result[1].stouffer_p is None  # NaN
         assert result[1].cauchy_p is None  # Inf
         assert result[1].hmp_p is None  # -Inf
-        assert result[1].fisher_fdr == pytest.approx(0.01)
-        assert result[1].stouffer_fdr is None  # empty string
+        assert result[1].fisher_fdr is None  # empty string
         assert result[1].cauchy_fdr is None  # NA
         assert result[1].hmp_fdr is None  # NaN
 
@@ -917,8 +906,8 @@ class TestRegulationSplit:
 
 class TestIntegrationWithR:
     @requires_r
-    def test_known_pvalues_fisher_stouffer(self):
-        """Fisher and Stouffer on [0.01, 0.05, 0.1] (3 separate tables)."""
+    def test_known_pvalues_fisher(self):
+        """Fisher on [0.01, 0.05, 0.1] (3 separate tables)."""
         per_table = {
             1: {"tbl_a": [0.01], "tbl_b": [0.05], "tbl_c": [0.1]},
         }
@@ -926,7 +915,6 @@ class TestIntegrationWithR:
         result = call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
         assert result[1].fisher_p == pytest.approx(2.99715102020775949e-03, rel=1e-6)
-        assert result[1].stouffer_p == pytest.approx(1.21196887876184683e-03, rel=1e-6)
 
     @requires_r
     def test_known_pvalues_cct_hmp(self):
@@ -941,8 +929,8 @@ class TestIntegrationWithR:
         assert result[1].hmp_p == pytest.approx(2.58759065818898529e-02, rel=1e-6)
 
     @requires_r
-    def test_all_collapsed_one_fisher_stouffer_na(self):
-        """When every per-table collapse = 1.0, Fisher/Stouffer return NA.
+    def test_all_collapsed_one_fisher_na(self):
+        """When every per-table collapse = 1.0, Fisher returns NA.
         R filters p < 1.0 and requires >= 2 valid values."""
         # 3 tables, each with 3 rows of moderate p-values → collapse: min(0.4)*3 = 1.2 → 1.0
         per_table = {
@@ -955,9 +943,8 @@ class TestIntegrationWithR:
         all_pvals = {1: [0.4, 0.5, 0.6, 0.4, 0.5, 0.6, 0.4, 0.5, 0.6]}
         result = call_r_combine(CollectedPvalues.from_dicts(per_table, all_pvals))
         assert result is not None
-        # Fisher and Stouffer: all collapsed values are 1.0, so NA
+        # Fisher: all collapsed values are 1.0, so NA
         assert result[1].fisher_p is None
-        assert result[1].stouffer_p is None
         # CCT and HMP use raw p-values — should still compute
         assert result[1].cauchy_p is not None
         assert result[1].hmp_p is not None
@@ -1016,15 +1003,15 @@ class TestEndToEnd:
             "SELECT * FROM gene_combined_pvalues_target WHERE central_gene_id = 1"
         ).fetchone()
         assert row is not None
-        # Column order: gene_id, fisher, fisher_fdr, stouffer, stouffer_fdr,
-        #               cauchy, cauchy_fdr, hmp, hmp_fdr, num_tables, num_pvalues, gene_flags
-        num_tables = row[9]
-        num_pvalues = row[10]
+        # Column order: gene_id, fisher, fisher_fdr, cauchy, cauchy_fdr,
+        #               hmp, hmp_fdr, num_tables, num_pvalues, gene_flags
+        num_tables = row[7]
+        num_pvalues = row[8]
         assert num_tables == 1
         assert num_pvalues == 2
         # All p-value columns should be None (R unavailable)
         assert row[1] is None  # fisher_pvalue
-        assert row[3] is None  # stouffer_pvalue
+        assert row[3] is None  # cauchy_pvalue
 
     @requires_r
     def test_full_pipeline_with_r(self):
@@ -1054,32 +1041,30 @@ class TestEndToEnd:
 
         compute_combined_pvalues(conn, no_index=True)
 
-        # Gene 1: 2 tables, 2 p-values → Fisher/Stouffer should have results
+        # Gene 1: 2 tables, 2 p-values → Fisher should have a result
         row1 = conn.execute(
-            "SELECT fisher_pvalue, stouffer_pvalue, cauchy_pvalue, hmp_pvalue, "
+            "SELECT fisher_pvalue, cauchy_pvalue, hmp_pvalue, "
             "num_tables, num_pvalues FROM gene_combined_pvalues_target WHERE central_gene_id = 1"
         ).fetchone()
         assert row1 is not None
-        assert row1[4] == 2  # num_tables
-        assert row1[5] == 2  # num_pvalues
+        assert row1[3] == 2  # num_tables
+        assert row1[4] == 2  # num_pvalues
         assert row1[0] is not None  # fisher_pvalue
         assert row1[0] < 0.01  # should be very significant
-        assert row1[1] is not None  # stouffer_pvalue
-        assert row1[2] is not None  # cauchy_pvalue
-        assert row1[3] is not None  # hmp_pvalue
+        assert row1[1] is not None  # cauchy_pvalue
+        assert row1[2] is not None  # hmp_pvalue
 
-        # Gene 2: 1 table, 1 p-value → Fisher/Stouffer should be None
+        # Gene 2: 1 table, 1 p-value → Fisher should be None
         row2 = conn.execute(
-            "SELECT fisher_pvalue, stouffer_pvalue, cauchy_pvalue, hmp_pvalue, "
+            "SELECT fisher_pvalue, cauchy_pvalue, hmp_pvalue, "
             "num_tables, num_pvalues FROM gene_combined_pvalues_target WHERE central_gene_id = 2"
         ).fetchone()
         assert row2 is not None
-        assert row2[4] == 1  # num_tables
-        assert row2[5] == 1  # num_pvalues
+        assert row2[3] == 1  # num_tables
+        assert row2[4] == 1  # num_pvalues
         assert row2[0] is None  # fisher needs >= 2 values
-        assert row2[1] is None  # stouffer needs >= 2 values
-        assert row2[2] is not None  # cauchy works with 1 value
-        assert row2[2] == pytest.approx(0.5, rel=1e-3)
+        assert row2[1] is not None  # cauchy works with 1 value
+        assert row2[1] == pytest.approx(0.5, rel=1e-3)
 
     def test_no_hgnc_flag_for_missing_hgnc_id(self):
         """Gene with NULL hgnc_id gets 'no_hgnc' flag."""
@@ -1415,8 +1400,6 @@ class TestParseRResults:
             "gene_id",
             "fisher_p",
             "fisher_fdr",
-            "stouffer_p",
-            "stouffer_fdr",
             "cauchy_p",
             "cauchy_fdr",
             "hmp_p",
@@ -1437,8 +1420,6 @@ class TestParseRResults:
                     "gene_id": "7",
                     "fisher_p": "1e-3",
                     "fisher_fdr": "1e-2",
-                    "stouffer_p": "2e-3",
-                    "stouffer_fdr": "2e-2",
                     "cauchy_p": "3e-3",
                     "cauchy_fdr": "3e-2",
                     "hmp_p": "4e-3",
@@ -1451,7 +1432,7 @@ class TestParseRResults:
         rec = out[7]
         assert rec.fisher_p == pytest.approx(1e-3)
         assert rec.fisher_fdr == pytest.approx(1e-2)
-        assert rec.stouffer_p == pytest.approx(2e-3)
+        assert rec.cauchy_p == pytest.approx(3e-3)
         assert rec.cauchy_fdr == pytest.approx(3e-2)
         assert rec.hmp_p == pytest.approx(4e-3)
 
@@ -1464,8 +1445,6 @@ class TestParseRResults:
                     "gene_id": "1",
                     "fisher_p": "NA",
                     "fisher_fdr": "",
-                    "stouffer_p": "NaN",
-                    "stouffer_fdr": "Inf",
                     "cauchy_p": "-Inf",
                     "cauchy_fdr": "0.5",
                     "hmp_p": "0.25",
@@ -1477,8 +1456,6 @@ class TestParseRResults:
         rec = out[1]
         assert rec.fisher_p is None
         assert rec.fisher_fdr is None
-        assert rec.stouffer_p is None
-        assert rec.stouffer_fdr is None
         assert rec.cauchy_p is None
         assert rec.cauchy_fdr == pytest.approx(0.5)
         assert rec.hmp_p == pytest.approx(0.25)

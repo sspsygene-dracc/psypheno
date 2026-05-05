@@ -2,11 +2,10 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 
-const VALID_METHODS = ["fisher", "stouffer", "cauchy", "hmp"] as const;
+const VALID_METHODS = ["fisher", "cauchy", "hmp"] as const;
 
 const METHOD_COLUMNS: Record<string, string> = {
   fisher: "fisher_pvalue",
-  stouffer: "stouffer_pvalue",
   cauchy: "cauchy_pvalue",
   hmp: "hmp_pvalue",
 };
@@ -34,7 +33,7 @@ const SHOW_FLAGS = [
 const bodySchema = z.object({
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(100).default(25),
-  method: z.enum(VALID_METHODS).default("fisher"),
+  method: z.enum(VALID_METHODS).default("hmp"),
   hideFlags: z.array(z.enum(VALID_FLAGS)).default([]),
   showFlags: z
     .array(z.enum(VALID_FLAGS))

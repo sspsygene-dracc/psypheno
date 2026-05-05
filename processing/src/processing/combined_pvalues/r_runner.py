@@ -188,8 +188,6 @@ def parse_r_results(results_path: Path) -> dict[int, GeneCombinedPvalues]:
             gene_results[gene_id] = GeneCombinedPvalues(
                 fisher_p=_parse_cell(row["fisher_p"]),
                 fisher_fdr=_parse_cell(row["fisher_fdr"]),
-                stouffer_p=_parse_cell(row["stouffer_p"]),
-                stouffer_fdr=_parse_cell(row["stouffer_fdr"]),
                 cauchy_p=_parse_cell(row["cauchy_p"]),
                 cauchy_fdr=_parse_cell(row["cauchy_fdr"]),
                 hmp_p=_parse_cell(row["hmp_p"]),

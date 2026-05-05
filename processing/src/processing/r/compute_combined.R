@@ -3,12 +3,11 @@
 # Compute combined p-values per gene across datasets.
 #
 # Called by Python via subprocess. Reads input CSVs from a temp directory,
-# computes Fisher, Stouffer, CCT, and HMP combined p-values per gene,
-# applies BH FDR correction, and writes results CSV.
+# computes Fisher, CCT, and HMP combined p-values per gene, applies BH FDR
+# correction, and writes results CSV.
 #
 # All statistical methods use reviewed R package implementations:
 #   - Fisher's method:    poolr::fisher()
-#   - Stouffer's method:  poolr::stouffer()
 #   - CCT:                ACAT::ACAT()
 #   - HMP:                harmonicmeanp::p.hmp()
 #   - BH FDR:             stats::p.adjust(method="BH")
@@ -20,8 +19,8 @@
 #   raw_pvalues.csv        — gene_id, pvalue (one row per raw p-value)
 #
 # Output file in temp_dir:
-#   results.csv — gene_id, fisher_p, stouffer_p, cauchy_p, hmp_p,
-#                 fisher_fdr, stouffer_fdr, cauchy_fdr, hmp_fdr
+#   results.csv — gene_id, fisher_p, cauchy_p, hmp_p,
+#                 fisher_fdr, cauchy_fdr, hmp_fdr
 
 # --- Add project-local R library (for non-writable system library) ---
 script_args <- commandArgs(trailingOnly = FALSE)
@@ -54,12 +53,6 @@ fisher_combine <- function(pvals) {
   poolr::fisher(valid)$p
 }
 
-stouffer_combine <- function(pvals) {
-  valid <- pvals[pvals < 1.0]
-  if (length(valid) < 2) return(NA_real_)
-  poolr::stouffer(valid)$p
-}
-
 # --- Main ---
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 1) {
@@ -85,7 +78,6 @@ cat(sprintf("  R: Processing %d genes...\n", n_genes))
 
 # Pre-allocate result vectors
 fisher_p   <- rep(NA_real_, n_genes)
-stouffer_p <- rep(NA_real_, n_genes)
 cauchy_p   <- rep(NA_real_, n_genes)
 hmp_p      <- rep(NA_real_, n_genes)
 
@@ -97,11 +89,10 @@ for (i in seq_along(gene_ids)) {
   gid <- gene_ids[i]
   gid_str <- as.character(gid)
 
-  # Collapsed p-values for Fisher/Stouffer
+  # Collapsed p-values for Fisher
   cp <- collapsed_by_gene[[gid_str]]
   if (!is.null(cp) && length(cp) > 0) {
-    fisher_p[i]   <- tryCatch(fisher_combine(cp), error = function(e) NA_real_)
-    stouffer_p[i] <- tryCatch(stouffer_combine(cp), error = function(e) NA_real_)
+    fisher_p[i] <- tryCatch(fisher_combine(cp), error = function(e) NA_real_)
   }
 
   # Raw p-values for CCT/HMP
@@ -118,10 +109,9 @@ for (i in seq_along(gene_ids)) {
 cat("  R: Computing BH FDR corrections...\n")
 
 # BH FDR correction (handles NAs gracefully)
-fisher_fdr   <- p.adjust(fisher_p,   method = "BH")
-stouffer_fdr <- p.adjust(stouffer_p, method = "BH")
-cauchy_fdr   <- p.adjust(cauchy_p,   method = "BH")
-hmp_fdr      <- p.adjust(hmp_p,      method = "BH")
+fisher_fdr <- p.adjust(fisher_p, method = "BH")
+cauchy_fdr <- p.adjust(cauchy_p, method = "BH")
+hmp_fdr    <- p.adjust(hmp_p,    method = "BH")
 
 # Format p-values with full double precision (17 significant digits)
 # to avoid write.csv's default ~5-digit rounding, which can make
@@ -129,15 +119,13 @@ hmp_fdr      <- p.adjust(hmp_p,      method = "BH")
 fmt <- function(x) ifelse(is.na(x), NA_character_, sprintf("%.17e", x))
 
 results <- data.frame(
-  gene_id      = gene_ids,
-  fisher_p     = fmt(fisher_p),
-  stouffer_p   = fmt(stouffer_p),
-  cauchy_p     = fmt(cauchy_p),
-  hmp_p        = fmt(hmp_p),
-  fisher_fdr   = fmt(fisher_fdr),
-  stouffer_fdr = fmt(stouffer_fdr),
-  cauchy_fdr   = fmt(cauchy_fdr),
-  hmp_fdr      = fmt(hmp_fdr),
+  gene_id    = gene_ids,
+  fisher_p   = fmt(fisher_p),
+  cauchy_p   = fmt(cauchy_p),
+  hmp_p      = fmt(hmp_p),
+  fisher_fdr = fmt(fisher_fdr),
+  cauchy_fdr = fmt(cauchy_fdr),
+  hmp_fdr    = fmt(hmp_fdr),
   stringsAsFactors = FALSE
 )
 

@@ -7,7 +7,6 @@ writing results back to SQLite.
 
 Methods:
 - Fisher's method: combines -2*sum(ln(p)) with pre-collapsed per-table p-values
-- Stouffer's method: converts to Z-scores with pre-collapsed per-table p-values
 - Cauchy combination test (CCT): robust to correlated p-values, uses all raw p-values
 - Harmonic mean p-value (HMP): Landau-calibrated, robust to dependency, all raw p-values
 

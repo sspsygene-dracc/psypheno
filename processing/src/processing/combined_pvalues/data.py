@@ -67,8 +67,6 @@ class GeneCombinedPvalues:
 
     fisher_p: float | None
     fisher_fdr: float | None
-    stouffer_p: float | None
-    stouffer_fdr: float | None
     cauchy_p: float | None
     cauchy_fdr: float | None
     hmp_p: float | None
