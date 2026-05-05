@@ -3,8 +3,6 @@
   redirect to searching ONLY for the clicked gene, instead search for the
   COMBINATION of the currently selected other direction + the clicked gene
 
-- fix preprocessing/test_pipeline.py test case
-
 - Security review #157
 - Test-suite buildout: Python backend, frontend unit, frontend e2e,
   data-correspondence spot-check (randomized verification that

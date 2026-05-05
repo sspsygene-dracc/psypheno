@@ -146,7 +146,7 @@ def test_pipeline_rename_and_reorder(
     (
         Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
         .read_csv(raw)
-        .rename({"a": "alpha", "b": "beta", "missing": "ignored"})
+        .rename({"a": "alpha", "b": "beta"})
         .reorder(["beta", "alpha", "c"])
         .write_csv(out)
         .run()
@@ -156,11 +156,28 @@ def test_pipeline_rename_and_reorder(
     assert df.columns.tolist() == ["beta", "alpha", "c"]
 
     rename = next(a for a in tracker.actions if a.step == "rename")
-    # Only applied (present) renames are recorded.
     assert rename.summary["mapping"] == {"a": "alpha", "b": "beta"}
 
     reorder = next(a for a in tracker.actions if a.step == "reorder")
     assert reorder.summary["columns"] == ["beta", "alpha", "c"]
+
+
+def test_pipeline_rename_rejects_missing_source_column(
+    normalizer: GeneSymbolNormalizer, tmp_path: Path
+) -> None:
+    """Rename is strict: a source key absent from the DataFrame is an error,
+    not a silent no-op. Catches typos in the dataset config."""
+    raw = tmp_path / "raw.csv"
+    pd.DataFrame({"a": [1, 2], "b": [3, 4]}).to_csv(raw, index=False)
+
+    tracker = Tracker()
+    pipe = (
+        Pipeline("out.csv", tracker=tracker, normalizer=normalizer)
+        .read_csv(raw)
+        .rename({"a": "alpha", "missing": "ignored"})
+    )
+    with pytest.raises(KeyError, match="rename: source columns missing"):
+        pipe.run()
 
 
 def test_pipeline_transform_column_records_description(
