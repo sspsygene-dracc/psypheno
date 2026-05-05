@@ -113,6 +113,51 @@ class TestComputeKey:
         assert r_cache.compute_key(d1, script) != r_cache.compute_key(d2, script)
 
 
+class TestComputeKeyFromPvalues:
+    """Streaming key must match the disk-based key on the same data.
+
+    Drift here would silently corrupt cache lookups (cache populated via
+    one path, queried via the other). This contract is what lets the
+    existing on-disk cache entries continue to resolve.
+    """
+
+    def test_matches_disk_key(self, tmp_path: Path):
+        pvalues = _make_pvalues({
+            1: {"tbl_a": [0.05, 0.1], "tbl_b": [0.001]},
+            2: {"tbl_a": [0.5]},
+            3: {"tbl_b": [1e-300, 1e-200, 1e-50]},
+        })
+        script = tmp_path / "script.R"
+        script.write_text("# v1\n")
+
+        d = tmp_path / "inputs"
+        d.mkdir()
+        r_runner.write_r_inputs(d, pvalues)
+
+        assert (
+            r_cache.compute_key_from_pvalues(pvalues, script)
+            == r_cache.compute_key(d, script)
+        )
+
+    def test_collapsed_csv_bytes_match_on_disk(self, tmp_path: Path):
+        pvalues = _make_pvalues({
+            1: {"tbl_a": [0.05, 0.1]},
+            2: {"tbl_b": [0.001, 0.002, 0.003]},
+        })
+        d = tmp_path / "inputs"
+        d.mkdir()
+        r_runner.write_r_inputs(d, pvalues)
+
+        assert (
+            r_cache.collapsed_csv_bytes(pvalues)
+            == (d / "collapsed_pvalues.csv").read_bytes()
+        )
+        assert (
+            r_cache.raw_csv_bytes(pvalues)
+            == (d / "raw_pvalues.csv").read_bytes()
+        )
+
+
 class TestStoreAndLookup:
     def test_round_trip(self, isolated_cache: Path, tmp_path: Path):
         results = tmp_path / "results.csv"

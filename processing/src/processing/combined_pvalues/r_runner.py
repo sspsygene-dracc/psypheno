@@ -21,7 +21,6 @@ from pathlib import Path
 import click
 
 from . import r_cache
-from .collection import precollapse
 from .data import CollectedPvalues, GeneCombinedPvalues
 
 
@@ -151,23 +150,17 @@ def _ensure_r_packages(rscript: str) -> bool:
 
 
 def write_r_inputs(tmp_dir: Path, pvalues: CollectedPvalues) -> None:
-    """Write the per-table-collapsed and raw p-value CSVs the R script reads."""
-    collapsed_path = tmp_dir / "collapsed_pvalues.csv"
-    with open(collapsed_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["gene_id", "pvalue"])
-        for gene_id in sorted(pvalues.per_table.keys()):
-            for tbl_pvals in pvalues.per_table[gene_id].values():
-                collapsed = precollapse(tbl_pvals)
-                writer.writerow([gene_id, f"{collapsed:.17e}"])
+    """Write the per-table-collapsed and raw p-value CSVs the R script reads.
 
-    raw_path = tmp_dir / "raw_pvalues.csv"
-    with open(raw_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["gene_id", "pvalue"])
-        for gene_id in sorted(pvalues.all_pvalues.keys()):
-            for pval in pvalues.all_pvalues[gene_id]:
-                writer.writerow([gene_id, f"{pval:.17e}"])
+    Delegates byte generation to `r_cache` so the on-disk bytes match
+    exactly what the cache key was hashed over.
+    """
+    (tmp_dir / "collapsed_pvalues.csv").write_bytes(
+        r_cache.collapsed_csv_bytes(pvalues)
+    )
+    (tmp_dir / "raw_pvalues.csv").write_bytes(
+        r_cache.raw_csv_bytes(pvalues)
+    )
 
 
 def parse_r_results(results_path: Path) -> dict[int, GeneCombinedPvalues]:
@@ -219,17 +212,18 @@ def call_r_combine(
         )
         return None
 
+    # Cache check first — avoid mkdtemp + disk writes on a hit.
+    cache_key: str | None = None
+    if use_cache:
+        cache_key = r_cache.compute_key_from_pvalues(pvalues, _R_SCRIPT)
+        hit = r_cache.lookup(cache_key)
+        if hit is not None:
+            click.echo(f"  R cache hit ({cache_key[:12]})")
+            return parse_r_results(hit)
+
     tmp_dir = Path(tempfile.mkdtemp(prefix="sspsygene_combine_"))
     try:
         write_r_inputs(tmp_dir, pvalues)
-
-        cache_key: str | None = None
-        if use_cache:
-            cache_key = r_cache.compute_key(tmp_dir, _R_SCRIPT)
-            hit = r_cache.lookup(cache_key)
-            if hit is not None:
-                click.echo(f"  R cache hit ({cache_key[:12]})")
-                return parse_r_results(hit)
 
         rscript = shutil.which("Rscript")
         if rscript is None:

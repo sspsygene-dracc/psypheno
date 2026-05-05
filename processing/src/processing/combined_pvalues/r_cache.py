@@ -12,10 +12,15 @@ filter genes upstream, producing strictly different input bytes from
 production runs, so their hashes never collide.
 """
 
+import csv
 import hashlib
+import io
 import os
 import shutil
 from pathlib import Path
+
+from .collection import precollapse
+from .data import CollectedPvalues
 
 
 _DEFAULT_CACHE_DIR = (
@@ -35,8 +40,49 @@ def cache_dir() -> Path:
     return out
 
 
+def collapsed_csv_bytes(pvalues: CollectedPvalues) -> bytes:
+    """Build the bytes of the collapsed_pvalues.csv R input in memory.
+
+    Byte-for-byte identical to what `write_r_inputs` writes to disk: same
+    csv.writer dialect (CRLF line terminator), same row order (genes
+    sorted, per-table buckets in dict-iteration order), same scientific
+    formatting `:.17e`. So a hash computed over these bytes matches one
+    computed over the on-disk file.
+    """
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["gene_id", "pvalue"])
+    for gene_id in sorted(pvalues.per_table.keys()):
+        for tbl_pvals in pvalues.per_table[gene_id].values():
+            collapsed = precollapse(tbl_pvals)
+            writer.writerow([gene_id, f"{collapsed:.17e}"])
+    return buf.getvalue().encode("utf-8")
+
+
+def raw_csv_bytes(pvalues: CollectedPvalues) -> bytes:
+    """Build the bytes of the raw_pvalues.csv R input in memory.
+
+    See `collapsed_csv_bytes` for the byte-equivalence guarantee.
+    """
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["gene_id", "pvalue"])
+    for gene_id in sorted(pvalues.all_pvalues.keys()):
+        for pval in pvalues.all_pvalues[gene_id]:
+            writer.writerow([gene_id, f"{pval:.17e}"])
+    return buf.getvalue().encode("utf-8")
+
+
+def _frame(h: "hashlib._Hash", name: str, data: bytes) -> None:
+    """Length-prefixed framing so concat (a, b) cannot collide with (a', b')."""
+    h.update(name.encode("utf-8"))
+    h.update(b"\0")
+    h.update(len(data).to_bytes(8, "big"))
+    h.update(data)
+
+
 def compute_key(tmp_dir: Path, r_script: Path) -> str:
-    """SHA-256 over the bytes R would read, plus the R script itself.
+    """SHA-256 key derived from R input CSVs already on disk.
 
     `tmp_dir` is the directory `write_r_inputs` populated; we hash the two
     input CSVs in a fixed order with length-prefix separators so that no
@@ -45,15 +91,24 @@ def compute_key(tmp_dir: Path, r_script: Path) -> str:
     """
     h = hashlib.sha256()
     for name in ("collapsed_pvalues.csv", "raw_pvalues.csv"):
-        data = (tmp_dir / name).read_bytes()
-        h.update(name.encode("utf-8"))
-        h.update(b"\0")
-        h.update(len(data).to_bytes(8, "big"))
-        h.update(data)
-    script_bytes = r_script.read_bytes()
-    h.update(b"compute_combined.R\0")
-    h.update(len(script_bytes).to_bytes(8, "big"))
-    h.update(script_bytes)
+        _frame(h, name, (tmp_dir / name).read_bytes())
+    _frame(h, "compute_combined.R", r_script.read_bytes())
+    return h.hexdigest()
+
+
+def compute_key_from_pvalues(
+    pvalues: CollectedPvalues, r_script: Path
+) -> str:
+    """Same hash as `compute_key`, but built without writing CSVs to disk.
+
+    Used on the cache-check path so a cache hit avoids `mkdtemp` + the disk
+    round-trip. The byte sequence fed into SHA-256 is byte-identical to
+    what `compute_key` would produce over freshly-written input CSVs.
+    """
+    h = hashlib.sha256()
+    _frame(h, "collapsed_pvalues.csv", collapsed_csv_bytes(pvalues))
+    _frame(h, "raw_pvalues.csv", raw_csv_bytes(pvalues))
+    _frame(h, "compute_combined.R", r_script.read_bytes())
     return h.hexdigest()
 
 

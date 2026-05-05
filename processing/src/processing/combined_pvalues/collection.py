@@ -9,7 +9,6 @@ shared by collection and the R writer.
 import sqlite3
 
 import click
-import mpmath
 
 from processing.sql_utils import sanitize_identifier
 
@@ -47,13 +46,11 @@ def parse_link_tables_for_direction(link_tables_raw: str, direction: str) -> lis
 def precollapse(pvalues: list[float]) -> float:
     """Bonferroni pre-collapse: min(p) * n, capped at 1.0.
 
-    Uses mpmath for arbitrary-precision arithmetic to avoid precision loss
-    when p-values are very small (e.g., min(p) = 1e-300 with n = 5).
+    Native float is sufficient: `n` is bounded by the rows of one source
+    table (always small), and the smallest realistic p-value sits well
+    above the IEEE 754 normal range, so the multiply cannot under/overflow.
     """
-    n = len(pvalues)
-    min_p = mpmath.mpf(min(pvalues))
-    collapsed = min_p * n
-    return float(min(collapsed, mpmath.mpf(1)))
+    return min(min(pvalues) * len(pvalues), 1.0)
 
 
 def collect_pvalues_for_tables(

@@ -89,7 +89,7 @@ class TestPrecollapse:
         assert precollapse([1.0, 1.0, 1.0]) == 1.0
 
     def test_very_small_pvalue_precision(self):
-        # min(1e-300) * 2 = 2e-300, mpmath keeps precision
+        # min(1e-300) * 2 = 2e-300, well within IEEE 754 normal range
         result = precollapse([1e-300, 1e-280])
         assert result == pytest.approx(2e-300, rel=1e-10)
 

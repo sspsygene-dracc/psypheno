@@ -287,9 +287,7 @@ export default function MethodsPage() {
             <strong>Bonferroni correction applied to the minimum</strong>: we
             take the best p-value but penalize it by the number of looks. This
             is conservative but guarantees we do not inflate significance from
-            within-table multiplicity. Pre-collapse uses arbitrary-precision
-            arithmetic (mpmath) to avoid precision loss with very small
-            p-values.
+            within-table multiplicity.
           </p>
           <p>
             <strong>Who uses it:</strong> Fisher&apos;s method. The CCT and
