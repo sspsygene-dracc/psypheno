@@ -202,7 +202,7 @@ def _step_pull_all(instances: list[str]) -> None:
     click.secho("\n[2/5] Pulling latest code on hgwdev", bold=True)
     for inst in instances:
         path = INSTANCE_PATHS[inst]
-        _run_ssh(HGWDEV, f"cd {path} && git pull", desc=f"git pull ({path})")
+        _run_ssh(PSYGENE, f"cd {path} && git pull", desc=f"git pull ({path})")
 
 
 def _step_preprocess_site(
@@ -228,7 +228,7 @@ def _step_preprocess_site(
         f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} bash -c {shlex.quote(inner)}"
     )
     _run_ssh(
-        HGWDEV,
+        PSYGENE,
         cmd,
         desc="Running per-dataset preprocess.py scripts",
         timeout=PREPROCESS_TIMEOUT,
@@ -265,7 +265,7 @@ def _step_run_tests_site(
         f"conda run --no-capture-output -n {CONDA_ENV} bash -c {shlex.quote(inner)}"
     )
     _run_ssh(
-        HGWDEV,
+        PSYGENE,
         cmd,
         desc="Running scripts/test.sh all (python + web + e2e + data-corr)",
         timeout=TEST_TIMEOUT,
@@ -293,7 +293,7 @@ def _step_deploy_site(
             f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} sspsygene load-db"
         )
         _run_ssh(
-            HGWDEV,
+            PSYGENE,
             cmd,
             desc="sspsygene load-db (this may take a while)",
             timeout=LOAD_DB_TIMEOUT,
@@ -305,7 +305,7 @@ def _step_deploy_site(
     # node_modules. `npm ci` is deterministic — it wipes node_modules and
     # installs strictly from the lockfile.
     _run_ssh(
-        HGWDEV,
+        PSYGENE,
         f"cd {path}/web && npm ci",
         desc="npm ci (deterministic install from package-lock.json)",
         timeout=BUILD_TIMEOUT,
@@ -313,7 +313,7 @@ def _step_deploy_site(
     )
 
     _run_ssh(
-        HGWDEV,
+        PSYGENE,
         f"cd {path}/web && npm run build",
         desc="npm run build (this may take a few minutes)",
         timeout=BUILD_TIMEOUT,
