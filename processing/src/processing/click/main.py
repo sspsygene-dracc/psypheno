@@ -314,6 +314,36 @@ def deploy(
     )
 
 
+@cli.command(name="e2e-deployed")
+@click.argument(
+    "instance", type=click.Choice(["dev", "int", "prod"], case_sensitive=False)
+)
+def e2e_deployed(instance: str) -> None:
+    """Run playwright e2e tests locally against a deployed instance.
+
+    Sets E2E_BASE_URL to the instance's public URL and delegates to
+    scripts/test.sh e2e — playwright drives browsers from web/node_modules
+    against the deployed site. No ssh, no rebuild, no DB rebuild.
+    """
+    import os
+    import subprocess
+
+    from processing.deploy import INSTANCE_E2E_URLS
+
+    base_url = INSTANCE_E2E_URLS[instance.lower()]
+    # main.py is at <repo>/processing/src/processing/click/main.py
+    repo_root = Path(__file__).resolve().parents[4]
+    test_sh = repo_root / "scripts" / "test.sh"
+    if not test_sh.is_file():
+        raise click.ClickException(f"scripts/test.sh not found at {test_sh}")
+
+    click.echo(f">>> e2e against {base_url}")
+    env = {**os.environ, "E2E_BASE_URL": base_url}
+    rc = subprocess.run([str(test_sh), "e2e"], env=env).returncode
+    if rc != 0:
+        raise click.exceptions.Exit(rc)
+
+
 @cli.command(name="notify-wranglers")
 @click.option(
     "--since",
