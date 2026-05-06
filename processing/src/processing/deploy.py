@@ -1,10 +1,13 @@
 """Deployment automation for SSPsyGene.
 
-Automates the full deployment workflow (canonical dev → int → prod order):
+Automates the full deployment workflow (canonical dev → int → prod order).
+All steps run on psygene, which has /hive access just like hgwdev and is
+also where the systemd-managed web servers live, so the restart step is
+local rather than cross-host:
   1. git push (local)
-  2. git pull on each selected site (hgwdev)
+  2. git pull on each selected site (psygene)
   3. Per-site preprocess.py (optional, --preprocess), load-db (optional,
-     --load-db), npm ci + npm run build (hgwdev)
+     --load-db), npm ci + npm run build (psygene)
   4. Restart web servers on psygene for the deployed instances (optional,
      --restart) — runs BEFORE tests so e2e hits the new build
   5. Run scripts/test.sh all on each deployed site (optional, --run-tests)
@@ -19,7 +22,6 @@ import click
 
 # ── Server / path configuration ──────────────────────────────────────────────
 
-HGWDEV = "hgwdev"
 PSYGENE = "psygene"
 GIT_BRANCH = "main"
 
@@ -199,7 +201,7 @@ def _step_pull_all(instances: list[str]) -> None:
     from one site but used by others) are up-to-date before any site
     runs load-db or npm build.
     """
-    click.secho("\n[2/5] Pulling latest code on hgwdev", bold=True)
+    click.secho("\n[2/5] Pulling latest code on psygene", bold=True)
     for inst in instances:
         path = INSTANCE_PATHS[inst]
         _run_ssh(PSYGENE, f"cd {path} && git pull", desc=f"git pull ({path})")
@@ -255,7 +257,7 @@ def _step_run_tests_site(
     inner = (
         "set -e; "
         # Hand scripts/test.sh the conda env's pytest — the local default of
-        # processing/.venv-claude/bin/pytest doesn't exist on hgwdev.
+        # processing/.venv-claude/bin/pytest doesn't exist on psygene.
         'PYTEST="$(command -v pytest)" '
         f"{env_prefix}"
         "scripts/test.sh all"
@@ -280,7 +282,7 @@ def _step_deploy_site(
     load_db: bool,
     env_vars: dict[str, str] | None = None,
 ) -> None:
-    """Optionally rebuild DB, and build the web app on hgwdev."""
+    """Optionally rebuild DB, and build the web app on psygene."""
     click.echo(f"\n  --- {label} ({path}) ---")
 
     if load_db:
@@ -460,7 +462,7 @@ def run_deploy(
                 env_vars=INSTANCE_ENVS[inst],
             )
 
-    click.secho("\n[3/5] Deploying sites on hgwdev", bold=True)
+    click.secho("\n[3/5] Deploying sites on psygene", bold=True)
     for inst in selected:
         _step_deploy_site(
             INSTANCE_PATHS[inst],
