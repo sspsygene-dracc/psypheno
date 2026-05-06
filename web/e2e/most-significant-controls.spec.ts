@@ -59,6 +59,18 @@ test("most-significant: switching method changes the ranking", async ({
     .not.toBe(initialTop10.join(","));
 });
 
+test("most-significant: first state change after page load updates the URL", async ({
+  page,
+}) => {
+  // Regression for #112 follow-up: the previous URL-sync implementation
+  // silently swallowed the very first state change after page load. Now
+  // a single click on Cauchy must reflect in the URL immediately.
+  await page.goto("/most-significant");
+  await expect(page.getByLabel("HMP", { exact: true })).toBeChecked();
+  await page.getByLabel("Cauchy", { exact: true }).check();
+  await expect(page).toHaveURL(/[?&]method=cauchy/);
+});
+
 test("most-significant: ?method= URL param hydrates the radio", async ({
   page,
 }) => {

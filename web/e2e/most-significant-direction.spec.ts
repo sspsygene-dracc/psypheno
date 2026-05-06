@@ -32,10 +32,8 @@ test("most-significant: toggling direction changes the top-ranked gene", async (
   // until it differs from the Target-direction value.
   await perturbedRadio.check();
   await expect(perturbedRadio).toBeChecked();
-  // (Note: the URL-sync effect on /most-significant swallows the first
-  // state change after hydration, so we do not assert ?dir=perturbed
-  // here. The semantic check below — that the ranking changes — is
-  // what we actually care about.)
+  // The URL-sync effect now reflects the change immediately.
+  await expect(page).toHaveURL(/[?&]dir=perturbed/);
   await expect
     .poll(async () => (await firstGeneLink.textContent())?.trim() ?? "", {
       timeout: 15_000,

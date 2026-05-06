@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
+import React, { useEffect, useState, useCallback, type ReactNode } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -337,14 +337,12 @@ export default function MostSignificantPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, router.query]);
 
-  // Sync state back to URL (shallow, no navigation)
-  const isFirstSync = useRef(true);
+  // Sync state back to URL (shallow, no navigation). Skip the replace when
+  // the next params already equal router.query — that avoids a redundant
+  // write on the URL-hydration pass without dropping the user's first
+  // interaction (#112 follow-up).
   useEffect(() => {
     if (!router.isReady || !urlInitialized) return;
-    if (isFirstSync.current) {
-      isFirstSync.current = false;
-      return;
-    }
     const params: Record<string, string> = {};
     if (method !== "hmp") params.method = method;
     if (direction !== "target") params.dir = direction;
@@ -361,9 +359,23 @@ export default function MostSignificantPage() {
     const defaultHideSorted = [...defaultHideFlags].sort().join(",");
     if (hideSorted !== defaultHideSorted) params.hide = hideFlags.join(",");
     if (!showOther) params.showOther = "0";
+
+    const curr = router.query as Record<string, unknown>;
+    const keys = new Set([...Object.keys(curr), ...Object.keys(params)]);
+    let changed = false;
+    for (const k of keys) {
+      const a = curr[k];
+      const b = params[k];
+      if ((a ?? undefined) !== (b ?? undefined)) {
+        changed = true;
+        break;
+      }
+    }
+    if (!changed) return;
+
     router.replace({ pathname: router.pathname, query: params }, undefined, { shallow: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [method, direction, regulation, assayFilter, diseaseFilter, organismFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady]);
+  }, [method, direction, regulation, assayFilter, diseaseFilter, organismFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady, urlInitialized]);
 
   useEffect(() => {
     fetch("/api/dataset-tables-with-pvalues")
