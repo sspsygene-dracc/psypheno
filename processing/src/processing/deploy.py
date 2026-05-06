@@ -15,6 +15,7 @@ local rather than cross-host:
 
 from __future__ import annotations
 
+import concurrent.futures
 import shlex
 import subprocess
 
@@ -207,35 +208,84 @@ def _step_pull_all(instances: list[str]) -> None:
         _run_ssh(PSYGENE, f"cd {path} && git pull", desc=f"git pull ({path})")
 
 
+PREPROCESS_MAX_WORKERS = 8
+
+
 def _step_preprocess_site(
     path: str,
     *,
     label: str,
     env_vars: dict[str, str],
 ) -> None:
-    """Run every dataset's preprocess.py under the conda env. Aborts on first failure."""
+    """Run every dataset's preprocess.py in parallel under the conda env.
+
+    Each dataset gets its own ssh + `conda run python preprocess.py`
+    invocation, dispatched through a ThreadPoolExecutor (PREPROCESS_MAX_WORKERS
+    concurrent jobs). Output is captured per-job and printed when each job
+    finishes, prefixed with the dataset name. Waits for all in-flight jobs
+    to finish before raising, so the user sees every failure rather than
+    only the first one to hit.
+    """
     click.echo(f"\n  --- {label} preprocess ({path}) ---")
-    env_prefix = " ".join(f"{k}={v}" for k, v in env_vars.items()) + " "
-    inner = (
-        "set -e; "
-        'for d in data/datasets/*/; do '
-        '  if [ -f "$d/preprocess.py" ]; then '
-        '    echo "[preprocess] $d"; '
-        '    (cd "$d" && python preprocess.py); '
-        "  fi; "
-        "done"
-    )
-    cmd = (
-        f"cd {path} && {CONDA_INIT} && "
-        f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} bash -c {shlex.quote(inner)}"
-    )
-    _run_ssh(
+
+    list_result = _run_ssh(
         PSYGENE,
-        cmd,
-        desc="Running per-dataset preprocess.py scripts",
-        timeout=PREPROCESS_TIMEOUT,
-        stream=True,
+        f"cd {path} && find data/datasets -mindepth 2 -maxdepth 2 "
+        f"-name preprocess.py -printf '%h\\n' | sort",
+        desc="Listing datasets with preprocess.py",
     )
+    dataset_dirs = [d for d in list_result.stdout.strip().splitlines() if d]
+    if not dataset_dirs:
+        click.echo("  No datasets with preprocess.py — skipping.")
+        return
+
+    env_prefix = " ".join(f"{k}={v}" for k, v in env_vars.items()) + " "
+    workers = min(PREPROCESS_MAX_WORKERS, len(dataset_dirs))
+    click.echo(
+        f"  Running preprocess.py for {len(dataset_dirs)} dataset(s) "
+        f"with {workers} parallel workers..."
+    )
+
+    def run_one(dataset_dir: str) -> tuple[str, int, str]:
+        inner = f'cd {shlex.quote(dataset_dir)} && python preprocess.py'
+        cmd = (
+            f"cd {path} && {CONDA_INIT} && "
+            f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} "
+            f"bash -c {shlex.quote(inner)}"
+        )
+        try:
+            proc = subprocess.run(
+                ["ssh", PSYGENE, cmd],
+                capture_output=True,
+                text=True,
+                timeout=PREPROCESS_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            return dataset_dir, -1, f"Timed out after {PREPROCESS_TIMEOUT}s"
+        output = (proc.stdout or "") + (proc.stderr or "")
+        return dataset_dir, proc.returncode, output
+
+    failures: list[str] = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(run_one, d) for d in dataset_dirs]
+        for future in concurrent.futures.as_completed(futures):
+            dataset_dir, rc, output = future.result()
+            name = dataset_dir.removeprefix("data/datasets/")
+            if rc == 0:
+                click.echo(f"  OK   [preprocess] {name}")
+            else:
+                click.secho(
+                    f"  FAIL [preprocess] {name} (exit {rc})", fg="red"
+                )
+                for line in output.strip().splitlines():
+                    click.echo(f"    | {line}")
+                failures.append(name)
+
+    if failures:
+        raise DeployError(
+            f"{len(failures)}/{len(dataset_dirs)} preprocess job(s) failed: "
+            + ", ".join(failures)
+        )
 
 
 def _step_run_tests_site(
