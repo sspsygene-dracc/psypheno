@@ -44,14 +44,16 @@ export default async function handler(
   // The blob key is the slash-joined path. Reject obviously-malformed
   // segments — even though we look up by exact equality (no FS walk), we
   // don't want odd characters reaching downstream consumers (e.g. the
-  // Content-Disposition filename).
+  // Content-Disposition filename, where CR/LF would enable response
+  // splitting).
   for (const seg of segments) {
     if (
       typeof seg !== "string" ||
       seg === "" ||
       seg.includes("/") ||
       seg.includes("\\") ||
-      seg.includes("\0")
+      // eslint-disable-next-line no-control-regex
+      /[\x00-\x1f\x7f]/.test(seg)
     ) {
       return res.status(400).json({ error: "Invalid path" });
     }

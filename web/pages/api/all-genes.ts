@@ -1,6 +1,15 @@
 import { NextApiRequest, NextApiResponse } from "next";
+import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { SearchSuggestion } from "@/state/SearchSuggestion";
+
+const querySchema = z.object({
+  page: z.coerce.number().int().min(1).max(1_000_000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(200).default(50),
+  q: z.string().max(100).default(""),
+  sortBy: z.enum(["human_symbol", "num_datasets"]).default("num_datasets"),
+  sortDir: z.enum(["asc", "desc"]).optional(),
+});
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,18 +19,17 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const parse = querySchema.safeParse(req.query);
+  if (!parse.success) {
+    return res.status(400).json({ error: "Invalid request query" });
+  }
+  const { page, pageSize, sortBy: sortByRaw, sortDir: sortDirRaw } = parse.data;
+  const qRaw = parse.data.q.trim();
+  const q = qRaw.toLowerCase();
+  const likePrefix = `${q}%`;
+
   try {
     const db = getDb();
-
-    // Query params
-    const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
-    const pageSize = Math.min(
-      200,
-      Math.max(1, parseInt((req.query.pageSize as string) || "50", 10))
-    );
-    const qRaw = ((req.query.q as string) || "").trim();
-    const q = qRaw.toLowerCase();
-    const likePrefix = `${q}%`;
 
     // Compose filters
     const filters: string[] = [
@@ -64,9 +72,7 @@ export default async function handler(
       human_symbol: { sql: "cg.human_symbol", defaultDir: "ASC" },
       num_datasets: { sql: "cg.num_datasets", defaultDir: "DESC" },
     };
-    const sortByRaw = (req.query.sortBy as string) || "num_datasets";
-    const sortDirRaw = (req.query.sortDir as string) || "";
-    const sortEntry = VALID_SORT_COLUMNS[sortByRaw] ?? VALID_SORT_COLUMNS["num_datasets"];
+    const sortEntry = VALID_SORT_COLUMNS[sortByRaw];
     const sortDir = sortDirRaw === "asc" ? "ASC" : sortDirRaw === "desc" ? "DESC" : sortEntry.defaultDir;
     const nullsLast = sortDir === "ASC" ? "NULLS LAST" : "NULLS FIRST";
     const tiebreaker = sortByRaw === "human_symbol"
