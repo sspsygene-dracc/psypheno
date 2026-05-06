@@ -124,9 +124,10 @@ exact one-liner to re-run just that suite.
 |-------------|--------------------------------------------------------|---------|---------|
 | `python`    | `pytest processing/tests` (excl. `data_correspondence`) | ~10–20s | `data/homology/` payload (or `$SSPSYGENE_TEST_HOMOLOGY_DIR`) |
 | `web`       | `tsc --noEmit` + `vitest run`                          | ~10s    | `web/node_modules/` (run `npm install` once) |
-| `e2e`       | `playwright test`                                      | ~10s    | dev server on `:3000` (`cd web && npm run dev`) |
+| `e2e`       | `playwright test` (against `:3000`, or `$E2E_BASE_URL`) | ~30s   | dev server on `:3000` (`cd web && npm run dev`), or set `E2E_BASE_URL=https://...` to drive a deployed instance |
 | `data-corr` | `pytest processing/tests/data_correspondence`          | ~5s     | `data/db/sspsygene.db` (`sspsygene load-db`) |
 | `fast`      | `python` + `web`                                       | ~30s    | union of above |
+| `server`    | everything except `e2e` (`python` + `web` + `data-corr`) | ~30s  | built DB. Used by `sspsygene deploy --run-tests` on psygene, where playwright browsers aren't installed. |
 | `all`       | everything                                             | ~50s    | dev server + built DB |
 
 The `e2e` suite deliberately does **not** spawn its own dev server — it
@@ -195,6 +196,11 @@ Commands:
     --skip-meta-analysis               Skip combined p-value computation
     --skip-gene-descriptions           Skip gene description copying
     --skip-missing-datasets            Skip missing input files
+    --no-r-cache                       Bypass processing/r-cache and re-run
+                                         every R meta-analysis job
+    --export-only                      Skip the rebuild; only regenerate the
+                                         user-facing download blobs
+                                         (export_files) inside the existing DB
     --test                             Restrict to bundled top-genes fixture
 
   deploy                             Deploy to prod, dev, and internal sites
@@ -204,15 +210,25 @@ Commands:
     --load-db                          Rebuild DB during deploy
     --preprocess                       Re-run each dataset's preprocess.py
                                          on the selected sites before load-db
-    --run-tests                        Run scripts/test.sh all on each
-                                         selected site after build/load-db
-                                         (python + web + data-corr incl. slow
-                                         + playwright e2e against the deployed
-                                         URL). Hard-aborts before restart on
+    --run-tests                        After each site's build/load-db,
+                                         restart (if requested), then run
+                                         `scripts/test.sh server` on psygene
+                                         (python + web-tsc + web-unit +
+                                         data-corr) followed by
+                                         `scripts/test.sh e2e` LOCALLY against
+                                         that site's URL. Hard-aborts on the
                                          first failure.
     --no-push                          Skip git push
     --restart                          Restart web servers (default: no restart;
                                          web auto-detects DB changes)
+
+  e2e-deployed INSTANCE              Run playwright e2e tests locally
+                                       against a deployed instance
+                                       (dev | int | prod). Sets
+                                       E2E_BASE_URL and delegates to
+                                       scripts/test.sh e2e. No ssh / no
+                                       rebuild. Useful for spot-checking a
+                                       site without re-deploying.
 
   load-gene-descriptions             Build gene_descriptions.db from NCBI data
 ```
