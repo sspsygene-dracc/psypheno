@@ -270,9 +270,11 @@ def run_llm_search(
     "--restart",
     is_flag=True,
     default=False,
-    help="Restart web servers on psygene after deploying. Default is no "
-    "restart — the web process auto-detects DB changes (see web/lib/db.ts). "
-    "Pass this when JS code has changed and needs to be reloaded.",
+    help="Restart web servers on psygene for the deployed instances after "
+    "build/load-db (and before --run-tests, so e2e hits the new build). "
+    "Default is no restart — the web process auto-detects DB changes (see "
+    "web/lib/db.ts), so DB-only deploys do not need this. Pass it whenever "
+    "JS code has changed.",
 )
 @click.option(
     "--preprocess",
@@ -286,9 +288,10 @@ def run_llm_search(
     "--run-tests",
     is_flag=True,
     default=False,
-    help="Run scripts/test.sh all on each selected site after build/load-db. "
-    "Includes slow tests (data-correspondence) and playwright e2e against "
-    "the deployed URL. Hard-aborts the pipeline (no restart) on failure.",
+    help="Run scripts/test.sh all on each selected site after build/load-db "
+    "and (if --restart is set) restart, so the e2e tests hit the freshly "
+    "deployed code. Includes slow tests (data-correspondence) and playwright "
+    "e2e against the deployed URL. Hard-aborts on first failure.",
 )
 def deploy(
     load_db: bool,

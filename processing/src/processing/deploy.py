@@ -1,10 +1,13 @@
 """Deployment automation for SSPsyGene.
 
-Automates the full deployment workflow:
+Automates the full deployment workflow (canonical dev → int → prod order):
   1. git push (local)
-  2. Deploy production site on hgwdev (git pull, optionally load-db, npm run build)
-  3. Deploy internal site on hgwdev (git pull, set env vars, optionally load-db, npm run build)
-  4. Restart web servers on psygene (kill processes; systemd restarts them)
+  2. git pull on each selected site (hgwdev)
+  3. Per-site preprocess.py (optional, --preprocess), load-db (optional,
+     --load-db), npm ci + npm run build (hgwdev)
+  4. Restart web servers on psygene for the deployed instances (optional,
+     --restart) — runs BEFORE tests so e2e hits the new build
+  5. Run scripts/test.sh all on each deployed site (optional, --run-tests)
 """
 
 from __future__ import annotations
@@ -48,6 +51,10 @@ INSTANCE_E2E_URLS = {
     "int": "https://psypheno-int.gi.ucsc.edu",
     "prod": "https://psypheno.gi.ucsc.edu",
 }
+# Ports each instance's `npm start` listens on (Apache reverse-proxies the
+# public URL to localhost:PORT). Used by _step_restart_psygene to target
+# only the deployed instance(s) rather than killing every Next.js process.
+INSTANCE_PORTS = {"dev": 3112, "int": 3111, "prod": 3110}
 
 CONDA_ENV = "sspsygene"
 CONDA_INIT = "source $HOME/opt_rocky9/miniconda3/etc/profile.d/conda.sh"
@@ -174,7 +181,7 @@ def _preflight_checks() -> None:
 
 
 def _step_push() -> None:
-    click.secho("\n[1/4] Pushing local changes", bold=True)
+    click.secho("\n[1/5] Pushing local changes", bold=True)
     _run_local(["git", "push"], desc="git push")
 
 
@@ -185,7 +192,7 @@ def _step_pull_all(instances: list[str]) -> None:
     from one site but used by others) are up-to-date before any site
     runs load-db or npm build.
     """
-    click.secho("\n[2/4] Pulling latest code on hgwdev", bold=True)
+    click.secho("\n[2/5] Pulling latest code on hgwdev", bold=True)
     for inst in instances:
         path = INSTANCE_PATHS[inst]
         _run_ssh(HGWDEV, f"cd {path} && git pull", desc=f"git pull ({path})")
@@ -306,41 +313,82 @@ def _step_deploy_site(
     )
 
 
-def _step_restart_psygene() -> None:
-    """Find and kill Next.js / npm processes on psygene so systemd restarts them."""
-    click.secho("\n[4/4] Restarting web servers on psygene", bold=True)
+def _step_restart_psygene(instances: list[str]) -> None:
+    """Restart Next.js processes on psygene for the given instances.
 
+    Kills the `npm start --port NNNN` parents matching each instance's port;
+    systemd respawns the unit (which terminates the next-server child along
+    with it). Then waits for each instance's public URL to respond before
+    returning, so subsequent steps (e.g. e2e tests) don't race the restart.
+    """
+    import time
+
+    ports = [INSTANCE_PORTS[i] for i in instances]
+    labels = ", ".join(INSTANCE_LABELS[i] for i in instances)
+    click.secho(f"\n[4/5] Restarting web servers on psygene ({labels})", bold=True)
+
+    port_alts = "|".join(str(p) for p in ports)
+    grep_cmd = (
+        "ps -fu \"$USER\" | "
+        f"grep -E 'npm start --port ({port_alts})' | "
+        "grep -v grep"
+    )
     result = _run_ssh(
         PSYGENE,
-        "ps aux | grep -E 'next-server|npm.*3110' | grep -v grep | grep \"^$USER \"",
-        desc="Finding Next.js / npm processes",
+        grep_cmd,
+        desc=f"Finding npm processes for ports {', '.join(str(p) for p in ports)}",
         check=False,
     )
 
     if not result.stdout.strip():
         click.secho(
-            "  No running Next.js / npm processes found on psygene — nothing to restart.",
+            f"  No running npm processes found for {labels} — nothing to restart.",
             fg="yellow",
         )
-        return
+    else:
+        lines = result.stdout.strip().splitlines()
+        pids: list[str] = []
+        for line in lines:
+            parts = line.split()
+            if len(parts) >= 2:
+                pids.append(parts[1])
 
-    lines = result.stdout.strip().splitlines()
-    pids: list[str] = []
-    for line in lines:
-        parts = line.split()
-        if len(parts) >= 2:
-            pids.append(parts[1])
+        if not pids:
+            click.secho("  Could not parse PIDs from process list.", fg="yellow")
+            return
 
-    if not pids:
-        click.secho("  Could not parse PIDs from process list.", fg="yellow")
-        return
+        click.echo(f"  Found {len(pids)} process(es):")
+        for line in lines:
+            click.echo(f"    {line}")
 
-    click.echo(f"  Found {len(pids)} process(es):")
-    for line in lines:
-        click.echo(f"    {line}")
+        _run_ssh(
+            PSYGENE,
+            f"kill {' '.join(pids)}",
+            desc=f"Killing {len(pids)} process(es)",
+        )
+        click.echo("  Processes killed — systemd should restart them automatically.")
 
-    _run_ssh(PSYGENE, f"kill {' '.join(pids)}", desc=f"Killing {len(pids)} process(es)")
-    click.echo("  Processes killed — systemd should restart them automatically.")
+    # Wait for each instance's public URL to come back. systemd respawn is
+    # usually quick (<5s) but the first request after restart can take a
+    # few seconds while Next.js warms up.
+    for inst in instances:
+        url = f"{INSTANCE_E2E_URLS[inst]}/api/full-datasets"
+        click.echo(f"  Waiting for {INSTANCE_LABELS[inst]} ({url}) to respond...")
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline:
+            probe = subprocess.run(
+                ["curl", "-fsS", "--max-time", "5", url],
+                capture_output=True,
+                text=True,
+            )
+            if probe.returncode == 0:
+                click.echo(f"    -> {INSTANCE_LABELS[inst]} is up.")
+                break
+            time.sleep(2)
+        else:
+            raise DeployError(
+                f"Timed out after 60s waiting for {INSTANCE_LABELS[inst]} to respond at {url}"
+            )
 
 
 # ── Main entry point ────────────────────────────────────────────────────────
@@ -386,7 +434,7 @@ def run_deploy(
 
     # Step 1 — git push
     if no_push:
-        click.secho("\n[1/4] Skipping git push (--no-push)", bold=True)
+        click.secho("\n[1/5] Skipping git push (--no-push)", bold=True)
     else:
         _step_push()
 
@@ -397,7 +445,7 @@ def run_deploy(
 
     # Step 3 — build/load-db per site (canonical dev → int → prod order)
     if preprocess:
-        click.secho("\n[3a/4] Running preprocess.py on selected sites", bold=True)
+        click.secho("\n[3a/5] Running preprocess.py on selected sites", bold=True)
         for inst in selected:
             _step_preprocess_site(
                 INSTANCE_PATHS[inst],
@@ -405,7 +453,7 @@ def run_deploy(
                 env_vars=INSTANCE_ENVS[inst],
             )
 
-    click.secho("\n[3/4] Deploying sites on hgwdev", bold=True)
+    click.secho("\n[3/5] Deploying sites on hgwdev", bold=True)
     for inst in selected:
         _step_deploy_site(
             INSTANCE_PATHS[inst],
@@ -414,10 +462,24 @@ def run_deploy(
             env_vars=INSTANCE_ENVS[inst],
         )
 
-    # Step 3b — run tests against each deployed site (after build/load-db so
-    # the tests see the as-deployed code + DB). Hard-aborts on first failure.
+    # Step 4 — restart web servers BEFORE tests so e2e hits the new build.
+    # Default is no restart; the web process auto-detects DB changes via
+    # inode/mtime check in web/lib/db.ts, so JS-only deploys need --restart
+    # but DB-only deploys do not.
+    if restart:
+        _step_restart_psygene(selected)
+    else:
+        click.secho(
+            "\n[4/5] Skipping restart (default). The web process auto-detects DB",
+            bold=True,
+        )
+        click.echo("      changes; pass --restart if JS code changed and needs reloading.")
+
+    # Step 5 — run tests against each deployed site (after build/load-db AND
+    # restart so the tests see the as-deployed code + DB). Hard-aborts on
+    # first failure.
     if run_tests:
-        click.secho("\n[3b/4] Running test suite on selected sites", bold=True)
+        click.secho("\n[5/5] Running test suite on selected sites", bold=True)
         for inst in selected:
             _step_run_tests_site(
                 INSTANCE_PATHS[inst],
@@ -425,17 +487,5 @@ def run_deploy(
                 base_url=INSTANCE_E2E_URLS[inst],
                 env_vars=INSTANCE_ENVS[inst],
             )
-
-    # Step 4 — restart web servers (default is no restart; the web process
-    # auto-detects DB changes via inode/mtime check in web/lib/db.ts, so
-    # only pass --restart when JS code has changed).
-    if restart:
-        _step_restart_psygene()
-    else:
-        click.secho(
-            "\n[4/4] Skipping restart (default). The web process auto-detects DB",
-            bold=True,
-        )
-        click.echo("      changes; pass --restart if JS code changed and needs reloading.")
 
     click.secho("\nDeployment complete!", fg="green", bold=True)
