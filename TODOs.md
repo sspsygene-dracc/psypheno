@@ -1,14 +1,9 @@
-- significance summary boxes can get too wide with dataset titles --- make sure
-  the dataset column wraps at some max width rather than just extending
-  endlessly. Try to make it work on mobile as well. See, e.g., what happens when
-  you expand the description of NR4A3 on
-  http://localhost:3000/most-significant?reg=up&assay=expression&disease=asd
-
 - on narrow mobile, just hide the What's New box on the home page --- it takes
   up too much space and doesn't add that much
 
 - make deploy script run full test suite, incl slow tests and e2e tests, on the
-  deployed paths, using a separate option (like --preprocess but for testing)
+  deployed paths, using a separate option (like --preprocess but for testing,
+  e.g. --run-tests)
 
 - Gordon 2026 - ASD Genetic-Form DEGs in iPSC Cortical Organoids doesn't have a
   perturbed gene column, but it should, in the GUI (e.g. on the home gene

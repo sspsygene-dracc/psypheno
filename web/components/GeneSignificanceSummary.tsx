@@ -67,9 +67,22 @@ export default function GeneSignificanceSummary({
     textAlign: "left",
     borderBottom: "1px solid #e5e7eb",
   };
+  // Dataset/Assay names can be long; let them wrap with a max width so the
+  // summary box doesn't extend beyond its container (especially on mobile).
+  const wrapTdStyle: React.CSSProperties = {
+    ...tdStyle,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+  };
+  const wrapThStyle: React.CSSProperties = {
+    ...thStyle,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+  };
 
   return (
     <div
+      className="gene-sig-summary"
       style={{
         marginTop: 16,
         marginBottom: 16,
@@ -79,6 +92,17 @@ export default function GeneSignificanceSummary({
         overflow: "hidden",
       }}
     >
+      <style>{`
+        .gene-sig-summary table { table-layout: auto; }
+        .gene-sig-summary .col-dataset { max-width: 280px; }
+        .gene-sig-summary .col-assay { max-width: 160px; }
+        .gene-sig-summary tbody tr:nth-child(even) { background: #eef2f7; }
+        .gene-sig-summary tbody tr:nth-child(odd) { background: #ffffff; }
+        @media (max-width: 700px) {
+          .gene-sig-summary .col-dataset { max-width: 160px; }
+          .gene-sig-summary .col-assay { max-width: 100px; }
+        }
+      `}</style>
       <button
         onClick={() => setExpanded((prev) => !prev)}
         style={{
@@ -131,8 +155,8 @@ export default function GeneSignificanceSummary({
               >
                 <thead>
                   <tr>
-                    <th style={thStyle}>Dataset</th>
-                    <th style={thStyle}>Assay</th>
+                    <th className="col-dataset" style={wrapThStyle}>Dataset</th>
+                    <th className="col-assay" style={wrapThStyle}>Assay</th>
                     <th style={thStyle}>Best p-value</th>
                     <th style={thStyle}>Best FDR</th>
                     <th style={{ ...thStyle, textAlign: "right" }}>Rows</th>
@@ -141,10 +165,10 @@ export default function GeneSignificanceSummary({
                 <tbody>
                   {tables.map((t) => (
                     <tr key={t.tableName}>
-                      <td style={tdStyle}>
+                      <td className="col-dataset" style={wrapTdStyle}>
                         {formatTableName(t.tableName, t.mediumLabel)}
                       </td>
-                      <td style={tdStyle}>
+                      <td className="col-assay" style={wrapTdStyle}>
                         {t.assay
                           ? t.assay
                               .map((a) => assayTypeLabels[a] || a)
