@@ -301,7 +301,7 @@ def deploy(
     preprocess: bool,
     run_tests: bool,
 ) -> None:
-    """Deploy to production, dev, and internal sites on hgwdev/psygene."""
+    """Deploy to production, dev, and internal sites on psygene."""
     from processing.deploy import run_deploy
 
     run_deploy(
