@@ -540,7 +540,7 @@ export default function MostSignificantPage() {
           }}
         >
           <strong>Note on combined p-values.</strong> The values below are
-          computed from the <strong>raw, unadjusted</strong> per-study
+          computed from the <strong>raw, unadjusted</strong>&nbsp;per-study
           p-values reported by each dataset (not from the FDR-adjusted
           columns). Combining many small nominal p-values can produce extreme
           combined p-values — that&apos;s expected, and it&apos;s what allows
