@@ -7,7 +7,7 @@ local rather than cross-host:
   1. git push (local)
   2. git pull on each selected site (psygene)
   3. Per-site preprocess.py (optional, --preprocess), load-db (optional,
-     --load-db), npm ci + npm run build (psygene)
+     --load-db), npm install + npm run build (psygene)
   4. Restart web servers on psygene for the deployed instances (optional,
      --restart) — runs BEFORE tests so e2e hits the new build
   5. Run scripts/test.sh all on each deployed site (optional, --run-tests)
@@ -247,7 +247,7 @@ def _step_preprocess_site(
     )
 
     def run_one(dataset_dir: str) -> tuple[str, int, str]:
-        inner = f'cd {shlex.quote(dataset_dir)} && python preprocess.py'
+        inner = f"cd {shlex.quote(dataset_dir)} && python preprocess.py"
         cmd = (
             f"cd {path} && {CONDA_INIT} && "
             f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} "
@@ -274,9 +274,7 @@ def _step_preprocess_site(
             if rc == 0:
                 click.echo(f"  OK   [preprocess] {name}")
             else:
-                click.secho(
-                    f"  FAIL [preprocess] {name} (exit {rc})", fg="red"
-                )
+                click.secho(f"  FAIL [preprocess] {name} (exit {rc})", fg="red")
                 for line in output.strip().splitlines():
                     click.echo(f"    | {line}")
                 failures.append(name)
@@ -354,12 +352,11 @@ def _step_deploy_site(
 
     # Sync npm deps from package-lock.json before building so a package.json
     # bump in the just-pulled commit doesn't get built against a stale
-    # node_modules. `npm ci` is deterministic — it wipes node_modules and
-    # installs strictly from the lockfile.
+    # node_modules.
     _run_ssh(
         PSYGENE,
-        f"cd {path}/web && npm ci",
-        desc="npm ci (deterministic install from package-lock.json)",
+        f"cd {path}/web && npm install",
+        desc="npm install",
         timeout=BUILD_TIMEOUT,
         stream=True,
     )
@@ -388,7 +385,7 @@ def _step_restart_psygene(instances: list[str]) -> None:
 
     port_alts = "|".join(str(p) for p in ports)
     grep_cmd = (
-        "ps -fu \"$USER\" | "
+        'ps -fu "$USER" | '
         f"grep -E 'npm start --port ({port_alts})' | "
         "grep -v grep"
     )
@@ -532,7 +529,9 @@ def run_deploy(
             "\n[4/5] Skipping restart (default). The web process auto-detects DB",
             bold=True,
         )
-        click.echo("      changes; pass --restart if JS code changed and needs reloading.")
+        click.echo(
+            "      changes; pass --restart if JS code changed and needs reloading."
+        )
 
     # Step 5 — run tests against each deployed site (after build/load-db AND
     # restart so the tests see the as-deployed code + DB). Hard-aborts on
