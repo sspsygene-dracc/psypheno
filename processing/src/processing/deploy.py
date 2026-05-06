@@ -33,6 +33,13 @@ def _site_env(path: str) -> dict[str, str]:
         "SSPSYGENE_CONFIG_JSON": f"{path}/processing/src/processing/config.json",
         "SSPSYGENE_DATA_DIR": f"{path}/data",
         "SSPSYGENE_DATA_DB": f"{path}/data/db/sspsygene.db",
+        # Force `import processing` to resolve to THIS site's checkout. The
+        # conda env's editable install pins the package to whichever site
+        # was last `pip install -e .`'d (currently int) — without this
+        # override, load-db / preprocess.py / pytest for dev or prod would
+        # silently run int's code, which can mismatch the deploying site's
+        # config schema.
+        "PYTHONPATH": f"{path}/processing/src",
     }
 
 
