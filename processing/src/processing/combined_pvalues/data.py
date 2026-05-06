@@ -112,6 +112,11 @@ class CollectedGroup:
     disease_filter: str | None
     organism_filter: str | None
     use_gene_flags: bool
+    # Source tables that actually contribute p-values for this group's
+    # direction/regulation. Preserved separately from `pvalues` because groups
+    # below `min_tables` get their `pvalues` emptied for the R-job stage; the
+    # writer still needs the real count for `combined_pvalue_groups`.
+    num_contributing_tables: int = 0
 
 
 @dataclass

@@ -216,25 +216,56 @@ class MetaAnalysisRun:
                 disease_filter=group.disease_filter,
                 organism_filter=group.organism_filter,
                 use_gene_flags=group.use_gene_flags,
+                num_contributing_tables=len(contributing),
             ))
         return out
 
     def _run_r_jobs(
         self, collected: list[CollectedGroup]
     ) -> dict[int, dict[int, GeneCombinedPvalues]]:
-        # Submit non-empty groups to the thread pool. We dispatch through
-        # `r_runner.call_r_combine` (rather than a local import) so test
-        # patches at `processing.combined_pvalues.r_runner.call_r_combine`
-        # take effect.
+        # Two groups produce byte-identical R inputs (and the same cache key)
+        # iff they share `(direction, regulation)` and the same set of source
+        # tables that actually contribute rows after filtering. Bucket by that
+        # key so each unique input runs Rscript exactly once; fan the result
+        # back out to every member. Without this, two threads could both miss
+        # the cache for the same key and race on `<key>.csv.tmp`.
+        def _bucket_key(cg: CollectedGroup) -> tuple[str, str, frozenset[str]]:
+            contributing = frozenset(
+                tbl
+                for gene_tbls in cg.pvalues.per_table.values()
+                for tbl in gene_tbls
+            )
+            return (cg.direction, cg.regulation, contributing)
+
+        bucket_owner: dict[tuple[str, str, frozenset[str]], int] = {}
+        bucket_members: dict[tuple[str, str, frozenset[str]], list[int]] = {}
+        for i, cg in enumerate(collected):
+            if cg.pvalues.is_empty():
+                continue
+            key = _bucket_key(cg)
+            bucket_members.setdefault(key, []).append(i)
+            bucket_owner.setdefault(key, i)
+
         r_jobs: list[RJobInput] = [
-            RJobInput(idx=i, pvalues=cg.pvalues, label=cg.label)
-            for i, cg in enumerate(collected)
-            if not cg.pvalues.is_empty()
+            RJobInput(
+                idx=owner_idx,
+                pvalues=collected[owner_idx].pvalues,
+                label=collected[owner_idx].label,
+            )
+            for owner_idx in bucket_owner.values()
         ]
+        # We dispatch through `r_runner.call_r_combine` (rather than a local
+        # import) so test patches at `processing.combined_pvalues.r_runner.
+        # call_r_combine` take effect.
         max_workers = min(len(r_jobs), os.cpu_count() or 4) if r_jobs else 1
+        total_groups = sum(1 for cg in collected if not cg.pvalues.is_empty())
+        dedup_note = (
+            f" ({total_groups - len(r_jobs)} duplicate(s) deduplicated)"
+            if total_groups > len(r_jobs) else ""
+        )
         click.echo(
             f"\n  Launching {len(r_jobs)} R meta-analysis job(s) "
-            f"with {max_workers} parallel workers..."
+            f"with {max_workers} parallel workers{dedup_note}..."
         )
 
         r_results_by_idx: dict[int, dict[int, GeneCombinedPvalues]] = {}
@@ -242,23 +273,33 @@ class MetaAnalysisRun:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_idx: dict[Any, tuple[int, str]] = {}
             for job in r_jobs:
-                click.echo(f"  {job.label}Submitting R job...")
+                key = _bucket_key(collected[job.idx])
+                members = bucket_members[key]
+                extra = (
+                    f" (+{len(members) - 1} duplicate group(s))"
+                    if len(members) > 1 else ""
+                )
+                click.echo(f"  {job.label}Submitting R job{extra}...")
                 future = executor.submit(
                     r_runner.call_r_combine, job.pvalues, self.use_r_cache,
                 )
                 future_to_idx[future] = (job.idx, job.label)
 
             for future in as_completed(future_to_idx):
-                idx, label = future_to_idx[future]
+                owner_idx, label = future_to_idx[future]
+                key = _bucket_key(collected[owner_idx])
+                members = bucket_members[key]
                 try:
                     result = future.result()
-                    r_results_by_idx[idx] = result if result is not None else {}
+                    fanout = result if result is not None else {}
                     click.echo(f"  {label}R job completed.")
                 except Exception as e:  # pylint: disable=broad-exception-caught
                     click.echo(click.style(
                         f"  {label}R job failed: {e}", fg="red",
                     ))
-                    r_results_by_idx[idx] = {}
+                    fanout = {}
+                for m in members:
+                    r_results_by_idx[m] = fanout
 
         return r_results_by_idx
 
@@ -273,10 +314,12 @@ class MetaAnalysisRun:
 
         for i, cg in enumerate(collected):
             if cg.pvalues.is_empty():
-                # Group was skipped (< min_tables source tables)
+                # Group was skipped (< min_tables source tables). We still
+                # record the real contributing count so the frontend can
+                # distinguish "0 tables match" from "1 table matches".
                 self._record_group_metadata(
                     cg, table_name=None,
-                    num_source_tables=len(cg.pvalues.per_table),
+                    num_source_tables=cg.num_contributing_tables,
                 )
                 continue
 
@@ -288,13 +331,9 @@ class MetaAnalysisRun:
                 self.no_index, flags_fn, cg.label,
             )
 
-            num_source = len({
-                tbl
-                for gene_tbls in cg.pvalues.per_table.values()
-                for tbl in gene_tbls
-            })
             self._record_group_metadata(
-                cg, table_name=cg.out_table, num_source_tables=num_source,
+                cg, table_name=cg.out_table,
+                num_source_tables=cg.num_contributing_tables,
             )
 
     # -- low-level helpers ---------------------------------------------------

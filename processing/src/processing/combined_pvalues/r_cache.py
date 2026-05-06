@@ -17,6 +17,7 @@ import hashlib
 import io
 import os
 import shutil
+import tempfile
 from pathlib import Path
 
 from .collection import precollapse
@@ -119,8 +120,22 @@ def lookup(key: str) -> Path | None:
 
 
 def store(key: str, results_csv: Path) -> None:
-    """Atomically copy `results_csv` into the cache as `<key>.csv`."""
-    dest = cache_dir() / f"{key}.csv"
-    tmp = dest.with_suffix(".csv.tmp")
-    shutil.copyfile(results_csv, tmp)
-    os.replace(tmp, dest)
+    """Atomically copy `results_csv` into the cache as `<key>.csv`.
+
+    Uses a unique tmp filename per call (via `tempfile.mkstemp`) so that
+    concurrent writers targeting the same key cannot clobber each other's
+    in-flight tmp file. The `os.replace` at the end is atomic, so the worst
+    case under a same-key race is "last writer wins" with byte-identical
+    content rather than a corrupted destination.
+    """
+    dst_dir = cache_dir()
+    dest = dst_dir / f"{key}.csv"
+    fd, tmp_str = tempfile.mkstemp(prefix=f"{key}.", suffix=".csv.tmp", dir=dst_dir)
+    os.close(fd)
+    tmp = Path(tmp_str)
+    try:
+        shutil.copyfile(results_csv, tmp)
+        os.replace(tmp, dest)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
