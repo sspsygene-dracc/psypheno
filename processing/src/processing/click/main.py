@@ -282,12 +282,21 @@ def run_llm_search(
     "load-db. Independent of --load-db; running preprocess alone refreshes "
     "the processed CSVs without rebuilding the DB.",
 )
+@click.option(
+    "--run-tests",
+    is_flag=True,
+    default=False,
+    help="Run scripts/test.sh all on each selected site after build/load-db. "
+    "Includes slow tests (data-correspondence) and playwright e2e against "
+    "the deployed URL. Hard-aborts the pipeline (no restart) on failure.",
+)
 def deploy(
     load_db: bool,
     no_push: bool,
     instances: str | None,
     restart: bool,
     preprocess: bool,
+    run_tests: bool,
 ) -> None:
     """Deploy to production, dev, and internal sites on hgwdev/psygene."""
     from processing.deploy import run_deploy
@@ -298,6 +307,7 @@ def deploy(
         instances=instances,
         restart=restart,
         preprocess=preprocess,
+        run_tests=run_tests,
     )
 
 

@@ -17,7 +17,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-PYTEST="$REPO_ROOT/processing/.venv-claude/bin/pytest"
+# Pytest discovery: explicit $PYTEST wins (deploy --run-tests sets this on
+# hgwdev where there's no .venv-claude); otherwise prefer the local venv;
+# else fall back to whatever's on PATH (e.g. an active conda env).
+PYTEST="${PYTEST:-$REPO_ROOT/processing/.venv-claude/bin/pytest}"
+if [[ ! -x "$PYTEST" ]]; then
+  PYTEST="$(command -v pytest || true)"
+fi
+if [[ -z "$PYTEST" ]]; then
+  echo "no pytest found — set \$PYTEST or install one on PATH" >&2
+  exit 2
+fi
 
 # Run pytest from the worktree's processing/src so worktrees don't silently
 # pick up the main checkout's editable install (CLAUDE.md gotcha #1).
@@ -90,7 +100,12 @@ then re-run:  scripts/test.sh data-corr
 EOF
     return 1
   fi
-  "$PYTEST" "$REPO_ROOT/processing/tests/data_correspondence" -q
+  # `-m ""` overrides the project default (`-m 'not slow'` in
+  # processing/pyproject.toml) — the data_correspondence suite's two
+  # heaviest files (test_meta_analysis_correspondence,
+  # test_value_correspondence) are marked `slow` and would otherwise be
+  # silently deselected here.
+  "$PYTEST" "$REPO_ROOT/processing/tests/data_correspondence" -q -m ""
 }
 
 # ---- Dispatch ---------------------------------------------------------------

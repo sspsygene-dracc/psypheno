@@ -204,6 +204,12 @@ Commands:
     --load-db                          Rebuild DB during deploy
     --preprocess                       Re-run each dataset's preprocess.py
                                          on the selected sites before load-db
+    --run-tests                        Run scripts/test.sh all on each
+                                         selected site after build/load-db
+                                         (python + web + data-corr incl. slow
+                                         + playwright e2e against the deployed
+                                         URL). Hard-aborts before restart on
+                                         first failure.
     --no-push                          Skip git push
     --restart                          Restart web servers (default: no restart;
                                          web auto-detects DB changes)

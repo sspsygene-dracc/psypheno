@@ -43,6 +43,11 @@ INSTANCE_ORDER = ("dev", "int", "prod")
 INSTANCE_PATHS = {"dev": DEV_PATH, "int": INT_PATH, "prod": PROD_PATH}
 INSTANCE_ENVS = {"dev": DEV_ENV, "int": INT_ENV, "prod": PROD_ENV}
 INSTANCE_LABELS = {"dev": "Dev", "int": "Internal", "prod": "Production"}
+INSTANCE_E2E_URLS = {
+    "dev": "https://psypheno-dev.gi.ucsc.edu",
+    "int": "https://psypheno-int.gi.ucsc.edu",
+    "prod": "https://psypheno.gi.ucsc.edu",
+}
 
 CONDA_ENV = "sspsygene"
 CONDA_INIT = "source $HOME/opt_rocky9/miniconda3/etc/profile.d/conda.sh"
@@ -53,6 +58,7 @@ SSH_TIMEOUT = 600
 BUILD_TIMEOUT = 900
 LOAD_DB_TIMEOUT = 1800
 PREPROCESS_TIMEOUT = 1800
+TEST_TIMEOUT = 1800
 
 
 # ── Error handling ───────────────────────────────────────────────────────────
@@ -216,6 +222,43 @@ def _step_preprocess_site(
     )
 
 
+def _step_run_tests_site(
+    path: str,
+    *,
+    label: str,
+    base_url: str,
+    env_vars: dict[str, str],
+) -> None:
+    """Run scripts/test.sh all on a deployed site, with playwright pointed
+    at the deployed URL. Aborts on first failure (raises DeployError)."""
+    click.echo(f"\n  --- {label} tests ({path}) ---")
+    test_env = {
+        **env_vars,
+        "E2E_BASE_URL": base_url,
+        "SSPSYGENE_TEST_HOMOLOGY_DIR": f"{path}/data/homology",
+    }
+    env_prefix = " ".join(f"{k}={v}" for k, v in test_env.items()) + " "
+    inner = (
+        "set -e; "
+        # Hand scripts/test.sh the conda env's pytest — the local default of
+        # processing/.venv-claude/bin/pytest doesn't exist on hgwdev.
+        'PYTEST="$(command -v pytest)" '
+        f"{env_prefix}"
+        "scripts/test.sh all"
+    )
+    cmd = (
+        f"cd {path} && {CONDA_INIT} && "
+        f"conda run --no-capture-output -n {CONDA_ENV} bash -c {shlex.quote(inner)}"
+    )
+    _run_ssh(
+        HGWDEV,
+        cmd,
+        desc="Running scripts/test.sh all (python + web + e2e + data-corr)",
+        timeout=TEST_TIMEOUT,
+        stream=True,
+    )
+
+
 def _step_deploy_site(
     path: str,
     *,
@@ -242,6 +285,18 @@ def _step_deploy_site(
             timeout=LOAD_DB_TIMEOUT,
             stream=True,
         )
+
+    # Sync npm deps from package-lock.json before building so a package.json
+    # bump in the just-pulled commit doesn't get built against a stale
+    # node_modules. `npm ci` is deterministic — it wipes node_modules and
+    # installs strictly from the lockfile.
+    _run_ssh(
+        HGWDEV,
+        f"cd {path}/web && npm ci",
+        desc="npm ci (deterministic install from package-lock.json)",
+        timeout=BUILD_TIMEOUT,
+        stream=True,
+    )
 
     _run_ssh(
         HGWDEV,
@@ -322,6 +377,7 @@ def run_deploy(
     instances: str | None = None,
     restart: bool = False,
     preprocess: bool = False,
+    run_tests: bool = False,
 ) -> None:
     """Run the full deployment pipeline."""
     selected = _resolve_instances(instances)
@@ -357,6 +413,18 @@ def run_deploy(
             load_db=load_db,
             env_vars=INSTANCE_ENVS[inst],
         )
+
+    # Step 3b — run tests against each deployed site (after build/load-db so
+    # the tests see the as-deployed code + DB). Hard-aborts on first failure.
+    if run_tests:
+        click.secho("\n[3b/4] Running test suite on selected sites", bold=True)
+        for inst in selected:
+            _step_run_tests_site(
+                INSTANCE_PATHS[inst],
+                label=INSTANCE_LABELS[inst],
+                base_url=INSTANCE_E2E_URLS[inst],
+                env_vars=INSTANCE_ENVS[inst],
+            )
 
     # Step 4 — restart web servers (default is no restart; the web process
     # auto-detects DB changes via inode/mtime check in web/lib/db.ts, so
