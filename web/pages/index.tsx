@@ -44,11 +44,9 @@ export default function Home() {
       return buildAllControlsSuggestion(0);
     }
     try {
-      const res = await fetch("/api/search-text", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: symbol }),
-      });
+      const res = await fetch(
+        `/api/search-text?text=${encodeURIComponent(symbol)}`,
+      );
       if (!res.ok) return null;
       const data = (await res.json()) as {
         suggestions: SearchSuggestion[];

@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 
 export default async function handler(
   req: NextApiRequest,
@@ -21,6 +22,7 @@ export default async function handler(
       assayTypes[row.key] = row.label;
     }
 
+    setReadCacheHeaders(res);
     return res.status(200).json({ assayTypes });
   } catch (err) {
     console.error("assay-types handler error", err);

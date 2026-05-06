@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 
 export default async function handler(
   req: NextApiRequest,
@@ -106,6 +107,7 @@ export default async function handler(
       // table may not exist
     }
 
+    setReadCacheHeaders(res);
     return res.status(200).json({
       tables: rows.map((r) => ({
         tableName: r.table_name,

@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 import {
   sanitizeIdentifier,
   validateSortColumn,
@@ -174,6 +175,7 @@ export default async function handler(
       }
     }
 
+    setReadCacheHeaders(res);
     return res.status(200).json({
       tableName,
       page: effectivePage,

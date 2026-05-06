@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 
 const VALID_METHODS = ["fisher", "cauchy", "hmp"] as const;
 
@@ -122,6 +123,7 @@ export default async function handler(
     }
 
     if (noTable) {
+      setReadCacheHeaders(res);
       return res.status(200).json({
         rows: [],
         totalRows: 0,
@@ -259,6 +261,7 @@ export default async function handler(
           )
           .get(...flagParams) as { cnt: number };
 
+    setReadCacheHeaders(res);
     return res.status(200).json({
       rows,
       totalRows: countResult.cnt,

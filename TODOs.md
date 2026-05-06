@@ -10,3 +10,5 @@
   updated results. I'd also like a rough estimate on how many lines were
   added/removed for each feature, plus and overall update on how many LOC were
   added/removed overall through this sprint since Monday.
+  - tell wranglers that due to caching, once you hit load-db, the server might
+    still serve old data for up to 2 minutes

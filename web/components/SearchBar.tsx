@@ -2,6 +2,31 @@ import { SearchSuggestion } from "@/state/SearchSuggestion";
 import { ALL_CONTROLS_SENTINEL_ID } from "@/lib/gene-query";
 import { useEffect, useRef, useState } from "react";
 
+// Module-level LRU keyed by the full request URL. Populated on every
+// successful fetch so that backspaces / re-typing a previously-seen prefix
+// short-circuit the network entirely. Capped to keep memory bounded.
+const SUGGESTION_CACHE_CAP = 100;
+const suggestionCache = new Map<string, SearchSuggestion[]>();
+
+function cacheGet(key: string): SearchSuggestion[] | undefined {
+  const v = suggestionCache.get(key);
+  if (v === undefined) return undefined;
+  // Refresh recency by re-inserting.
+  suggestionCache.delete(key);
+  suggestionCache.set(key, v);
+  return v;
+}
+
+function cacheSet(key: string, value: SearchSuggestion[]): void {
+  if (suggestionCache.has(key)) suggestionCache.delete(key);
+  suggestionCache.set(key, value);
+  while (suggestionCache.size > SUGGESTION_CACHE_CAP) {
+    const oldest = suggestionCache.keys().next().value;
+    if (oldest === undefined) break;
+    suggestionCache.delete(oldest);
+  }
+}
+
 export default function SearchBar({
   placeholder,
   onSelect,
@@ -53,24 +78,40 @@ export default function SearchBar({
         setSuggestions([]);
         return;
       }
+      const bodyExtra =
+        typeof extraBody === "function" ? extraBody() : extraBody || {};
+      const params = new URLSearchParams({ text });
+      for (const [k, v] of Object.entries(bodyExtra)) {
+        if (typeof v === "string") params.set(k, v);
+      }
+      const url = `${apiPath}?${params.toString()}`;
+
+      const cached = cacheGet(url);
+      if (cached !== undefined) {
+        setSuggestions(cached);
+        setOpen(true);
+        return;
+      }
+
       try {
-        const bodyExtra =
-          typeof extraBody === "function" ? extraBody() : extraBody || {};
-        const res = await fetch(apiPath, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, ...bodyExtra }),
+        const res = await fetch(url, {
+          method: "GET",
           signal: controller.signal,
         });
         if (!res.ok) return;
         const data = await res.json();
-        setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+        const next = Array.isArray(data.suggestions) ? data.suggestions : [];
+        cacheSet(url, next);
+        setSuggestions(next);
         setOpen(true);
       } catch (_) {
         // swallow
       }
     };
-    const t = setTimeout(run, 150);
+    // Slightly longer debounce (was 150 ms): a fast typist would otherwise
+    // fire 3–4 in-flight requests per word; 200 ms is still imperceptible
+    // to humans but lets each keystroke settle.
+    const t = setTimeout(run, 200);
     return () => {
       controller.abort();
       clearTimeout(t);

@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 import { fetchGeneSuggestions } from "@/lib/suggestions";
 import {
   ALL_CONTROLS_SENTINEL_ID,
@@ -43,6 +44,10 @@ export default async function handler(
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid request body" });
   }
+
+  // All success paths below return 200; cacheable for both exists=true and
+  // exists=false. Set the header once instead of repeating it on each return.
+  setReadCacheHeaders(res);
 
   const { perturbedSymbol, targetSymbol } = parsed.data;
   if (!perturbedSymbol || !targetSymbol) {

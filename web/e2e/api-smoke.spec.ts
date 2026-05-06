@@ -55,38 +55,36 @@ test("api: GET /api/all-genes returns empty for nonsense query", async ({
   expect(data.genes.length).toBe(0);
 });
 
-test("api: POST /api/search-text returns suggestions for a real symbol", async ({
+test("api: GET /api/search-text returns suggestions for a real symbol", async ({
   request,
 }) => {
-  const res = await request.post("/api/search-text", {
-    data: { text: "FOXG1" },
-  });
+  const res = await request.get("/api/search-text?text=FOXG1");
   expect(res.status()).toBe(200);
   const body = await res.json();
   expect(Array.isArray(body.suggestions)).toBe(true);
   expect(body.suggestions.length).toBeGreaterThan(0);
 });
 
-test("api: GET /api/search-text rejects with 405", async ({ request }) => {
-  const res = await request.get("/api/search-text?text=FOXG1");
+test("api: POST /api/search-text rejects with 405", async ({ request }) => {
+  const res = await request.post("/api/search-text", {
+    data: { text: "FOXG1" },
+  });
   expect(res.status()).toBe(405);
 });
 
-test("api: POST /api/search-text empty text returns empty suggestions", async ({
+test("api: GET /api/search-text empty text returns empty suggestions", async ({
   request,
 }) => {
-  const res = await request.post("/api/search-text", { data: { text: "" } });
+  const res = await request.get("/api/search-text?text=");
   expect(res.status()).toBe(200);
   const body = await res.json();
   expect(body.suggestions).toEqual([]);
 });
 
-test("api: POST /api/search-text bad payload returns 400", async ({
+test("api: GET /api/search-text missing text returns 400", async ({
   request,
 }) => {
-  const res = await request.post("/api/search-text", {
-    data: { foo: "bar" },
-  });
+  const res = await request.get("/api/search-text");
   expect(res.status()).toBe(400);
 });
 

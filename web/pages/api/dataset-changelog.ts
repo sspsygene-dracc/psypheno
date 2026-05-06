@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 
 export default async function handler(
   req: NextApiRequest,
@@ -41,6 +42,7 @@ export default async function handler(
       publication_doi: string | null;
     }>;
 
+    setReadCacheHeaders(res);
     return res.status(200).json({ entries });
   } catch (err) {
     console.error("dataset-changelog handler error", err);

@@ -1,6 +1,7 @@
 import { TableResult } from "@/lib/table_result";
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import DataTable, { type SortMode } from "@/components/DataTable";
 import DatasetToc from "@/components/DatasetToc";
 import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
@@ -9,7 +10,15 @@ import GeneSignificanceSummary, {
   type CombinedPvalues,
   type ContributingTable,
 } from "@/components/GeneSignificanceSummary";
-import EffectDistributionChart from "@/components/EffectDistributionChart";
+
+// Lazy-load the volcano so recharts (~80 kB gz) stays out of the home /
+// gene-pair bundle until a result row that has effect+pvalue columns is
+// actually expanded. ssr=false because the chart only makes sense in the
+// browser (it fetches its own data via useEffect).
+const EffectDistributionChart = dynamic(
+  () => import("@/components/EffectDistributionChart"),
+  { ssr: false },
+);
 import { ROW_LIMIT } from "@/lib/gene-query";
 import { formatAuthors } from "@/lib/format-authors";
 import type { SearchSuggestion } from "@/state/SearchSuggestion";

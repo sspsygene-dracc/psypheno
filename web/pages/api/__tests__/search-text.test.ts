@@ -5,19 +5,19 @@ import handler from "@/pages/api/search-text";
 interface MockRes extends NextApiResponse {
   _status: number;
   _json: unknown;
+  _headers: Record<string, string>;
 }
 
 function mockReq(opts: {
   method?: string;
-  body?: unknown;
+  query?: Record<string, string>;
 }): NextApiRequest {
   return {
-    method: opts.method ?? "POST",
-    body: opts.body,
-    query: {},
+    method: opts.method ?? "GET",
+    body: undefined,
+    query: opts.query ?? {},
     headers: {},
     cookies: {},
-    // Cast: the handler only touches `method` and `body`. The rest is unused.
   } as unknown as NextApiRequest;
 }
 
@@ -25,9 +25,11 @@ function mockRes(): MockRes {
   const res: Partial<MockRes> & {
     _status: number;
     _json: unknown;
+    _headers: Record<string, string>;
   } = {
     _status: 0,
     _json: undefined,
+    _headers: {},
   };
   res.status = function (code: number) {
     this._status = code;
@@ -37,39 +39,44 @@ function mockRes(): MockRes {
     this._json = body;
     return this as MockRes;
   };
+  res.setHeader = function (name: string, value: string | number | string[]) {
+    this._headers[name.toLowerCase()] = String(value);
+    return this as MockRes;
+  };
   return res as MockRes;
 }
 
 describe("api/search-text", () => {
-  it("returns 405 for non-POST methods", async () => {
+  it("returns 405 for non-GET methods", async () => {
     const res = mockRes();
-    await handler(mockReq({ method: "GET" }), res);
+    await handler(mockReq({ method: "POST" }), res);
     expect(res._status).toBe(405);
     expect(res._json).toEqual({ error: "Method not allowed" });
   });
 
-  it("returns 400 when the body is missing", async () => {
+  it("returns 400 when 'text' is missing", async () => {
     const res = mockRes();
-    await handler(mockReq({ method: "POST", body: undefined }), res);
-    expect(res._status).toBe(400);
-  });
-
-  it("returns 400 when 'text' is the wrong type", async () => {
-    const res = mockRes();
-    await handler(mockReq({ method: "POST", body: { text: 123 } }), res);
+    await handler(mockReq({ method: "GET", query: {} }), res);
     expect(res._status).toBe(400);
   });
 
   it("returns 200 with empty suggestions for empty text", async () => {
     const res = mockRes();
-    await handler(mockReq({ method: "POST", body: { text: "" } }), res);
+    await handler(mockReq({ method: "GET", query: { text: "" } }), res);
     expect(res._status).toBe(200);
     expect(res._json).toEqual({ suggestions: [] });
   });
 
+  it("sets a Cache-Control header on success", async () => {
+    const res = mockRes();
+    await handler(mockReq({ method: "GET", query: { text: "BRCA" } }), res);
+    expect(res._status).toBe(200);
+    expect(res._headers["cache-control"]).toMatch(/max-age=\d+/);
+  });
+
   it("returns 200 with suggestions for a real prefix", async () => {
     const res = mockRes();
-    await handler(mockReq({ method: "POST", body: { text: "BRCA" } }), res);
+    await handler(mockReq({ method: "GET", query: { text: "BRCA" } }), res);
     expect(res._status).toBe(200);
     const body = res._json as {
       suggestions: Array<{
@@ -89,7 +96,10 @@ describe("api/search-text", () => {
   it("rejects an invalid 'direction' value", async () => {
     const res = mockRes();
     await handler(
-      mockReq({ method: "POST", body: { text: "BRCA", direction: "sideways" } }),
+      mockReq({
+        method: "GET",
+        query: { text: "BRCA", direction: "sideways" },
+      }),
       res,
     );
     expect(res._status).toBe(400);
@@ -97,10 +107,13 @@ describe("api/search-text", () => {
 
   it("direction-filtered count <= unfiltered count", async () => {
     const all = mockRes();
-    await handler(mockReq({ method: "POST", body: { text: "BRCA" } }), all);
+    await handler(mockReq({ method: "GET", query: { text: "BRCA" } }), all);
     const filtered = mockRes();
     await handler(
-      mockReq({ method: "POST", body: { text: "BRCA", direction: "target" } }),
+      mockReq({
+        method: "GET",
+        query: { text: "BRCA", direction: "target" },
+      }),
       filtered,
     );
     expect(all._status).toBe(200);

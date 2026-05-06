@@ -1,4 +1,5 @@
 import { fetchGeneSuggestions } from "@/lib/suggestions";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 import { SearchSuggestion } from "@/state/SearchSuggestion";
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
@@ -10,16 +11,22 @@ const querySchema = z.object({
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
-  if (req.method !== "POST") {
+  if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const parseResult = querySchema.safeParse(req.body);
+  // GET so the browser can cache repeat autocomplete queries (e.g. backspace
+  // to a previously-typed prefix) without a network round trip. The body is
+  // tiny — gene-symbol prefixes plus an optional direction.
+  const parseResult = querySchema.safeParse({
+    text: typeof req.query.text === "string" ? req.query.text : undefined,
+    direction:
+      typeof req.query.direction === "string" ? req.query.direction : undefined,
+  });
   if (!parseResult.success) {
-    console.error("Invalid request body", parseResult.error);
-    return res.status(400).json({ error: "Invalid request body" });
+    return res.status(400).json({ error: "Invalid request query" });
   }
 
   const pageLimit = 8;
@@ -27,6 +34,7 @@ export default async function handler(
   const searchText = parseResult.data.text.trim().replace(/['"]/g, "");
 
   if (!searchText) {
+    setReadCacheHeaders(res);
     return res.status(200).json({ suggestions: [] });
   }
 
@@ -36,6 +44,7 @@ export default async function handler(
       pageLimit,
       parseResult.data.direction ?? null,
     );
+    setReadCacheHeaders(res);
     return res.status(200).json({ suggestions, searchText: origText });
   } catch (err) {
     console.error("Error querying search suggestions", err);

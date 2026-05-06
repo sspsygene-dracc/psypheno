@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 import { sanitizeIdentifier, parseDisplayColumns, parseLinkTablesForDirection } from "@/lib/gene-query";
 
 const bodySchema = z.object({
@@ -157,6 +158,7 @@ export default async function handler(
       }
     }
 
+    setReadCacheHeaders(res);
     return res.status(200).json({ centralGeneId, tables: results });
   } catch (err) {
     console.error("significant-rows handler error", err);

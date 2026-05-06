@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 import type { Dataset } from "@/components/DatasetItem";
 import { parseDatasetLinks, type DatasetLink } from "@/lib/links";
 
@@ -150,6 +151,7 @@ export default async function handler(
       }
     }
 
+    setReadCacheHeaders(res);
     return res.status(200).json({ publications: Array.from(byDoi.values()) });
   } catch (err) {
     console.error("publications handler error", err);

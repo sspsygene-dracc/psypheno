@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 import {
   sanitizeIdentifier,
   parseDisplayColumns,
@@ -96,6 +97,7 @@ export default async function handler(
 
     const result = queryPage(db, query.selectCols, query.fromAndWhere, query.params, page, orderBy);
 
+    setReadCacheHeaders(res);
     return res.status(200).json({ tableName, ...result });
   } catch (err) {
     console.error("gene-table-page handler error", err);

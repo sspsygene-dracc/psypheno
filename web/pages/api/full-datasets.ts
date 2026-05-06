@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 import { parseDatasetLinks } from "@/lib/links";
 
 export default async function handler(
@@ -85,6 +86,7 @@ export default async function handler(
       };
     });
 
+    setReadCacheHeaders(res);
     return res.status(200).json({ datasets });
   } catch (err) {
     console.error("full-datasets handler error", err);

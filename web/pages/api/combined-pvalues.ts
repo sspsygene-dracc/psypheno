@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 import {
   sanitizeIdentifier,
   parseLinkTablesForDirection,
@@ -218,6 +219,7 @@ export default async function handler(
       // llm_gene_results table may not exist yet
     }
 
+    setReadCacheHeaders(res);
     return res.status(200).json({
       centralGeneId,
       combinedPvalues: combined

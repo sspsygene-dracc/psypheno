@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { setReadCacheHeaders } from "@/lib/cache-headers";
 import {
   sanitizeIdentifier,
   parseDisplayColumns,
@@ -87,6 +88,7 @@ export default async function handler(
     // Up/down regulation requires this table to declare an effect_column;
     // if it doesn't, the dataset has nothing to show under that mode.
     if (regulation !== "any" && !tableMeta.effect_column) {
+      setReadCacheHeaders(res);
       return res.status(200).json({
         tableName: tableMeta.table_name,
         shortLabel: tableMeta.short_label,
@@ -171,6 +173,7 @@ export default async function handler(
       "perturbed",
     );
 
+    setReadCacheHeaders(res);
     return res.status(200).json({
       tableName: tableMeta.table_name,
       shortLabel: tableMeta.short_label,
