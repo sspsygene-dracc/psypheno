@@ -59,8 +59,19 @@ run_web_unit() {
 
 run_e2e() {
   echo ">>> web e2e (playwright)"
-  if ! curl -sf -o /dev/null --max-time 2 http://localhost:3000/api/full-datasets; then
-    cat >&2 <<'EOF'
+  # Playwright reads $E2E_BASE_URL (web/playwright.config.ts) — fall back
+  # to localhost:3000 only when it isn't set, matching that file's default.
+  local probe_url="${E2E_BASE_URL:-http://localhost:3000}"
+  if ! curl -sf -o /dev/null --max-time 5 "$probe_url/api/full-datasets"; then
+    if [[ -n "${E2E_BASE_URL:-}" ]]; then
+      cat >&2 <<EOF
+e2e suite couldn't reach \$E2E_BASE_URL=$E2E_BASE_URL.
+
+The deployed site at $probe_url isn't responding to /api/full-datasets.
+Check the systemd unit (sspsygene{,-dev,-int}.service) on psygene.
+EOF
+    else
+      cat >&2 <<'EOF'
 e2e suite needs a dev server on http://localhost:3000.
 
 Start one in another terminal first:
@@ -71,6 +82,7 @@ then re-run:  scripts/test.sh e2e
 
 (Refusing to spawn one here so we don't fight whatever you have running.)
 EOF
+    fi
     return 1
   fi
   ( cd "$REPO_ROOT/web" && npm run test:e2e --silent )
