@@ -16,8 +16,10 @@ local rather than cross-host:
 from __future__ import annotations
 
 import concurrent.futures
+import os
 import shlex
 import subprocess
+from pathlib import Path
 
 import click
 
@@ -293,12 +295,17 @@ def _step_run_tests_site(
     base_url: str,
     env_vars: dict[str, str],
 ) -> None:
-    """Run scripts/test.sh all on a deployed site, with playwright pointed
-    at the deployed URL. Aborts on first failure (raises DeployError)."""
+    """Run scripts/test.sh server on the deployed site (via ssh), then
+    scripts/test.sh e2e locally against base_url. Splits like this because
+    psygene doesn't have playwright browsers and `npx playwright install`
+    needs system deps that aren't there — so e2e has to run from a
+    developer laptop, where web/node_modules already has playwright +
+    its browsers. Aborts on first failure (raises DeployError)."""
     click.echo(f"\n  --- {label} tests ({path}) ---")
+
+    # 1. Server-side suites on psygene (python + web-tsc + web-unit + data-corr).
     test_env = {
         **env_vars,
-        "E2E_BASE_URL": base_url,
         "SSPSYGENE_TEST_HOMOLOGY_DIR": f"{path}/data/homology",
     }
     env_prefix = " ".join(f"{k}={v}" for k, v in test_env.items()) + " "
@@ -308,7 +315,7 @@ def _step_run_tests_site(
         # processing/.venv-claude/bin/pytest doesn't exist on psygene.
         'PYTEST="$(command -v pytest)" '
         f"{env_prefix}"
-        "scripts/test.sh all"
+        "scripts/test.sh server"
     )
     cmd = (
         f"cd {path} && {CONDA_INIT} && "
@@ -317,10 +324,34 @@ def _step_run_tests_site(
     _run_ssh(
         PSYGENE,
         cmd,
-        desc="Running scripts/test.sh all (python + web + e2e + data-corr)",
+        desc="Running scripts/test.sh server (python + web + data-corr)",
         timeout=TEST_TIMEOUT,
         stream=True,
     )
+
+    # 2. e2e suite locally against base_url. Playwright drives browsers from
+    # the laptop's web/node_modules; the deployed Next.js server only
+    # serves HTTP requests.
+    repo_root = Path(__file__).resolve().parents[3]
+    test_sh = repo_root / "scripts" / "test.sh"
+    if not test_sh.is_file():
+        raise DeployError(f"scripts/test.sh not found at {test_sh}")
+    click.echo(
+        f"  -> Running scripts/test.sh e2e locally against {base_url}"
+    )
+    e2e_env = {**os.environ, "E2E_BASE_URL": base_url}
+    try:
+        proc = subprocess.run(
+            [str(test_sh), "e2e"], env=e2e_env, timeout=TEST_TIMEOUT
+        )
+    except subprocess.TimeoutExpired as e:
+        raise DeployError(
+            f"e2e tests timed out after {TEST_TIMEOUT}s against {base_url}"
+        ) from e
+    if proc.returncode != 0:
+        raise DeployError(
+            f"e2e tests failed (exit {proc.returncode}) against {base_url}"
+        )
 
 
 def _step_deploy_site(

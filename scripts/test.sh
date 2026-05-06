@@ -3,9 +3,13 @@
 #
 #   scripts/test.sh             fast suites (pytest unit + tsc + vitest)
 #   scripts/test.sh all         everything, including e2e and data-corr
+#   scripts/test.sh server      everything except e2e (deploy uses this on
+#                               psygene, where playwright browsers aren't
+#                               installed)
 #   scripts/test.sh python      pytest unit only
 #   scripts/test.sh web         tsc + vitest
-#   scripts/test.sh e2e         playwright (requires a dev server on :3000)
+#   scripts/test.sh e2e         playwright (requires a dev server on :3000,
+#                               or set $E2E_BASE_URL)
 #   scripts/test.sh data-corr   data-correspondence (requires the built DB)
 #
 # Fails fast: stops at the first failing suite and prints the one-liner to
@@ -159,6 +163,15 @@ case "$target" in
     run_suite e2e       run_e2e
     run_suite data-corr run_data_corr
     ;;
+  server)
+    # Everything that doesn't need a browser. Used by `sspsygene deploy
+    # --run-tests` on psygene; the e2e suite runs separately from the
+    # developer laptop afterwards.
+    run_suite python    run_python_unit
+    run_suite web-tsc   run_web_tsc
+    run_suite web-unit  run_web_unit
+    run_suite data-corr run_data_corr
+    ;;
   python)
     run_suite python run_python_unit
     ;;
@@ -178,7 +191,7 @@ case "$target" in
     ;;
   *)
     echo "unknown suite: $target" >&2
-    echo "usage: scripts/test.sh [fast|all|python|web|e2e|data-corr]" >&2
+    echo "usage: scripts/test.sh [fast|all|server|python|web|e2e|data-corr]" >&2
     exit 2
     ;;
 esac
