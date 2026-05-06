@@ -228,6 +228,7 @@ export default function Home() {
       <style>{`
         @media (max-width: 640px) {
           .home-pair-grid { grid-template-columns: 1fr !important; }
+          .home-news { display: none !important; }
         }
       `}</style>
       <div
@@ -279,6 +280,7 @@ export default function Home() {
           </div>
           {/* News */}
           <div
+            className="home-news"
             style={{
               width: "min(720px, 92%)",
               boxSizing: "border-box",

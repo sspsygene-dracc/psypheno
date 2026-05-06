@@ -1,6 +1,3 @@
-- on narrow mobile, just hide the What's New box on the home page --- it takes
-  up too much space and doesn't add that much
-
 - make deploy script run full test suite, incl slow tests and e2e tests, on the
   deployed paths, using a separate option (like --preprocess but for testing,
   e.g. --run-tests)
