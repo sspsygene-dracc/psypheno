@@ -1,0 +1,165 @@
+# DRAFT — not loaded by sspsygene load-db (loader uses rglob("config.yaml")).
+#
+# Reasons this is in DRAFT state (resolve before promoting):
+#
+# 1. Two categorical columns from external papers use abbreviated codes
+#    (`DDp`, `AUTISMp`, `CIp`, `NCIp`) that the GeneTrek export does not
+#    define and that aren't obvious from the source-paper titles alone:
+#      - `AUTISM|DD categories from Fu et al. Nat Genet 2022 (PMID 35982160)`
+#      - `AUTISM|DD categories from Wang et al. PNAS 2022 (PMID 36350923)`
+#      - `NCI|CI categories from SPARK-iWES-v1`
+#    The labels below say "categorical, see source paper" without
+#    claiming to know what each value means. Either we read those
+#    papers' methods or we ask the GeneTrek maintainers what the codes
+#    mean before promoting.
+#
+# 2. The CI columns were mis-labeled in the original commit (3089f36)
+#    as CIs on the OR. Per Rolland 2023 Methods (papers/rolland_2023.pdf),
+#    they're actually Wald 95% CIs on the EMPIRICAL P-value from the
+#    10,000-iteration bootstrap — column names corrected here
+#    (autism_pvalue_ci_lower / _upper) and labels reflect that.
+
+publication:
+  authors:
+    - Rolland, Thomas
+    - Cliquet, Freddy
+    - Anney, Richard J. L.
+    - Moreau, Clara
+    - Traut, Nicolas
+    - Mathieu, Alexandre
+    - Huguet, Guillaume
+    - Duan, Jinjie
+    - Warrier, Varun
+    - Portalier, Swan
+    - Dry, Louise
+    - Leblond, Claire S.
+    - Proepper, Christian
+    - Bourgeron, Thomas
+  year: 2023
+  journal: "Nature Medicine"
+  doi: "10.1038/s41591-023-02408-2"
+  pmid: "37365347"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-07"
+    comment: "Initial table creation (issue #11). Source TSV manually downloaded from genetrek.pasteur.fr; held in DRAFT pending resolution of categorical-code definitions for Fu / Wang / SPARK columns."
+
+tables:
+  - table: genetrek_pasteur
+    shortLabel: genetrek_pasteur
+    mediumLabel: "Rolland 2023 - GeneTrek Curated Per-Gene Autism OR + NDD Annotations"
+    longLabel: "Per-gene autism odds ratio plus aggregated NDD-relevant gene-list memberships from the GeneTrek knowledgebase (Bourgeron lab, Institut Pasteur)"
+    description: >
+      Per-gene table from https://genetrek.pasteur.fr (Bourgeron lab,
+      Institut Pasteur). Combines the autism odds ratio + bootstrap
+      empirical p-value + 95% CI on that p-value from Rolland et al.
+      Nat Med 2023 with boolean memberships in ~30 published NDD/autism
+      gene lists (SFARI 1/23S, SPARK, SysNDD, DBD, DDg2p, Genomics
+      England panels, Epifactors, Haploinsufficient / Triplosensitive,
+      BrainSpan pre/postbirth, gnomAD constraint, etc.) and inheritance
+      / score annotations (pLI, LOEUF, MOEUF, EAGLE, NCI/CI). The hg19
+      / hg38 coordinate columns from the GeneTrek export are dropped at
+      preprocess time — SSPsyGene is gene-centric.
+    source: "GeneTrek TSV export (snapshot 2024-04-26), manually downloaded from genetrek.pasteur.fr"
+    in_path: genetrek_pasteur_cleaned.tsv
+    separator: "\t"
+    organism: "Homo sapiens"
+    organism_key: human
+    assay: curated
+    disease:
+      - asd
+      - ndd
+    categories:
+      - curated database
+      - autism genetics
+      - NDD gene lists
+      - genetic constraint metrics
+    links:
+      - url: https://genetrek.pasteur.fr/
+        label: GeneTrek (Bourgeron lab)
+        description: Source of the aggregated per-gene annotations and gene-list memberships.
+      - url: https://www.nature.com/articles/s41591-023-02408-2
+        label: Rolland 2023 — Nature Medicine (autism OR source)
+    pvalue_column: autism_pvalue_empirical
+    effect_column: autism_or
+    fieldLabels:
+      # ── Identifiers ──────────────────────────────────────────────────
+      gene_symbol: "HGNC gene symbol (resolved at preprocess time; raw value preserved in gene_symbol_raw)"
+      ncbi_id: "NCBI Gene ID (Entrez)"
+      ensembl_id: "Ensembl gene ID (ENSG…)"
+      hgnc_id: "HGNC numeric identifier (without the HGNC: prefix)"
+      omim_id: "OMIM phenotype/gene MIM number, where annotated"
+      gene_type: "NCBI biotype: protein-coding, ncRNA, pseudo, biological-region, tRNA, snoRNA, snRNA, rRNA, other, unknown"
+      # ── Boolean: gene-list memberships ───────────────────────────────
+      acmg_sf_v3_2_updated_2023_06_22: "Boolean — gene is on the ACMG Secondary Findings list v3.2 (release 2023-06-22)"
+      candidate_ndd_genes_v1: "Boolean — gene is in GeneTrek's Candidate NDD genes list, v1"
+      candidate_ndd_genes_v2: "Boolean — gene is in GeneTrek's Candidate NDD genes list, v2"
+      candidate_ndd_genes_v3: "Boolean — gene is in GeneTrek's Candidate NDD genes list, v3"
+      candidate_ndd_genes_v4: "Boolean — gene is in GeneTrek's Candidate NDD genes list, v4"
+      candidate_ndd_genes_v5: "Boolean — gene is in GeneTrek's Candidate NDD genes list, v5"
+      chromatin_remodling_genes: "Boolean — gene is annotated as a chromatin-remodelling factor"
+      dbd_tier1___ar_genes_updated_2022_09_01_: "Boolean — gene is in the DBD (Developmental Brain Disorders) Tier 1 + autosomal-recessive set (release 2022-09-01)"
+      dbd_tier234_genes_updated_2022_09_01_: "Boolean — gene is in the DBD Tier 2/3/4 set (release 2022-09-01)"
+      ddg2p_candidate_cognition_brain_genes_updated_2024_01_10_: "Boolean — gene is a 'candidate' Cognition|brain entry in DDg2p (release 2024-01-10)"
+      ddg2p_definitive_cognition_brain_genes_updated_2024_01_10_: "Boolean — gene is a 'definitive' Cognition|brain entry in DDg2p (release 2024-01-10)"
+      decreased_head_circumference_hp_0040195_hpo_release_2024_01_16_: "Boolean — gene is associated with HP:0040195 'Decreased head circumference' (HPO release 2024-01-16)"
+      early_onset_or_syndromic_epilepsy_v4___genomics_england___2023_03_22: "Boolean — gene is on the Genomics England 'Early onset or syndromic epilepsy v4' panel (2023-03-22)"
+      epifactors_v2_0_updated_2022_07_07_: "Boolean — gene is in EpiFactors v2.0 (database of epigenetic factors; release 2022-07-07)"
+      epilepsy_genes___eppan_mayo_clinic_laboratories____2023_05_30: "Boolean — gene is on the Mayo Clinic EPPAN epilepsy panel (release 2023-05-30)"
+      epilepsy_genes_tier_1_doi_org_10_1016_j_ejpn_2022_12_005: "Boolean — gene is Tier 1 in the epilepsy panel from doi.org/10.1016/j.ejpn.2022.12.005"
+      epilepsy_genes_tier_2_doi_org_10_1016_j_ejpn_2022_12_005: "Boolean — gene is Tier 2 in the epilepsy panel from doi.org/10.1016/j.ejpn.2022.12.005"
+      epilepsy_hpo_1250_hpo_release_2024_01_16_: "Boolean — gene is associated with HP:0001250 'Seizure' (HPO release 2024-01-16)"
+      gnomad_v4_0_constraint_metrics___lof_oe_ci_upper___0_6: "Boolean — gnomAD v4.0 LoF observed/expected upper-CI bound is below 0.6 (LoF-constrained gene)"
+      gtex_2017_06_05_v8_release_: "Boolean — gene has expression data in GTEx v8 (release 2017-06-05)"
+      haploinsufficient_genes_n__2_987_pHaplo____0_86_: "Boolean — gene is in the n=2,987 haploinsufficient set (pHaplo ≥ 0.86)"
+      high_confidence_epilepsy_genes: "Boolean — gene is in GeneTrek's high-confidence epilepsy gene set"
+      high_confidence_ndd_genes_v1: "Boolean — gene is in GeneTrek's high-confidence NDD gene list v1"
+      high_confidence_ndd_genes_v2: "Boolean — gene is in GeneTrek's high-confidence NDD gene list v2"
+      high_confidence_ndd_genes_v3: "Boolean — gene is in GeneTrek's high-confidence NDD gene list v3"
+      increased_head_circumference_hp_0040194_hpo_release_2024_01_16_: "Boolean — gene is associated with HP:0040194 'Increased head circumference' (HPO release 2024-01-16)"
+      pli_superior_to_0_9_gnomad_v2_1_1_: "Boolean — gnomAD v2.1.1 pLI > 0.9 (LoF-intolerant)"
+      postbirth_brainspan: "Boolean — gene shows postbirth-developmental expression in BrainSpan"
+      prebirth_brainspan: "Boolean — gene shows prebirth-developmental expression in BrainSpan"
+      sfari_1_genes_updated_2024_01_16_: "Boolean — gene is in SFARI Score 1 (release 2024-01-16)"
+      sfari_23s_genes_updated_2024_01_16_: "Boolean — gene is in SFARI Score 2, 3, or Syndromic (release 2024-01-16)"
+      spark_genes_updated_september_2022: "Boolean — gene is on the SPARK gene list (release September 2022)"
+      syngo_v1_2_release_2023_12_01: "Boolean — gene is annotated in SynGO v1.2 (release 2023-12-01) as having synaptic function"
+      sysndd_candidate_genes_updated_2023_11_09_: "Boolean — gene is a 'candidate' entry in SysNDD (release 2023-11-09)"
+      sysndd_definitive_genes_updated_2023_11_09_: "Boolean — gene is a 'definitive' entry in SysNDD (release 2023-11-09)"
+      triplosensitive_genes_n_1_559_pTriplo____0_94_: "Boolean — gene is in the n=1,559 triplosensitive set (pTriplo ≥ 0.94)"
+      high_confidence_autism_genes_from_zhou_et_al_nat_genet_2022_pmid_35982159_: "Boolean — gene is a high-confidence autism gene per Zhou et al. 2022 (PMID 35982159)"
+      # ── Categorical: external paper classifications (CODES UNCLEAR — see DRAFT note) ──
+      autism_dd_categories_from_fu_et_al_nat_genet_2022_pmid_35982160_: "Categorical — Autism / DD class assigned by Fu et al. 2022 (PMID 35982160). Observed values: AUTISM|DD, DDp, AUTISMp. Code definitions need verification against the Fu et al. methods."
+      autism_dd_categories_from_wang_et_al_pnas_2022_pmid_36350923_: "Categorical — Autism / DD class assigned by Wang et al. 2022 (PMID 36350923). Observed values: AUTISM|DD, DDp. Code definitions need verification against the Wang et al. methods."
+      nci_ci_categories_from_spark_iwes_v1: "Categorical — Non-Cognitive-Impairment / Cognitive-Impairment classification from SPARK iWES v1. Observed values: NCI|CI, CIp, NCIp, NoCarrier. Code definitions need verification against SPARK iWES documentation."
+      autism_associated_genes_or_constrained_genes: "Categorical — 'autism' (gene is in the 185 autism-associated set per Rolland et al. 2023) or 'constrained' (gene is in the 2,492 LoF-constrained set without autism association)"
+      # ── Inheritance ──────────────────────────────────────────────────
+      ddg2p_inheritance_cognition_brain_genes_updated_2024_01_10_: "Inheritance pattern from DDg2p Cognition|brain (Autosomal Dominant / Recessive, X-linked Dominant / Recessive, Mitochondrial; release 2024-01-10)"
+      sysndd_inheritance_updated_2023_11_09_: "Inheritance pattern from SysNDD (Autosomal Dominant / Recessive, X-linked Dominant / Recessive, Mitochondrial, Somatic; release 2023-11-09)"
+      inheritance_type_combined_v3: "Combined inheritance pattern across DDg2p + SysNDD (Autosomal Dominant / Recessive, X-linked Dominant / Recessive, MT, Somatic, Unknown)"
+      # ── Continuous metrics ───────────────────────────────────────────
+      eagle_score_from_sfari_website: "EAGLE composite score for autism gene-evidence strength, sourced from the SFARI Gene website"
+      pli: "gnomAD v2.1.1 pLI — probability of LoF intolerance, 0–1 (Lek et al. 2016). Higher = more intolerant."
+      loeuf: "gnomAD LoF Observed/Expected upper-CI bound (LOEUF). Lower = more LoF-constrained."
+      moeuf: "gnomAD missense Observed/Expected upper-CI bound (MOEUF). Lower = more missense-constrained."
+      # ── Rolland 2023 autism OR analysis ──────────────────────────────
+      prevalence_autism: "Carrier prevalence of stringent LoF (S-LoF) variants among individuals with an autism diagnosis in the Rolland et al. 2023 cohorts (SSC + SPARK + iPSYCH)"
+      prevalence_controls: "Carrier prevalence of S-LoF variants among undiagnosed individuals (parents/siblings/UK Biobank) in the Rolland et al. 2023 cohorts"
+      n_carriers_autism: "Number of autism-diagnosed individuals carrying a qualifying S-LoF variant in this gene (Rolland et al. 2023)"
+      autism_or: "Gene-level autism odds ratio: enrichment of S-LoF variants among autism-diagnosed individuals vs. undiagnosed individuals, computed as (n_carriers_diagnosed × n_noncarriers_undiagnosed) / (n_carriers_undiagnosed × n_noncarriers_diagnosed) with sub-sampling to balance cohort sizes (Rolland et al. 2023, Methods). 'Inf' when no carriers in undiagnosed."
+      autism_pvalue_empirical: "Empirical p-value for the autism OR from a 10,000-iteration bootstrap (Rolland et al. 2023, Methods): fraction of bootstraps in which the null OR ≥ observed OR, computed as (M+1)/(N+1)"
+      autism_pvalue_ci_lower: "Lower bound of the Wald 95% CI on the empirical p-value: P − 1.96·sqrt(P·(1−P)/(N+1)). Can be negative for very small P due to the symmetric Wald form (Rolland et al. 2023, Methods)."
+      autism_pvalue_ci_upper: "Upper bound of the Wald 95% CI on the empirical p-value: P + 1.96·sqrt(P·(1−P)/(N+1)) (Rolland et al. 2023, Methods)."
+    gene_mappings:
+      - column_name: gene_symbol
+        link_table_name: gene
+        species: human
+        perturbed_or_target: perturbed
+    changelog:
+      - date: "2026-05-07"
+        message: "Initial data load from GeneTrek TSV snapshot 2024-04-26."
+      - date: "2026-05-07"
+        message: "Corrected mis-labeling of CI columns (CIs on empirical p-value, not on OR) per Rolland 2023 Methods. Backfilled comprehensive fieldLabels. Held in DRAFT pending resolution of Fu / Wang / SPARK categorical-code semantics."

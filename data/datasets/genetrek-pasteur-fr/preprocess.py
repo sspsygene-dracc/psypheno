@@ -43,9 +43,15 @@ COORD_COLS = [
 RENAMES = {
     "Gene": "gene_symbol",
     "Autism odds ratio": "autism_or",
-    "p-value": "autism_or_pvalue",
-    "Confidence interval lower bound": "autism_or_ci_lower",
-    "Confidence interval upper bound": "autism_or_ci_upper",
+    # Per Rolland et al. 2023 Methods, "p-value" here is the EMPIRICAL P
+    # value from the 10,000-iteration bootstrap, and the two CI columns
+    # are Wald 95% CIs around that empirical P value
+    # (CI = P ± 1.96·sqrt(P·(1−P)/(N+1))) — NOT CIs on the OR. Renaming
+    # to avoid the previous mis-labeling, which suggested the CIs were
+    # on the OR.
+    "p-value": "autism_pvalue_empirical",
+    "Confidence interval lower bound": "autism_pvalue_ci_lower",
+    "Confidence interval upper bound": "autism_pvalue_ci_upper",
     "Prevalence autism": "prevalence_autism",
     "Prevalence controls": "prevalence_controls",
     "Number of carriers among autistic individuals": "n_carriers_autism",

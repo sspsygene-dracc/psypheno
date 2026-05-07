@@ -1,4 +1,4 @@
-generated: '2026-05-07T06:55:29Z'
+generated: '2026-05-07T07:04:17Z'
 output: genetrek_pasteur_cleaned.tsv
 inputs:
 - genetrek-data-2024-04-26.tsv
@@ -87,9 +87,9 @@ actions:
   mapping:
     Gene: gene_symbol
     Autism odds ratio: autism_or
-    p-value: autism_or_pvalue
-    Confidence interval lower bound: autism_or_ci_lower
-    Confidence interval upper bound: autism_or_ci_upper
+    p-value: autism_pvalue_empirical
+    Confidence interval lower bound: autism_pvalue_ci_lower
+    Confidence interval upper bound: autism_pvalue_ci_upper
     Prevalence autism: prevalence_autism
     Prevalence controls: prevalence_controls
     Number of carriers among autistic individuals: n_carriers_autism
@@ -182,8 +182,8 @@ actions:
   - prevalence_controls
   - n_carriers_autism
   - autism_or
-  - autism_or_pvalue
-  - autism_or_ci_lower
-  - autism_or_ci_upper
+  - autism_pvalue_empirical
+  - autism_pvalue_ci_lower
+  - autism_pvalue_ci_upper
   - gene_symbol_raw
   - _gene_symbol_resolution
