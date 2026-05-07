@@ -19,6 +19,7 @@ notify-output/
 docs/post-sab-feedback-context.md
 docs/db-size-analysis.md
 docs/db-region-gene-optimization.md
+docs/dataset-backlog-report.md
 .claude/
 .playwright-mcp/
 

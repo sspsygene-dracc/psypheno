@@ -1,0 +1,82 @@
+publication:
+  authors:
+    - Landrum, Melissa J.
+    - Lee, Jennifer M.
+    - Benson, Mark
+    - Brown, Garth R.
+    - Chao, Chen
+    - Chitipiralla, Shanmuga
+    - Gu, Baoshan
+    - Hart, Jennifer
+    - Hoffman, Douglas
+    - Jang, Wonhee
+    - Karapetyan, Karen
+    - Katz, Kenneth
+    - Liu, Chunlei
+    - Maddipatla, Zenith
+    - Malheiro, Adriana
+    - McDaniel, Kurt
+    - Ovetsky, Michael
+    - Riley, George
+    - Zhou, George
+    - Holmes, J. Bradley
+    - Kattman, Brandi L.
+    - Maglott, Donna R.
+  year: 2018
+  journal: "Nucleic Acids Research"
+  doi: "10.1093/nar/gkx1153"
+  pmid: "29165669"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-07"
+    comment: "Initial table creation (issue #4, suggested by Stephan Sanders)."
+
+tables:
+  - table: clinvar_gene_summary
+    shortLabel: clinvar_gene_summary
+    mediumLabel: "Landrum 2018 - ClinVar Curated Per-Gene Variant Counts"
+    longLabel: "Per-gene ClinVar variant submission and pathogenicity counts"
+    description: >
+      Per-gene aggregate counts from NCBI ClinVar's gene_specific_summary
+      table — total variant submissions, total unique alleles, count of
+      submissions explicitly reporting this gene, count of alleles classified
+      Pathogenic/Likely-pathogenic, count of submissions with uncertain
+      classifications, and count of submissions with conflicting
+      interpretations. Refreshed weekly by NCBI; preprocess.py downloads the
+      latest snapshot at build time.
+    source: "ClinVar FTP — gene_specific_summary.txt (updated weekly by NCBI)"
+    in_path: clinvar_gene_summary.tsv
+    separator: "\t"
+    organism: "Homo sapiens"
+    organism_key: human
+    assay: curated
+    disease: []
+    categories:
+      - curated database
+      - clinical variants
+      - pathogenicity
+    links:
+      - url: https://www.ncbi.nlm.nih.gov/clinvar/
+        label: ClinVar (NCBI)
+      - url: https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/gene_specific_summary.txt
+        label: Source TSV (gene_specific_summary.txt)
+        description: Refreshed weekly; preprocess.py downloads this at build time.
+    fieldLabels:
+      symbol: "HGNC gene symbol (resolved at preprocess time; raw value preserved in symbol_raw)"
+      total_submissions: "All ClinVar variant submissions associated with this gene, including duplicates from different submitters"
+      total_alleles: "Number of unique alleles reported for this gene"
+      submissions_reporting_this_gene: "Submissions that explicitly identify this gene as the affected locus"
+      alleles_reported_pathogenic_likely_pathogenic: "Unique alleles classified as Pathogenic or Likely Pathogenic"
+      number_uncertain: "Submissions with Variant of Uncertain Significance (VUS) classifications"
+      number_with_conflicts: "Submissions where independent submitters reported conflicting interpretations"
+    gene_mappings:
+      - column_name: Symbol
+        link_table_name: gene
+        species: human
+        perturbed_or_target: perturbed
+    changelog:
+      - date: "2026-05-07"
+        message: "Initial data load from ClinVar gene_specific_summary.txt."
