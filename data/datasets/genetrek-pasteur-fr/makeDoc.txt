@@ -1,0 +1,19 @@
+#!/bin/zsh
+# Provenance for the genetrek-pasteur-fr dataset.
+#
+# Source page:  https://genetrek.pasteur.fr/
+#               (Thomas Bourgeron, Institut Pasteur — Human Genetics &
+#                Cognitive Function lab. Aggregates ~30 published gene
+#                lists relevant to NDD/autism and adds the autism OR
+#                from Rolland et al. Nat Med 2023.)
+# File:         genetrek-data-2024-04-26.tsv (~19 MB, 61,669 genes)
+# Cadence:      irregular release; the snapshot date is in the filename.
+#
+# The TSV is downloaded **manually** from the GeneTrek site export — the
+# site is a Vue SPA with no clean curl-able URL, and the Genome Browser
+# track-hub form (jerikoo.free.fr/UCSC/genetrek_pasteur_*.bb) requires
+# bigBedToBed which is not available in our local toolchain. Until those
+# constraints change, refresh by clicking through the site and saving
+# the resulting TSV here under the same filename pattern.
+#
+# Issue: https://github.com/sspsygene-dracc/psypheno/issues/11
