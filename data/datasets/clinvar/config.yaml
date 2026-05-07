@@ -65,13 +65,13 @@ tables:
         label: Source TSV (gene_specific_summary.txt)
         description: Refreshed weekly; preprocess.py downloads this at build time.
     fieldLabels:
-      symbol: "HGNC gene symbol (resolved at preprocess time; raw value preserved in symbol_raw)"
-      total_submissions: "All ClinVar variant submissions associated with this gene, including duplicates from different submitters"
-      total_alleles: "Number of unique alleles reported for this gene"
-      submissions_reporting_this_gene: "Submissions that explicitly identify this gene as the affected locus"
-      alleles_reported_pathogenic_likely_pathogenic: "Unique alleles classified as Pathogenic or Likely Pathogenic"
-      number_uncertain: "Submissions with Variant of Uncertain Significance (VUS) classifications"
-      number_with_conflicts: "Submissions where independent submitters reported conflicting interpretations"
+      symbol: "HGNC gene symbol (resolved at preprocess time; raw ClinVar label preserved in symbol_raw — many ClinVar entries are non-HGNC labels like chromosome regions, fusion alleles, antisense RNA names, which are kept verbatim)"
+      total_submissions: "Count of all ClinVar variant submissions associated with this gene, including multiple submissions of the same allele by different submitters. Per-gene aggregate from the gene_specific_summary.txt snapshot."
+      total_alleles: "Count of unique alleles reported for this gene across all ClinVar submissions."
+      submissions_reporting_this_gene: "Count of submissions that explicitly identify this gene as the affected locus (subset of total_submissions, excluding submissions that name a different overlapping gene)."
+      alleles_reported_pathogenic_likely_pathogenic: "Count of unique alleles classified as Pathogenic or Likely Pathogenic by at least one submitter (subset of total_alleles)."
+      number_uncertain: "Count of submissions with a Variant of Uncertain Significance (VUS) classification."
+      number_with_conflicts: "Count of submissions where independent submitters reported conflicting clinical interpretations for the same allele."
     gene_mappings:
       - column_name: Symbol
         link_table_name: gene

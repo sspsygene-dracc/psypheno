@@ -58,17 +58,17 @@ tables:
     fdr_column: padj
     effect_column: estimate
     fieldLabels:
-      tf: "Transcription factor symbol (HGNC; original in tf_raw) — the upstream regulator in the inferred edge"
-      target: "Target gene symbol (HGNC; original in target_raw) — the gene whose expression is associated with the TF"
-      estimate: "Pando regression coefficient (signed effect of TF on target expression)"
-      npeaks: "Number of TF-binding chromatin peaks supporting this edge"
-      ngenes: "Number of genes regulated by this TF in the inferred network"
-      ntfs: "Number of TFs regulating this target in the inferred network"
-      peaks: "Comma-separated list of supporting chromatin peaks (chrN_start_end)"
-      pval: "P-value for the TF→target regression coefficient"
-      padj: "FDR-adjusted p-value (Benjamini-Hochberg)"
-      corr: "Pearson correlation between TF and target gene expression"
-      log_padj: "−log10(padj), pre-computed from the padj column"
+      tf: "Transcription factor — the upstream regulator in the inferred edge. HGNC symbol (resolved at preprocess time; original value in tf_raw)."
+      target: "Target gene — the gene whose expression is associated with the TF in the regression. HGNC symbol (resolved at preprocess time; original value in target_raw)."
+      estimate: "Pando GLM regression coefficient for the TF→target edge: positive = activating, negative = repressing (Fleck et al. 2023, Methods / Fig 2a). Magnitude reflects the change in target expression per unit TF activity, on the scale of log-transformed counts."
+      npeaks: "Number of TF-binding chromatin peaks (motif-matched, accessible CREs) supporting this edge in the snRNA-seq + scATAC-seq integration."
+      ngenes: "Number of distinct target genes this TF regulates in the inferred network — TF-level total, constant across all rows for the same TF."
+      ntfs: "Number of distinct TFs inferred to regulate this target gene — target-level total, constant across all rows for the same target."
+      peaks: "Comma-separated list of supporting chromatin peaks in chrN_start_end format (hg38 coordinates)."
+      pval: "P-value for the regression coefficient (TF→target edge significance) from the Pando GLM."
+      padj: "Benjamini-Hochberg FDR-adjusted p-value."
+      corr: "Pearson correlation coefficient between TF and target gene expression across single cells in the dataset (signed, range −1 to 1)."
+      log_padj: "−log10(padj), pre-computed from the padj column for convenience."
     gene_mappings:
       - column_name: tf
         link_table_name: tf
