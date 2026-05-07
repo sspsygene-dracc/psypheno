@@ -1,0 +1,129 @@
+publication:
+  authors:
+    - Gandal, Michael J.
+    - Zhang, Pan
+    - Hadjimichael, Evi
+    - Walker, Rebecca L.
+    - Chen, Chao
+    - Liu, Shuang
+    - Won, Hyejung
+    - van Bakel, Harm
+    - Varghese, Merina
+    - Wang, Yongjun
+    - Shieh, Annie W.
+    - Haney, Jillian
+    - Parhami, Sepideh
+    - Belmont, Judson
+    - Kim, Mette
+    - Moran Losada, Patricia
+    - Khan, Zenab
+    - Mleczko, Justyna
+    - Xia, Yan
+    - Dai, Rujia
+    - Wang, Daifeng
+    - Yang, Yucheng T.
+    - Xu, Min
+    - Fish, Kenneth
+    - Hof, Patrick R.
+    - Warrell, Jonathan
+    - Fitzgerald, Dominic
+    - White, Kevin
+    - Jaffe, Andrew E.
+    - Peters, Mette A.
+    - Gerstein, Mark
+    - Liu, Chunyu
+    - Iakoucheva, Lilia M.
+    - Pinto, Dalila
+    - Geschwind, Daniel H.
+  year: 2018
+  journal: "Science"
+  doi: "10.1126/science.aat8127"
+  pmid: "30545856"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-07"
+    comment: "Initial table creation (issue #56). Source xlsx bundle manually downloaded from Science. Bulk-cortex DGE only — DTE/DTU/TWAS/WGCNA companion sheets skipped per makeDoc.txt."
+
+tables:
+  - table: gandal_2018_bulk_de
+    shortLabel: gandal_2018_bulk_de
+    mediumLabel: "Gandal 2018 - Bulk-Cortex DEGs in ASD, Schizophrenia, and Bipolar Disorder"
+    longLabel: "Per-gene differential gene expression statistics in postmortem cortex bulk RNA-seq for ASD, schizophrenia, and bipolar disorder vs. controls (Gandal et al. Science 2018)"
+    description: >
+      limma-voom differential gene expression summary statistics from
+      PsychENCODE postmortem cortex bulk RNA-seq across three
+      neuropsychiatric disorders (ASD, schizophrenia, bipolar
+      disorder) vs. controls (Gandal et al. Science 2018, Suppl.
+      Table S1 sheet "DGE"). 25,775 genes, with log2FC, standard
+      error, degrees of freedom, t-statistic, p-value, and
+      FDR-corrected q-value reported per disorder. Companion
+      isoform-level sheets (DTE / DTU) are intentionally not ingested
+      — SSPsyGene's data tables are gene-keyed; the Science paper's
+      isoform results may warrant a separate companion table later.
+    source: "Gandal et al. 2018 Science, Supplementary Table S1 sheet 'DGE'"
+    in_path: gandal_2018_bulk_de.tsv
+    separator: "\t"
+    organism: "Homo sapiens (postmortem cortex bulk RNA-seq, PsychENCODE)"
+    organism_key: human
+    assay: expression
+    disease:
+      - asd
+      - scz
+      - bipolar
+      - ndd
+    categories:
+      - bulk RNA-seq
+      - postmortem cortex
+      - PsychENCODE
+      - cross-disorder DE
+    links:
+      - url: https://www.science.org/doi/10.1126/science.aat8127
+        label: Gandal 2018 — Science article
+      - url: https://www.science.org/doi/suppl/10.1126/science.aat8127
+        label: Science supplementary materials
+    pvalue_column: [asd_p_value, scz_p_value, bd_p_value]
+    fdr_column: [asd_fdr, scz_fdr, bd_fdr]
+    effect_column: asd_log2fc
+    fieldLabels:
+      ensembl_gene_id: "Ensembl gene ID (Gencode v19) — preserved alongside the HGNC symbol."
+      chr: "Chromosome (Gencode v19)."
+      start: "Gene start coordinate (Gencode v19, hg19)."
+      stop: "Gene stop coordinate (Gencode v19, hg19)."
+      strand: "Strand (+/−)."
+      gene_type: "Gencode v19 biotype (e.g. protein_coding, lincRNA, pseudogene)."
+      gene_status: "Gencode v19 status (KNOWN / NOVEL / PUTATIVE)."
+      gene_symbol: "HGNC gene symbol (resolved at preprocess time; raw value preserved in gene_symbol_raw)."
+      level: "Gencode v19 evidence level (1 = manually verified, 2 = manually annotated, 3 = automatically annotated)."
+      transcript_length: "Average effective transcript length across the gene's transcripts."
+      transcript_count: "Number of distinct transcripts annotated for the gene."
+      percentage_gene_gc_content: "Gene-level GC content (%) from Gencode v19."
+      gene_length: "Gene length in base pairs (Gencode v19)."
+      asd_log2fc: "log2 fold-change for ASD vs. controls in postmortem cortex bulk RNA-seq (limma-voom)."
+      asd_std_error: "Standard error of the ASD log2FC estimate."
+      asd_df: "Degrees of freedom for the ASD t-test."
+      asd_t_value: "T-statistic for ASD vs. controls."
+      asd_p_value: "Nominal p-value for ASD vs. controls."
+      asd_fdr: "FDR-corrected q-value (Benjamini–Hochberg) for the ASD comparison."
+      scz_log2fc: "log2 fold-change for schizophrenia vs. controls in postmortem cortex bulk RNA-seq (limma-voom)."
+      scz_std_error: "Standard error of the SCZ log2FC estimate."
+      scz_df: "Degrees of freedom for the SCZ t-test."
+      scz_t_value: "T-statistic for schizophrenia vs. controls."
+      scz_p_value: "Nominal p-value for schizophrenia vs. controls."
+      scz_fdr: "FDR-corrected q-value (Benjamini–Hochberg) for the SCZ comparison."
+      bd_log2fc: "log2 fold-change for bipolar disorder vs. controls in postmortem cortex bulk RNA-seq (limma-voom)."
+      bd_std_error: "Standard error of the BD log2FC estimate."
+      bd_df: "Degrees of freedom for the BD t-test."
+      bd_t_value: "T-statistic for bipolar disorder vs. controls."
+      bd_p_value: "Nominal p-value for bipolar disorder vs. controls."
+      bd_fdr: "FDR-corrected q-value (Benjamini–Hochberg) for the BD comparison."
+    gene_mappings:
+      - column_name: gene_symbol
+        link_table_name: gene
+        species: human
+        perturbed_or_target: target
+    changelog:
+      - date: "2026-05-07"
+        message: "Initial data load from Science Suppl. Table S1 sheet 'DGE'."

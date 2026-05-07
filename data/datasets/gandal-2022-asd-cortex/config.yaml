@@ -1,0 +1,205 @@
+publication:
+  authors:
+    - Gandal, Michael J.
+    - Haney, Jillian R.
+    - Wamsley, Brie
+    - Yap, Chloe X.
+    - Parhami, Sepideh
+    - Emani, Prashant S.
+    - Chang, Nathan
+    - Chen, George T.
+    - Hoftman, Gil D.
+    - de Alba, Diego
+    - Ramaswami, Gokul
+    - Hartl, Christopher L.
+    - Bhattacharya, Arjun
+    - Luo, Cindy
+    - Jin, Ting
+    - Wang, Daifeng
+    - Kawaguchi, Riki
+    - Quintero, Daniela
+    - Ou, Jing
+    - Lin, Ye E.
+    - Mao, Yuan
+    - Khan, Zenab
+    - Pan, Pan
+    - Ross, Jonathan M.
+    - Ravits, John
+    - Zaitlen, Noah
+    - Chien, Ting
+    - Gerstein, Mark B.
+    - Park, Yongseong
+    - White, Kevin P.
+    - Pasaniuc, Bogdan
+    - Sokol, Daniel S.
+    - Pinto, Dalila
+    - Iakoucheva, Lilia M.
+    - Bhaduri, Aparna
+    - Geschwind, Daniel H.
+  year: 2022
+  journal: "Nature"
+  doi: "10.1038/s41586-022-05377-7"
+  pmid: "36323788"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-07"
+    comment: "Initial table creation (issue #56). Source xlsx bundle manually downloaded from Nature. Bulk per-region DE + single-cell ASD-vs-CTL DE ingested; isoform-level / WGCNA / ARI / methylation companion sheets skipped (see makeDoc.txt)."
+
+tables:
+  - table: gandal_2022_bulk_de_per_region
+    shortLabel: gandal_2022_bulk_de_per_region
+    mediumLabel: "Gandal 2022 - Bulk-Cortex Per-Region DEGs in ASD and dup15q"
+    longLabel: "Per-gene differential expression across whole cortex and 11 Brodmann areas in postmortem cortex bulk RNA-seq, ASD and dup15q vs. controls (Gandal et al. Nature 2022)"
+    description: >
+      Per-gene limma DE summary statistics from postmortem cortex
+      bulk RNA-seq across 11 Brodmann areas plus a whole-cortex
+      meta-analysis, comparing ASD and the dup15q ASD subtype to
+      controls (Gandal et al. Nature 2022, Suppl. Data 3 sheet
+      "DEGene_Statistics"). 24,837 genes × 63 columns: log2FC + FDR
+      for whole-cortex ASD, whole-cortex dup15q, sex (female), age,
+      age-squared, and per-Brodmann-area ASD and dup15q. Companion
+      isoform sheet (DEIsoform_Statistics) and WGCNA module / ARI /
+      methylation supplementary sheets are not ingested — see
+      makeDoc.txt.
+    source: "Gandal et al. 2022 Nature, Suppl. Data 3 (MOESM5) sheet 'DEGene_Statistics'"
+    in_path: gandal_2022_bulk_de_per_region.tsv
+    separator: "\t"
+    organism: "Homo sapiens (postmortem cortex bulk RNA-seq, 11 Brodmann areas)"
+    organism_key: human
+    assay: expression
+    disease:
+      - asd
+      - ndd
+    categories:
+      - bulk RNA-seq
+      - postmortem cortex
+      - per-Brodmann-area DE
+      - dup15q ASD subtype
+    links:
+      - url: https://www.nature.com/articles/s41586-022-05377-7
+        label: Gandal 2022 — Nature article
+    pvalue_column: WholeCortex_ASD_FDR
+    fdr_column: WholeCortex_ASD_FDR
+    effect_column: WholeCortex_ASD_logFC
+    fieldLabels:
+      ensembl_gene_id: "Ensembl gene ID."
+      gene_symbol: "HGNC gene symbol (renamed from external_gene_name; raw value preserved in gene_symbol_raw)."
+      gene_biotype: "Ensembl gene biotype (protein_coding, lincRNA, pseudogene, …)."
+      chromosome_name: "Chromosome (Ensembl)."
+      strand: "Strand (+1 / −1)."
+      band: "Cytogenetic band."
+      start_position: "Gene start coordinate."
+      end_position: "Gene end coordinate."
+      description: "HGNC long-form gene description (e.g. 'tetraspanin 6 [Source:HGNC Symbol;Acc:11858]')."
+      wholecortex_asd_logfc: "log2 fold-change for ASD vs. controls in the whole-cortex meta-analysis (across all 11 Brodmann areas)."
+      wholecortex_asd_fdr: "FDR-corrected p-value for the whole-cortex ASD comparison."
+      wholecortex_dup15q_logfc: "log2 fold-change for the dup15q ASD subtype vs. controls in the whole-cortex meta-analysis."
+      wholecortex_dup15q_fdr: "FDR-corrected p-value for the whole-cortex dup15q comparison."
+      sexf_logfc: "log2 fold-change associated with female sex (covariate effect; controls + ASD pooled)."
+      sexf_fdr: "FDR-corrected p-value for the sex covariate."
+      age_logfc: "log2 fold-change associated with age (linear covariate)."
+      age_fdr: "FDR-corrected p-value for the age covariate."
+      age_sqd_logfc: "log2 fold-change associated with age-squared (non-linear age covariate)."
+      age_sqd_fdr: "FDR-corrected p-value for the age-squared covariate."
+      asd_ba9_logfc: "log2 fold-change for ASD vs. controls in Brodmann area 9 (dorsolateral prefrontal cortex)."
+      asd_ba9_fdr: "FDR-corrected p-value for ASD in BA9."
+      asd_ba44_45_logfc: "log2 fold-change for ASD vs. controls in BA44/45 (Broca's area, inferior frontal gyrus)."
+      asd_ba44_45_fdr: "FDR-corrected p-value for ASD in BA44/45."
+      asd_ba24_logfc: "log2 fold-change for ASD vs. controls in BA24 (anterior cingulate cortex)."
+      asd_ba24_fdr: "FDR-corrected p-value for ASD in BA24."
+      asd_ba4_6_logfc: "log2 fold-change for ASD vs. controls in BA4/6 (primary motor + premotor cortex)."
+      asd_ba4_6_fdr: "FDR-corrected p-value for ASD in BA4/6."
+      asd_ba38_logfc: "log2 fold-change for ASD vs. controls in BA38 (temporal pole)."
+      asd_ba38_fdr: "FDR-corrected p-value for ASD in BA38."
+      asd_ba20_37_logfc: "log2 fold-change for ASD vs. controls in BA20/37 (inferior + fusiform temporal cortex)."
+      asd_ba20_37_fdr: "FDR-corrected p-value for ASD in BA20/37."
+      asd_ba41_42_22_logfc: "log2 fold-change for ASD vs. controls in BA41/42/22 (superior temporal / auditory cortex)."
+      asd_ba41_42_22_fdr: "FDR-corrected p-value for ASD in BA41/42/22."
+      asd_ba3_1_2_5_logfc: "log2 fold-change for ASD vs. controls in BA3/1/2/5 (primary somatosensory cortex)."
+      asd_ba3_1_2_5_fdr: "FDR-corrected p-value for ASD in BA3/1/2/5."
+      asd_ba7_logfc: "log2 fold-change for ASD vs. controls in BA7 (superior parietal lobule)."
+      asd_ba7_fdr: "FDR-corrected p-value for ASD in BA7."
+      asd_ba39_40_logfc: "log2 fold-change for ASD vs. controls in BA39/40 (angular + supramarginal gyri)."
+      asd_ba39_40_fdr: "FDR-corrected p-value for ASD in BA39/40."
+      asd_ba17_logfc: "log2 fold-change for ASD vs. controls in BA17 (primary visual cortex)."
+      asd_ba17_fdr: "FDR-corrected p-value for ASD in BA17."
+      dup15q_ba9_logfc: "log2 fold-change for dup15q vs. controls in BA9."
+      dup15q_ba9_fdr: "FDR-corrected p-value for dup15q in BA9."
+      dup15q_ba44_45_logfc: "log2 fold-change for dup15q vs. controls in BA44/45."
+      dup15q_ba44_45_fdr: "FDR-corrected p-value for dup15q in BA44/45."
+      dup15q_ba24_logfc: "log2 fold-change for dup15q vs. controls in BA24."
+      dup15q_ba24_fdr: "FDR-corrected p-value for dup15q in BA24."
+      dup15q_ba4_6_logfc: "log2 fold-change for dup15q vs. controls in BA4/6."
+      dup15q_ba4_6_fdr: "FDR-corrected p-value for dup15q in BA4/6."
+      dup15q_ba38_logfc: "log2 fold-change for dup15q vs. controls in BA38."
+      dup15q_ba38_fdr: "FDR-corrected p-value for dup15q in BA38."
+      dup15q_ba20_37_logfc: "log2 fold-change for dup15q vs. controls in BA20/37."
+      dup15q_ba20_37_fdr: "FDR-corrected p-value for dup15q in BA20/37."
+      dup15q_ba41_42_22_logfc: "log2 fold-change for dup15q vs. controls in BA41/42/22."
+      dup15q_ba41_42_22_fdr: "FDR-corrected p-value for dup15q in BA41/42/22."
+      dup15q_ba3_1_2_5_logfc: "log2 fold-change for dup15q vs. controls in BA3/1/2/5."
+      dup15q_ba3_1_2_5_fdr: "FDR-corrected p-value for dup15q in BA3/1/2/5."
+      dup15q_ba7_logfc: "log2 fold-change for dup15q vs. controls in BA7."
+      dup15q_ba7_fdr: "FDR-corrected p-value for dup15q in BA7."
+      dup15q_ba39_40_logfc: "log2 fold-change for dup15q vs. controls in BA39/40."
+      dup15q_ba39_40_fdr: "FDR-corrected p-value for dup15q in BA39/40."
+      dup15q_ba17_logfc: "log2 fold-change for dup15q vs. controls in BA17."
+      dup15q_ba17_fdr: "FDR-corrected p-value for dup15q in BA17."
+    gene_mappings:
+      - column_name: gene_symbol
+        link_table_name: gene
+        species: human
+        perturbed_or_target: target
+    changelog:
+      - date: "2026-05-07"
+        message: "Initial data load from Nature Suppl. Data 3 (MOESM5) sheet 'DEGene_Statistics'."
+
+  - table: gandal_2022_singlecell_de
+    shortLabel: gandal_2022_singlecell_de
+    mediumLabel: "Gandal 2022 - Single-Nucleus DEGs in ASD vs Control across Cortical Cell Types and Regions"
+    longLabel: "Per-(cell-type, region, gene) ASD-vs-CTL differential expression from postmortem snRNA-seq via Nebula mixed model (Gandal et al. Nature 2022)"
+    description: >
+      Per-(cell-type × region × gene) ASD-vs-CTL differential
+      expression summary statistics from the postmortem cortex
+      single-nucleus RNA-seq analysis using the Nebula mixed-model
+      framework (Gandal et al. Nature 2022, Suppl. Data 8 sheet
+      "DEA_ASDvCTL_sumstats"). Long format: 86,669 rows spanning
+      27 cell types × 11 brain regions × significant DE genes.
+    source: "Gandal et al. 2022 Nature, Suppl. Data 8 (MOESM10) sheet 'DEA_ASDvCTL_sumstats'"
+    in_path: gandal_2022_singlecell_de.tsv
+    separator: "\t"
+    organism: "Homo sapiens (postmortem cortex snRNA-seq, 27 cell types × 11 regions)"
+    organism_key: human
+    assay: expression
+    disease:
+      - asd
+      - ndd
+    categories:
+      - snRNA-seq
+      - postmortem cortex
+      - cell-type-specific DE
+      - per-Brodmann-area
+    links:
+      - url: https://www.nature.com/articles/s41586-022-05377-7
+        label: Gandal 2022 — Nature article
+    pvalue_column: pvalue
+    fdr_column: fdr
+    effect_column: log2fc
+    fieldLabels:
+      cell_type: "snRNA-seq cell-type cluster (e.g. OPCS1, ASTRO1, EXC_*, INH_*)."
+      region: "Cortical region the sample came from (one of 11 areas, e.g. Occipital, Frontal, Temporal)."
+      gene: "Differentially expressed gene — HGNC symbol (resolved at preprocess time; raw value preserved in gene_raw)."
+      pvalue: "Nominal p-value for the ASD-vs-CTL contrast in this (cell type, region) from the Nebula mixed-model fit."
+      log2fc: "log2 fold-change for ASD vs. controls in this (cell type, region)."
+      fdr: "FDR-corrected p-value (within-(cell, region) multiple-testing correction)."
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        perturbed_or_target: target
+    changelog:
+      - date: "2026-05-07"
+        message: "Initial data load from Nature Suppl. Data 8 (MOESM10) sheet 'DEA_ASDvCTL_sumstats'."

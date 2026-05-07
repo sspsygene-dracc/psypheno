@@ -1,0 +1,55 @@
+#!/bin/zsh
+# Provenance for the gandal-2022-asd-cortex dataset.
+#
+# Paper:    Gandal et al., "Broad transcriptomic dysregulation occurs
+#           across the cerebral cortex in ASD", Nature 2022,
+#           PMID 36323788, DOI 10.1038/s41586-022-05377-7.
+#           First author: Michael J. Gandal. Senior author:
+#           Daniel H. Geschwind (UCLA).
+# Files:    41586_2022_5377_MOESM3_ESM.xlsx through MOESM10_ESM.xlsx —
+#           Supplementary Data 1-8 from the Nature article page,
+#           downloaded manually.
+# Cadence:  Fixed publication-supplement; updates only on a Nature
+#           erratum.
+#
+# Sheets ingested (currently 2 tables):
+#
+#   - MOESM5 (Suppl Data 3) sheet "DEGene_Statistics" →
+#       gandal_2022_bulk_de_per_region
+#     24,837 genes × 63 columns of bulk-cortex limma DE statistics
+#     for ASD and the dup15q ASD subtype, with whole-cortex
+#     averages plus per-Brodmann-area breakdowns (BA9, BA44/45,
+#     BA24, BA4/6, BA38, BA20/37, BA41/42/22, BA3/1/2/5, BA7,
+#     BA39/40, BA17), plus Sex / Age / Age² covariate effects.
+#
+#   - MOESM10 (Suppl Data 8) sheet "DEA_ASDvCTL_sumstats" →
+#       gandal_2022_singlecell_de
+#     86,670 (cell-type × region × gene) rows of single-nucleus
+#     RNA-seq ASD-vs-CTL DE summary statistics from the Nebula
+#     mixed-model analysis.
+#
+# Sheets intentionally NOT ingested (rationale also in the issue
+# comment on #56):
+#
+#   - MOESM3 datMeta_datSeq / R²_exprPCs_Covariates — sample-level
+#     metadata + covariate variance-explained tables, not gene-level.
+#   - MOESM4 — pre-computed regional / dup15q / Perturb-Seq overlap
+#     summaries; not per-gene primary data.
+#   - MOESM5 "DEIsoform_Statistics" — per-isoform DE; SSPsyGene's
+#     data tables are gene-keyed. Worth a follow-up companion table.
+#   - MOESM6 — Anatomical Regional Index (ARI) statistics &
+#     bootstraps, not the primary DE signal.
+#   - MOESM7 Gene_Level — per-gene WGCNA module assignments + kME
+#     correlations across 35 modules. Worth a follow-up.
+#   - MOESM7 Isoform_Level — per-isoform module assignments.
+#   - MOESM8 — module-level GO ontology + Perturb-Seq overlap, not
+#     per-gene primary data.
+#   - MOESM9 — neuronal composition + macaque/von-Economo mapping +
+#     methyl CTD analyses, not per-gene DE.
+#   - MOESM10 sub-sheets other than DEA_ASDvCTL_sumstats — snRNA-seq
+#     per-sample metadata, cluster_markers, UMAP annotations,
+#     pseudobulk expression matrices, etc. cluster_markers is
+#     gene-keyed and could be a follow-up companion table similar
+#     to Wamsley S1C.
+#
+# Issue: https://github.com/sspsygene-dracc/psypheno/issues/56

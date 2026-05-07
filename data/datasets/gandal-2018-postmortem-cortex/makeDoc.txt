@@ -1,0 +1,51 @@
+#!/bin/zsh
+# Provenance for the gandal-2018-postmortem-cortex dataset.
+#
+# Paper:    Gandal et al., "Transcriptome-wide isoform-level
+#           dysregulation in ASD, schizophrenia, and bipolar
+#           disorder", Science 2018, PMID 30545856,
+#           DOI 10.1126/science.aat8127.
+#           First author: Michael J. Gandal. Senior author:
+#           Daniel H. Geschwind (UCLA).
+# Files:    aat8127_table_s1.xlsx through aat8127_table_s9.xlsx —
+#           Supplementary Tables 1-9 from the Science article page,
+#           downloaded manually.
+# Cadence:  Fixed publication-supplement; updates only on a Science
+#           erratum.
+#
+# Sheet ingested (currently 1 table):
+#
+#   - Table S1 sheet "DGE" → gandal_2018_bulk_de
+#     Per-gene differential gene expression (limma) summary
+#     statistics for ASD, SCZ, and BPD vs controls in postmortem
+#     cortex. 25,775 genes × {log2FC, Std.Error, DF, t.value,
+#     p.value, fdr} per disorder.
+#
+# Sheets intentionally NOT ingested (rationale also in the issue
+# comment on #56):
+#
+#   - Table S1 "DTE" / "DTU" — per-isoform DE / differential
+#     transcript usage. SSPsyGene's data tables are gene-keyed.
+#     Could be added later as a per-isoform companion if there's
+#     demand, but the gene-level summary is the primary view.
+#   - Table S1 "isoformOnlyDE" — same reasoning (isoform-level).
+#   - Table S1 "CellTypeEnrichment" / "RiskGeneEnrichment" / "sLDSR"
+#     / "CrossDisorderOverlap" — analysis-result tables, not
+#     per-gene primary data.
+#   - Table S2 "NPncRNAs" — neuropsychiatric ncRNAs subset; small
+#     niche of the gene-level data already in S1.
+#   - Table S3 — per-intron-cluster splicing (per-intron, not
+#     per-gene).
+#   - Table S4 "*.TWAS" / "*.SMR" / "PRSGeneAssociation" — TWAS /
+#     Mendelian-randomization / polygenic-risk per-gene results;
+#     ~14k genes × ~30 cols × 3 disorders. Worth a follow-up
+#     companion table: it would expose "is this gene a TWAS hit
+#     for ASD/SCZ/BPD". Skipping for now to keep the initial scope
+#     to bulk DE only.
+#   - Table S5 "geneModules" / "isoformModules" / etc. — per-gene
+#     WGCNA module assignments. Worth a follow-up.
+#   - Table S6 "lncRNA-target" / "kMEtable" — per-gene module
+#     eigengene correlations + lncRNA target predictions.
+#   - Table S7-S9 — small qualitative analyses + validation.
+#
+# Issue: https://github.com/sspsygene-dracc/psypheno/issues/56

@@ -1,0 +1,56 @@
+generated: '2026-05-07T15:00:48Z'
+output: gandal_2022_singlecell_de.tsv
+inputs: []
+actions:
+- step: from_dataframe
+  source: MOESM10_DEA_ASDvCTL_sumstats
+  rows: 86668
+  columns:
+  - cell
+  - region
+  - gene
+  - P-value
+  - logFC
+  - FDR-corrected P
+- step: rename
+  mapping:
+    cell: cell_type
+    P-value: pvalue
+    logFC: log2fc
+    FDR-corrected P: fdr
+- step: clean_gene_column
+  column: gene
+  species: human
+  flags:
+    resolve_via_ensembl_map: false
+  counts:
+    passed_through: 78085
+    non_symbol_contig: 8017
+    rescued_gencode_clone_current_ensg: 331
+    unresolved: 206
+    rescued_gencode_clone_hgnc_symbol: 29
+  dropped_rows: 0
+  sample_unresolved:
+  - '2022-03-04 00:00:00'
+  - TMEM155
+  - '2022-03-03 00:00:00'
+  - '2022-03-03 00:00:00'
+  - '2022-03-06 00:00:00'
+  - TMSB15B-ENSG00000269226
+  - DUSP27
+  - '2022-03-11 00:00:00'
+  - '2022-03-04 00:00:00'
+  - CRIPAK
+- step: write_csv
+  destination: gandal_2022_singlecell_de.tsv
+  separator: "\t"
+  rows: 86668
+  columns:
+  - cell_type
+  - region
+  - gene
+  - pvalue
+  - log2fc
+  - fdr
+  - gene_raw
+  - _gene_resolution
