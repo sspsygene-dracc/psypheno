@@ -225,9 +225,9 @@ export default function MethodsPage() {
               <p style={{ marginTop: 8, marginBottom: 0, fontStyle: "italic", color: "#4b5563" }}>
                 Note: this step uses the <strong>nominal (unadjusted)</strong>{" "}
                 p-value column declared by each dataset, not the per-dataset
-                FDR / <span style={codeStyle}>padj</span> column. That is why
-                combined values can be far smaller than any single
-                study&apos;s adjusted p-value.
+                FDR / <span style={codeStyle}>padj</span>{" "}
+                column. That is why combined values can be far smaller than
+                any single study&apos;s adjusted p-value.
               </p>
             </li>
             <li>
@@ -290,9 +290,9 @@ export default function MethodsPage() {
             within-table multiplicity.
           </p>
           <p>
-            <strong>Who uses it:</strong> Fisher&apos;s method. The CCT and
-            HMP, being robust to correlation, operate on the full set of raw
-            p-values directly.
+            <strong>Who uses it:</strong>{" "}
+            Fisher&apos;s method. The CCT and HMP, being robust to
+            correlation, operate on the full set of raw p-values directly.
           </p>
         </section>
 
@@ -367,10 +367,11 @@ export default function MethodsPage() {
             </li>
           </ol>
           <p>
-            <strong>Independence assumption:</strong> Step 4 requires the
-            p-values to be independent. When p-values are positively correlated,
-            Fisher&apos;s method tends to be anti-conservative. This is why we
-            use the pre-collapse step to reduce inputs to one per table.
+            <strong>Independence assumption:</strong>{" "}
+            Step 4 requires the p-values to be independent. When p-values are
+            positively correlated, Fisher&apos;s method tends to be
+            anti-conservative. This is why we use the pre-collapse step to
+            reduce inputs to one per table.
           </p>
           <p>
             Computed using <span style={codeStyle}>poolr::fisher()</span>.
@@ -449,8 +450,9 @@ export default function MethodsPage() {
             With our weights summing to 1, <V>T</V> ~ Cauchy(0,1) under
             independence. More importantly,{" "}
             <strong>even under dependency</strong>, Liu &amp; Xie proved
-            (Theorem 1) that the tail behavior of <V>T</V> is well-approximated
-            by Cauchy(0,1). Formally, the theorem requires that the underlying
+            (Theorem 1) that the tail behavior of <V>T</V>{" "}
+            is well-approximated by Cauchy(0,1). Formally, the theorem
+            requires that the underlying
             test statistics follow bivariate normal distributions for each pair
             (Condition C.1), but permits arbitrary correlation matrices.
             Simulations show the approximation is robust well beyond this
@@ -628,14 +630,16 @@ export default function MethodsPage() {
           </p>
           <p>
             A practical question is whether the censoring also moves
-            the top-of-list gene <em>rankings</em> shown in the UI. We
-            cannot test this directly, as the rows the original
+            the top-of-list gene <em>rankings</em>{" "}
+            shown in the UI. We cannot test this directly, as the rows the
+            original
             authors filtered out aren&apos;t available to us. Instead we
             test the converse: take the input tables that are{" "}
             <em>not</em> censored, artificially impose a uniform DEG-only
             filter (<V>p</V>&nbsp;&le;&nbsp;<V>T</V>) on each, and measure
-            top-<V>K</V> Jaccard overlap and Spearman&apos;s &rho; against
-            the unfiltered baseline. If imposing this kind of censoring on
+            top-<V>K</V>{" "}
+            Jaccard overlap and Spearman&apos;s &rho; against the unfiltered
+            baseline. If imposing this kind of censoring on
             otherwise-clean tables does not move the top rankings,
             that is evidence the censoring already present in some of
             the production tables does not move them either. All three
@@ -711,11 +715,12 @@ export default function MethodsPage() {
           </p>
           <p>
             Stouffer&apos;s method, which earlier versions of this page also
-            exposed, did <em>not</em> share this stability (top-50 Jaccard
-            0.74&ndash;0.78 in the same audit, with &rho; falling to ~0.56)
-            &mdash; qnorm gives moderate-<V>p</V> rows real weight, so the
-            censored bulk drives Stouffer&apos;s rankings. Stouffer is
-            therefore no longer offered.
+            exposed, did <em>not</em>{" "}
+            share this stability (top-50 Jaccard 0.74&ndash;0.78 in the same
+            audit, with &rho; falling to ~0.56) &mdash; qnorm gives
+            moderate-<V>p</V>{" "}
+            rows real weight, so the censored bulk drives Stouffer&apos;s
+            rankings. Stouffer is therefore no longer offered.
           </p>
           <p>
             <strong>Bottom line:</strong> read combined-<V>p</V> as a
@@ -797,11 +802,11 @@ export default function MethodsPage() {
             </table>
           </div>
           <p>
-            <strong>HMP</strong> is the default. It&apos;s easy to explain
-            (a harmonic mean of p-values, with a Landau-distribution
-            calibration step), uses all raw p-values directly, and is
-            empirically the most rank-stable of the three methods on this
-            dataset.
+            <strong>HMP</strong>{" "}
+            is the default. It&apos;s easy to explain (a harmonic mean of
+            p-values, with a Landau-distribution calibration step), uses all
+            raw p-values directly, and is empirically the most rank-stable of
+            the three methods on this dataset.
           </p>
           <p>
             <strong>CCT</strong> uses the same raw-p-value input set as HMP

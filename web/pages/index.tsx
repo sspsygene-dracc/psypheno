@@ -461,12 +461,12 @@ export default function Home() {
               <p style={{ marginTop: 12, marginBottom: 0 }}>
                 Search for a gene as <strong>perturbed</strong> (the gene that
                 was experimentally manipulated — CRISPRi/CRISPRa, RNAi,
-                knockout, mutant line) or as <strong>target</strong> (the
+                knockout, mutant line) or as <strong>target</strong>&nbsp;(the
                 readout whose expression or activity was measured), or fill in
                 both fields to find consortium data on a specific
                 perturbation→readout pair — e.g. &ldquo;what happens to{" "}
-                <em>CNR1</em> when <em>FOXG1</em> is knocked down?&rdquo;. Use
-                the{" "}
+                <em>CNR1</em> when <em>FOXG1</em>{" "}
+                is knocked down?&rdquo;. Use the{" "}
                 <a
                   href="/most-significant"
                   style={{ color: "#2563eb", textDecoration: "none" }}
@@ -502,8 +502,9 @@ export default function Home() {
                 >
                   cross-study significance ranking
                 </a>
-                , by contrast, combines <strong>unadjusted</strong> per-study
-                p-values, so its combined values can be far smaller than any
+                , by contrast, combines <strong>unadjusted</strong>{" "}
+                per-study p-values, so its combined values can be far smaller
+                than any
                 single study&apos;s adjusted p-value (see{" "}
                 <a
                   href="/methods"

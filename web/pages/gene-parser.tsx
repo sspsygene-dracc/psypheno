@@ -164,8 +164,9 @@ export default function GeneParserPage() {
           <ul>
             <li>
               <strong>Excel date coercion.</strong> A symbol like{" "}
-              <code style={codeStyle}>SEPT9</code> opens in Excel as the date
-              &ldquo;September 9&rdquo; and gets re-saved as{" "}
+              <code style={codeStyle}>SEPT9</code>{" "}
+              opens in Excel as the date &ldquo;September 9&rdquo; and gets
+              re-saved as{" "}
               <code style={codeStyle}>9-Sep</code> or{" "}
               <code style={codeStyle}>2023-09-09</code>. Affects roughly
               one in five published gene-list papers despite HGNC&apos;s
@@ -188,8 +189,8 @@ export default function GeneParserPage() {
             <li>
               <strong>Mixed Ensembl IDs.</strong> Some tables interleave
               symbols with raw <code style={codeStyle}>ENSG…</code>/{" "}
-              <code style={codeStyle}>ENSMUSG…</code> identifiers, sometimes
-              with version suffixes
+              <code style={codeStyle}>ENSMUSG…</code>{" "}
+              identifiers, sometimes with version suffixes
               (<code style={codeStyle}>ENSG00000012048.18</code>) and sometimes
               without.
             </li>
@@ -322,15 +323,16 @@ export default function GeneParserPage() {
           </h3>
           <p>
             Resolves bare <code style={codeStyle}>ENSG…</code> /{" "}
-            <code style={codeStyle}>ENSMUSG…</code> identifiers to their
-            current symbol via HGNC&apos;s <code style={codeStyle}>
+            <code style={codeStyle}>ENSMUSG…</code>{" "}
+            identifiers to their current symbol via HGNC&apos;s <code style={codeStyle}>
               hgnc_complete_set.txt
             </code>{" "}
             (human) and Alliance{" "}
             <code style={codeStyle}>HGNC_AllianceHomology.rpt</code> (mouse).
             Versioned IDs like{" "}
-            <code style={codeStyle}>ENSG00000012048.18</code> are handled by
-            stripping the version suffix before lookup. If an Ensembl ID has
+            <code style={codeStyle}>ENSG00000012048.18</code>{" "}
+            are handled by stripping the version suffix before lookup. If an
+            Ensembl ID has
             no symbol mapping, it falls through to the silencer below
             (it&apos;s kept as a stable identifier, just not promoted to a
             gene symbol).
@@ -521,9 +523,10 @@ NOTAGENE     NOTAGENE          unresolved`}</code>
           </div>
           <div style={noteStyle}>
             <strong>Tip:</strong> if you suspect a rescue has gone wrong,{" "}
-            <code style={codeStyle}>_raw</code> is your audit trail —
-            it preserves exactly what the wrangler&apos;s preprocessing
-            script saw before any of these rules fired.
+            <code style={codeStyle}>_raw</code>{" "}
+            is your audit trail — it preserves exactly what the
+            wrangler&apos;s preprocessing script saw before any of these
+            rules fired.
           </div>
         </section>
 
@@ -614,10 +617,10 @@ NOTAGENE     NOTAGENE          unresolved`}</code>
         >
           <h2 style={h2Style}>What still slips through</h2>
           <p>
-            Rows tagged <code style={codeStyle}>unresolved</code> are rare
-            but not zero — the most recent full rebuild left ~75 across the
-            entire database. They&apos;re kept in the table as raw text;
-            the parser doesn&apos;t guess.
+            Rows tagged <code style={codeStyle}>unresolved</code>{" "}
+            are rare but not zero — the most recent full rebuild left ~75
+            across the entire database. They&apos;re kept in the table as
+            raw text; the parser doesn&apos;t guess.
           </p>
           <p>
             If you want to look at them, every dataset&apos;s <em>
