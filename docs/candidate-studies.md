@@ -1,32 +1,10 @@
 # Candidate studies for psypheno ingestion
 
-*Compiled 2026-05-07 for review by SSPsyGene PIs and the wrangler team.*
-
-This memo lists high-impact, peer-reviewed studies (2017+) that produce
-**per-gene** readouts in neuropsychiatric or neurodevelopmental contexts
-and that are not yet on https://psypheno.gi.ucsc.edu nor already in
-flight as open tickets on `sspsygene-dracc/psypheno`. The aim is to give
-a single view of what we propose to add next, organised by topic.
-
-For each candidate we note:
-- **Citation** with PMID/DOI;
-- **Per-gene fit** — what the supplementary tables look like and how
-  cleanly they map to our per-gene table schema;
-- **Why it matters** — community visibility, overlap with the SSPsyGene
-  250-gene list, or the gap it fills;
-- **Caveats** — overlap with existing datasets, data-access frictions,
-  or open questions.
-
-A suggested prioritisation is at the bottom. We would welcome input on:
-
-- Which tiers or individual studies should be prioritised for the next
-  ticket round;
-- Any candidates that should be deprioritised, or are already covered by
-  upcoming consortium releases we are not aware of;
-- Additional candidates we have missed.
-
-All candidates have a peer-reviewed home; bioRxiv-only preprints have
-been deferred (a short watch-list is at the end).
+This memo lists studies (2017 and later) that produce per-gene readouts in
+neuropsychiatric or neurodevelopmental contexts and that are not yet on
+https://psypheno.gi.ucsc.edu nor already in flight as open tickets on
+`sspsygene-dracc/psypheno`. bioRxiv-only preprints have been deferred (a short
+watch-list is at the end).
 
 ---
 
