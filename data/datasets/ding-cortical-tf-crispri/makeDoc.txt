@@ -1,0 +1,43 @@
+#!/bin/zsh
+# Provenance for the ding-cortical-tf-crispri dataset.
+#
+# Paper:        Ding et al., "Dissecting gene regulatory networks
+#               governing human cortical cell fate", Nature 2026
+#               (PMID 41565813, DOI 10.1038/s41586-025-09997-7).
+#               First author: Jingwen W. Ding (UCSF).
+#               Senior corr. author: Alex A. Pollen (UCSF).
+# File:         41586_2025_9997_MOESM1_ESM.xlsx — Supplementary
+#               Information (multi-sheet workbook).
+# Cadence:      Fixed publication-supplement; updates only on new
+#               Nature corrections or supplementary version.
+#
+# This file is downloaded **manually** from the Nature article page
+# (Cloudflare blocks our curl). Refresh by downloading the
+# Supplementary Information from
+# https://www.nature.com/articles/s41586-025-09997-7
+# and saving it under this directory with the same filename pattern.
+#
+# Sheets we ingest (gene-level DEG tables, for SSPsyGene's per-gene
+# query model):
+#   - TableS5. DEG-human       → ding_2026_deg_human  (1,237 rows)
+#   - TableS8. DEG-IN_LMO1RIC3 → ding_2026_deg_arx_in_lmo1ric3 (821 rows)
+#
+# Sheets intentionally NOT ingested (for reasons noted in the issue
+# comment on #22):
+#   - TableS1. GRN metrics   — per-TF eGRN metadata with a 56-column
+#                              wide-format schema that doesn't fit
+#                              SSPsyGene's per-gene table model
+#                              cleanly. Worth a follow-up table later.
+#   - TableS2. sgRNA         — sgRNA library metadata, not gene-level
+#                              perturbation results.
+#   - TableS3. Sequencing runs — batch / pooling metadata.
+#   - TableS4. KD efficiency — per-sgRNA KD measurements; useful for
+#                              QC but not the DEG signal.
+#   - TableS6. Flow          — flow-cytometry validation, not
+#                              gene-level expression data.
+#   - TableS7. DEG-macaque   — same shape as S5 but Macaca; SSPsyGene's
+#                              organism_key vocabulary is human / mouse /
+#                              zebrafish, so no clean home for primate
+#                              data without a vocabulary expansion.
+#
+# Issue: https://github.com/sspsygene-dracc/psypheno/issues/22

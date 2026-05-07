@@ -1,0 +1,138 @@
+publication:
+  authors:
+    - Ding, Jingwen W.
+    - Kim, Chang N.
+    - Ostrowski, Megan S.
+    - Abeykoon, Yashodara
+    - Pavlovic, Bryan J.
+    - Wallace, Jenelle L.
+    - Schaefer, Nathan K.
+    - Nowakowski, Tomasz J.
+    - Pollen, Alex A.
+  year: 2026
+  journal: "Nature"
+  doi: "10.1038/s41586-025-09997-7"
+  pmid: "41565813"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-07"
+    comment: "Initial table creation (issue #22). Source xlsx manually downloaded from Nature."
+
+tables:
+  - table: ding_2026_deg_human
+    shortLabel: ding_2026_deg_human
+    mediumLabel: "Ding 2026 - 44-TF CRISPRi DEGs in Human Cortical Organoid RG Lineage"
+    longLabel: "Differentially expressed genes from a single-cell CRISPRi screen of 44 transcription factors in primary human cortical radial-glia cultures (Ding et al. 2026)"
+    description: >
+      Per-gene DEG list from the day-7 differentiation timepoint of a
+      single-cell CRISPRi (Perturb-seq) screen of 44 TFs in primary
+      human cortical radial-glia (RG) cultures from prenatal donors.
+      DEGs are reported per (Target.Gene, Cell.Type) combination using
+      DESeq2 statistics, covering 40 TFs (4 of the original 44 had no
+      significant DEGs in this initial screen) across 7 cortical cell
+      classes plus a Technical pseudo-class. Methods: scRNA-seq on day
+      7 of differentiation; ~118,456 cells assigned to sgRNAs;
+      ~600 cells per gene at TF-level pseudobulk.
+    source: "Ding et al. 2026 Nature, Supplementary Table 5 (initial human screen DEGs)"
+    in_path: ding_2026_deg_human.tsv
+    separator: "\t"
+    organism: "Homo sapiens (primary fetal cortical RG culture)"
+    organism_key: human
+    assay: perturbation
+    disease:
+      - asd
+      - ndd
+      - scz
+    categories:
+      - CRISPRi
+      - Perturb-seq
+      - cortical organoid
+      - radial glia lineage
+    links:
+      - url: https://www.nature.com/articles/s41586-025-09997-7
+        label: Ding 2026 — Nature article (open access)
+      - url: https://www.nature.com/articles/s41586-025-09997-7#supplementary-information
+        label: Nature Supplementary Information (xlsx)
+    pvalue_column: pvalue
+    fdr_column: padj
+    effect_column: log2FoldChange
+    fieldLabels:
+      genes: "Target gene measured by scRNA-seq — HGNC symbol (resolved at preprocess time; raw value in genes_raw)."
+      target_gene: "Perturbed transcription factor (the TF whose CRISPRi sgRNAs were active in the cell aggregating into this row's pseudobulk). HGNC symbol (raw in target_gene_raw)."
+      cell_type: "Cell class assignment in the day-7 differentiation: RG_DIV (dividing radial glia), RG-Astro (radial glia / astrocyte lineage), IPC_EN (intermediate progenitor cells, EN-fated), IPC_IN (intermediate progenitor cells, IN-fated), EN (excitatory neurons), EN_ImN (immature excitatory neurons), IN (inhibitory neurons), Technical (technical pseudo-class)."
+      basemean: "DESeq2 baseMean — mean of normalized counts across all samples (perturbed and non-targeting controls) for this gene in this cell type."
+      log2foldchange: "DESeq2 log2 fold change of the gene in TF-perturbed cells vs. non-targeting (NT) controls within the same cell type. Positive = upregulated upon TF KD."
+      lfcse: "Standard error of the log2FoldChange estimate."
+      stat: "DESeq2 Wald test statistic (log2FoldChange / lfcSE)."
+      pvalue: "Wald test nominal p-value."
+      padj: "Benjamini-Hochberg adjusted p-value (FDR)."
+    gene_mappings:
+      - column_name: genes
+        link_table_name: gene
+        species: human
+        perturbed_or_target: target
+      - column_name: Target.Gene
+        link_table_name: tf
+        species: human
+        perturbed_or_target: perturbed
+    changelog:
+      - date: "2026-05-07"
+        message: "Initial data load from Nature Supplementary Information (Table S5)."
+
+  - table: ding_2026_deg_arx_in_lmo1ric3
+    shortLabel: ding_2026_arx_in_lmo1ric3
+    mediumLabel: "Ding 2026 - ARX-KD DEGs in IN_LMO1/RIC3 Ectopic Cluster (Cortical Organoid)"
+    longLabel: "Differentially expressed genes in the IN_LMO1/RIC3 ectopic interneuron cluster induced by ARX CRISPRi knockdown (Ding et al. 2026)"
+    description: >
+      Per-gene DEG list specifically within the IN_LMO1/RIC3 ectopic
+      interneuron subtype that emerges when ARX is repressed via
+      CRISPRi in human cortical RG cultures (Ding et al. 2026,
+      Supplementary Table 8). Companion table to ding_2026_deg_human:
+      this table is ARX-perturbation-only and resolves DEGs within
+      the specific cluster ARX KD induces, rather than across all
+      cell classes. Standard DESeq2 statistics. Target.Gene is
+      filled in as a constant 'ARX' at preprocess time so the
+      perturbed-gene mapping wires up consistently.
+    source: "Ding et al. 2026 Nature, Supplementary Table 8 (DEGs in IN_LMO1/RIC3 ectopic cluster from ARX KD)"
+    in_path: ding_2026_deg_arx_in_lmo1ric3.tsv
+    separator: "\t"
+    organism: "Homo sapiens (primary fetal cortical RG culture)"
+    organism_key: human
+    assay: perturbation
+    disease:
+      - ndd
+    categories:
+      - CRISPRi
+      - Perturb-seq
+      - ARX knockdown
+      - inhibitory neurons
+    links:
+      - url: https://www.nature.com/articles/s41586-025-09997-7
+        label: Ding 2026 — Nature article (open access)
+    pvalue_column: pvalue
+    fdr_column: padj
+    effect_column: log2FoldChange
+    fieldLabels:
+      genes: "Target gene measured by scRNA-seq — HGNC symbol (resolved at preprocess time; raw value in genes_raw)."
+      target_gene: "Constant 'ARX' (the perturbed TF for this entire table — see source-sheet title in Ding 2026 Suppl. Table 8). Inserted at preprocess time so the perturbed-gene mapping resolves uniformly."
+      basemean: "DESeq2 baseMean for this gene within the IN_LMO1/RIC3 ectopic cluster."
+      log2foldchange: "DESeq2 log2 fold change of the gene in ARX-KD vs. non-targeting cells, restricted to the IN_LMO1/RIC3 ectopic interneuron cluster. Positive = upregulated upon ARX KD."
+      lfcse: "Standard error of the log2FoldChange estimate."
+      stat: "DESeq2 Wald test statistic (log2FoldChange / lfcSE)."
+      pvalue: "Wald test nominal p-value."
+      padj: "Benjamini-Hochberg adjusted p-value (FDR)."
+    gene_mappings:
+      - column_name: genes
+        link_table_name: gene
+        species: human
+        perturbed_or_target: target
+      - column_name: Target.Gene
+        link_table_name: tf
+        species: human
+        perturbed_or_target: perturbed
+    changelog:
+      - date: "2026-05-07"
+        message: "Initial data load from Nature Supplementary Information (Table S8)."
