@@ -1,0 +1,71 @@
+generated: '2026-05-07T06:42:46Z'
+output: fleck_organoid_grn_modules.tsv
+inputs:
+- grn_modules.tsv
+actions:
+- step: read_csv
+  source: grn_modules.tsv
+  separator: "\t"
+  rows: 74448
+  columns:
+  - tf
+  - target
+  - estimate
+  - npeaks
+  - ngenes
+  - ntfs
+  - peaks
+  - pval
+  - padj
+  - corr
+  - log_padj
+- step: clean_gene_column
+  column: tf
+  species: human
+  flags:
+    resolve_via_ensembl_map: false
+  counts:
+    passed_through: 74448
+  dropped_rows: 0
+  sample_unresolved: []
+- step: clean_gene_column
+  column: target
+  species: human
+  flags:
+    resolve_via_ensembl_map: false
+  counts:
+    passed_through: 74340
+    unresolved: 51
+    non_symbol_contig: 57
+  dropped_rows: 0
+  sample_unresolved:
+  - SARS
+  - NOV
+  - SARS
+  - NOV
+  - SARS
+  - SARS
+  - SARS
+  - SARS
+  - NOV
+  - MPP6
+- step: write_csv
+  destination: fleck_organoid_grn_modules.tsv
+  separator: "\t"
+  rows: 74448
+  columns:
+  - tf
+  - target
+  - estimate
+  - npeaks
+  - ngenes
+  - ntfs
+  - peaks
+  - pval
+  - padj
+  - corr
+  - log_padj
+  - tf_raw
+  - _tf_resolution
+  - target_raw
+  - _target_resolution

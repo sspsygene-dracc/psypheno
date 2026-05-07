@@ -1,0 +1,83 @@
+publication:
+  authors:
+    - Fleck, Jonas Simon
+    - Jansen, Sophie Martina Johanna
+    - Wollny, Damian
+    - Zenk, Fides
+    - Seimiya, Makiko
+    - Jain, Akanksha
+    - Okamoto, Ryoko
+    - Santel, Malgorzata
+    - He, Zhisong
+    - Camp, J. Gray
+    - Treutlein, Barbara
+  year: 2023
+  journal: "Nature"
+  doi: "10.1038/s41586-022-05279-8"
+  pmid: "36198796"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-07"
+    comment: "Initial table creation (issue #13)."
+
+tables:
+  - table: fleck_2023_organoid_grn
+    shortLabel: fleck_2023_organoid_grn
+    mediumLabel: "Fleck 2023 - Pando-Inferred TF Regulatory Network in Brain Organoids"
+    longLabel: "Pando-inferred transcription-factor → target gene regulatory edges from human brain organoid snRNA-seq + scATAC-seq (Fleck et al. 2023)"
+    description: >
+      TF → target regulatory edges inferred by Pando from multi-omic
+      (snRNA-seq + scATAC-seq) profiling of human brain organoids derived
+      from the H9 hESC and 409B2 hiPSC lines. Each row is one inferred edge
+      with the regression estimate (effect of TF on target expression),
+      supporting peak count, p-value, FDR-adjusted p-value, and
+      gene-expression correlation. From the grn_modules.tsv table on
+      Zenodo record 5242913.
+    source: "Zenodo record 5242913 — grn_modules.tsv"
+    in_path: fleck_organoid_grn_modules.tsv
+    separator: "\t"
+    organism: "Homo sapiens (brain organoids; H9 hESC + 409B2 hiPSC)"
+    organism_key: human
+    assay: perturbation
+    disease: []
+    categories:
+      - GRN inference
+      - brain organoids
+      - single-cell multiomic
+      - TF-target regulatory edges
+    links:
+      - url: https://zenodo.org/records/5242913
+        label: Zenodo — record 5242913 (raw data)
+        description: Includes seurat_objects.tar.gz (~18 GB) and the demuxed VCF — not ingested here.
+      - url: https://github.com/quadbio/Pando
+        label: Pando (GRN inference tool used)
+    pvalue_column: pval
+    fdr_column: padj
+    effect_column: estimate
+    fieldLabels:
+      tf: "Transcription factor symbol (HGNC; original in tf_raw) — the upstream regulator in the inferred edge"
+      target: "Target gene symbol (HGNC; original in target_raw) — the gene whose expression is associated with the TF"
+      estimate: "Pando regression coefficient (signed effect of TF on target expression)"
+      npeaks: "Number of TF-binding chromatin peaks supporting this edge"
+      ngenes: "Number of genes regulated by this TF in the inferred network"
+      ntfs: "Number of TFs regulating this target in the inferred network"
+      peaks: "Comma-separated list of supporting chromatin peaks (chrN_start_end)"
+      pval: "P-value for the TF→target regression coefficient"
+      padj: "FDR-adjusted p-value (Benjamini-Hochberg)"
+      corr: "Pearson correlation between TF and target gene expression"
+      log_padj: "−log10(padj), pre-computed from the padj column"
+    gene_mappings:
+      - column_name: tf
+        link_table_name: tf
+        species: human
+        perturbed_or_target: perturbed
+      - column_name: target
+        link_table_name: gene
+        species: human
+        perturbed_or_target: target
+    changelog:
+      - date: "2026-05-07"
+        message: "Initial data load from Zenodo record 5242913."

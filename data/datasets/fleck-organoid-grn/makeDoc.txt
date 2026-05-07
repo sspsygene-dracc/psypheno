@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Provenance for the fleck-organoid-grn dataset.
+#
+# Source page:  https://zenodo.org/records/5242913
+#               (Fleck et al., "Inferring and perturbing cell fate regulomes
+#                in human brain organoids", Nature 2023, PMID 36198796,
+#                DOI 10.1038/s41586-022-05279-8)
+# File:         grn_modules.tsv (~11.6 MB)
+# Cadence:      fixed Zenodo release (record 5242913), DOI 10.5281/zenodo.5242913.
+#
+# This is the Pando-inferred TF→target gene regulatory network from the
+# paper. The Zenodo record also hosts seurat_objects.tar.gz (~18 GB) and
+# the demuxed VCF; we don't ingest those — only grn_modules.tsv is on the
+# request path for SSPsyGene.
+#
+# preprocess.py downloads this file automatically at build time, so the
+# rebuild stays reproducible without committing the raw input.
+#
+# Issue: https://github.com/sspsygene-dracc/psypheno/issues/13
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+curl -fLo grn_modules.tsv \
+    "https://zenodo.org/api/records/5242913/files/grn_modules.tsv/content"
