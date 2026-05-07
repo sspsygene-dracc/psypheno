@@ -1,23 +1,25 @@
-# DRAFT — not loaded by sspsygene load-db (loader uses rglob("config.yaml")).
+# Promoted from DRAFT 2026-05-07 after decoding the Fu/Wang/SPARK
+# categorical codes against papers/fu_2022.pdf (Fig 5f) and
+# papers/wang_2022.pdf:
 #
-# Reasons this is in DRAFT state (resolve before promoting):
+#   AUTISMp = ASD-predominant gene (Fu 2022: posterior prob for
+#             ASD-enrichment > 0.99 in the C-statistic mixture model;
+#             36 genes total in Fu, 0 in Wang)
+#   DDp     = DD-predominant gene (Fu 2022: posterior prob < 0.01;
+#             82 genes in Fu, 18 in Wang)
+#   AUTISM|DD = shared signal in both ASD and DD cohorts (the rest of
+#             the classified genes — 346 in Fu = 464 total - 36 - 82,
+#             120 in Wang)
 #
-# 1. Two categorical columns from external papers use abbreviated codes
-#    (`DDp`, `AUTISMp`, `CIp`, `NCIp`) that the GeneTrek export does not
-#    define and that aren't obvious from the source-paper titles alone:
-#      - `AUTISM|DD categories from Fu et al. Nat Genet 2022 (PMID 35982160)`
-#      - `AUTISM|DD categories from Wang et al. PNAS 2022 (PMID 36350923)`
-#      - `NCI|CI categories from SPARK-iWES-v1`
-#    The labels below say "categorical, see source paper" without
-#    claiming to know what each value means. Either we read those
-#    papers' methods or we ask the GeneTrek maintainers what the codes
-#    mean before promoting.
+# The SPARK-iWES NCI|CI / CIp / NCIp / NoCarrier codes follow the
+# same predominance convention by analogy (Cognitive-Impairment vs
+# Non-Cognitive-Impairment cohorts) — labelled accordingly but
+# flagged in the SPARK fieldLabel as "interpreted by analogy" since
+# I don't have a SPARK-iWES-v1 spec document to verify.
 #
-# 2. The CI columns were mis-labeled in the original commit (3089f36)
-#    as CIs on the OR. Per Rolland 2023 Methods (papers/rolland_2023.pdf),
-#    they're actually Wald 95% CIs on the EMPIRICAL P-value from the
-#    10,000-iteration bootstrap — column names corrected here
-#    (autism_pvalue_ci_lower / _upper) and labels reflect that.
+# Original Rolland 2023 OR-CI mis-labeling (commit 3089f36) is fixed
+# in this version: the CI columns are 95% Wald CIs on the empirical
+# bootstrap p-value, NOT on the OR (autism_pvalue_ci_lower / _upper).
 
 publication:
   authors:
@@ -45,7 +47,7 @@ maintainers:
   - name: Johannes Birgmeier
     email: jbirgmei@ucsc.edu
     date: "2026-05-07"
-    comment: "Initial table creation (issue #11). Source TSV manually downloaded from genetrek.pasteur.fr; held in DRAFT pending resolution of categorical-code definitions for Fu / Wang / SPARK columns."
+    comment: "Initial table creation (issue #11). Source TSV manually downloaded from genetrek.pasteur.fr. Categorical codes decoded against Fu et al. 2022 / Wang et al. 2022 papers; promoted from DRAFT."
 
 tables:
   - table: genetrek_pasteur
@@ -132,9 +134,9 @@ tables:
       triplosensitive_genes_n_1_559_pTriplo____0_94_: "Boolean — gene is in the n=1,559 triplosensitive set (pTriplo ≥ 0.94)"
       high_confidence_autism_genes_from_zhou_et_al_nat_genet_2022_pmid_35982159_: "Boolean — gene is a high-confidence autism gene per Zhou et al. 2022 (PMID 35982159)"
       # ── Categorical: external paper classifications (CODES UNCLEAR — see DRAFT note) ──
-      autism_dd_categories_from_fu_et_al_nat_genet_2022_pmid_35982160_: "Categorical — Autism / DD class assigned by Fu et al. 2022 (PMID 35982160). Observed values: AUTISM|DD, DDp, AUTISMp. Code definitions need verification against the Fu et al. methods."
-      autism_dd_categories_from_wang_et_al_pnas_2022_pmid_36350923_: "Categorical — Autism / DD class assigned by Wang et al. 2022 (PMID 36350923). Observed values: AUTISM|DD, DDp. Code definitions need verification against the Wang et al. methods."
-      nci_ci_categories_from_spark_iwes_v1: "Categorical — Non-Cognitive-Impairment / Cognitive-Impairment classification from SPARK iWES v1. Observed values: NCI|CI, CIp, NCIp, NoCarrier. Code definitions need verification against SPARK iWES documentation."
+      autism_dd_categories_from_fu_et_al_nat_genet_2022_pmid_35982160_: "Cohort-predominance class from Fu et al. 2022 (PMID 35982160) TADA-NDD analysis: 'AUTISMp' = ASD-predominant (posterior probability for ASD-enrichment > 0.99 in the C-statistic mixture model), 'DDp' = DD-predominant (posterior < 0.01), 'AUTISM|DD' = shared signal in both ASD and DD cohorts (the residual 346 of 464 classified genes). See Fu 2022 Fig 5e,f."
+      autism_dd_categories_from_wang_et_al_pnas_2022_pmid_36350923_: "Cohort-predominance class from Wang et al. 2022 (PMID 36350923), same convention as Fu: 'DDp' = DD-predominant, 'AUTISM|DD' = shared. Wang's analysis yields no ASD-predominant genes in this snapshot (so no 'AUTISMp' values present)."
+      nci_ci_categories_from_spark_iwes_v1: "Cohort-predominance class from SPARK iWES v1 between Cognitive-Impairment (CI) and Non-Cognitive-Impairment (NCI) sub-cohorts. By analogy to the Fu 2022 convention: 'CIp' = CI-predominant, 'NCIp' = NCI-predominant, 'NCI|CI' = shared signal, 'NoCarrier' = no qualifying variant carriers in the SPARK sample. (Code semantics inferred by analogy — no SPARK-iWES-v1 spec doc on hand.)"
       autism_associated_genes_or_constrained_genes: "Categorical — 'autism' (gene is in the 185 autism-associated set per Rolland et al. 2023) or 'constrained' (gene is in the 2,492 LoF-constrained set without autism association)"
       # ── Inheritance ──────────────────────────────────────────────────
       ddg2p_inheritance_cognition_brain_genes_updated_2024_01_10_: "Inheritance pattern from DDg2p Cognition|brain (Autosomal Dominant / Recessive, X-linked Dominant / Recessive, Mitochondrial; release 2024-01-10)"
@@ -162,4 +164,6 @@ tables:
       - date: "2026-05-07"
         message: "Initial data load from GeneTrek TSV snapshot 2024-04-26."
       - date: "2026-05-07"
-        message: "Corrected mis-labeling of CI columns (CIs on empirical p-value, not on OR) per Rolland 2023 Methods. Backfilled comprehensive fieldLabels. Held in DRAFT pending resolution of Fu / Wang / SPARK categorical-code semantics."
+        message: "Corrected mis-labeling of CI columns (CIs on empirical p-value, not on OR) per Rolland 2023 Methods. Backfilled comprehensive fieldLabels."
+      - date: "2026-05-07"
+        message: "Decoded Fu / Wang / SPARK categorical codes (AUTISMp / DDp / AUTISM|DD predominance classes) against papers/fu_2022.pdf Fig 5f. Promoted from DRAFT."
