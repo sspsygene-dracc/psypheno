@@ -1,0 +1,56 @@
+#!/bin/zsh
+# Provenance for the wamsley-postmortem-asd dataset.
+#
+# Paper:    Wamsley et al., "Molecular cascades and cell type-specific
+#           signatures in ASD revealed by single-cell genomics",
+#           Science 2024, PMID 38781372, DOI 10.1126/science.adh2602.
+#           First author: Brie Wamsley. Senior author: Daniel H.
+#           Geschwind (UCLA).
+# Files:    science.adh2602_tables_s1_to_s7.zip — bundle of seven
+#           Supplementary Tables (S1–S7) as .xlsx, downloaded
+#           manually from the Science article page.
+#           Original page: https://www.science.org/doi/10.1126/science.adh2602
+# Cadence:  Fixed publication-supplement; updates only on a Science
+#           erratum.
+#
+# Sheets ingested (currently 1 table):
+#
+#   - Table S1C "Cluster Marker genes" → wamsley_2024_cluster_markers
+#     (12,790 rows). Per-gene per-cluster Seurat marker statistics
+#     across the snRNA-seq cell-type taxonomy from 66 ASD/CTL
+#     postmortem cortex samples.
+#
+# Sheets intentionally NOT ingested (rationale also in the #55 issue
+# comment):
+#
+#   - S1A snRNA-seq metadata by sample — sample-level demographics, not
+#     gene-level data. (66 donors × 21 metadata fields.)
+#   - S1B Comparison to Velmeshev — small cross-study comparison table.
+#   - S1D Cluster annotation — the 41-cluster taxonomy + plain-language
+#     descriptions; embedded in the cluster_marker_genes table via
+#     the `cluster` column.
+#   - S2A/B Cell composition LV — per-cell-type ASD-vs-CTL composition
+#     stats (39 cell types × 131 sample-level voom-count columns).
+#     Cell-type-level, not gene-level, so doesn't fit our schema.
+#   - S3 Module enrichment — per-(celltype-DE × WGCNA module) Fisher
+#     test, not per-gene.
+#   - S4 GO / SYNGO enrichment — per-(celltype × direction × ontology
+#     term) enrichment results. Could be exploded into a per-gene
+#     SynGO annotation table (S4B/S4C list one gene per row), worth a
+#     follow-up.
+#   - S5 Regulons — wide-format TF-by-target matrix; doesn't reshape
+#     cleanly to per-gene rows without losing TF-level structure.
+#   - S6/S7 ATAC metadata + footprint changes + LDSC ASD-PRS — ATAC-
+#     level / footprint-level / regulon-level data, not per-gene.
+#
+# **What is missing from the supps zip:** the per-gene per-cell-type
+# ASD-vs-CTL DEG list referenced throughout the paper (used as input
+# to S3 module enrichment, S4 GO/SYNGO enrichment, etc.) is NOT in
+# this zip. Per the paper's data-availability footnote, that table
+# lives on PsychENCODE Synapse:
+#   https://doi.org/10.7303/syn51032009 (the dataset DOI)
+#   https://psychencode.synapse.org/DataAccess (access portal)
+# Synapse requires a PsychENCODE account / DUC for the underlying
+# data. Note this clearly in the issue if anyone wants to revisit.
+#
+# Issue: https://github.com/sspsygene-dracc/psypheno/issues/55

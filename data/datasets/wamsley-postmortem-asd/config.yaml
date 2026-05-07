@@ -1,0 +1,83 @@
+publication:
+  authors:
+    - Wamsley, Brie
+    - Bicks, Lucy
+    - Cheng, Yuyan
+    - Kawaguchi, Riki
+    - Quintero, Daniela
+    - Margolis, Michael
+    - Grundman, Jennifer
+    - Liu, Jianyin
+    - Xiao, Shaohua
+    - Hawken, Natalie
+    - Mazariegos, Sandra
+    - Geschwind, Daniel H.
+  year: 2024
+  journal: "Science"
+  doi: "10.1126/science.adh2602"
+  pmid: "38781372"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-05-07"
+    comment: "Initial table creation (issue #55). Source xlsx bundle manually downloaded from Science. Per-gene per-cell-type ASD-vs-CTL DEG list NOT in this snapshot — lives on PsychENCODE Synapse syn51032009; see makeDoc.txt and the issue comment."
+
+tables:
+  - table: wamsley_2024_cluster_markers
+    shortLabel: wamsley_2024_cluster_markers
+    mediumLabel: "Wamsley 2024 - snRNA-seq Cluster-Marker Genes in Postmortem ASD Cortex"
+    longLabel: "Per-gene per-cluster Seurat marker statistics from postmortem ASD/CTL cortex single-nucleus RNA-seq (Wamsley et al. Science 2024)"
+    description: >
+      Per-gene per-cluster Seurat FindMarkers output from the
+      single-nucleus RNA-seq atlas of 66 postmortem ASD and control
+      cortex samples (Wamsley et al. Science 2024). Each row reports
+      one gene's enrichment in one of ~30 cell-type clusters
+      (excitatory neurons by layer, inhibitory interneuron subtypes,
+      oligodendrocytes, OPCs, astrocytes, microglia, vasculature)
+      versus all other clusters. **NB:** these are cell-type *marker*
+      genes (cluster-vs-all), not the per-gene ASD-vs-CTL differential
+      expression results — that table lives on PsychENCODE Synapse
+      under syn51032009 and requires PsychENCODE / DUC access to
+      ingest. See makeDoc.txt for full ingestion notes.
+    source: "Wamsley et al. 2024 Science, Supplementary Table S1C (Cluster Marker genes)"
+    in_path: wamsley_2024_cluster_markers.tsv
+    separator: "\t"
+    organism: "Homo sapiens (postmortem ASD + control cortex, 66 donors)"
+    organism_key: human
+    assay: expression
+    disease:
+      - asd
+    categories:
+      - snRNA-seq
+      - cluster markers
+      - postmortem cortex
+      - PsychENCODE
+    links:
+      - url: https://www.science.org/doi/10.1126/science.adh2602
+        label: Wamsley 2024 — Science article
+      - url: https://www.science.org/doi/suppl/10.1126/science.adh2602/suppl_file/science.adh2602_tables_s1_to_s7.zip
+        label: Science supplementary tables S1–S7 (xlsx zip)
+      - url: https://doi.org/10.7303/syn51032009
+        label: PsychENCODE Synapse — full transcriptomic deposit (requires access)
+        description: Per-gene per-cell-type ASD-vs-CTL DEG list and other primary data not included in the supplementary tables zip.
+    pvalue_column: p_val
+    fdr_column: p_val_adj
+    effect_column: avg_logFC
+    fieldLabels:
+      gene: "Marker gene — HGNC symbol (resolved at preprocess time; raw value preserved in gene_raw)."
+      p_val: "Wilcoxon rank-sum nominal p-value from Seurat FindMarkers (cluster-of-interest cells vs cells in all other clusters)."
+      avg_logfc: "Average log-fold-change of the gene's expression in this cluster vs all other clusters (Seurat FindMarkers default natural-log scale)."
+      pct_1: "Fraction of cells in this cluster expressing the gene (UMI count > 0)."
+      pct_2: "Fraction of cells in all OTHER clusters expressing the gene."
+      p_val_adj: "Bonferroni-adjusted p-value across all genes tested for this cluster (Seurat FindMarkers default; multiple-testing-corrected stringent measure of cluster-marker significance)."
+      cluster: "Cell-type cluster the gene marks — one of ~30 categories: EXT_<N>_L<layer> (excitatory pyramidal neurons by cortical layer), INT_<N>_<subtype> (inhibitory interneuron subtypes — PV, SST, VIP, etc.), ODC_<N> (oligodendrocytes), OPCS_<N> (oligodendrocyte progenitor cells), ASTRO_<N> (astrocytes), MG<N> (microglia), BBB_<subset> (blood-brain-barrier cell classes)."
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        perturbed_or_target: target
+    changelog:
+      - date: "2026-05-07"
+        message: "Initial data load from Science Supplementary Table S1C."

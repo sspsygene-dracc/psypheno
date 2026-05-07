@@ -1,0 +1,54 @@
+generated: '2026-05-07T07:55:13Z'
+output: wamsley_2024_cluster_markers.tsv
+inputs: []
+actions:
+- step: from_dataframe
+  source: TableS1C_ClusterMarkerGenes
+  rows: 12787
+  columns:
+  - gene
+  - p_val
+  - avg_logFC
+  - pct.1
+  - pct.2
+  - p_val_adj
+  - cluster
+- step: clean_gene_column
+  column: gene
+  species: human
+  flags:
+    resolve_via_ensembl_map: false
+  counts:
+    passed_through: 2948
+    non_symbol_contig: 233
+    rescued_gencode_clone_current_ensg: 2
+    unresolved: 9558
+    non_symbol_rna_family: 30
+    non_symbol_gencode_clone: 4
+    non_symbol_genbank_accession: 12
+  dropped_rows: 0
+  sample_unresolved:
+  - '2023-09-07 00:00:00'
+  - '2023-03-01 00:00:00'
+  - PPFIBP11
+  - NKAIN21
+  - PDE1A1
+  - ENOX11
+  - RNF144A1
+  - CNTNAP41
+  - MICAL31
+  - FAM171A11
+- step: write_csv
+  destination: wamsley_2024_cluster_markers.tsv
+  separator: "\t"
+  rows: 12787
+  columns:
+  - gene
+  - p_val
+  - avg_logFC
+  - pct.1
+  - pct.2
+  - p_val_adj
+  - cluster
+  - gene_raw
+  - _gene_resolution
