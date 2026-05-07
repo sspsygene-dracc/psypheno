@@ -1200,8 +1200,43 @@ export default function MostSignificantPage() {
             borderRadius: 12,
             overflow: "hidden",
             marginBottom: 24,
+            position: "relative",
           }}
         >
+          {loading && rows.length > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 12,
+                zIndex: 2,
+                background: "#1f2937",
+                color: "#fff",
+                fontSize: 12,
+                fontWeight: 500,
+                padding: "4px 10px",
+                borderRadius: 9999,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+              }}
+            >
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  border: "2px solid #9ca3af",
+                  borderTopColor: "#fff",
+                  borderRadius: "50%",
+                  display: "inline-block",
+                  animation: "mostsig-spin 0.8s linear infinite",
+                }}
+              />
+              Loading...
+            </div>
+          )}
+          <style>{`@keyframes mostsig-spin { to { transform: rotate(360deg); } }`}</style>
           <DoubleScrollX>
             <table
               style={{
@@ -1209,6 +1244,8 @@ export default function MostSignificantPage() {
                 borderCollapse: "collapse",
                 fontSize: 14,
                 WebkitTextSizeAdjust: "100%",
+                opacity: loading && rows.length > 0 ? 0.5 : 1,
+                transition: "opacity 0.15s",
               }}
             >
               <thead>
