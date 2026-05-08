@@ -96,6 +96,22 @@ gh issue list --repo sspsygene-dracc/psypheno --limit 3
 If any of these fails, **fix it now** — don't push through. The rest of
 the session depends on these working.
 
+Then have each person launch Claude (`claude` from inside `~/code/psypheno`)
+and type:
+
+```
+/effort xhigh
+```
+
+This sets the thinking effort to maximum. Dataset wrangling involves reading
+a paper, parsing a spreadsheet, and reasoning about our config schema all at
+once — that's a workload where deeper reasoning visibly pays off, and we
+want everyone on the same setting so the demo behaves consistently. The
+setting persists in `~/.claude/settings.json`, so they only set it once.
+
+(Verify by typing `/effort` with no argument; Claude should report `xhigh`.)
+Then `/exit` to drop back to the shell.
+
 ---
 
 ## 2. Tour of the repo (5 min)

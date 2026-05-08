@@ -177,8 +177,19 @@ cd ~/code/psypheno
 claude
 ```
 
-It'll prompt you to log in via the browser the first time. After login, type
-`/exit` to close it. We'll come back to this together on Tuesday.
+It'll prompt you to log in via the browser the first time. After login, **set
+the thinking level to maximum** by typing this command at the `>` prompt:
+
+```
+/effort xhigh
+```
+
+This makes Claude think harder before acting — the difference is noticeable on
+dataset wrangling, where Claude has to reason over a paper PDF, a spreadsheet,
+and our config schema all at once. The setting persists across sessions
+(saved to `~/.claude/settings.json`), so you only need to do it once.
+
+Then type `/exit` to close. We'll come back to this together on Tuesday.
 
 ---
 
