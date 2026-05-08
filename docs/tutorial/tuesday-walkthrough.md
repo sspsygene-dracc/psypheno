@@ -503,6 +503,33 @@ What we **don't** commit:
 If you accidentally added something you shouldn't have, unstage with
 `git restore --staged path/to/file`.
 
+#### Recommended alternative — let Claude commit for you
+
+The Claude session you've been chatting with already knows what work it
+just did, what files changed, and what convention `CLAUDE.md` says commit
+messages should follow. So instead of typing the `git add` / `git commit`
+dance by hand, you can just ask:
+
+> ```
+> Please commit the dataset work. Use our commit convention (PMID line,
+> source citation line, one-line biology check). Stage only config.yaml,
+> preprocess.py, makeDoc.txt, the .gitignore, and the
+> *.preprocessing.yaml sidecar — do NOT stage the raw download or
+> results.tsv. Show me the message before running `git commit`.
+> ```
+
+Claude will then run `git status` and `git diff --staged` itself, draft
+a message, and (if you've granted it permission to run `git commit`) ask
+before actually committing. This saves you typing and produces more
+consistent messages — but **always read the proposed message and the
+list of staged files before approving**. Claude is not infallible; it
+sometimes wants to stage a file that should be gitignored, or omits the
+PMID. The two-second sanity check is worth it.
+
+If you'd rather Claude only does the staging and leaves the actual commit
+to you, swap the last line for *"stage the files but don't commit; I'll
+write the message myself"* — fine pattern too.
+
 ### 4.9 Rebase onto current `main`
 
 While you were working, others may have pushed changes to `main`. You
