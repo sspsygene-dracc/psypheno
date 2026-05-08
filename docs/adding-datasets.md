@@ -849,8 +849,59 @@ server instance. Each of the three instances (int, dev, prod — see
 been swapped and reopens the connection on the next request — no service
 restart, no sudo.
 
-Always rebuild on **internal** (or **dev**) first to verify, then on
+Always rebuild on **dev** (or **internal**) first to verify, then on
 **production**.
+
+There are two ways to do this:
+
+### 7a. From your laptop with `sspsygene deploy` (recommended)
+
+`sspsygene deploy` is a CLI that handles the whole deploy from your laptop:
+it pushes your branch (if needed), SSHes to hgwdev, runs `git pull`, and
+optionally runs `load-db` and/or restarts the web server, in the right order
+(`dev → int → prod`). Most dataset rollouts only need:
+
+```bash
+# Deploy to dev only and rebuild the dev DB after pulling:
+sspsygene deploy --instances dev --load-db
+```
+
+After that finishes, verify at https://psypheno-dev.gi.ucsc.edu. Once you're
+happy, promote:
+
+```bash
+sspsygene deploy --instances int --load-db   # then check psypheno-int
+sspsygene deploy --instances prod --load-db  # then check psypheno (live)
+```
+
+You can also run `--instances dev,int,prod` in one go (order ignored, deploy
+always rolls dev → int → prod). Useful flags:
+
+- `--preprocess` — also re-run each dataset's `preprocess.py` on the server
+  before `load-db`. Use when a `preprocess.py` change has landed and the
+  cleaned data files on the server are now stale.
+- `--restart` — restart the Next.js web servers after the build. Only needed
+  for **JS / web changes**; data-only updates don't need it because the web
+  process auto-detects DB swaps.
+- `--no-push` — skip the local `git push` (handy if you've already pushed).
+- `--run-tests` — after each site's build, run `scripts/test.sh server` on
+  psygene plus `scripts/test.sh e2e` against the deployed URL. Aborts on
+  first failure.
+
+Full reference: `sspsygene deploy --help` and `docs/development.md`.
+
+> **Important:** if your dataset's processed data files (the cleaned
+> `results.tsv`, raw downloads) are not yet on the target server's
+> `/hive/groups/SSPsyGene/sspsygene_website*/data/datasets/<your-dataset>/`,
+> the `load-db` will fail (or silently skip your dataset). Either rsync them
+> first (see
+> [Promoting a dataset from internal to production](#promoting-a-dataset-from-internal-to-production))
+> or pass `--preprocess` so the server re-runs `preprocess.py` itself.
+
+### 7b. Manual rebuild on the server (fallback)
+
+If `sspsygene deploy` isn't available — or you want to do exactly one step
+and nothing else — you can SSH in and rebuild by hand:
 
 ```bash
 ssh psygene
@@ -981,9 +1032,12 @@ system administrator if you don't have access.
 | Load single dataset (fast test) | `sspsygene load-db --dataset NAME` |
 | Load all datasets, skip slow steps | `sspsygene load-db --no-index --skip-meta-analysis` |
 | Load all datasets (full build) | `sspsygene load-db` |
-| Deploy to internal (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website_int && git pull && sspsygene load-db` |
-| Deploy to dev (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website_dev && git pull && sspsygene load-db` |
-| Deploy to production (on server, no sudo) | `cd /hive/groups/SSPsyGene/sspsygene_website && git pull && sspsygene load-db` |
+| Deploy to dev (from laptop) | `sspsygene deploy --instances dev --load-db` |
+| Deploy to internal (from laptop) | `sspsygene deploy --instances int --load-db` |
+| Deploy to production (from laptop) | `sspsygene deploy --instances prod --load-db` |
+| Manual deploy to internal (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website_int && git pull && sspsygene load-db` |
+| Manual deploy to dev (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website_dev && git pull && sspsygene load-db` |
+| Manual deploy to production (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website && git pull && sspsygene load-db` |
 
 ---
 

@@ -175,14 +175,31 @@ checkout and database on `/hive`:
 
 Two deployment paths:
 
-- **Data-only updates** (wranglers, run on the server): `git pull` and
-  `sspsygene load-db` in the target site's directory with `SSPSYGENE_*`
-  env vars pointing at it. The web process auto-detects the new DB file,
-  no restart. See [adding-datasets.md](adding-datasets.md).
-- **Code deploys** (JS changes, run from your laptop): `sspsygene deploy`
-  orchestrates `git push`, remote `git pull` + `npm run build` on hgwdev,
-  and a kill-to-respawn restart on psygene. See the CLI reference below
-  and [server-architecture.md](server-architecture.md) for details.
+- **From your laptop (preferred):** `sspsygene deploy` orchestrates
+  `git push`, remote `git pull` on hgwdev, optional `npm run build`, optional
+  `load-db`, optional preprocessing rerun, and (if requested) a
+  kill-to-respawn web restart on psygene — all in the right order
+  (`dev → int → prod`). It works for both code deploys (`--restart`) and
+  data-only updates (`--load-db` and/or `--preprocess`); the data path is
+  what wranglers usually want once a dataset commit has landed. Examples:
+  - `sspsygene deploy --instances dev --load-db` — push + pull on dev +
+    rebuild dev DB.
+  - `sspsygene deploy --instances dev --preprocess --load-db` — also
+    re-run each dataset's `preprocess.py` on dev before rebuilding (use
+    when a `preprocess.py` change has landed and cleaned data files on
+    the server are stale).
+  - `sspsygene deploy --instances dev --restart` — code-only redeploy
+    with service restart (for JS / web changes).
+
+  See the CLI reference below and the wrangler-facing recipe in
+  [adding-datasets.md](adding-datasets.md) → Step 7.
+
+- **Manually on the server (fallback):** SSH to psygene, `cd` into the
+  target site's directory, set the `SSPSYGENE_*` env vars for that site,
+  and run `sspsygene load-db`. The web process auto-detects the new DB
+  file, no restart. Use this when `sspsygene deploy` isn't available
+  (e.g. the deploy CLI isn't installed on your laptop) or when you want
+  to do exactly one step and nothing else.
 
 ## CLI Reference
 
