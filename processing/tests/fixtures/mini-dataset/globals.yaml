@@ -8,7 +8,7 @@ assayTypes:
   expression: "Gene Expression (RNA-seq)"
 
 diseaseTypes:
-  asd: "Autism Spectrum Disorder"
+  asd: "Autism"
 
 organismTypes:
   mouse: "Mouse"

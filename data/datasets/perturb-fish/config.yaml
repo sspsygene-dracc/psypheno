@@ -38,7 +38,7 @@ tables:
     mediumLabel: Binan 2025 - Perturb-FISH CRISPRi Screen of 127 ASD Genes in iPSC Astrocytes
     longLabel: CRISPR screening with spatial transcriptomics in astrocytes
     description:
-      Spatial transcriptomics and functional calcium imaging screen of 127 autism spectrum disorder
+      Spatial transcriptomics and functional calcium imaging screen of 127 autism
       risk genes in human iPSC-derived astrocytes. Combines Perturb-FISH with ATP-stimulated calcium activity
       phenotypes to link genetic perturbations with transcriptional and functional profiles.
     source: "Extracted from supplemental LFC and q-value matrices"

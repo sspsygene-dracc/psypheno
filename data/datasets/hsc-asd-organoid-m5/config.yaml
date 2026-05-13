@@ -50,7 +50,7 @@ tables:
         label: Nature — data availability
     categories:
       - CRISPRi perturbation
-      - autism spectrum disorder
+      - autism
       - human cortical organoids
     organism: Homo sapiens (hiPSC-derived neural progenitors)
     organism_key: human
@@ -155,7 +155,7 @@ tables:
     categories:
       - bulk RNA-seq
       - differential expression
-      - autism spectrum disorder
+      - autism
       - human cortical organoids
     organism: Homo sapiens (hiPSC-derived cortical organoids)
     organism_key: human

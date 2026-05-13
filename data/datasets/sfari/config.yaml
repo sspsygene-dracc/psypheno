@@ -27,7 +27,7 @@ tables:
     mediumLabel: Banerjee-Basu 2010 - SFARI Curated Animal Model Genes for ASD
     longLabel: SFARI Gene animal model evidence for autism genes
     description:
-      Curated animal model data for autism spectrum disorder candidate genes from SFARI Gene
+      Curated animal model data for autism candidate genes from SFARI Gene
       database. Includes functional evidence from rodent, zebrafish, and other model organism studies.
     source: "SFARI Gene database export (07-08-2025 release)"
     assay: curated
@@ -105,7 +105,7 @@ tables:
     mediumLabel: Banerjee-Basu 2010 - SFARI Curated Human Gene Scores for ASD
     longLabel: SFARI Gene human genetic evidence and scoring
     description:
-      Curated human genetic evidence for autism spectrum disorder candidate genes with assigned
+      Curated human genetic evidence for autism candidate genes with assigned
       confidence scores. Aggregates de novo mutations, inherited variants, and functional data.
     source: "SFARI Gene database export (07-08-2025 release)"
     assay: curated

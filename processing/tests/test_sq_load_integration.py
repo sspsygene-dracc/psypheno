@@ -212,7 +212,7 @@ def _assert_lookup_tables(conn: sqlite3.Connection) -> None:
     disease_rows = dict(
         conn.execute("SELECT key, label FROM disease_types").fetchall()
     )
-    assert disease_rows.get("asd") == "Autism Spectrum Disorder"
+    assert disease_rows.get("asd") == "Autism"
 
     org_rows = dict(
         conn.execute("SELECT key, label FROM organism_types").fetchall()

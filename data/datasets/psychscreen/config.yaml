@@ -172,9 +172,9 @@ tables:
         message: "Standardized title (tissue tightened from Brain to PFC), added column header tooltips, declared effect_column."
     shortLabel: psychscreen_asd_degs
     mediumLabel: Emani 2024 - snRNA-seq Pseudobulk DEGs of ASD in Postmortem PFC (via PsychSCREEN)
-    longLabel: Autism spectrum disorder differential expression signatures
+    longLabel: Autism differential expression signatures
     description:
-      Differentially expressed genes in autism spectrum disorder from aggregated postmortem brain
+      Differentially expressed genes in autism from aggregated postmortem brain
       transcriptomic studies. Provides ASD-specific gene expression changes across brain regions.
     source: "Emani 2024 (PsychENCODE2 brainSCOPE) DEG analysis, downloaded via PsychSCREEN (Pratt 2024, psychscreen.org)"
     assay: expression

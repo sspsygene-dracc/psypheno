@@ -57,7 +57,7 @@ tables:
     mediumLabel: Weinschutz Mendes 2023 - in vivo Functional Screen of 10 ASD Risk Genes in Zebrafish
     longLabel: High-throughput in vivo screen of autism risk genes in zebrafish
     description:
-      Parallel functional analysis of 10 autism spectrum disorder risk genes in zebrafish, measuring
+      Parallel functional analysis of 10 autism risk genes in zebrafish, measuring
       behavioral, structural, and circuit-level phenotypes. Identifies convergence on dopaminergic and neuroimmune
       pathways across ASD gene perturbations.
     source: "Table S4"
