@@ -253,8 +253,9 @@ I'd much rather fix it Monday afternoon than spend Tuesday morning on it.
 - Pick a real ticket from the issue tracker, assign it to ourselves, and walk
   it through end-to-end: branch → Claude does the wrangling → review → test
   locally → commit → rebase → merge → comment on the ticket → rsync data to
-  the dev server → rebuild the dev DB → verify on the dev site → promote to
-  int and prod → close the ticket.
+  the dev server → rebuild the dev DB → verify on the dev site → deploy to
+  int and/or prod (int holds embargoed/internal-only data, prod is the public
+  site) → close the ticket.
 - Optional add-ons (covered if there's time): how to start the web server
   locally to look at your dataset before pushing, and how the meta-analysis
   step fits in.

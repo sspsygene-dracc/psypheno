@@ -27,8 +27,9 @@ do this end-to-end, without help:
 6. Comment on the ticket with what landed, what was skipped, and why.
 7. Push the dataset out to the live servers: rsync the data files, rebuild
    the dev DB with `sspsygene deploy`, eyeball it on the dev site, then
-   promote to int and prod the same way. Close the ticket once prod looks
-   right.
+   deploy to int and/or prod depending on whether the dataset is publishable
+   yet (int holds the things we can't or don't yet want to publish; prod is
+   the public site). Close the ticket once it's live where it should be.
 
 ---
 
@@ -627,8 +628,7 @@ git branch -d dataset-142-smith-2026
 Your commit is on `main`, but the dev site
 (https://psypheno-dev.gi.ucsc.edu) won't show the dataset until two
 things happen: the gitignored data files reach the dev server, and the
-dev SQLite DB gets rebuilt. Both are your responsibility, both run from
-your laptop.
+dev SQLite DB gets rebuilt. Both are quick to do from your laptop.
 
 **Step 1 — rsync the data files.** Configs and `preprocess.py` reach
 the dev server through the `git pull` that `sspsygene deploy` runs in
@@ -674,60 +674,78 @@ nothing but a few minutes of wall time.
 
 ---
 
-## 6. Promote dev/int/prod (5 min)
+## 6. Publish to int and/or prod (5 min)
 
-Once the dataset looks right on dev, the same `sspsygene deploy`
-command pushes it to the internal staging instance and then to
-production:
+The dev site is your sandbox. Once a dataset looks right there, the
+next step is to push it to one of the live instances:
+
+- **int** — https://psypheno-int.gi.ucsc.edu. The internal instance.
+  This is where datasets live that we **can't** or **don't yet want
+  to** make public — embargoed data, things the consortium is still
+  discussing, anything not yet cleared for the world. The site is
+  access-controlled.
+- **prod** — https://psypheno.gi.ucsc.edu. The public site.
+
+A given dataset usually lands on **one of the two**, not both — int
+if it can't be public yet, prod if it can. Some datasets sit on both
+when that makes editorial sense. The "where does this go?" decision
+is an editorial one, not a technical one; if you're not sure where a
+particular dataset belongs, ask Max or Catharina.
+
+The commands look the same as the dev deploy, just with a different
+`--instances` value:
 
 ```bash
-# Internal staging (https://psypheno-int.gi.ucsc.edu):
+# Publish to int:
 sspsygene deploy --instances int --load-db
 
-# Production (https://psypheno.gi.ucsc.edu):
+# Publish to prod:
 sspsygene deploy --instances prod --load-db
+
+# Both at once:
+sspsygene deploy --instances int,prod --load-db
 ```
 
 Useful flags:
 
 - `--instances dev,int,prod` — comma-separated subset; order is
   ignored, deploy always rolls dev → int → prod.
-- `--preprocess` — re-run each dataset's `preprocess.py` on the server
-  before `load-db`. Use this when a `preprocess.py` change has landed
-  and the server's cleaned data files are now stale.
+- `--preprocess` — re-run each dataset's `preprocess.py` on the
+  server before `load-db`. Use this when a `preprocess.py` change
+  has landed and the server's cleaned data files are now stale.
 - `--restart` — kill-respawn the web service. Needed when JS / web
-  code has changed; not needed for data-only deploys (the web process
-  auto-detects the new DB file).
+  code has changed; not needed for data-only deploys (the web
+  process auto-detects the new DB file).
 - `--no-push` — skip the `git push` step (useful if you've already
   pushed manually).
-- `--run-tests` — after each site's build, run server tests on psygene
-  plus e2e tests against the deployed URL. Hard-aborts on first
-  failure.
+- `--run-tests` — after each site's build, run server tests on
+  psygene plus e2e tests against the deployed URL. Hard-aborts on
+  first failure.
 
 Full reference: [docs/development.md](../development.md) → "CLI Reference".
 
-**Hard rules:**
+**A couple of things to keep in mind:**
 
-- **Never skip dev.** Promoting straight to int or prod without seeing
-  the dataset on dev first is how broken data lands on the public
-  site.
-- **Don't manually edit the DB on a server.** The DB on each instance
-  is a cache of "what the loader does to the data files" — to fix
-  something, fix the loader inputs locally, commit, and redeploy.
+- **Always check the dev site first.** dev is where you catch the
+  loader misreading a column or a tooltip rendering wrong. Going
+  straight to int or prod without that step is how broken data ends
+  up on a live site.
+- **Don't manually edit the DB on a server.** The DB on each
+  instance is a cache of "what the loader does to the data files" —
+  to fix something, fix the loader inputs locally, commit, and
+  redeploy.
 
-Once prod looks right, leave a final comment on the GitHub issue and
-close it:
+Once the dataset is live where it belongs, leave a final comment on
+the GitHub issue and close it:
 
 ```bash
 gh issue comment 142 --repo sspsygene-dracc/psypheno \
-    --body "Live on prod as of <commit-hash>."
+    --body "Live on int as of <commit-hash>."   # or "on prod" / "on int + prod"
 gh issue close 142 --repo sspsygene-dracc/psypheno
 ```
 
-The deploy chain is yours; you don't need Johannes to sign off after
-the fact. If something is later flagged (by Max, by a wrangler
-reviewer, by anyone), reopen and iterate — the issue history is the
-audit trail.
+If a dataset is later moved from int to prod (or vice versa), reopen
+the ticket, redeploy, and close it again.
 
 ---
 
@@ -744,8 +762,9 @@ several branches need to land.
 
 Once everyone's pushed to `main`, we'll also walk through Section 5
 together — rsync, dev deploy, verify on the dev site. Section 6
-(promote to int and prod) you can do at your desk afterward, or now
-if we still have time and you're confident about your dataset.
+(publish to int and/or prod) you can do at your desk afterward, or
+now if we still have time and you're confident about where the
+dataset belongs.
 
 ---
 
@@ -857,9 +876,9 @@ slow and clean when you're about to deploy.
 | Full rebuild (pre-deploy) | `sspsygene load-db` |
 | Rsync data to dev | `rsync -av data/datasets/NAME/ hgwdev:/hive/groups/SSPsyGene/sspsygene_website_dev/data/datasets/NAME/` |
 | Rebuild dev DB | `sspsygene deploy --instances dev --load-db` |
-| Promote to int | `sspsygene deploy --instances int --load-db` |
-| Promote to prod | `sspsygene deploy --instances prod --load-db` |
-| Close ticket after prod verify | `gh issue close NN --repo sspsygene-dracc/psypheno` |
+| Publish to int (internal / embargoed) | `sspsygene deploy --instances int --load-db` |
+| Publish to prod (public) | `sspsygene deploy --instances prod --load-db` |
+| Close ticket once live | `gh issue close NN --repo sspsygene-dracc/psypheno` |
 | List branches | `git branch` |
 | Delete merged branch | `git branch -d <branch>` |
 | Promote DRAFT | `mv config_DRAFT.yaml config.yaml` |
