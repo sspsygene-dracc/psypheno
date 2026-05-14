@@ -25,13 +25,10 @@ do this end-to-end, without help:
 4. Commit your work on a **branch named after the ticket**.
 5. Rebase onto the latest `main`, fast-forward `main` to your branch, push.
 6. Comment on the ticket with what landed, what was skipped, and why.
-
-We will **not** cover this Tuesday (next time):
-
-- Worktrees (running multiple Claude sessions side-by-side on different
-  tickets).
-- Deploying to dev / int / prod — we'll touch on it in an optional section
-  at the end, but the deploy scripts stay in Johannes's hands for now.
+7. Push the dataset out to the live servers: rsync the data files, rebuild
+   the dev DB with `sspsygene deploy`, eyeball it on the dev site, then
+   promote to int and prod the same way. Close the ticket once prod looks
+   right.
 
 ---
 
@@ -242,7 +239,7 @@ is needed before deploy.
   the `sspsygene-claude.db` side path above so we don't fight whatever
   else is running.
 - Don't close the GitHub issue when work lands. Dataset tickets stay
-  open until the dataset is deployed and verified. I'll close it.
+  open until I've deployed; I'll close manually.
 
 ## Issue tracker workflow
 
@@ -589,9 +586,9 @@ git push origin main
 ### 4.12 Comment on the ticket
 
 After pushing, leave a comment with the commit hash and a structured
-summary. **Don't close the ticket** — dataset tickets stay open until
-the dataset is deployed to the dev server and you've verified it
-there. Johannes will handle that and close.
+summary. **Don't close the ticket yet** — dataset tickets stay open
+until you've pushed through to prod and verified the live site. You'll
+close it yourself in Section 6.
 
 ```bash
 gh issue comment 142 --repo sspsygene-dracc/psypheno --body "$(cat <<'EOF'
@@ -606,7 +603,7 @@ Landed in <commit-hash>.
 - Open questions / interpreted by analogy: <anything where I made a
   judgment call that should be revisited later, or "none">
 
-Pending: deploy to dev + sign-off.
+Pending: deploy through dev/int/prod.
 EOF
 )"
 ```
@@ -625,14 +622,19 @@ git branch -d dataset-142-smith-2026
 
 ---
 
-## 5. Rsync data files to the dev server (5 min)
+## 5. Get your dataset onto the dev server (5 min)
 
-Configs and `preprocess.py` reach the dev server through `git pull`. But
-the **processed data files** (`results.tsv`, the raw downloads) are
-gitignored, so they have to be copied separately or the dev `load-db`
-will fail on a missing file.
+Your commit is on `main`, but the dev site
+(https://psypheno-dev.gi.ucsc.edu) won't show the dataset until two
+things happen: the gitignored data files reach the dev server, and the
+dev SQLite DB gets rebuilt. Both are your responsibility, both run from
+your laptop.
 
-After your commit lands on `main`:
+**Step 1 — rsync the data files.** Configs and `preprocess.py` reach
+the dev server through the `git pull` that `sspsygene deploy` runs in
+the next step. But the processed data files (`results.tsv` and the raw
+downloads) are gitignored, so they have to be copied separately or the
+dev `load-db` fails on a missing file:
 
 ```bash
 rsync -av data/datasets/<your-dataset>/ \
@@ -642,12 +644,94 @@ rsync -av data/datasets/<your-dataset>/ \
 (The trailing slashes matter — they sync directory *contents* into the
 target rather than nesting one inside another.)
 
-Then ping Johannes (or whoever's on dev) to actually rebuild the dev
-database. For now, the rebuild stays in his hands.
+**Step 2 — rebuild the dev DB.** From your laptop:
+
+```bash
+sspsygene deploy --instances dev --load-db
+```
+
+This pushes `main` to GitHub if you haven't already, `git pull`s on the
+dev server, rebuilds the dev SQLite DB, and the running web process
+auto-detects the new file. Takes a few minutes — the full rebuild runs
+the indexing + meta-analysis steps that the fast-iteration recipe in
+Section 4.7 deliberately skipped.
+
+**Step 3 — verify on the dev site.** Open
+https://psypheno-dev.gi.ucsc.edu and check:
+
+- Your dataset shows up where it should — gene pages, the full-dataset
+  table view, the dataset list.
+- Column headers and tooltips read sensibly. Hover a header; the
+  `fieldLabel` you wrote should appear.
+- A handful of representative genes (the paper's headline hits) carry
+  the values you expect.
+- The dataset's headline biology recapitulates on the live site.
+
+If something is off, fix it locally, commit, push, rsync again, and
+re-run `sspsygene deploy --instances dev --load-db`. Iterate freely —
+dev exists to absorb this kind of churn, and rebuilding it costs
+nothing but a few minutes of wall time.
 
 ---
 
-## 6. Try it on a real ticket — group exercise (15 min)
+## 6. Promote dev/int/prod (5 min)
+
+Once the dataset looks right on dev, the same `sspsygene deploy`
+command pushes it to the internal staging instance and then to
+production:
+
+```bash
+# Internal staging (https://psypheno-int.gi.ucsc.edu):
+sspsygene deploy --instances int --load-db
+
+# Production (https://psypheno.gi.ucsc.edu):
+sspsygene deploy --instances prod --load-db
+```
+
+Useful flags:
+
+- `--instances dev,int,prod` — comma-separated subset; order is
+  ignored, deploy always rolls dev → int → prod.
+- `--preprocess` — re-run each dataset's `preprocess.py` on the server
+  before `load-db`. Use this when a `preprocess.py` change has landed
+  and the server's cleaned data files are now stale.
+- `--restart` — kill-respawn the web service. Needed when JS / web
+  code has changed; not needed for data-only deploys (the web process
+  auto-detects the new DB file).
+- `--no-push` — skip the `git push` step (useful if you've already
+  pushed manually).
+- `--run-tests` — after each site's build, run server tests on psygene
+  plus e2e tests against the deployed URL. Hard-aborts on first
+  failure.
+
+Full reference: [docs/development.md](../development.md) → "CLI Reference".
+
+**Hard rules:**
+
+- **Never skip dev.** Promoting straight to int or prod without seeing
+  the dataset on dev first is how broken data lands on the public
+  site.
+- **Don't manually edit the DB on a server.** The DB on each instance
+  is a cache of "what the loader does to the data files" — to fix
+  something, fix the loader inputs locally, commit, and redeploy.
+
+Once prod looks right, leave a final comment on the GitHub issue and
+close it:
+
+```bash
+gh issue comment 142 --repo sspsygene-dracc/psypheno \
+    --body "Live on prod as of <commit-hash>."
+gh issue close 142 --repo sspsygene-dracc/psypheno
+```
+
+The deploy chain is yours; you don't need Johannes to sign off after
+the fact. If something is later flagged (by Max, by a wrangler
+reviewer, by anyone), reopen and iterate — the issue history is the
+audit trail.
+
+---
+
+## 7. Try it on a real ticket — group exercise (20 min)
 
 Each of you picks a *different* open `dataset` ticket from the queue
 and walks through 4.1–4.8 (pick → assign → branch → Claude → review →
@@ -658,9 +742,14 @@ We'll do 4.9–4.13 (rebase, merge, push, comment) **once everyone is at
 "I have a commit"** — rebasing and merging are easier as a group when
 several branches need to land.
 
+Once everyone's pushed to `main`, we'll also walk through Section 5
+together — rsync, dev deploy, verify on the dev site. Section 6
+(promote to int and prod) you can do at your desk afterward, or now
+if we still have time and you're confident about your dataset.
+
 ---
 
-## 7. Optional: run the website locally (10 min if there's time)
+## 8. Optional: run the website locally (10 min if there's time)
 
 Once your dataset has loaded into a local DB, you can also **see it on
 the website** locally — gene pages, dataset table view, full-dataset
@@ -694,7 +783,7 @@ page before pushing.
 
 ---
 
-## 8. Optional: testing locally (5 min)
+## 9. Optional: testing locally (5 min)
 
 The repo has a single test entry point:
 
@@ -711,54 +800,6 @@ modified anything under `processing/src/processing/preprocessing/`,
 running `scripts/test.sh data-corr` is a good idea before you commit.
 
 Full reference: `docs/development.md` → "Testing".
-
----
-
-## 9. Optional: deploying a finished dataset to the server (10 min)
-
-> *Tuesday-session note: we'll demo this only if there's time, and
-> only Johannes runs it for now. The wranglers are reading this for
-> reference, not to do it themselves yet.*
-
-Once a dataset has landed on `main` *and* you've rsynced the data files
-to the dev server (Section 5), the dev/int/prod databases need to be
-rebuilt. This is what the `sspsygene deploy` CLI does — it takes care
-of `git pull` on the server, optional preprocessing rerun, optional
-`load-db`, optional service restart, all in one command, all rolled
-through the right sequence (dev → int → prod).
-
-The three forms you'll hear about:
-
-```bash
-# Deploy code + rebuild the DB on dev only (most common after a dataset
-# commit; once verified, repeat with --instances int and then --instances prod):
-sspsygene deploy --instances dev --load-db
-
-# Re-run each dataset's preprocess.py on the server before load-db
-# (use this when a preprocess.py change has landed and the cleaned
-# data files on the server are now stale):
-sspsygene deploy --instances dev --preprocess --load-db
-
-# Code-only deploy with a service restart (for JS / web changes,
-# not data changes):
-sspsygene deploy --instances dev --restart
-```
-
-Useful flags:
-
-- `--instances dev,int,prod` — comma-separated subset; order is
-  ignored, deploy always rolls dev → int → prod.
-- `--no-push` — skip the `git push` step (useful if you've already
-  pushed manually).
-- `--run-tests` — after each site's build, run `scripts/test.sh server`
-  on psygene plus `scripts/test.sh e2e` against the deployed URL.
-  Hard-aborts on first failure.
-
-Full reference: `docs/development.md` → "CLI Reference".
-
-For wranglers, the rule of thumb is: **always deploy to dev first, look
-at the dev site, then promote to int, then prod.** Never deploy
-straight to prod.
 
 ---
 
@@ -815,7 +856,10 @@ slow and clean when you're about to deploy.
 | Single-dataset rebuild | `sspsygene load-db --dataset NAME --no-index --skip-meta-analysis` |
 | Full rebuild (pre-deploy) | `sspsygene load-db` |
 | Rsync data to dev | `rsync -av data/datasets/NAME/ hgwdev:/hive/groups/SSPsyGene/sspsygene_website_dev/data/datasets/NAME/` |
-| Deploy to dev | `sspsygene deploy --instances dev --load-db` *(Johannes runs)* |
+| Rebuild dev DB | `sspsygene deploy --instances dev --load-db` |
+| Promote to int | `sspsygene deploy --instances int --load-db` |
+| Promote to prod | `sspsygene deploy --instances prod --load-db` |
+| Close ticket after prod verify | `gh issue close NN --repo sspsygene-dracc/psypheno` |
 | List branches | `git branch` |
 | Delete merged branch | `git branch -d <branch>` |
 | Promote DRAFT | `mv config_DRAFT.yaml config.yaml` |

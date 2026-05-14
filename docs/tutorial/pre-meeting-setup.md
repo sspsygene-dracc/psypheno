@@ -252,11 +252,12 @@ I'd much rather fix it Monday afternoon than spend Tuesday morning on it.
 - Set up a starter `CLAUDE.md` so Claude understands our conventions.
 - Pick a real ticket from the issue tracker, assign it to ourselves, and walk
   it through end-to-end: branch → Claude does the wrangling → review → test
-  locally → commit → rebase → merge → comment on the ticket.
+  locally → commit → rebase → merge → comment on the ticket → rsync data to
+  the dev server → rebuild the dev DB → verify on the dev site → promote to
+  int and prod → close the ticket.
 - Optional add-ons (covered if there's time): how to start the web server
-  locally to actually look at your dataset on the website before it ships,
-  how to deploy a finished dataset to the dev/int/prod servers, and how the
-  meta-analysis step fits in.
+  locally to look at your dataset before pushing, and how the meta-analysis
+  step fits in.
 
 See you Tuesday — and please ping me if anything in the setup is unclear or
 breaks.
