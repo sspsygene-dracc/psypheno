@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import click
+from tqdm import tqdm
 
 from . import r_runner
 from .collection import collect_pvalues_for_tables, filter_collected
@@ -285,21 +286,27 @@ class MetaAnalysisRun:
                 )
                 future_to_idx[future] = (job.idx, job.label)
 
-            for future in as_completed(future_to_idx):
-                owner_idx, label = future_to_idx[future]
-                key = _bucket_key(collected[owner_idx])
-                members = bucket_members[key]
-                try:
-                    result = future.result()
-                    fanout = result if result is not None else {}
-                    click.echo(f"  {label}R job completed.")
-                except Exception as e:  # pylint: disable=broad-exception-caught
-                    click.echo(click.style(
-                        f"  {label}R job failed: {e}", fg="red",
-                    ))
-                    fanout = {}
-                for m in members:
-                    r_results_by_idx[m] = fanout
+            with tqdm(
+                total=len(future_to_idx),
+                desc="  R jobs",
+                unit="job",
+                dynamic_ncols=True,
+            ) as pbar:
+                for future in as_completed(future_to_idx):
+                    owner_idx, label = future_to_idx[future]
+                    key = _bucket_key(collected[owner_idx])
+                    members = bucket_members[key]
+                    try:
+                        result = future.result()
+                        fanout = result if result is not None else {}
+                    except Exception as e:  # pylint: disable=broad-exception-caught
+                        tqdm.write(click.style(
+                            f"  {label}R job failed: {e}", fg="red",
+                        ))
+                        fanout = {}
+                    for m in members:
+                        r_results_by_idx[m] = fanout
+                    pbar.update(1)
 
         return r_results_by_idx
 
