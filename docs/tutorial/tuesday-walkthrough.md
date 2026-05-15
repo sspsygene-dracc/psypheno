@@ -94,8 +94,8 @@ gh issue list --repo sspsygene-dracc/psypheno --limit 3
 If any of these fails, **fix it now** — don't push through. The rest of
 the session depends on these working.
 
-Then have each person launch Claude (`claude` from inside `~/code/psypheno`)
-and type:
+Then have each person launch Claude within their repo (`cd ~/code/psypheno` and then type `claude`)
+Once claude is running type:
 
 ```
 /effort xhigh
