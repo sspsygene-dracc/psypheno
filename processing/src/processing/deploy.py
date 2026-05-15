@@ -28,11 +28,14 @@ import click
 PSYGENE = "psygene"
 GIT_BRANCH = "main"
 
-# psygene.gi.ucsc.edu is on the UCSC internal network and isn't reachable
-# directly from off-campus. Always proxy SSH through hgwdev so deploys work
-# without each developer having to add `Host psygene / ProxyJump hgwdev`
-# to their personal ~/.ssh/config.
-PSYGENE_SSH_HOST = "psygene.gi.ucsc.edu"
+# psygene isn't reachable directly from off-campus. Always proxy SSH through
+# hgwdev so deploys work without each developer having to add
+# `Host psygene / ProxyJump hgwdev` to their personal ~/.ssh/config. We use
+# the bare hostname `psygene` (resolved on hgwdev's side) so the host key
+# matches anyone who already has a `psygene` entry in known_hosts;
+# `StrictHostKeyChecking=accept-new` auto-trusts on first contact rather
+# than failing with "host key verification failed" in non-interactive mode.
+PSYGENE_SSH_HOST = "psygene"
 PSYGENE_PROXY_JUMP = "hgwdev"
 
 PROD_PATH = "/hive/groups/SSPsyGene/sspsygene_website"
@@ -133,14 +136,21 @@ def _run_local(
 def _ssh_command(host: str, *, tty: bool = False) -> list[str]:
     """Build the ssh prefix for *host* (without the remote command).
 
-    For PSYGENE we always inject `-J hgwdev` and use the FQDN, so deploys
-    succeed without per-user ~/.ssh/config entries for `psygene`.
+    For PSYGENE we always inject `-J hgwdev` and `accept-new` host-key
+    handling, so deploys succeed without per-user ~/.ssh/config entries
+    for `psygene` and without an interactive host-key prompt on first run.
     """
     cmd = ["ssh"]
     if tty:
         cmd.append("-t")
     if host == PSYGENE:
-        cmd.extend(["-J", PSYGENE_PROXY_JUMP, PSYGENE_SSH_HOST])
+        cmd.extend(
+            [
+                "-o", "StrictHostKeyChecking=accept-new",
+                "-J", PSYGENE_PROXY_JUMP,
+                PSYGENE_SSH_HOST,
+            ]
+        )
     else:
         cmd.append(host)
     return cmd
