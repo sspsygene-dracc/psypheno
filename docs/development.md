@@ -15,6 +15,13 @@ conda create -n sspsygene python=3.13
 conda activate sspsygene
 cd processing
 pip install -e .
+
+# R + the two CRAN packages we need for combined-p-value computation. Pinning
+# them inside the conda env (rather than relying on system R) avoids
+# libgfortran ABI mismatches between hosts. ACAT isn't on conda-forge —
+# `sspsygene load-db` installs it from GitHub into a project-local R lib on
+# first run.
+conda install -c conda-forge r-base r-poolr r-harmonicmeanp
 ```
 
 ### Environment Variables

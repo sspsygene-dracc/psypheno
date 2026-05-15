@@ -8,7 +8,6 @@ import pytest
 import yaml
 
 from processing.config import (
-    Config,
     GeneMapConfig,
     TablesConfig,
     get_sspsygene_config,

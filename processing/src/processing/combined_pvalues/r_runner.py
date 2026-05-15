@@ -13,6 +13,7 @@ module owns:
 
 import csv
 import math
+import os
 import shutil
 import subprocess
 import tempfile
@@ -31,6 +32,29 @@ _REQUIRED_R_PACKAGES = ["poolr", "ACAT", "harmonicmeanp"]
 
 # User-local R library, used when the system library is not writable
 _R_USER_LIB = Path(__file__).parent.parent / "r" / "lib"
+
+# Env var override for which Rscript to invoke. Set this to a known-good
+# Rscript (e.g. one matching libgfortran versions on the host) when `which
+# Rscript` would pick up a system R that doesn't satisfy our packages.
+_RSCRIPT_ENV_VAR = "SSPSYGENE_RSCRIPT"
+
+
+def _resolve_rscript() -> str | None:
+    """Return the Rscript path to invoke, honoring SSPSYGENE_RSCRIPT first."""
+    override = os.environ.get(_RSCRIPT_ENV_VAR)
+    if override:
+        if not Path(override).is_file():
+            click.echo(
+                click.style(
+                    f"\n  WARNING: {_RSCRIPT_ENV_VAR}={override} is not a file. "
+                    "Falling back to PATH.\n",
+                    fg="yellow",
+                    bold=True,
+                )
+            )
+        else:
+            return override
+    return shutil.which("Rscript")
 
 
 def _r_lib_setup_code() -> str:
@@ -225,14 +249,15 @@ def call_r_combine(
     try:
         write_r_inputs(tmp_dir, pvalues)
 
-        rscript = shutil.which("Rscript")
+        rscript = _resolve_rscript()
         if rscript is None:
             click.echo(
                 click.style(
                     "\n  WARNING: Rscript not found on PATH. "
                     "Combined p-values will not be computed.\n"
-                    "  Install R to enable this feature: brew install r (macOS) "
-                    "or apt install r-base (Ubuntu)\n",
+                    f"  Install R to enable this feature: brew install r (macOS) "
+                    f"or apt install r-base (Ubuntu), or set {_RSCRIPT_ENV_VAR} "
+                    "to a specific Rscript binary.\n",
                     fg="yellow",
                     bold=True,
                 )

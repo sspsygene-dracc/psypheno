@@ -28,13 +28,20 @@ import click
 PSYGENE = "psygene"
 GIT_BRANCH = "main"
 
+# psygene.gi.ucsc.edu is on the UCSC internal network and isn't reachable
+# directly from off-campus. Always proxy SSH through hgwdev so deploys work
+# without each developer having to add `Host psygene / ProxyJump hgwdev`
+# to their personal ~/.ssh/config.
+PSYGENE_SSH_HOST = "psygene.gi.ucsc.edu"
+PSYGENE_PROXY_JUMP = "hgwdev"
+
 PROD_PATH = "/hive/groups/SSPsyGene/sspsygene_website"
 DEV_PATH = "/hive/groups/SSPsyGene/sspsygene_website_dev"
 INT_PATH = "/hive/groups/SSPsyGene/sspsygene_website_int"
 
 
 def _site_env(path: str) -> dict[str, str]:
-    return {
+    env = {
         "SSPSYGENE_CONFIG_JSON": f"{path}/processing/src/processing/config.json",
         "SSPSYGENE_DATA_DIR": f"{path}/data",
         "SSPSYGENE_DATA_DB": f"{path}/data/db/sspsygene.db",
@@ -46,6 +53,13 @@ def _site_env(path: str) -> dict[str, str]:
         # config schema.
         "PYTHONPATH": f"{path}/processing/src",
     }
+    # Pass SSPSYGENE_RSCRIPT through to the remote so the load-db on psygene
+    # uses the same Rscript binary the deployer has chosen locally — avoids
+    # the system-R / libgfortran mismatch reported on issue #174.
+    rscript = os.environ.get("SSPSYGENE_RSCRIPT")
+    if rscript:
+        env["SSPSYGENE_RSCRIPT"] = rscript
+    return env
 
 
 PROD_ENV = _site_env(PROD_PATH)
@@ -116,6 +130,22 @@ def _run_local(
     return result
 
 
+def _ssh_command(host: str, *, tty: bool = False) -> list[str]:
+    """Build the ssh prefix for *host* (without the remote command).
+
+    For PSYGENE we always inject `-J hgwdev` and use the FQDN, so deploys
+    succeed without per-user ~/.ssh/config entries for `psygene`.
+    """
+    cmd = ["ssh"]
+    if tty:
+        cmd.append("-t")
+    if host == PSYGENE:
+        cmd.extend(["-J", PSYGENE_PROXY_JUMP, PSYGENE_SSH_HOST])
+    else:
+        cmd.append(host)
+    return cmd
+
+
 def _run_ssh(
     host: str,
     remote_cmd: str,
@@ -130,7 +160,7 @@ def _run_ssh(
     try:
         if stream:
             proc = subprocess.run(
-                ["ssh", "-t", host, remote_cmd],
+                [*_ssh_command(host, tty=True), remote_cmd],
                 timeout=timeout,
             )
             result = subprocess.CompletedProcess(
@@ -138,7 +168,7 @@ def _run_ssh(
             )
         else:
             result = subprocess.run(
-                ["ssh", host, remote_cmd],
+                [*_ssh_command(host), remote_cmd],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
@@ -257,7 +287,7 @@ def _step_preprocess_site(
         )
         try:
             proc = subprocess.run(
-                ["ssh", PSYGENE, cmd],
+                [*_ssh_command(PSYGENE), cmd],
                 capture_output=True,
                 text=True,
                 timeout=PREPROCESS_TIMEOUT,
