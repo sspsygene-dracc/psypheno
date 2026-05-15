@@ -630,6 +630,28 @@ Your commit is on `main`, but the dev site
 things happen: the gitignored data files reach the dev server, and the
 dev SQLite DB gets rebuilt. Both are quick to do from your laptop.
 
+> **Two habits to avoid in this section** — both are easy to fall into
+> and both make life harder for the rest of the team:
+>
+> - **Don't SSH into psygene and edit files inside
+>   `/hive/groups/SSPsyGene/sspsygene_website_*/`.** Those are shared
+>   server checkouts that are supposed to track `main` exactly. If you
+>   leave the tree in a "modified" state (or drop conflicting untracked
+>   files in there), the next person's `sspsygene deploy` fails at
+>   `git pull` until someone investigates and cleans it up. Every edit
+>   you want to land — config tweak, typo fix, anything — should happen
+>   in your **local clone**, get committed and pushed, and then reach
+>   the server through the deploy below.
+> - **Don't run `sspsygene deploy` from psygene itself.** It's designed
+>   to be run from your laptop, against your local clone — it does the
+>   `git push` from there and SSHes into psygene to do the rest. Running
+>   it on psygene fails with confusing errors because the server
+>   checkout isn't a branch you can push from.
+>
+> If you ever do need to touch a server checkout for an emergency, run
+> `git status` before you leave and either commit + push from there or
+> `git checkout -- <file>` to drop the change so the tree is clean.
+
 **Step 1 — rsync the data files.** Configs and `preprocess.py` reach
 the dev server through the `git pull` that `sspsygene deploy` runs in
 the next step. But the processed data files (`results.tsv` and the raw
