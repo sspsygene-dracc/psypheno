@@ -843,14 +843,21 @@ git push
 ## Step 7: Deploy
 
 For wranglers, "deploying" is just **rebuilding the database** on the right
-server instance. Each of the three instances (int, dev, prod — see
-`docs/server-architecture.md`) has its own checkout and its own database on
+server instance. The three instances (dev, int, prod — see
+`docs/server-architecture.md`) each have their own checkout and database on
 `/hive`, and each running web process auto-detects when its SQLite file has
 been swapped and reopens the connection on the next request — no service
 restart, no sudo.
 
-Always rebuild on **dev** (or **internal**) first to verify, then on
-**production**.
+The three sites are independent deploys — **not** a staging chain:
+
+- **Public datasets** → rebuild on **dev** first to verify, then on **prod**.
+  (Dev is the staging instance for prod.)
+- **Embargoed / pre-publication datasets** → rebuild on **int** only. int is a
+  parallel site for embargoed data and never auto-promotes anywhere.
+- A dataset can later move from int to prod if it becomes publishable; that's
+  a deliberate operator action (see *Promoting an embargoed dataset to
+  production* below), not part of any automatic flow.
 
 There are two ways to do this:
 
@@ -858,24 +865,30 @@ There are two ways to do this:
 
 `sspsygene deploy` is a CLI that handles the whole deploy from your laptop:
 it pushes your branch (if needed), SSHes to hgwdev, runs `git pull`, and
-optionally runs `load-db` and/or restarts the web server, in the right order
-(`dev → int → prod`). Most dataset rollouts only need:
+optionally runs `load-db` and/or restarts the web server. Most public-dataset
+rollouts follow this pattern:
 
 ```bash
-# Deploy to dev only and rebuild the dev DB after pulling:
+# 1. Deploy to dev and rebuild the dev DB:
 sspsygene deploy --instances dev --load-db
 ```
 
-After that finishes, verify at https://psypheno-dev.gi.ucsc.edu. Once you're
-happy, promote:
+Verify at https://psypheno-dev.gi.ucsc.edu. Once you're happy, push the same
+to prod:
 
 ```bash
-sspsygene deploy --instances int --load-db   # then check psypheno-int
-sspsygene deploy --instances prod --load-db  # then check psypheno (live)
+sspsygene deploy --instances prod --load-db   # then check psypheno (live)
 ```
 
-You can also run `--instances dev,int,prod` in one go (order ignored, deploy
-always rolls dev → int → prod). Useful flags:
+For an **embargoed** dataset, skip dev and prod and deploy directly to int:
+
+```bash
+sspsygene deploy --instances int --load-db    # then check psypheno-int
+```
+
+You can also pass multiple instances at once (e.g. `--instances dev,prod`);
+they're iterated in dev→int→prod order purely for log readability but are
+independent deploys — failures on one don't roll back the others. Useful flags:
 
 - `--preprocess` — also re-run each dataset's `preprocess.py` on the server
   before `load-db`. Use when a `preprocess.py` change has landed and the
@@ -931,6 +944,12 @@ for how to copy them between instances).
 ---
 
 ## Promoting a dataset from internal to production
+
+Use this **only when an embargoed dataset on int becomes publishable** and
+you want to make it part of prod. It is **not** part of any automatic flow —
+int and prod are independent sites with possibly disjoint dataset sets, and
+most embargoed datasets stay on int. Public datasets follow the dev → prod
+path in Step 7 and don't go through int at all.
 
 Each instance has its **own data directory** on `/hive`. The `config.yaml`
 and preprocessing script live in git, so they reach prod automatically via

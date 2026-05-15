@@ -21,10 +21,15 @@ to the corresponding localhost port (with SSL termination).
 
 **Key points:**
 
-- **All three instances are independent.** Each has its own code checkout
-  and database on `/hive`. Deploys to one do not affect the others.
-- **Internal (int)** is password-protected via Apache basic auth and intended
-  for consortium-internal, pre-publication data.
+- **All three instances are independent — not a staging chain.** Each has its
+  own code checkout and database on `/hive`. Deploys to one do not affect the
+  others.
+- **Dev (dev)** is the staging instance for **prod**. Public datasets and code
+  changes land on dev first, get verified, then go to prod.
+- **Internal (int)** is a parallel site for embargoed / pre-publication
+  datasets, password-protected via Apache basic auth. Its dataset set may be
+  disjoint from prod's — embargoed data may never go to prod, and prod's public
+  datasets aren't necessarily on int. int does not "promote" to prod.
 - **No sudo for data updates.** The web process auto-detects a rebuilt
   SQLite file (inode/mtime check in `web/lib/db.ts`) and re-opens the
   connection on the next query, so wranglers running `sspsygene load-db`
@@ -124,10 +129,11 @@ its connection on the next query. No restart, no sudo. See
 that handles `git push`, SSH to hgwdev for `git pull` + optional `load-db`
 + `npm run build` per site, and `kill`ing the Next.js processes on psygene
 so systemd restarts them with the new build. Target subsets with
-`--instances dev,int,prod` (any subset; rolls dev → int → prod regardless
-of input order), rebuild data with `--load-db`, re-run wrangler
-preprocessing with `--preprocess`, and pass `--restart` to restart the web
-servers. See [development.md](development.md) for the CLI reference.
+`--instances dev,int,prod` (any subset; instances are iterated in
+dev→int→prod order but they're independent deploys, not a promotion chain),
+rebuild data with `--load-db`, re-run wrangler preprocessing with
+`--preprocess`, and pass `--restart` to restart the web servers. See
+[development.md](development.md) for the CLI reference.
 
 ## Environment Variables
 

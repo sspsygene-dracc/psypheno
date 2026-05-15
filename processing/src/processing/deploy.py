@@ -1,6 +1,12 @@
 """Deployment automation for SSPsyGene.
 
-Automates the full deployment workflow (canonical dev → int → prod order).
+Automates the full deployment workflow. The three instances are independent
+deploys, not a staging chain — dev is the staging instance for prod (public
+datasets land on dev first, then prod); int is a parallel site for embargoed
+datasets whose dataset set may be disjoint from prod's. When `--instances`
+lists more than one, they're processed in dev→int→prod order for log clarity,
+but they don't gate each other.
+
 All steps run on psygene, which has /hive access just like hgwdev and is
 also where the systemd-managed web servers live, so the restart step is
 local rather than cross-host:
@@ -69,8 +75,10 @@ PROD_ENV = _site_env(PROD_PATH)
 DEV_ENV = _site_env(DEV_PATH)
 INT_ENV = _site_env(INT_PATH)
 
-# Canonical dev → int → prod ordering: deploys roll from lowest-stakes
-# (dev) to highest-stakes (prod) regardless of the order the user lists.
+# Display/iteration order when --instances picks multiple. The three sites
+# are independent deploys (dev stages prod's public datasets; int is its own
+# parallel site for embargoed data, possibly disjoint from prod) — this
+# ordering is just for log readability, not a gating chain.
 INSTANCE_ORDER = ("dev", "int", "prod")
 INSTANCE_PATHS = {"dev": DEV_PATH, "int": INT_PATH, "prod": PROD_PATH}
 INSTANCE_ENVS = {"dev": DEV_ENV, "int": INT_ENV, "prod": PROD_ENV}
@@ -522,10 +530,11 @@ def _step_restart_psygene(instances: list[str]) -> None:
 
 
 def _resolve_instances(instances: str | None) -> list[str]:
-    """Parse the --instances string and return a list in canonical dev→int→prod order.
+    """Parse the --instances string and return the requested instances in INSTANCE_ORDER.
 
     Accepts None (= all three) or a comma-separated subset. Unknown tokens raise
-    ClickException; duplicates are deduped silently.
+    ClickException; duplicates are deduped silently. The returned order is the
+    iteration order — the instances are independent deploys, not a promotion chain.
     """
     if instances is None:
         return list(INSTANCE_ORDER)
@@ -570,7 +579,7 @@ def run_deploy(
     # current before any runs load-db or npm build).
     _step_pull_all(selected)
 
-    # Step 3 — build/load-db per site (canonical dev → int → prod order)
+    # Step 3 — build/load-db per site (iterated in INSTANCE_ORDER for log clarity)
     if preprocess:
         click.secho("\n[3a/5] Running preprocess.py on selected sites", bold=True)
         for inst in selected:

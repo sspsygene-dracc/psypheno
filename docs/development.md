@@ -185,8 +185,11 @@ Two deployment paths:
 - **From your laptop (preferred):** `sspsygene deploy` orchestrates
   `git push`, remote `git pull` on hgwdev, optional `npm run build`, optional
   `load-db`, optional preprocessing rerun, and (if requested) a
-  kill-to-respawn web restart on psygene — all in the right order
-  (`dev → int → prod`). It works for both code deploys (`--restart`) and
+  kill-to-respawn web restart on psygene. The three instances are independent
+  (dev stages prod's public datasets; int is a parallel site for embargoed
+  data); when multiple `--instances` are passed they're iterated in
+  dev→int→prod order for log clarity, but they don't gate each other.
+  It works for both code deploys (`--restart`) and
   data-only updates (`--load-db` and/or `--preprocess`); the data path is
   what wranglers usually want once a dataset commit has landed. Examples:
   - `sspsygene deploy --instances dev --load-db` — push + pull on dev +
@@ -229,8 +232,12 @@ Commands:
 
   deploy                             Deploy to prod, dev, and internal sites
     --instances dev,int,prod           Comma-separated subset of instances
-                                         (order ignored; always rolls
-                                         dev → int → prod). Default: all three.
+                                         (order ignored; iterated in
+                                         dev→int→prod order). Note: the three
+                                         sites are independent (dev stages
+                                         prod; int is a parallel site for
+                                         embargoed data), not a staging chain.
+                                         Default: all three.
     --load-db                          Rebuild DB during deploy
     --preprocess                       Re-run each dataset's preprocess.py
                                          on the selected sites before load-db

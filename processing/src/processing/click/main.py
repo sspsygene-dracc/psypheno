@@ -263,7 +263,9 @@ def run_llm_search(
     type=str,
     default=None,
     help="Comma-separated subset of {dev, int, prod} to deploy to. Order in "
-    "the list is ignored — deployment always rolls dev → int → prod. "
+    "the list is ignored — instances are iterated in dev→int→prod order. "
+    "Note: the three sites are independent (dev stages prod's public datasets; "
+    "int is a parallel site for embargoed data) — this is not a staging chain. "
     "Default: all three.",
 )
 @click.option(
