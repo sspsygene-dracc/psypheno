@@ -1,0 +1,16 @@
+#!/bin/sh
+# Self-heal shared-group permissions on files this user just created.
+#
+# The dev/int/prod checkouts on psygene are shared between wranglers (all
+# members of group `protein`), so any new file must be group-writable or the
+# next person's `git pull` fails to unlink it. We can't chmod files owned by
+# other users (chmod requires ownership), so each user heals their own
+# footprint. Combined with `core.sharedRepository=group` + the tree's default
+# POSIX ACL granting group:protein:rwx, this keeps the tree pullable for
+# everyone without per-user umask configuration.
+#
+# `2>/dev/null || true` keeps the hook silent and non-fatal — it must never
+# block a pull/merge/checkout.
+find . -user "$(id -un)" ! -perm -g+w \
+    \( -type d -exec chmod g+ws {} + -o -type f -exec chmod g+w {} + \) \
+    2>/dev/null || true

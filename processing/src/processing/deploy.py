@@ -251,11 +251,29 @@ def _step_pull_all(instances: list[str]) -> None:
     This ensures shared resources (e.g. the processing package installed
     from one site but used by others) are up-to-date before any site
     runs load-db or npm build.
+
+    The pull is wrapped with `safe.directory='*'` so wranglers don't need
+    a per-user `git config --add safe.directory ...` for the server
+    checkout paths (they're owned by whoever deployed first, which trips
+    git's CVE-2022-24765 mitigation otherwise).
+
+    After the pull we run a backstop chmod over files the deploying user
+    owns, to keep the shared checkout group-writable for the next
+    deployer. The repo's `.githooks/post-merge` already does this for
+    `git pull`, but we belt-and-suspenders it here so a deploy that hits
+    a checkout missing the hook config still self-heals.
     """
     click.secho("\n[2/5] Pulling latest code on psygene", bold=True)
     for inst in instances:
         path = INSTANCE_PATHS[inst]
-        _run_ssh(PSYGENE, f"cd {path} && git pull", desc=f"git pull ({path})")
+        _run_ssh(
+            PSYGENE,
+            f"cd {path} && git -c safe.directory='*' pull && "
+            f"find . -user \"$(id -un)\" ! -perm -g+w "
+            f"\\( -type d -exec chmod g+ws {{}} + "
+            f"-o -type f -exec chmod g+w {{}} + \\) 2>/dev/null || true",
+            desc=f"git pull ({path})",
+        )
 
 
 PREPROCESS_MAX_WORKERS = 8
