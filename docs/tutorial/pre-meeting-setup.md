@@ -230,6 +230,45 @@ Test:
 sspsygene --help
 ```
 
+Then add R + the two CRAN packages we need for the meta-analysis step
+into the same conda env (one extra command, no compiling on your laptop):
+
+```bash
+conda install -y -c conda-forge r-base r-poolr r-harmonicmeanp
+```
+
+(A third package, ACAT, isn't on conda-forge and gets installed from
+GitHub automatically the first time you run `sspsygene load-db` — you
+don't need to do anything for that one.)
+
+---
+
+## 10. (Optional but very nice) Configure SSH for the deploy
+
+To deploy datasets to the dev/int/prod servers from your laptop, your
+SSH client needs to know how to reach the UCSC machines. Add this block
+to `~/.ssh/config` (create the file if it doesn't exist), replacing
+`YOUR-UCSC-USERNAME` with the username you use to SSH into hgwdev:
+
+```
+Host hgwdev
+  HostName hgwdev.gi.ucsc.edu
+  User YOUR-UCSC-USERNAME
+```
+
+The `psygene` host (where the web servers run) isn't reachable directly
+from off-campus, but `sspsygene deploy` will automatically proxy through
+hgwdev for you — so this one block is all you need.
+
+Test:
+
+```bash
+ssh hgwdev "hostname"   # should print "hgwdev.gi.ucsc.edu"
+```
+
+You'll be prompted for your UCSC password the first time (or your SSH
+key if you have one configured).
+
 ---
 
 ## What to do if something fails
