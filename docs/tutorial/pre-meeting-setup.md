@@ -269,6 +269,26 @@ ssh hgwdev "hostname"   # should print "hgwdev.gi.ucsc.edu"
 You'll be prompted for your UCSC password the first time (or your SSH
 key if you have one configured).
 
+While you're SSH'd in, also check your shell's `umask` on both `hgwdev`
+and `psygene`:
+
+```bash
+ssh hgwdev "umask"
+ssh -J hgwdev psygene "umask"   # the deploy proxies through hgwdev to reach psygene
+```
+
+Both should print `0002`. If either prints `0022` (the historical
+default), the files you create on that host will be group-read-only,
+which breaks `git pull` for the next wrangler who tries to update the
+same files via `sspsygene deploy`. Fix by adding one line to your
+`~/.bashrc` on that host:
+
+```bash
+umask 0002
+```
+
+Then open a fresh shell on the host and re-run `umask` to confirm.
+
 ---
 
 ## What to do if something fails

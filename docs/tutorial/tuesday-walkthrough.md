@@ -651,6 +651,12 @@ dev SQLite DB gets rebuilt. Both are quick to do from your laptop.
 > If you ever do need to touch a server checkout for an emergency, run
 > `git status` before you leave and either commit + push from there or
 > `git checkout -- <file>` to drop the change so the tree is clean.
+>
+> Also: one-time check that `ssh -J hgwdev psygene "umask"` prints
+> `0002` and not `0022`. If it's `0022`, any file you create on psygene
+> will be group-read-only and the next person's deploy will fail when it
+> tries to update that file. Fix by adding `umask 0002` to your
+> `~/.bashrc` on psygene. The pre-meeting setup doc walks through this.
 
 **Step 1 — rsync the data files.** Configs and `preprocess.py` reach
 the dev server through the `git pull` that `sspsygene deploy` runs in
