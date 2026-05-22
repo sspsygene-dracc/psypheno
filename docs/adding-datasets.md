@@ -893,9 +893,14 @@ independent deploys — failures on one don't roll back the others. Useful flags
 - `--preprocess` — also re-run each dataset's `preprocess.py` on the server
   before `load-db`. Use when a `preprocess.py` change has landed and the
   cleaned data files on the server are now stale.
-- `--restart` — restart the Next.js web servers after the build. Only needed
-  for **JS / web changes**; data-only updates don't need it because the web
-  process auto-detects DB swaps.
+- `--build` — run `npm install` + `npm run build` on the server, then
+  restart the Next.js web service. **Wranglers don't need this** — it's
+  only for JS / web code changes (and only Johannes typically runs it,
+  since the restart step only works for the user who owns the systemd
+  unit). If you genuinely need a web rebuild deployed, ping Johannes.
+- `--restart` / `--no-restart` — explicit override of the restart step.
+  Default tracks `--build`. Data-only updates don't need a restart
+  because the web process auto-detects DB swaps.
 - `--no-push` — skip the local `git push` (handy if you've already pushed).
 - `--run-tests` — after each site's build, run `scripts/test.sh server` on
   psygene plus `scripts/test.sh e2e` against the deployed URL. Aborts on

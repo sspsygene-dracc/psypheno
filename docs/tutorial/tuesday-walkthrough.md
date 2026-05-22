@@ -747,9 +747,14 @@ Useful flags:
 - `--preprocess` — re-run each dataset's `preprocess.py` on the
   server before `load-db`. Use this when a `preprocess.py` change
   has landed and the server's cleaned data files are now stale.
-- `--restart` — kill-respawn the web service. Needed when JS / web
-  code has changed; not needed for data-only deploys (the web
-  process auto-detects the new DB file).
+- `--build` — `npm install` + `npm run build` on the server, then
+  restart the Next.js web service. **You generally don't need this**
+  — it's for JS / web code changes, and the restart step only works
+  for the user who owns the systemd unit (currently Johannes). If a
+  web rebuild needs deploying, ping Johannes.
+- `--restart` / `--no-restart` — explicit override of the implicit
+  restart. Data-only deploys don't need it (the web process
+  auto-detects DB file swaps).
 - `--no-push` — skip the `git push` step (useful if you've already
   pushed manually).
 - `--run-tests` — after each site's build, run server tests on

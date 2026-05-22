@@ -434,9 +434,15 @@ def _step_deploy_site(
     *,
     label: str,
     load_db: bool,
+    build: bool,
     env_vars: dict[str, str] | None = None,
 ) -> None:
-    """Optionally rebuild DB, and build the web app on psygene."""
+    """Optionally rebuild DB, and optionally build the web app on psygene.
+
+    `build` is off by default because (a) wranglers running data deploys
+    don't need it, and (b) the resulting service restart only works
+    cleanly for the user who owns the systemd unit (see restart step).
+    """
     click.echo(f"\n  --- {label} ({path}) ---")
 
     if load_db:
@@ -455,6 +461,13 @@ def _step_deploy_site(
             timeout=LOAD_DB_TIMEOUT,
             stream=True,
         )
+
+    if not build:
+        click.echo(
+            "  Skipping npm install + npm run build (default — pass --build "
+            "when web/ code has changed)."
+        )
+        return
 
     # Sync npm deps from package-lock.json before building so a package.json
     # bump in the just-pulled commit doesn't get built against a stale
@@ -586,11 +599,22 @@ def run_deploy(
     load_db: bool = False,
     no_push: bool = False,
     instances: str | None = None,
-    restart: bool = True,
+    build: bool = False,
+    restart: bool | None = None,
     preprocess: bool = False,
     run_tests: bool = False,
 ) -> None:
-    """Run the full deployment pipeline."""
+    """Run the full deployment pipeline.
+
+    `build` gates `npm install` + `npm run build` (default off — wranglers
+    running data deploys never need it). When `build` is true, `restart`
+    defaults to true because the new build mints a fresh Next.js build ID
+    that invalidates the running service's served HTML; pass `restart=False`
+    explicitly to opt out.
+    """
+    if restart is None:
+        restart = build
+
     selected = _resolve_instances(instances)
 
     _preflight_checks()
@@ -622,28 +646,34 @@ def run_deploy(
             INSTANCE_PATHS[inst],
             label=INSTANCE_LABELS[inst],
             load_db=load_db,
+            build=build,
             env_vars=INSTANCE_ENVS[inst],
         )
 
     # Step 4 — restart web servers BEFORE tests so e2e hits the new build.
-    # Default is to restart, because step 3 always runs `npm run build` which
-    # mints a new Next.js build ID. The running service's already-served HTML
-    # references the OLD build ID's manifest files (which the new build just
-    # overwrote on disk), so without a restart users get 404s on
-    # `_buildManifest.js` / `_clientMiddlewareManifest.js` and the page hangs
-    # on "Loading...". --no-restart is the opt-out.
+    # Default tracks --build: a build mints a new Next.js build ID that
+    # invalidates the running service's served HTML (references to the old
+    # build ID's manifest files 404 because the new build overwrote them on
+    # disk), so any --build run also needs a restart. Data-only deploys
+    # (--load-db / --preprocess) don't, since the web process auto-detects
+    # DB inode/mtime changes via web/lib/db.ts.
     if restart:
         _step_restart_psygene(selected)
-    else:
+    elif build:
         click.secho(
-            "\n[4/5] Skipping restart (--no-restart). Note: any `npm run build`",
+            "\n[4/5] Skipping restart (--no-restart) AFTER --build. Heads up: ",
             bold=True,
         )
         click.echo(
-            "      that ran in step 3 has invalidated the running service's served"
+            "      `npm run build` invalidated the running service's served HTML;"
         )
         click.echo(
-            "      HTML — users may hit 404s on `_buildManifest.js` until restart."
+            "      users may hit 404s on `_buildManifest.js` until you restart."
+        )
+    else:
+        click.secho(
+            "\n[4/5] Skipping restart (default for data-only deploys).",
+            bold=True,
         )
 
     # Step 5 — run tests against each deployed site (after build/load-db AND

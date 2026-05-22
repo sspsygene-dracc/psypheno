@@ -183,12 +183,14 @@ checkout and database on `/hive`:
 Two deployment paths:
 
 - **From your laptop (preferred):** `sspsygene deploy` orchestrates
-  `git push`, remote `git pull` on hgwdev, optional `npm run build`, optional
-  `load-db`, optional preprocessing rerun, and (if requested) a
-  kill-to-respawn web restart on psygene. The three instances are independent
-  (dev stages prod's public datasets; int is a parallel site for embargoed
-  data); when multiple `--instances` are passed they're iterated in
-  dev→int→prod order for log clarity, but they don't gate each other.
+  `git push`, remote `git pull` on hgwdev, optional `load-db`, optional
+  preprocessing rerun, optional `npm install` + `npm run build` (only with
+  `--build`), and an optional kill-to-respawn web restart on psygene
+  (implicit with `--build`, otherwise off). The three instances are
+  independent (dev stages prod's public datasets; int is a parallel site
+  for embargoed data); when multiple `--instances` are passed they're
+  iterated in dev→int→prod order for log clarity, but they don't gate
+  each other.
 
   **Prerequisite (one-time, per psygene user):** miniconda/anaconda must
   be installed at one of the paths the deploy script's `CONDA_INIT` looks
@@ -204,17 +206,30 @@ Two deployment paths:
   [processing/src/processing/deploy.py](../processing/src/processing/deploy.py).
   Within that env, you need a conda env named `sspsygene` with the same
   Python + R packages as the local install (see *Install* above).
-  It works for both code deploys (`--restart`) and
-  data-only updates (`--load-db` and/or `--preprocess`); the data path is
-  what wranglers usually want once a dataset commit has landed. Examples:
+  It works for both data-only updates (`--load-db` and/or `--preprocess`,
+  no service restart needed because the web process auto-detects DB
+  inode/mtime changes) and code deploys (`--build`, which implies a
+  service restart so the new build ID is served). Examples:
   - `sspsygene deploy --instances dev --load-db` — push + pull on dev +
-    rebuild dev DB.
+    rebuild dev DB. **This is the wrangler default flow.** No `npm run
+    build`, no restart.
   - `sspsygene deploy --instances dev --preprocess --load-db` — also
     re-run each dataset's `preprocess.py` on dev before rebuilding (use
     when a `preprocess.py` change has landed and cleaned data files on
     the server are stale).
-  - `sspsygene deploy --instances dev --restart` — code-only redeploy
-    with service restart (for JS / web changes).
+  - `sspsygene deploy --instances dev --build` — pull + `npm install` +
+    `npm run build` + restart the web service. Use only when JS/TS code
+    under `web/` has changed. Wranglers don't typically run this — leave
+    it to whoever is touching the web/ code.
+
+  **Why `--build` is off by default:** `npm run build` mints a fresh
+  Next.js build ID; without a follow-up restart the running service
+  keeps serving HTML that references the OLD build ID's manifest files,
+  which the new build just overwrote on disk, producing 404s on
+  `_buildManifest.js` and a stuck "Loading…" UI. The implicit restart
+  is what avoids that, and the restart only works cleanly for the user
+  who owns the systemd unit (currently `jbirgmei`) — so the safe
+  default for wranglers is to not touch the build at all.
 
   See the CLI reference below and the wrangler-facing recipe in
   [adding-datasets.md](adding-datasets.md) → Step 7.
@@ -265,8 +280,17 @@ Commands:
                                          that site's URL. Hard-aborts on the
                                          first failure.
     --no-push                          Skip git push
-    --restart                          Restart web servers (default: no restart;
-                                         web auto-detects DB changes)
+    --build / --no-build               Run `npm install` + `npm run build`
+                                         on each selected site. Default OFF.
+                                         Pass --build only when JS/TS under
+                                         web/ has changed. Implies --restart.
+    --restart / --no-restart           Kill-and-respawn the npm processes for
+                                         the selected instances. Default
+                                         tracks --build (on if building, off
+                                         otherwise). Only works for the user
+                                         whose systemd unit owns the npm
+                                         process — currently jbirgmei. Other
+                                         wranglers' restart silently no-ops.
 
   e2e-deployed INSTANCE              Run playwright e2e tests locally
                                        against a deployed instance

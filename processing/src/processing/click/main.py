@@ -269,15 +269,25 @@ def run_llm_search(
     "Default: all three.",
 )
 @click.option(
+    "--build/--no-build",
+    default=False,
+    help="Run `npm install` + `npm run build` on each selected site. Default "
+    "is off — wranglers running data/preprocess-only deploys never need this. "
+    "Pass --build when JS/TS under web/ has changed. Implies --restart unless "
+    "--no-restart is passed (the build mints a new Next.js build ID that "
+    "invalidates the running service's served HTML).",
+)
+@click.option(
     "--restart/--no-restart",
-    default=True,
+    default=None,
     help="Restart web servers on psygene for the deployed instances after "
     "build/load-db (and before --run-tests, so e2e hits the new build). "
-    "Default is to restart — every deploy runs `npm run build`, which mints "
-    "a new Next.js build ID and invalidates the running service's served "
-    "HTML (it references the old build ID's manifest files, which the new "
-    "build overwrote). Use --no-restart only if you know the build is a "
-    "no-op for the running service.",
+    "Default tracks --build: if you're building, you're restarting. Note "
+    "the restart step uses kill-and-respawn against npm processes you own, "
+    "so it only effectively bounces services whose systemd unit's User= "
+    "matches the SSH'd user — currently `jbirgmei`. For other wranglers it "
+    "silently no-ops; ask Johannes to restart, or `sudo systemctl restart "
+    "sspsygene-dev` if you have sudo and don't mind the prompt.",
 )
 @click.option(
     "--preprocess",
@@ -300,7 +310,8 @@ def deploy(
     load_db: bool,
     no_push: bool,
     instances: str | None,
-    restart: bool,
+    build: bool,
+    restart: bool | None,
     preprocess: bool,
     run_tests: bool,
 ) -> None:
@@ -311,6 +322,7 @@ def deploy(
         load_db=load_db,
         no_push=no_push,
         instances=instances,
+        build=build,
         restart=restart,
         preprocess=preprocess,
         run_tests=run_tests,
