@@ -586,7 +586,7 @@ def run_deploy(
     load_db: bool = False,
     no_push: bool = False,
     instances: str | None = None,
-    restart: bool = False,
+    restart: bool = True,
     preprocess: bool = False,
     run_tests: bool = False,
 ) -> None:
@@ -626,18 +626,24 @@ def run_deploy(
         )
 
     # Step 4 — restart web servers BEFORE tests so e2e hits the new build.
-    # Default is no restart; the web process auto-detects DB changes via
-    # inode/mtime check in web/lib/db.ts, so JS-only deploys need --restart
-    # but DB-only deploys do not.
+    # Default is to restart, because step 3 always runs `npm run build` which
+    # mints a new Next.js build ID. The running service's already-served HTML
+    # references the OLD build ID's manifest files (which the new build just
+    # overwrote on disk), so without a restart users get 404s on
+    # `_buildManifest.js` / `_clientMiddlewareManifest.js` and the page hangs
+    # on "Loading...". --no-restart is the opt-out.
     if restart:
         _step_restart_psygene(selected)
     else:
         click.secho(
-            "\n[4/5] Skipping restart (default). The web process auto-detects DB",
+            "\n[4/5] Skipping restart (--no-restart). Note: any `npm run build`",
             bold=True,
         )
         click.echo(
-            "      changes; pass --restart if JS code changed and needs reloading."
+            "      that ran in step 3 has invalidated the running service's served"
+        )
+        click.echo(
+            "      HTML — users may hit 404s on `_buildManifest.js` until restart."
         )
 
     # Step 5 — run tests against each deployed site (after build/load-db AND

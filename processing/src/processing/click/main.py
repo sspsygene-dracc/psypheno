@@ -269,14 +269,15 @@ def run_llm_search(
     "Default: all three.",
 )
 @click.option(
-    "--restart",
-    is_flag=True,
-    default=False,
+    "--restart/--no-restart",
+    default=True,
     help="Restart web servers on psygene for the deployed instances after "
     "build/load-db (and before --run-tests, so e2e hits the new build). "
-    "Default is no restart — the web process auto-detects DB changes (see "
-    "web/lib/db.ts), so DB-only deploys do not need this. Pass it whenever "
-    "JS code has changed.",
+    "Default is to restart — every deploy runs `npm run build`, which mints "
+    "a new Next.js build ID and invalidates the running service's served "
+    "HTML (it references the old build ID's manifest files, which the new "
+    "build overwrote). Use --no-restart only if you know the build is a "
+    "no-op for the running service.",
 )
 @click.option(
     "--preprocess",
