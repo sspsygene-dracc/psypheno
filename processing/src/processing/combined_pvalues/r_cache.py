@@ -135,6 +135,11 @@ def store(key: str, results_csv: Path) -> None:
     tmp = Path(tmp_str)
     try:
         shutil.copyfile(results_csv, tmp)
+        # mkstemp creates with mode 0o600 (owner-only). On a shared checkout
+        # that breaks cache reads for other users, and combined with the
+        # cache dir's default POSIX ACL we'd actually see mode 620 land
+        # (rw--w----). Set 0o664 explicitly so other group members can read.
+        os.chmod(tmp, 0o664)
         os.replace(tmp, dest)
     except BaseException:
         tmp.unlink(missing_ok=True)

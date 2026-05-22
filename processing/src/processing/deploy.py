@@ -94,7 +94,16 @@ INSTANCE_E2E_URLS = {
 INSTANCE_PORTS = {"dev": 3112, "int": 3111, "prod": 3110}
 
 CONDA_ENV = "sspsygene"
-CONDA_INIT = "source $HOME/opt_rocky9/miniconda3/etc/profile.d/conda.sh"
+# Source conda.sh from whichever common location exists for this user, so
+# the deploy works regardless of where they installed miniconda/anaconda.
+# Each `source` candidate is tried in order; the first existing one wins.
+CONDA_INIT = (
+    'for f in "$HOME/opt_rocky9/miniconda3/etc/profile.d/conda.sh"'
+    ' "$HOME/miniconda3/etc/profile.d/conda.sh"'
+    ' "$HOME/anaconda3/etc/profile.d/conda.sh"'
+    ' "/opt/conda/etc/profile.d/conda.sh"'
+    '; do [ -f "$f" ] && source "$f" && break; done'
+)
 
 # Timeouts (seconds)
 LOCAL_TIMEOUT = 120
