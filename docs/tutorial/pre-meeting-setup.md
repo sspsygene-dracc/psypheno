@@ -269,8 +269,30 @@ ssh hgwdev "hostname"   # should print "hgwdev.gi.ucsc.edu"
 You'll be prompted for your UCSC password the first time (or your SSH
 key if you have one configured).
 
-While you're SSH'd in, also check your shell's `umask` on both `hgwdev`
-and `psygene`:
+While you're SSH'd in, two more one-time checks on the psygene side.
+
+**a) miniconda location.** `sspsygene deploy` runs `load-db` and
+`preprocess.py` inside a conda env on psygene, and it looks for your
+miniconda install at one of these paths (in order):
+
+1. `$HOME/opt_rocky9/miniconda3/`
+2. `$HOME/miniconda3/`           (the default for the Linux installer)
+3. `$HOME/anaconda3/`
+4. `/opt/conda/`
+
+If yours is in one of those, you're set. If not, the easiest fix is a
+symlink, e.g.:
+
+```bash
+ssh psygene
+ln -s /path/to/your/actual/miniconda3 ~/miniconda3
+```
+
+You'll also need a conda env named `sspsygene` on psygene with the same
+Python and R packages as your laptop (the cluster admins usually have a
+shared install, ask if you don't have one).
+
+**b) umask.** Check your shell's `umask` on both `hgwdev` and `psygene`:
 
 ```bash
 ssh hgwdev "umask"

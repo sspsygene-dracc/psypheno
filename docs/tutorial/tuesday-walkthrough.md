@@ -657,6 +657,12 @@ dev SQLite DB gets rebuilt. Both are quick to do from your laptop.
 > will be group-read-only and the next person's deploy will fail when it
 > tries to update that file. Fix by adding `umask 0002` to your
 > `~/.bashrc` on psygene. The pre-meeting setup doc walks through this.
+>
+> Also: your miniconda on psygene needs to live at one of the four
+> paths `sspsygene deploy` searches (`$HOME/opt_rocky9/miniconda3/`,
+> `$HOME/miniconda3/`, `$HOME/anaconda3/`, or `/opt/conda/`) — see the
+> pre-meeting setup doc. If yours is elsewhere, a one-time `ln -s` into
+> one of those paths is enough.
 
 **Step 1 — rsync the data files.** Configs and `preprocess.py` reach
 the dev server through the `git pull` that `sspsygene deploy` runs in

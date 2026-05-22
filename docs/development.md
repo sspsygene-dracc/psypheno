@@ -189,6 +189,21 @@ Two deployment paths:
   (dev stages prod's public datasets; int is a parallel site for embargoed
   data); when multiple `--instances` are passed they're iterated in
   dev→int→prod order for log clarity, but they don't gate each other.
+
+  **Prerequisite (one-time, per psygene user):** miniconda/anaconda must
+  be installed at one of the paths the deploy script's `CONDA_INIT` looks
+  for. In order, it tries:
+  1. `$HOME/opt_rocky9/miniconda3/`
+  2. `$HOME/miniconda3/`           (the default `Miniconda3-...-Linux-x86_64.sh` install path)
+  3. `$HOME/anaconda3/`
+  4. `/opt/conda/`
+
+  The first one that has `etc/profile.d/conda.sh` is sourced. If your
+  install lives elsewhere, either symlink it into one of those locations
+  or add your path to the list in
+  [processing/src/processing/deploy.py](../processing/src/processing/deploy.py).
+  Within that env, you need a conda env named `sspsygene` with the same
+  Python + R packages as the local install (see *Install* above).
   It works for both code deploys (`--restart`) and
   data-only updates (`--load-db` and/or `--preprocess`); the data path is
   what wranglers usually want once a dataset commit has landed. Examples:
