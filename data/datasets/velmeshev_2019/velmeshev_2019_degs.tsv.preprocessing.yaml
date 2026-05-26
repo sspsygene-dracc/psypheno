@@ -1,0 +1,60 @@
+generated: '2026-05-26T18:23:36Z'
+output: velmeshev_2019_degs.tsv
+inputs: []
+actions:
+- step: from_dataframe
+  source: TableS4_ASD_DEGs
+  rows: 692
+  columns:
+  - cell_type
+  - gene_id
+  - gene
+  - gene_biotype
+  - fold_change
+  - sample_fold_change
+  - q_value
+  - bulk_correlation
+  - epilepsy_deg
+  - gene_group
+  - sfari_gene
+  - satterstrom
+  - sanders
+  - cell_type_specific
+- step: clean_gene_column
+  column: gene
+  species: human
+  flags: {}
+  counts:
+    passed_through: 669
+    rescued_gencode_clone_hgnc_symbol: 5
+    non_symbol_gencode_clone: 5
+    rescued_gencode_clone_current_ensg: 6
+    non_symbol_contig: 3
+    unresolved: 4
+  dropped_rows: 0
+  sample_unresolved:
+  - MPP6
+  - CH17-472G23.1
+  - CH17-472G23.1
+  - CH17-472G23.2
+- step: write_csv
+  destination: velmeshev_2019_degs.tsv
+  separator: "\t"
+  rows: 692
+  columns:
+  - cell_type
+  - gene_id
+  - gene
+  - gene_biotype
+  - fold_change
+  - sample_fold_change
+  - q_value
+  - bulk_correlation
+  - epilepsy_deg
+  - gene_group
+  - sfari_gene
+  - satterstrom
+  - sanders
+  - cell_type_specific
+  - gene_raw
+  - _gene_resolution
