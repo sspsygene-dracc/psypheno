@@ -33,51 +33,6 @@ do this end-to-end, without help:
 
 ---
 
-## Why we're doing this (5 min)
-
-> *Notes for Johannes — keep this brief, no slides.*
-
-- **Today**, all of you edit the dev-server checkout directly, on `main`,
-  on a single shared filesystem. That has worked, but it has two problems:
-  1. We trip over each other — multiple people on the same `main` branch
-     means one person's half-finished change blocks everyone else.
-  2. You can't try a "what if I do it this way?" without breaking the
-     live dev site for the rest of the team.
-- **The fix is the standard pattern that software teams use:** each ticket
-  gets its own *branch* on a *local* checkout. You experiment freely, you
-  commit when it works, and only then does it land on `main` and reach
-  the server.
-- **Claude Code is a tool that fits this workflow well.** It can read the
-  repo, talk to GitHub via `gh`, read paper PDFs (if you put them in
-  `papers/`), and write `preprocess.py` + `config.yaml` for you. The big
-  win is that 80% of dataset wrangling is mechanical — download the
-  supplement, parse the spreadsheet, normalize gene names, write a YAML
-  describing what's where — and Claude is good at exactly that. Your job
-  shifts from *typing* to *judging*: did it interpret the columns right,
-  did it pick the right species, did it sanity-check the row counts.
-
----
-
-## 0. Facilitator pre-flight (Johannes only — not done in front of the room)
-
-Before the meeting:
-
-- [ ] Open this file in VSCode on the projector.
-- [ ] In a browser tab, open
-      https://github.com/sspsygene-dracc/psypheno/issues with filter
-      `label:dataset is:open no:assignee`.
-- [ ] **Pre-pick one or two safe demo tickets** — ideally a published paper
-      (PMID, not bioRxiv) with an accessible supplementary table, single
-      table, no exotic gene-symbol situations. Note the issue numbers.
-- [ ] Have a terminal in `~/code/psypheno` ready, on `main`, clean
-      `git status`.
-- [ ] Have a Claude Code session ready to launch (don't pre-launch — show
-      the launch live).
-- [ ] Confirm everyone replied to the setup email; pair anyone who's
-      stuck with someone who finished.
-
----
-
 ## 1. Verify everyone's setup (10 min)
 
 Ask each person to run, in their own terminal:
@@ -151,6 +106,8 @@ cd ~/code/psypheno
 # open in your editor and paste the template below:
 code CLAUDE.md
 ```
+
+TODO: CLAUDE.md needs to be pointed to the conda environment
 
 ### Wrangler `CLAUDE.md` starter template
 
@@ -273,7 +230,12 @@ In a browser, open
 https://github.com/sspsygene-dracc/psypheno/issues?q=is%3Aopen+label%3Adataset+no%3Aassignee
 and pick one. Note the issue number.
 
-In your terminal, read it:
+TODO: instead of reading/modifying tickets/commenting/assigning in your terminal, point users to the github.com website and make them do stuff there
+
+TODO: need to set up environment variables
+
+TODO: need to scp data/homology/other necessary files to localhost before
+sspsygene load-db runs
 
 ```bash
 gh issue view 142 --repo sspsygene-dracc/psypheno
@@ -322,11 +284,19 @@ git branch --show-current
 
 ### 4.4 Hand the ticket to Claude
 
+TODO: before, create a data/datasets directory with naming convention 
+
+TODO: before doing anything else, download the paper PDF, supplementary methods
+PDF (if available) and all necessary supplementary data files to the newly
+created dir. 
+
 In the same terminal, from the repo root:
 
 ```bash
 claude
 ```
+
+TODO: edit the prompt to point Claude to the downloaded data
 
 A `>` prompt appears. The pattern Johannes uses (verbatim from real
 sessions) is to paste the issue URL or number and ask for a plan
@@ -396,6 +366,10 @@ If Claude got something wrong, tell it — natural language is fine:
 
 ### 4.6 Run `preprocess.py` locally
 
+TODO: instead of running this manually, tell Claude to run it, fix any problems
+that appear, and if it runs successfully, have a look at the output to see if
+everything's working
+
 ```bash
 conda activate sspsygene
 cd data/datasets/<your-dataset>
@@ -403,6 +377,10 @@ python preprocess.py
 head results.tsv
 wc -l results.tsv
 ```
+
+TODO: when creating your branch and comitting, push the branch with -u
+
+TODO: just don't delete branches, let's keep them around
 
 Sanity-check the output:
 
@@ -421,6 +399,8 @@ cd ~/code/psypheno
 mv data/datasets/<your-dataset>/config_DRAFT.yaml \
    data/datasets/<your-dataset>/config.yaml
 ```
+
+TODO: this needs a git commit again
 
 Then run the fast-iteration form:
 
@@ -449,6 +429,12 @@ If it fails, read the error message; common ones:
 - `ValueError` about `shortLabel` — must be lowercase letters, digits,
   and underscores only.
 
+TODO: if data files are missing, perhaps they exist on the server (e.g., the
+homology file)
+
+TODO: skip to the recommended alternative (letting claude commit for you) by
+default
+
 If the loader passes, **sanity-check biology** before signing off. The
 pattern Johannes uses is to ask Claude to confirm a known biological
 result recapitulates — for an ASD postmortem-cortex dataset, for
@@ -475,6 +461,8 @@ git status                  # confirm — should NOT include the raw download or
 git commit
 ```
 
+TODO: note prominently that we want the ticket number in the commit message
+
 Your editor opens for the commit message. The convention (from real
 recent commits) is:
 
@@ -488,7 +476,7 @@ Verified via single-dataset load-db; <one-line biology check that
 recapitulates>.
 ```
 
-The `(#142)` at the end of the **title line** is important — GitHub
+The `#142` at the end of the **title line** is important — GitHub
 uses it to link the commit to the ticket.
 
 What we **don't** commit:
@@ -533,10 +521,16 @@ write the message myself"* — fine pattern too.
 While you were working, others may have pushed changes to `main`. You
 need to replay your commits on top of theirs *before* you can merge:
 
+TODO: let's just switch to main, git pull, then switch to the branch again, and
+rebase on the local main. This is less complicated mentally
+
 ```bash
 git fetch origin main
 git rebase origin/main
 ```
+
+TODO: instead of the below, just write, instead of conflicts, let claude analyze
+the situation and resolve with the other wranglers how to continue if necessary
 
 Two things can happen:
 
@@ -591,6 +585,9 @@ summary. **Don't close the ticket yet** — dataset tickets stay open
 until you've pushed through to prod and verified the live site. You'll
 close it yourself in Section 6.
 
+TODO: don't forget to comment in the browser, not on the command line. Or in
+fact, better ask Claude to comment
+
 ```bash
 gh issue comment 142 --repo sspsygene-dracc/psypheno --body "$(cat <<'EOF'
 Landed in <commit-hash>.
@@ -612,6 +609,8 @@ EOF
 (Replace `<commit-hash>` with the real hash — `git log -1 --format=%h`.)
 
 ### 4.13 Clean up your local branch (optional)
+
+TODO: let's remove the cleaning up the branch stuff
 
 Once your changes are on `main`, the feature branch is dead weight:
 
@@ -664,6 +663,12 @@ dev SQLite DB gets rebuilt. Both are quick to do from your laptop.
 > pre-meeting setup doc. If yours is elsewhere, a one-time `ln -s` into
 > one of those paths is enough.
 
+TODO: rsync data files is wrong. This must not happen! First of all, it copies
+everything, which is going to mess up further git pulls, second it copies the
+files without group write permissions. TODO: finally, this necessitates creating
+the data directory on the server first AND THIS NEEDS TO HAPPEN WITH GROUP WRITE
+PERMISSIONS
+
 **Step 1 — rsync the data files.** Configs and `preprocess.py` reach
 the dev server through the `git pull` that `sspsygene deploy` runs in
 the next step. But the processed data files (`results.tsv` and the raw
@@ -683,6 +688,9 @@ target rather than nesting one inside another.)
 ```bash
 sspsygene deploy --instances dev --load-db
 ```
+
+TODO: git pull didn't execute for Brian at all, failed silently, and for
+Brittney it asked for password
 
 This pushes `main` to GitHub if you haven't already, `git pull`s on the
 dev server, rebuilds the dev SQLite DB, and the running web process

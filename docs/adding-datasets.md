@@ -150,6 +150,8 @@ if __name__ == "__main__":
   schema reshape
 - `transform_column(column, func, description=...)` — one-off custom edits
 - `insert_column(name, value, position=None)` — constants or computed cols
+- `split_column(source, new_col1, new_col2, sep)` — split a compound
+  identifier like `Foxg1_3` into gene + index (keeps the source column)
 - `write_csv(path)` / `write_tsv(path)` — finish
 
 For unchanged companion files (e.g. a patient list referenced from another
@@ -413,11 +415,6 @@ tables:
                                     # also have just one direction (pure-target
                                     # or pure-perturbed).
 
-    # --- Column splitting (usually not needed) ---
-
-    split_column_map: []            # Leave as empty list [] unless you need to
-                                    # split a column. See "Advanced" section below.
-
     # --- Custom field labels / column descriptions (optional) ---
     #
     # fieldLabels lets you add human-readable descriptions to columns.
@@ -485,7 +482,6 @@ tables:
     organism_key: human
     in_path: results.csv
     separator: ","
-    split_column_map: []
     pvalue_column: pvalue            # omit if no p-value column
     fdr_column: padj                 # omit if no FDR column
     effect_column: logFC             # omit if no signed effect-size column
@@ -550,12 +546,9 @@ If your gene symbols are from mouse or zebrafish, change the `species` field:
 The pipeline will automatically map mouse/zebrafish genes to their human
 orthologs so they appear on the correct gene pages.
 
-If your mouse gene symbols are lowercase (e.g. `shank3` instead of `Shank3`),
-add `to_upper: true` to convert them:
-
-```yaml
-        to_upper: true
-```
+Mouse symbols are matched case-insensitively, so lowercase input
+(e.g. `shank3`) resolves to the approved symbol (`Shank3`) automatically —
+you don't need to do anything special for casing.
 
 ### Advanced gene mapping options
 
@@ -568,41 +561,54 @@ These are optional fields you can add to a gene mapping if needed:
         species: human
         perturbed_or_target: target
 
-        # Skip specific values that aren't real gene names:
-        ignore_missing: ["NA", "None", "Intergenic"]
-
         # Skip empty/NaN values silently (instead of warning):
         ignore_empty: true
 
         # If a column contains multiple genes separated by a delimiter:
         multi_gene_separator: ","
         # Example: a cell containing "SHANK3,NRXN1" will be split into two links
-
-        # Fix gene names that don't match the database:
-        replace:
-          "TBCE.1": "TBCE"
-          "MATR3.1": "MATR3"
-
-        # For Ensembl mouse gene IDs instead of symbols:
-        gene_type: "ensmus"
 ```
 
-### Column splitting (split_column_map)
+**Gene-name cleanup belongs in `preprocess.py`, not `config.yaml`.** The old
+`to_upper`, `replace`, `ignore_missing`, and `gene_type` knobs have been
+removed from `config.yaml` (using them now fails `load-db`). Do these in your
+preprocessing script (Step 3) instead:
+
+- **Fix names that don't match the database** (the old `replace:`) → pass
+  `clean_gene(column, species=..., manual_aliases={"OLD": "NEW"})`. For
+  `R make.unique`-style `.1`/`.2` suffixes (`MATR3.1` → `MATR3`), the
+  default `strip_make_unique=True` already handles it.
+- **Skip values that aren't real gene names** (the old `ignore_missing:`) →
+  drop the rows with `.filter_rows(...)` / `.dropna(...)` in preprocess.py,
+  or — for control labels and predicted-gene stubs you want to *keep* — use
+  the `non_resolving:` block (`control_values` / `record_values`).
+- **Ensembl IDs instead of symbols** (the old `gene_type:`) → handled
+  automatically; `clean_gene(..., resolve_via_ensembl_map=True)` (the
+  default) converts `ENSG…` / `ENSMUSG…` to symbols and preserves the
+  original in `<col>_raw`.
+
+See [docs/wrangler_gene_cleanup.md](wrangler_gene_cleanup.md) for the full
+gene-cleanup migration guide.
+
+### Column splitting
 
 This is rarely needed. Use it when a column contains two pieces of information
-joined by a separator that you want to split apart. For example, if a column
-called `perturbation` contains values like `Foxg1_0` (gene name + replicate
-index):
+joined by a separator that you want to split apart. Do this in your
+`preprocess.py` (see Step 3) with the `split_column` pipeline step — **not** in
+`config.yaml`. For example, if a column called `perturbation` contains values
+like `Foxg1_0` (gene name + replicate index):
 
-```yaml
-    split_column_map:
-      - source_col: perturbation
-        new_col1: _perturbation_gene
-        new_col2: _perturbation_idx
-        sep: "_"
+```python
+    .split_column(
+        source="perturbation",
+        new_col1="_perturbation_gene",
+        new_col2="_perturbation_idx",
+        sep="_",
+    )
 ```
 
-This keeps the original column and adds two new columns.
+This keeps the original column and adds two new columns. See
+`data/datasets/mouse-perturb-4tf/preprocess.py` for a real example.
 
 ### Dataset title format
 
@@ -657,9 +663,6 @@ differentiate by the Assay/Medium half — see e.g. `data/datasets/zebraAsd/`
 
 5. **Duplicate `table` names:** The `table` field must be unique across ALL
    datasets in the entire project, not just within your config file.
-
-6. **Forgetting `split_column_map: []`:** Even if you don't use column
-   splitting, you must include `split_column_map: []` (empty list).
 
 ---
 
@@ -1031,8 +1034,10 @@ that includes your dataset name as a prefix.
 - Check that `species` is correct (human/mouse/zebrafish)
 - Check that the gene symbols in your data match standard nomenclature
   (HGNC for human, MGI for mouse, ZFIN for zebrafish)
-- If symbols are non-standard, use the `replace` option in gene_mappings
-- If symbols are lowercase mouse genes, add `to_upper: true`
+- If symbols are non-standard, fix them in `preprocess.py` with
+  `clean_gene(..., manual_aliases={"OLD": "NEW"})` (see Step 3)
+- Lowercase mouse symbols (`shank3`) resolve automatically — they're
+  matched case-insensitively, so no extra step is needed
 
 ### "Permission denied" during deployment
 

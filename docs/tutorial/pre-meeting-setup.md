@@ -1,9 +1,5 @@
 # Pre-meeting setup for Tuesday's Claude + Git session
 
-> **Suggested email subject:** "Setup for Tuesday's Claude/Git session — please run before the meeting"
-
-Hi all,
-
 On Tuesday we're going to spend the meeting working through how to use **Claude
 Code** as a "dataset-wrangler assistant" on your laptop, and how to use **git
 branches** so we can stop stepping on each other while we add datasets. The
@@ -211,6 +207,8 @@ You'll see a Claude icon appear in the left sidebar.
 
 ---
 
+TODO: This is not optional
+
 ## 9. (Optional but very nice) Set up the Python venv for the processing pipeline
 
 This isn't strictly required for Tuesday, but doing it now will save us 10
@@ -248,6 +246,15 @@ GitHub automatically the first time you run `sspsygene load-db` — you
 don't need to do anything for that one.)
 
 ---
+
+
+TODO: Need to set up git pull on the server
+TODO: git pull during the deploy step fails silently --- doesn't do anything
+asks brittney for password --- didn't do anything for brian, no password ask
+we need to set up the remote server such that git pull on there works without
+password
+
+TODO: This is not optional
 
 ## 10. (Optional but very nice) Configure SSH for the deploy
 
