@@ -12,6 +12,9 @@
 
 ## Goals
 
+TODO: set appropriate environment variables in ~/.bashrc somewhere, we need
+those before running. Just set them all, incl database file
+
 By the end of the session, you should be able to — *from your own laptop* —
 do this end-to-end, without help:
 
