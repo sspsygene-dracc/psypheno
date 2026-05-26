@@ -11,7 +11,9 @@
 ### Install
 
 ```bash
-conda create -n sspsygene python=3.13
+# Use Python 3.12 — the pinned pandas==2.2.1 ships no wheel for 3.13, so 3.13
+# forces a source build that fails on some machines (numpy/meson build step).
+conda create -n sspsygene python=3.12
 conda activate sspsygene
 cd processing
 pip install -e .

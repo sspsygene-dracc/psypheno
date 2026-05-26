@@ -677,8 +677,10 @@ https://docs.conda.io/en/latest/miniconda.html
 Then create the `sspsygene` environment and install the processing pipeline:
 
 ```bash
-# Create a new conda environment with Python 3.13
-conda create -n sspsygene python=3.13
+# Create a new conda environment with Python 3.12
+# (3.12, not 3.13: our pinned pandas==2.2.1 has no prebuilt wheel for 3.13,
+# so 3.13 forces a fragile source build — see pre-meeting-setup.md.)
+conda create -n sspsygene python=3.12
 conda activate sspsygene
 
 # Install the sspsygene CLI tool (from the repo's processing directory)

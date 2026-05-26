@@ -218,11 +218,17 @@ minutes during the session:
 
 ```bash
 cd ~/code/psypheno
-conda create -y -n sspsygene python=3.13
+conda create -y -n sspsygene python=3.12
 conda activate sspsygene
 cd processing
 pip install -e .
 ```
+
+> **Use Python 3.12, not 3.13.** The pipeline pins `pandas==2.2.1`, which
+> has no prebuilt wheel for Python 3.13 — on 3.13, `pip install -e .` falls
+> back to compiling pandas from source, which fails on some machines at the
+> numpy/meson build step. Python 3.12 has a ready-made wheel, so the install
+> is fast and reliable.
 
 Test:
 
