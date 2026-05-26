@@ -1,0 +1,183 @@
+# OPEN QUESTIONS — resolve before promoting to config.yaml:
+#
+# 1. DOI: using 10.1038/s41586-023-06436-6 — verify against the Nature article
+#    page for PMID 38057664 before promotion.
+#
+# 2. Author list: includes the first author and senior authors confirmed from
+#    the gnomAD v4 paper. Full consortium author list (50+ names) should be
+#    verified from PMID 38057664 and either spelled out or trimmed per project
+#    convention for large-consortium papers.
+#
+# 3. perturbed_or_target: currently "target" — constraint scores measure a
+#    statistical property of each gene (how depleted it is of LoF variants).
+#    Change to "perturbed" if you prefer the SFARI analogy (genes flagged as
+#    upstream causal).
+#
+# 4. disease: currently [] (not disease-specific). Change to [asd, ndd, scz,
+#    bipolar] if you want constraint to appear in per-disease facets.
+#
+# 5. Source URL and filename: verify the GCS URL is still current at
+#    https://gnomad.broadinstitute.org/downloads#v4-constraint before running
+#    preprocess.py on the server. Update makeDoc.txt and SOURCE_URL in
+#    preprocess.py if gnomAD has released a newer version.
+#
+# 6. Column names: fieldLabels keys below assume the column names in the raw
+#    TSV match the gnomAD v4.1 schema. After running preprocess.py, inspect
+#    gnomad_constraint.tsv headers and adjust keys if any names differ.
+
+# ============================================================================
+# Publication information
+# ============================================================================
+publication:
+  authors:
+    - Chen, Siwei
+    - Francioli, Laurent C.
+    - Goodrich, Julia K.
+    - Watts, Nicholas A.
+    - Solomonson, Matthew
+    - Singer, Matthew F.
+    - Karczewski, Konrad J.  # co-corresponding
+    - Daly, Mark J.           # co-senior
+    - MacArthur, Daniel G.    # co-senior
+    # VERIFY: full author list from PMID 38057664 (large gnomAD consortium paper)
+  year: 2024
+  journal: "Nature"
+  doi: "10.1038/s41586-023-06436-6"  # VERIFY — see open question #1
+  pmid: "38057664"
+  sspsygene_grants: []  # gnomAD is Broad/NHGRI-funded; not SSPsyGene-funded
+
+# ============================================================================
+# Maintainers
+# ============================================================================
+maintainers:
+  - name: Brian Lee
+    email: brianlee@ucsc.edu
+    date: "2026-05-26"
+    comment: Initial table creation (DRAFT)
+
+# ============================================================================
+# Tables
+# ============================================================================
+tables:
+  - table: gnomad_constraint_metrics
+
+    shortLabel: gnomad_constraint
+    mediumLabel: "Chen 2024 - gnomAD v4 per-gene Constraint Metrics"
+    longLabel: "Per-gene mutational constraint metrics (LOEUF, pLI, mis_z) from gnomAD v4 (Chen et al. 2024)"
+    description: >
+      Per-gene mutational constraint metrics derived from 76,156 human genomes in
+      gnomAD v4. Includes LOEUF (oe_lof_upper), pLI, observed/expected LoF and
+      missense ratios, and z-scores. One row per gene, filtered to MANE Select
+      transcript (canonical fallback for genes absent from MANE). Widely used as
+      evidence of haploinsufficiency and dosage sensitivity in psychiatric genetics.
+
+    source: "gnomAD v4.1 constraint TSV (gnomad.broadinstitute.org/downloads#v4-constraint)"
+
+    assay: curated
+    disease: []  # OPEN: see question #4
+    categories:
+      - constraint
+      - population genetics
+      - haploinsufficiency
+
+    organism: "Homo sapiens (76,156 individuals, gnomAD v4)"
+    organism_key: human
+
+    links:
+      - url: https://gnomad.broadinstitute.org/downloads#v4-constraint
+        label: gnomAD v4 constraint downloads
+        description: Download page for the per-gene constraint TSV used here
+      - url: https://gnomad.broadinstitute.org
+        label: gnomAD browser
+
+    in_path: gnomad_constraint.tsv
+    separator: "\t"
+    split_column_map: []
+
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        perturbed_or_target: target  # OPEN: see question #3
+
+    # -------------------------------------------------------------------------
+    # Field labels — keys are column names lowercased with special chars → _
+    # -------------------------------------------------------------------------
+    fieldLabels:
+      gene: >
+        HGNC gene symbol. Original Ensembl gene ID preserved in gene_id_raw
+        (Chen et al. 2024, gnomAD v4).
+      gene_id_raw: >
+        Ensembl gene ID (ENSG…) from gnomAD v4, preserved for reference.
+        The HGNC symbol in the gene column is the primary display identifier.
+      transcript: >
+        MANE Select (or canonical fallback) transcript used for constraint
+        calculation. gnomAD v4 computes constraint per-transcript; this row
+        represents the gene's representative transcript.
+      mane_select: >
+        Whether this transcript is the MANE Select transcript for the gene.
+        True for the vast majority of protein-coding genes in gnomAD v4.
+      obs_lof: >
+        Observed number of high-confidence loss-of-function (pLoF) variants
+        across 76,156 gnomAD v4 individuals (Chen et al. 2024).
+      exp_lof: >
+        Expected number of pLoF variants under a mutation-rate-scaled neutral
+        model (gnomAD v4 Methods, Chen et al. 2024).
+      oe_lof: >
+        Observed/expected pLoF ratio. Lower values indicate stronger depletion
+        of LoF variants and greater constraint against loss-of-function.
+      oe_lof_lower: >
+        Lower bound of the 90% confidence interval for the observed/expected
+        pLoF ratio (Chen et al. 2024).
+      oe_lof_upper: >
+        Upper bound of the 90% CI for the observed/expected pLoF ratio — this
+        is LOEUF (LoF Observed/Expected Upper bound Fraction). Lower LOEUF
+        indicates stronger intolerance to heterozygous LoF (Chen et al. 2024).
+        Genes with LOEUF < 0.35 are commonly classified as highly constrained.
+      pli: >
+        Probability of loss-of-function intolerance under the gnomAD constraint
+        model. pLI ≥ 0.9 indicates strong purifying selection against
+        heterozygous LoF mutations. Superseded in many analyses by LOEUF
+        (oe_lof_upper), which has a continuous rather than categorical scale
+        (Chen et al. 2024, gnomAD v4).
+      pnull: >
+        Probability the gene is neutral with respect to LoF variation (tolerates
+        homozygous LoF without fitness cost; gnomAD v4 constraint model,
+        Chen et al. 2024).
+      prec: >
+        Probability the gene tolerates heterozygous but not homozygous LoF
+        mutations (recessive selection model; gnomAD v4, Chen et al. 2024).
+      obs_mis: >
+        Observed number of missense variants across 76,156 gnomAD v4 individuals.
+      exp_mis: >
+        Expected number of missense variants under a neutral mutation model
+        (Chen et al. 2024).
+      oe_mis: >
+        Observed/expected missense ratio. Values < 1 indicate missense constraint.
+      oe_mis_lower: >
+        Lower bound of the 90% CI for the observed/expected missense ratio.
+      oe_mis_upper: >
+        Upper bound of the 90% CI for the observed/expected missense ratio.
+      mis_z: >
+        Missense z-score. Positive values indicate fewer missense variants than
+        expected (constrained); negative values indicate more than expected
+        (unconstrained). A complement to oe_mis that uses a z-score scale
+        (Chen et al. 2024).
+      obs_syn: >
+        Observed number of synonymous variants in gnomAD v4.
+      exp_syn: >
+        Expected number of synonymous variants under a neutral model.
+      oe_syn: >
+        Observed/expected synonymous ratio. Should be near 1.0 for most genes;
+        large deviations may reflect regional mutation rate heterogeneity.
+      oe_syn_lower: >
+        Lower bound of the 90% CI for the observed/expected synonymous ratio.
+      oe_syn_upper: >
+        Upper bound of the 90% CI for the observed/expected synonymous ratio.
+      syn_z: >
+        Synonymous z-score. Typically near zero; large values may indicate
+        unusual regional mutation rates rather than true selection (Chen et al. 2024).
+
+    changelog:
+      - date: "2026-05-26"
+        message: "Initial table creation (DRAFT — awaiting sign-off)"

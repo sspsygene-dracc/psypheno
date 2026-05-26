@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Provenance for the gnomad-constraint dataset.
+#
+# Source page: https://gnomad.broadinstitute.org/downloads#v4-constraint
+# File:        gnomad.v4.1.constraint_metrics.tsv
+# License:     Publicly available for research use; no restrictions on
+#              redistribution per gnomAD open-access data policy.
+# Cadence:     Updated per gnomAD major release. v4.1 is the current release
+#              as of May 2026. Check the downloads page before refreshing.
+#
+# Paper: Chen et al. 2024, Nature 625, 92–100. PMID 38057664.
+#        DOI: 10.1038/s41586-023-06436-6  (verify against Nature article page)
+#
+# preprocess.py downloads this file automatically (download_if_missing skips
+# if the file already exists). Run this script to fetch the raw input manually
+# or to force a fresh download after a gnomAD release update.
+#
+# Issue: https://github.com/sspsygene-dracc/psypheno/issues/199
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+curl -fL -o gnomad.v4.1.constraint_metrics.tsv \
+    "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv"
