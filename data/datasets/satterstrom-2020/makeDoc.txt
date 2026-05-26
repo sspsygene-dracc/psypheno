@@ -1,0 +1,19 @@
+# Satterstrom et al. 2020, Cell 180:568-584
+# PMID: 31981491   DOI: 10.1016/j.cell.2019.12.036
+#
+# Source: Supplementary Table S2 ("TADA FDR Values") downloaded from the
+# paper's supplemental information page on Cell.com.
+#
+# Direct access:
+#   https://www.cell.com/cell/fulltext/S0092-8674(19)31398-4
+#   → Supplemental Information → Table S2 → "Download spreadsheet (175 KB)"
+#
+# Refresh: one-time (static supplementary file; not a living database).
+
+curl -L -o 1-s2.0-S0092867419313984-mmc2.xlsx \
+  "https://www.cell.com/cms/10.1016/j.cell.2019.12.036/attachment/$(
+    # NOTE: the UUID in the Cell CMS URL must be looked up from the paper
+    # page (see URL above). Paste the full attachment URL here after
+    # retrieving it from the browser's download link.
+    echo 'REPLACE_WITH_FULL_ATTACHMENT_URL'
+  )"

@@ -1,0 +1,237 @@
+# ============================================================================
+# OPEN QUESTIONS — resolve before promoting to config.yaml
+#
+#   1. perturbed_or_target: issue text says "target" but docs list
+#      "patient-mutation catalogs, SFARI risk genes" as the perturbed
+#      direction, and SFARI uses perturbed for its human gene table.
+#      Used perturbed here to match SFARI — please confirm or override.
+#
+#   2. ChrX table included (second entry below). Confirm whether to keep
+#      it or drop it — it is a separate TDT+de novo PTV analysis, not TADA.
+#
+#   3. Full author list: the paper has ~45 authors; verify the list below
+#      against the paper PDF (papers/satterstrom_2020.pdf) before sign-off.
+# ============================================================================
+
+publication:
+  authors:
+    - Satterstrom, F.K.
+    - Kosmicki, J.A.
+    - Wang, J.
+    - Breen, M.S.
+    - De Rubeis, S.
+    - An, J.-Y.
+    - Peng, M.
+    - Collins, R.L.
+    - Grove, J.
+    - Klei, L.
+    - Stevens, C.R.
+    - Reichert, J.
+    - Mulhern, M.S.
+    - Artomov, M.
+    - Gerges, S.
+    - Sheppard, B.
+    - Xu, X.
+    - Bhaduri, A.
+    - Norman, U.
+    - Brand, H.
+    - Schwartz, G.
+    - Nguyen, R.
+    - Guerreiro, E.A.
+    - Dias, C.
+    - Betancur, C.
+    - Cook, E.H.
+    - Gallagher, L.
+    - Gill, M.
+    - Sutcliffe, J.S.
+    - Thurm, A.
+    - Zwick, M.E.
+    - Børglum, A.D.
+    - State, M.W.
+    - Cicek, A.E.
+    - Talkowski, M.E.
+    - Cutler, D.J.
+    - Devlin, B.
+    - Sanders, S.J.
+    - Roeder, K.
+    - Daly, M.J.
+    - Buxbaum, J.D.
+  year: 2020
+  journal: "Cell"
+  doi: "10.1016/j.cell.2019.12.036"
+  pmid: "31981491"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Brian Lee
+    email: brianlee@ucsc.edu
+    date: "2026-05-26"
+    comment: Initial table creation
+
+tables:
+  # ---- Table 1: Autosomal TADA statistics (17,484 genes) ------------------
+  - table: satterstrom_2020_tada
+    changelog:
+      - date: "2026-05-26"
+        message: "Initial data load"
+    shortLabel: satterstrom_2020_tada
+    mediumLabel: "Satterstrom 2020 - TADA Exome ASD Gene Scores"
+    longLabel: "Per-gene TADA FDR q-values from large-scale exome sequencing in ASD (Satterstrom et al. 2020)"
+    description: >
+      TADA (Transmission and De novo Association) gene-level statistics from
+      the largest ASD exome study at the time of publication (6,430 ASD
+      probands + 2,179 unaffected siblings + DDD replication cohort).
+      Covers 17,484 autosomal protein-coding genes. The 102 genes reaching
+      TADA FDR ≤ 0.1 are the canonical high-confidence ASD gene list widely
+      used as the gold standard for ASD genetic risk (Satterstrom et al. 2020,
+      Figure 2; Table S2).
+    source: "Supplementary Table S2, Autosomal sheet"
+    assay: curated
+    disease:
+      - asd
+      - ndd
+    categories:
+      - exome sequencing
+      - autism genetics
+      - TADA
+      - de novo variants
+    organism: "Homo sapiens"
+    organism_key: human
+    links:
+      - url: https://doi.org/10.1016/j.cell.2019.12.036
+        label: "Satterstrom et al. 2020 (Cell)"
+    in_path: results_autosomal.tsv
+    separator: "\t"
+    fdr_column: qval_dnccPTV
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        # OPEN Q1: issue text says "target"; docs/SFARI convention for
+        # patient-mutation / risk-gene catalogs is "perturbed". Using
+        # perturbed to match the SFARI human gene table — confirm.
+        perturbed_or_target: perturbed
+        non_resolving:
+          record_values:
+            - IQCA1
+            - IQCD
+            - TMEM155
+            - CRIPAK
+            - OCLM
+            - SPHAR
+    fieldLabels:
+      gene: "Resolved HGNC gene symbol. Source column was hugoGene (current HGNC name); the original RefSeq-based symbol is preserved in gene_refseq."
+      gene_raw: "Gene symbol before HGNC resolution (hugoGene value from Table S2)"
+      gene_refseq: "Original RefSeq-based gene symbol from Table S2 (the 'gene' column); may differ from current HGNC symbol for 761 genes"
+      hgnc_id: "HGNC accession identifier (e.g. HGNC:20153)"
+      entrez_id: "NCBI Entrez Gene ID"
+      ensembl_gene_id: "Ensembl gene identifier (GRCh38)"
+      refseq_accession: "RefSeq mRNA accession used for transcript coordinates"
+      uniprot_ids: "UniProt protein accession(s)"
+      location: "Cytogenetic band location (e.g. 14q11.2)"
+      chr: "Chromosome (GRCh38)"
+      start_hg38: "Gene start coordinate (GRCh38, 1-based)"
+      stop_hg38: "Gene end coordinate (GRCh38, 1-based)"
+      strand: "Strand (+ or −)"
+      cdna: "CDS length in nucleotides"
+      exons: "Number of exons"
+      dn_ptv: "De novo protein-truncating variant (PTV/LoF) count in ASD + DDID probands across all cohorts (SPARK, SSC, ASC, DBS, Swedish)"
+      dn_misa: "De novo missense class A count (higher predicted pathogenicity) in ASD + DDID probands"
+      dn_misb: "De novo missense class B count (moderate predicted pathogenicity) in ASD + DDID probands"
+      dbs_case_ptv: "De novo PTV count in ASD cases from the Danish Biobank Study (DBS) cohort"
+      dbs_control_ptv: "De novo PTV count in unaffected controls from the DBS cohort"
+      sweden_case_ptv: "De novo PTV count in ASD cases from the Swedish cohort"
+      sweden_control_ptv: "De novo PTV count in unaffected controls from the Swedish cohort"
+      case_ptv: "Transmitted (inherited) PTV count in ASD cases (case–control component of TADA)"
+      control_ptv: "Transmitted (inherited) PTV count in unaffected controls (case–control component)"
+      mut_ptv: "Per-gene PTV mutation rate (expected de novo PTVs per birth)"
+      mut_misa: "Per-gene missense-A mutation rate"
+      mut_misb: "Per-gene missense-B mutation rate"
+      pli: "gnomAD probability of loss-of-function intolerance (pLI); values near 1 indicate strong depletion of LoF variants in the population"
+      gamma_dn_ptv: "TADA prior relative risk parameter for de novo PTVs (γ)"
+      gamma_dn_misa: "TADA prior relative risk parameter for de novo missense-A variants (γ)"
+      gamma_dn_misb: "TADA prior relative risk parameter for de novo missense-B variants (γ)"
+      bf_dn_ptv: "TADA Bayes factor for the de novo PTV component"
+      bf_dn_misa: "TADA Bayes factor for the de novo missense-A component"
+      bf_dn_misb: "TADA Bayes factor for the de novo missense-B component"
+      gamma_cc_ptv: "TADA relative risk parameter for the inherited PTV case–control component (γ)"
+      rho_ptv: "TADA prior probability parameter for the case–control PTV component (ρ)"
+      bf_cc_ptv: "TADA Bayes factor for the inherited PTV case–control component"
+      qval_dnccptv: "TADA FDR q-value combining de novo PTV + missense + case–control PTV evidence. 102 genes reach q ≤ 0.1 (the canonical high-confidence ASD gene set, Satterstrom et al. 2020 Figure 2)."
+      ddiddn_ptv: "De novo PTV count specifically from the published DDID (DDD) cohort, used as a replication sample"
+      ddiddn_misb: "De novo missense-B count from the published DDID cohort"
+      ddiddn_misa: "De novo missense-A count from the published DDID cohort"
+      asd_rate_dn: "Expected de novo variant rate in ASD probands under the null model"
+      asd_dn: "Observed de novo variant count in ASD probands"
+      ddid_dn: "Observed de novo variant count in DDID probands"
+      ddid_rate_dn: "Expected de novo variant rate in DDID probands under the null model"
+      transmitted_ptv_proband: "Transmitted PTV count in probands (inherited from a parent)"
+      untransmitted_ptv_proband: "Untransmitted PTV count (parental PTVs not passed to the proband)"
+      asc33_2014: "De novo PTV count in ASC 33-family cohort (De Rubeis 2014)"
+      ssc27_2014: "De novo PTV count in SSC 27-family cohort (Sanders 2015)"
+      asc65_2015: "De novo PTV count in ASC 65-family cohort (Iossifov 2015)"
+      asc102_2018: "De novo PTV count in ASC 102-family cohort (Satterstrom 2018 preprint / SPARK)"
+      asd_ddid: "Ratio of ASD to DDID de novo variant rate for this gene"
+      asd_vs_ddid: "ASD/DDID predominance class: 'ASD' = gene predominantly implicated by ASD de novo mutations; 'DDID' = predominantly from DDID/DDD cohort. Categorical — only defined for the 102 high-confidence genes."
+      asd53: "1 if gene is in the 53 predominantly ASD-associated genes (q ≤ 0.1 and ASD-predominant), 0 otherwise"
+      ddid49: "1 if gene is in the 49 predominantly DDID-associated genes (q ≤ 0.1 and DDID-predominant), 0 otherwise"
+      function: "Broad functional category assigned by authors (e.g. 'Gene expression regulation', 'Neuronal communication', 'Cell cycle')"
+
+  # ---- Table 2: Chromosome X (727 genes) ----------------------------------
+  # OPEN Q2: confirm whether to keep this table.
+  # This is a separate TDT + de novo PTV analysis, not the autosomal TADA.
+  - table: satterstrom_2020_chrx
+    changelog:
+      - date: "2026-05-26"
+        message: "Initial data load"
+    shortLabel: satterstrom_2020_chrx
+    mediumLabel: "Satterstrom 2020 - Exome ASD chrX Gene P-values"
+    longLabel: "Chromosome X gene-level p-values from ASD exome sequencing (Satterstrom et al. 2020)"
+    description: >
+      Chromosome X gene-level statistics from Satterstrom et al. 2020 (Table S2,
+      ChrX sheet). Includes de novo PTV p-values and TDT (Transmission Disequilibrium
+      Test) p-values for 727 X-linked protein-coding genes. The analysis uses a
+      separate model from the autosomal TADA because X-linked inheritance differs
+      between males and females.
+    source: "Supplementary Table S2, ChrX sheet"
+    assay: curated
+    disease:
+      - asd
+      - ndd
+    categories:
+      - exome sequencing
+      - autism genetics
+      - de novo variants
+      - chromosome X
+    organism: "Homo sapiens"
+    organism_key: human
+    links:
+      - url: https://doi.org/10.1016/j.cell.2019.12.036
+        label: "Satterstrom et al. 2020 (Cell)"
+    in_path: results_chrx.tsv
+    separator: "\t"
+    pvalue_column: pval_dnPTV
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        perturbed_or_target: perturbed
+        ignore_empty: true
+    fieldLabels:
+      gene: "Resolved HGNC gene symbol (X-linked). Source was hugoGene; original RefSeq symbol preserved in gene_refseq."
+      gene_raw: "Gene symbol before HGNC resolution (hugoGene value from ChrX sheet)"
+      gene_refseq: "Original RefSeq-based gene symbol (the 'gene' column from Table S2 ChrX sheet)"
+      hgnc_id: "HGNC accession identifier"
+      entrez_id: "NCBI Entrez Gene ID"
+      ensembl_gene_id: "Ensembl gene identifier (GRCh38)"
+      chr: "Chromosome (X)"
+      dn_ptv: "De novo protein-truncating variant count in ASD + DDID probands"
+      dn_misb: "De novo missense class B count in ASD + DDID probands"
+      trans_ptv: "Transmitted (maternally inherited) PTV count in male ASD probands (TDT)"
+      untrans_ptv: "Untransmitted PTV count (maternal PTVs not passed to male probands) (TDT)"
+      trans_misa: "Transmitted missense-A count in male ASD probands (TDT)"
+      untrans_misa: "Untransmitted missense-A count (TDT)"
+      trans_misb: "Transmitted missense-B count in male ASD probands (TDT)"
+      untrans_misb: "Untransmitted missense-B count (TDT)"
+      pval_tdt: "TDT p-value: tests whether X-linked variants are transmitted to male ASD probands more than expected by chance"
+      pval_dnptv: "De novo PTV p-value for this X-linked gene; analogous to the autosomal TADA PTV component but using a Poisson model"
