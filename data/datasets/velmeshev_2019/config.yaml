@@ -111,8 +111,6 @@ tables:
         species: human
         perturbed_or_target: target
 
-    split_column_map: []
-
     fieldLabels:
       gene: >
         HGNC gene symbol. Differentially expressed in ASD vs. control
