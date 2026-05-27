@@ -12,6 +12,22 @@
 
 ## Goals
 
+TODO: git config --global user.name stuff etc
+
+TODO: Claude modes --- shift tab --- auto mode
+
+TODO: sspsygene conda env should install a bunch of useful python packages by default
+
+TODO: tell Claude in CLAUDE.md that if it's missing python packages, it should
+consider installing them and either just do it if they're common or ask the user
+if it's OK to install them
+
+TODO: create ticket of all the stuff that didn't work in the tutorial, collect
+all the stuff I remember here, then send it to wranglers and tell them to add
+more stuff that they remember was confusing or didn't work
+
+TODO: decide on whether to work locally on remotely in a separate checkout
+
 TODO: set appropriate environment variables in ~/.bashrc somewhere, we need
 those before running. Just set them all, incl database file
 
@@ -478,6 +494,15 @@ Source: <Supplementary Table N>
 Verified via single-dataset load-db; <one-line biology check that
 recapitulates>.
 ```
+
+TODO claude verification pass after first pass
+
+TODO inspect dataset on server
+
+TODO tooltip length
+
+TODO always run a recursive chmod o+w on the remote directories after doing
+anything (deploy should do this automatically)
 
 The `#142` at the end of the **title line** is important — GitHub
 uses it to link the commit to the ticket.

@@ -275,6 +275,8 @@ hgwdev for you — so this one block is all you need.
 
 Test:
 
+TODO: this prints hgwdev, not hgwdev.gi.ucsc.edu
+
 ```bash
 ssh hgwdev "hostname"   # should print "hgwdev.gi.ucsc.edu"
 ```
