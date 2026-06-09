@@ -1,0 +1,21 @@
+tables:
+  fleck_2023_organoid_grn:
+    raw_file: grn_modules.tsv
+    pipeline_used: true
+    cleaned_file: fleck_organoid_grn_modules.tsv
+    cleaned_rows: 74448
+    raw_rows: 74448
+    expected_drops:
+    - step: clean_gene_column
+      column: tf
+      dropped_rows: 0
+      counts:
+        passed_through: 74448
+    - step: clean_gene_column
+      column: target
+      dropped_rows: 0
+      counts:
+        passed_through: 74340
+        unresolved: 51
+        non_symbol_contig: 57
+    db_rows: 74448

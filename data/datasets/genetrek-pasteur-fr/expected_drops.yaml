@@ -1,0 +1,21 @@
+tables:
+  genetrek_pasteur:
+    raw_file: genetrek-data-2024-04-26.tsv
+    pipeline_used: true
+    cleaned_file: genetrek_pasteur_cleaned.tsv
+    cleaned_rows: 61669
+    raw_rows: 61669
+    expected_drops:
+    - step: clean_gene_column
+      column: gene_symbol
+      dropped_rows: 0
+      counts:
+        passed_through: 42337
+        unresolved: 19294
+        non_symbol_gencode_clone: 9
+        rescued_gencode_clone_current_ensg: 17
+        rescued_make_unique: 1
+        non_symbol_genbank_accession: 3
+        rescued_gencode_clone_hgnc_symbol: 5
+        non_symbol_rna_family: 3
+    db_rows: 61669

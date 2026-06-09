@@ -1,0 +1,22 @@
+tables:
+  clinvar_gene_summary:
+    raw_file: gene_specific_summary.txt
+    pipeline_used: true
+    cleaned_file: clinvar_gene_summary.tsv
+    cleaned_rows: 92791
+    expected_drops:
+    - step: dropna
+      columns:
+      - Symbol
+      dropped: 0
+    - step: clean_gene_column
+      column: Symbol
+      dropped_rows: 0
+      counts:
+        unresolved: 64196
+        passed_through: 28582
+        rescued_make_unique: 1
+        rescued_gencode_clone_current_ensg: 9
+        non_symbol_genbank_accession: 2
+        non_symbol_rna_family: 1
+    db_rows: 92791

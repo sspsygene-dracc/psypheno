@@ -288,6 +288,35 @@ def _count_csv_rows(path: Path, sep: str) -> int | None:
     return len(pd.read_csv(path, sep=sep, dtype=str))
 
 
+def _raw_rows_is_verifiable(table: PrimaryTable, raw_file: str, expected: int) -> bool:
+    """True iff a plain read of the on-disk raw file == `expected` rows.
+
+    Mirrors `test_sidecar_vs_files._read_csv_rows` so `derive_manifest_entry`
+    only commits a `raw_rows` the file-based test can actually confirm. We
+    omit `raw_rows` (rather than commit it) when:
+
+    * the raw file is missing — can't verify either way;
+    * it isn't delimited-readable (an xlsx raw file raises on `read_csv`); or
+    * a plain read disagrees with the sidecar's first-read count — e.g. a
+      pipeline that skips a leading comment line (ClinVar's
+      `gene_specific_summary.txt` is off by one) reads fewer rows than a naive
+      `pd.read_csv` counts.
+
+    In those cases `test_raw_file_row_count` is meant to *skip*, which it does
+    precisely when `raw_rows` is absent — so a committed `raw_rows` would turn
+    an intended skip into a guaranteed failure.
+    """
+    path = payload_dataset_dir(table.dataset) / raw_file
+    if not path.exists():
+        return False
+    import pandas as pd
+
+    try:
+        return len(pd.read_csv(path, sep=table.separator, dtype=str)) == expected
+    except Exception:
+        return False
+
+
 def derive_manifest_entry(table: PrimaryTable) -> dict[str, Any]:
     """Build a manifest entry for a table from live state.
 
@@ -323,10 +352,17 @@ def derive_manifest_entry(table: PrimaryTable) -> dict[str, Any]:
                 entry["raw_rows"] = file_rows
                 entry["cleaned_rows"] = file_rows
         else:
-            if first_rows is not None:
-                entry["raw_rows"] = first_rows
             if final_rows is not None:
                 entry["cleaned_rows"] = final_rows
+            # Only commit raw_rows when the on-disk raw file, read the same way
+            # test_raw_file_row_count reads it, reproduces the sidecar's
+            # first-read count. xlsx raw files and skip-leading-comment
+            # pipelines can't be verified that way — omit rather than commit a
+            # number the file-based test would reject.
+            if first_rows is not None and _raw_rows_is_verifiable(
+                table, entry["raw_file"], first_rows
+            ):
+                entry["raw_rows"] = first_rows
 
         # Mirror every drop-emitting step's expected counts.
         expected: list[dict[str, Any]] = []

@@ -1,0 +1,38 @@
+tables:
+  satterstrom_2020_chrx:
+    raw_file: 1-s2.0-S0092867419313984-mmc2.xlsx
+    pipeline_used: true
+    cleaned_file: results_chrx.tsv
+    cleaned_rows: 726
+    expected_drops:
+    - step: dropna
+      columns:
+      - gene
+      dropped: 1
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        passed_through: 725
+        unresolved: 1
+    db_rows: 726
+  satterstrom_2020_tada:
+    raw_file: 1-s2.0-S0092867419313984-mmc2.xlsx
+    pipeline_used: true
+    cleaned_file: results_autosomal.tsv
+    cleaned_rows: 17365
+    expected_drops:
+    - step: dropna
+      columns:
+      - gene
+      dropped: 0
+    - step: filter_rows
+      description: drop genes without a current HGNC symbol (hugoGene='.' in source)
+      dropped: 119
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        passed_through: 17348
+        unresolved: 17
+    db_rows: 17365

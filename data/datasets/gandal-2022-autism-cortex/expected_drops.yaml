@@ -1,0 +1,37 @@
+tables:
+  gandal_2022_bulk_de_per_region:
+    raw_file: gandal_2022_bulk_de_per_region.tsv
+    pipeline_used: true
+    cleaned_rows: 24836
+    raw_rows: 24836
+    expected_drops:
+    - step: clean_gene_column
+      column: gene_symbol
+      dropped_rows: 0
+      counts:
+        passed_through: 19402
+        non_symbol_contig: 570
+        unresolved: 99
+        rescued_gencode_clone_current_ensg: 2609
+        non_symbol_gencode_clone: 1399
+        rescued_gencode_clone_hgnc_symbol: 736
+        non_symbol_rna_family: 9
+        non_symbol_genbank_accession: 6
+        rescued_make_unique: 6
+    db_rows: 24836
+  gandal_2022_singlecell_de:
+    raw_file: gandal_2022_singlecell_de.tsv
+    pipeline_used: true
+    cleaned_rows: 86668
+    raw_rows: 86668
+    expected_drops:
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        passed_through: 78085
+        non_symbol_contig: 8017
+        rescued_gencode_clone_current_ensg: 331
+        unresolved: 206
+        rescued_gencode_clone_hgnc_symbol: 29
+    db_rows: 86668

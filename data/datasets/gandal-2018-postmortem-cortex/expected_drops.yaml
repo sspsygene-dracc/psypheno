@@ -1,0 +1,21 @@
+tables:
+  gandal_2018_bulk_de:
+    raw_file: gandal_2018_bulk_de.tsv
+    pipeline_used: true
+    cleaned_rows: 25774
+    raw_rows: 25774
+    expected_drops:
+    - step: clean_gene_column
+      column: gene_symbol
+      dropped_rows: 0
+      counts:
+        passed_through: 19045
+        non_symbol_contig: 711
+        unresolved: 127
+        rescued_gencode_clone_current_ensg: 3195
+        non_symbol_gencode_clone: 1798
+        rescued_gencode_clone_hgnc_symbol: 868
+        non_symbol_genbank_accession: 12
+        non_symbol_rna_family: 10
+        rescued_make_unique: 8
+    db_rows: 25774

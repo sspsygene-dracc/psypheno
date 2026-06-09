@@ -1,0 +1,37 @@
+tables:
+  ding_2026_deg_arx_in_lmo1ric3:
+    raw_file: ding_2026_deg_arx_in_lmo1ric3.tsv
+    pipeline_used: true
+    cleaned_rows: 821
+    raw_rows: 821
+    expected_drops:
+    - step: clean_gene_column
+      column: genes
+      dropped_rows: 0
+      counts:
+        passed_through: 782
+        non_symbol_ensembl_human: 39
+    - step: clean_gene_column
+      column: Target.Gene
+      dropped_rows: 0
+      counts:
+        passed_through: 821
+    db_rows: 821
+  ding_2026_deg_human:
+    raw_file: ding_2026_deg_human.tsv
+    pipeline_used: true
+    cleaned_rows: 1237
+    raw_rows: 1237
+    expected_drops:
+    - step: clean_gene_column
+      column: genes
+      dropped_rows: 0
+      counts:
+        passed_through: 1164
+        non_symbol_ensembl_human: 73
+    - step: clean_gene_column
+      column: Target.Gene
+      dropped_rows: 0
+      counts:
+        passed_through: 1237
+    db_rows: 1237
