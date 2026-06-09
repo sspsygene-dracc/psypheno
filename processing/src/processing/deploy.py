@@ -215,18 +215,22 @@ def _preflight_checks() -> None:
     """Verify the local repo is clean and on the expected branch."""
     click.secho("Preflight checks", bold=True)
 
-    # Uncommitted changes?
+    # Uncommitted changes to TRACKED files? Untracked files (--untracked-files=no
+    # excludes them) are harmless to a deploy — only modifications/staging/
+    # deletions of tracked files should block, since those are what a deploy's
+    # git pull would conflict with.
     result = subprocess.run(
-        ["git", "status", "--porcelain"],
+        ["git", "status", "--porcelain", "--untracked-files=no"],
         capture_output=True,
         text=True,
     )
     if result.stdout.strip():
         raise DeployError(
-            "Working directory has uncommitted changes — commit or stash before deploying.",
+            "Working directory has uncommitted changes to tracked files — "
+            "commit or stash before deploying.",
             detail=result.stdout.strip(),
         )
-    click.echo("  -> Working directory is clean")
+    click.echo("  -> Tracked files are clean (untracked files ignored)")
 
     # Correct branch?
     result = subprocess.run(
