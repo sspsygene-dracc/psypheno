@@ -75,8 +75,8 @@ tables:
       - date: "2026-05-26"
         message: "Initial data load"
     shortLabel: satterstrom_2020_tada
-    mediumLabel: "Satterstrom 2020 - TADA Exome ASD Gene Scores"
-    longLabel: "Per-gene TADA FDR q-values from large-scale exome sequencing in ASD (Satterstrom et al. 2020)"
+    mediumLabel: "Satterstrom 2020 - TADA Exome Autism Gene Scores"
+    longLabel: "Per-gene TADA FDR q-values from large-scale exome sequencing in Autism (Satterstrom et al. 2020)"
     description: >
       TADA (Transmission and De novo Association) gene-level statistics from
       the largest ASD exome study at the time of publication (6,430 ASD
@@ -185,8 +185,8 @@ tables:
       - date: "2026-05-26"
         message: "Initial data load"
     shortLabel: satterstrom_2020_chrx
-    mediumLabel: "Satterstrom 2020 - Exome ASD chrX Gene P-values"
-    longLabel: "Chromosome X gene-level p-values from ASD exome sequencing (Satterstrom et al. 2020)"
+    mediumLabel: "Satterstrom 2020 - Exome Autism chrX Gene P-values"
+    longLabel: "Chromosome X gene-level p-values from Autism exome sequencing (Satterstrom et al. 2020)"
     description: >
       Chromosome X gene-level statistics from Satterstrom et al. 2020 (Table S2,
       ChrX sheet). Includes de novo PTV p-values and TDT (Transmission Disequilibrium

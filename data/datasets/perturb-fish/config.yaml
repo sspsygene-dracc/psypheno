@@ -35,7 +35,7 @@ tables:
       - date: "2026-05-05"
         message: "Standardized title and added paper-tailored column tooltips."
     shortLabel: perturb_fish_astrocyte_screen
-    mediumLabel: Binan 2025 - Perturb-FISH CRISPRi Screen of 127 ASD Genes in iPSC Astrocytes
+    mediumLabel: Binan 2025 - Perturb-FISH CRISPRi Screen of 127 Autism Genes in iPSC Astrocytes
     longLabel: CRISPR screening with spatial transcriptomics in astrocytes
     description:
       Spatial transcriptomics and functional calcium imaging screen of 127 autism

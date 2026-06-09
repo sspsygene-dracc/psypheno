@@ -36,8 +36,8 @@ tables:
       - date: "2026-05-05"
         message: "Standardized title to first-author/year/assay/medium format and added column tooltips."
     shortLabel: asd_m5_transcription_factor_de_targets
-    mediumLabel: Gordon 2026 - CRISPRi DEGs of 26 ASD Module-5 Transcriptional Regulators in NGN2-induced hiPSC NPCs
-    longLabel: Differentially expressed genes following perturbation of Module 5 transcription factors in ASD
+    mediumLabel: Gordon 2026 - CRISPRi DEGs of 26 Autism Module-5 Transcriptional Regulators in NGN2-induced hiPSC NPCs
+    longLabel: Differentially expressed genes following perturbation of Module 5 transcription factors in Autism
     description:
       Cell-type specific differential expression following CRISPRi perturbation of 26 Module 5
       transcription factors in human stem cell-derived neural progenitors and cycling progenitors. 
@@ -121,8 +121,8 @@ tables:
       - date: "2026-05-05"
         message: "Standardized title and added column tooltips."
     shortLabel: asd_organoid_de_results
-    mediumLabel: Gordon 2026 - ASD Genetic-Form DEGs in iPSC Cortical Organoids
-    longLabel: Differential expression results across ASD genetic perturbations and developmental timepoints
+    mediumLabel: Gordon 2026 - Autism Genetic-Form DEGs in iPSC Cortical Organoids
+    longLabel: Differential expression results across Autism genetic perturbations and developmental timepoints
     description:
       Differential expression results from bulk RNA-seq of human cortical organoids with
       ASD-associated mutations compared to controls across developmental timepoints 

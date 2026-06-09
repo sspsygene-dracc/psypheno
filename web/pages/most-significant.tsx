@@ -804,7 +804,7 @@ export default function MostSignificantPage() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      Disease:
+                      Condition:
                     </span>
                     <label style={radioLabelStyle}>
                       <input

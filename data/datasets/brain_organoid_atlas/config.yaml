@@ -46,7 +46,7 @@ tables:
     mediumLabel: Wang 2025 - NDD Patient Metadata for Brain Organoids
     longLabel: Brain organoid atlas patient metadata with pathogenic variants
     description:
-      Patient-level metadata linking individuals with neurodevelopmental disorders to their pathogenic
+      Patient-level metadata linking individuals with neurodevelopmental conditions to their pathogenic
       causative mutations and brain organoid lines. Includes clinical details for microcephaly, polymicrogyria,
       epilepsy, and intellectual disability cases.
     source: "Table S1"
@@ -68,7 +68,7 @@ tables:
       lamination_layers_: "Cortical layer lamination"
     categories:
       - patient metadata
-      - neurodevelopmental disorders
+      - neurodevelopmental conditions
       - iPSC lines
     organism: Homo sapiens
     organism_key: human
@@ -94,7 +94,7 @@ tables:
     longLabel: NEBULA differential expression analysis at 0.05 FDR threshold
     description:
       Differentially expressed genes identified using NEBULA (negative binomial mixed model)
-      in brain organoids from neurodevelopmental disorder patients at stringent FDR threshold of 0.05.
+      in brain organoids from neurodevelopmental condition patients at stringent FDR threshold of 0.05.
     source: "Table S10 (filtered, FDR < 0.05)"
     assay: expression
     disease: ["ndd"]
@@ -148,7 +148,7 @@ tables:
     longLabel: NEBULA differential expression analysis at 0.2 FDR threshold
     description:
       Differentially expressed genes identified using NEBULA in brain organoids from neurodevelopmental
-      disorder patients at relaxed FDR threshold of 0.2, capturing additional candidate genes.
+      condition patients at relaxed FDR threshold of 0.2, capturing additional candidate genes.
     source: "Table S10 (filtered, FDR < 0.2)"
     assay: expression
     disease: ["ndd"]
@@ -202,7 +202,7 @@ tables:
     longLabel: Complete list of differentially expressed genes from NEBULA analysis
     description:
       Comprehensive gene-level screen showing all differentially expressed genes across brain
-      organoid subclasses and neurodevelopmental disease categories using single-cell NEBULA analysis.
+      organoid subclasses and neurodevelopmental condition categories using single-cell NEBULA analysis.
     source: "Table S10"
     assay: expression
     disease: ["ndd"]

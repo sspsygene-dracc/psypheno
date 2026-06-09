@@ -2,7 +2,7 @@
   "symbol": "ACTG1",
   "central_gene_id": 300,
   "pubmed_links": "[Riviere et al. (2012) De novo mutations in the actin genes ACTB and ACTG1 cause Baraitser-Winter syndrome](https://pubmed.ncbi.nlm.nih.gov/22366783/); [Di Donato et al. (2014) Severe forms of Baraitser-Winter syndrome are caused by ACTB mutations rather than ACTG1 mutations](https://pubmed.ncbi.nlm.nih.gov/23756437/); [Graziani et al. (2023) A likely pathogenic ACTG1 variant in a child showing partial phenotypic overlap with Baraitser-Winter syndrome](https://pubmed.ncbi.nlm.nih.gov/36810952/)",
-  "summary": "De novo missense mutations in ACTG1 cause Baraitser-Winter syndrome, a neurodevelopmental disorder characterized by intellectual disability, cortical malformations (pachygyria/polymicrogyria), coloboma, and variable features; ACTG1 mutations tend to produce milder presentations than ACTB mutations, and the gene encodes cytoplasmic gamma-actin critical for neuronal cytoskeletal function. (emerging evidence)",
+  "summary": "De novo missense mutations in ACTG1 cause Baraitser-Winter syndrome, a neurodevelopmental condition characterized by intellectual disability, cortical malformations (pachygyria/polymicrogyria), coloboma, and variable features; ACTG1 mutations tend to produce milder presentations than ACTB mutations, and the gene encodes cytoplasmic gamma-actin critical for neuronal cytoskeletal function. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
   "model": "claude-sonnet-4-6"

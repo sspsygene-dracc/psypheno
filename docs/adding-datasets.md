@@ -319,10 +319,10 @@ tables:
 
     disease:                        # Which diseases this data relates to.
       - asd                         # Must be from this list:
-      - ndd                         #   asd     — Autism Spectrum Disorder
+      - ndd                         #   asd     — Autism
                                     #   scz     — Schizophrenia
                                     #   bipolar — Bipolar Disorder
-                                    #   ndd     — Neurodevelopmental Disorders
+                                    #   ndd     — Neurodevelopmental Conditions
                                     # Use [] for an empty list if not disease-specific.
 
     categories:                     # Free-text tags describing the data.

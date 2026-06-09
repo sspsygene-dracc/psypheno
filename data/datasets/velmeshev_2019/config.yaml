@@ -59,7 +59,7 @@ maintainers:
 tables:
   - table: velmeshev_2019_degs
     shortLabel: velmeshev_2019_degs
-    mediumLabel: "Velmeshev 2019 - snRNA-seq DEGs in Postmortem ASD Cortex"
+    mediumLabel: "Velmeshev 2019 - snRNA-seq DEGs in Postmortem Autism Cortex"
     longLabel: "Per-gene per-cell-type ASD-vs-control DEGs from postmortem cortex single-nucleus RNA-seq (Velmeshev et al. Science 2019)"
     description: >
       Differentially expressed genes (ASD vs. control) per cell type

@@ -24,7 +24,7 @@ tables:
       - date: "2026-05-05"
         message: "Standardized title, resolved Ensembl IDs to HGNC symbols at preprocess time, added column tooltips and a /gene-parser link tooltip."
     shortLabel: sfari_animal_model_genes
-    mediumLabel: Banerjee-Basu 2010 - SFARI Curated Animal Model Genes for ASD
+    mediumLabel: Banerjee-Basu 2010 - SFARI Curated Animal Model Genes for Autism
     longLabel: SFARI Gene animal model evidence for autism genes
     description:
       Curated animal model data for autism candidate genes from SFARI Gene
@@ -63,7 +63,7 @@ tables:
       - date: "2026-05-05"
         message: "Standardized title, resolved Ensembl IDs to HGNC symbols at preprocess time, added column tooltips and a /gene-parser link tooltip."
     shortLabel: sfari_animal_rescue_models
-    mediumLabel: Banerjee-Basu 2010 - SFARI Curated Animal Rescue Models for ASD
+    mediumLabel: Banerjee-Basu 2010 - SFARI Curated Animal Rescue Models for Autism
     longLabel: SFARI Gene animal rescue experiment data
     description:
       Curated rescue experiment data showing genetic or pharmacological interventions that ameliorate
@@ -102,7 +102,7 @@ tables:
       - date: "2026-05-05"
         message: "Standardized title, resolved Ensembl IDs to HGNC symbols at preprocess time, added column tooltips and a /gene-parser link tooltip."
     shortLabel: sfari_human_gene_scores
-    mediumLabel: Banerjee-Basu 2010 - SFARI Curated Human Gene Scores for ASD
+    mediumLabel: Banerjee-Basu 2010 - SFARI Curated Human Gene Scores for Autism
     longLabel: SFARI Gene human genetic evidence and scoring
     description:
       Curated human genetic evidence for autism candidate genes with assigned

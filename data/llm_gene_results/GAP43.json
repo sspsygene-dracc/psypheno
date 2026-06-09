@@ -2,7 +2,7 @@
   "symbol": "GAP43",
   "central_gene_id": 2574,
   "pubmed_links": "[Shen et al. (2012) Genetic and functional analysis of the gene encoding GAP-43 in schizophrenia](https://pubmed.ncbi.nlm.nih.gov/22138049/); [Tian et al. (2007) Decreased GAP-43 immunoreactivity in post mortem hippocampus of bipolar disorder and schizophrenia](https://pubmed.ncbi.nlm.nih.gov/17095155/); [Noda et al. (2024) An unstable variant of GAP43 leads to neurodevelopmental deficiency](https://pubmed.ncbi.nlm.nih.gov/39738362/)",
-  "summary": "GAP43 encodes a presynaptic phosphoprotein critical for axonal growth and synaptic plasticity; altered GAP43 expression has been repeatedly reported in postmortem brains of individuals with schizophrenia and bipolar disorder, and heterozygous knockout mice display autistic-like social and behavioral deficits, with rare de novo variants linked to neurodevelopmental disorders including intellectual disability. (emerging evidence)",
+  "summary": "GAP43 encodes a presynaptic phosphoprotein critical for axonal growth and synaptic plasticity; altered GAP43 expression has been repeatedly reported in postmortem brains of individuals with schizophrenia and bipolar disorder, and heterozygous knockout mice display autistic-like social and behavioral deficits, with rare de novo variants linked to neurodevelopmental conditions including intellectual disability. (emerging evidence)",
   "status": "results",
   "search_date": "2026-03-03",
   "model": "claude-sonnet-4-6"

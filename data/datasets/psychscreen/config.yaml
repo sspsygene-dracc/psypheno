@@ -103,7 +103,7 @@ tables:
         message: "Standardized title (tissue tightened from Brain to PFC), added column header tooltips, declared effect_column."
     shortLabel: psychscreen_age_degs
     mediumLabel: Emani 2024 - snRNA-seq Pseudobulk DEGs of Aging in Postmortem PFC (via PsychSCREEN)
-    longLabel: Age-related differential expression in psychiatric disorders
+    longLabel: Age-related differential expression in psychiatric conditions
     description:
       Differentially expressed genes associated with aging in brain tissue from large psychiatric
       cohorts. Aggregates transcriptomic signatures across age-related comparisons.
@@ -118,7 +118,7 @@ tables:
     categories:
       - bulk RNA-seq
       - aging
-      - psychiatric disorders
+      - psychiatric conditions
     organism: Homo sapiens (postmortem brain)
     organism_key: human
     in_path: Age_DEGcombined_cleaned.csv
@@ -171,7 +171,7 @@ tables:
       - date: "2026-05-05"
         message: "Standardized title (tissue tightened from Brain to PFC), added column header tooltips, declared effect_column."
     shortLabel: psychscreen_asd_degs
-    mediumLabel: Emani 2024 - snRNA-seq Pseudobulk DEGs of ASD in Postmortem PFC (via PsychSCREEN)
+    mediumLabel: Emani 2024 - snRNA-seq Pseudobulk DEGs of Autism in Postmortem PFC (via PsychSCREEN)
     longLabel: Autism differential expression signatures
     description:
       Differentially expressed genes in autism from aggregated postmortem brain
@@ -181,13 +181,13 @@ tables:
     disease: ["asd", "ndd"]
     links:
       - url: https://downloads.wenglab.org/ASD_DEGcombined.csv
-        label: ASD DEGs CSV (Weng Lab)
+        label: Autism DEGs CSV (Weng Lab)
       - url: https://psychscreen.org
         label: PsychSCREEN browser
     categories:
       - bulk RNA-seq
       - autism
-      - psychiatric disorders
+      - psychiatric conditions
     organism: Homo sapiens (postmortem brain)
     organism_key: human
     in_path: ASD_DEGcombined_cleaned.csv
@@ -256,7 +256,7 @@ tables:
     categories:
       - bulk RNA-seq
       - bipolar disorder
-      - psychiatric disorders
+      - psychiatric conditions
     organism: Homo sapiens (postmortem brain)
     organism_key: human
     in_path: Bipolar_DEGcombined_cleaned.csv
@@ -325,7 +325,7 @@ tables:
     categories:
       - bulk RNA-seq
       - schizophrenia
-      - psychiatric disorders
+      - psychiatric conditions
     organism: Homo sapiens (postmortem brain)
     organism_key: human
     in_path: Schizophrenia_DEGcombined_cleaned.csv

@@ -545,7 +545,7 @@ export default function SignificantRowsPage() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  Disease:
+                  Condition:
                 </span>
                 <label style={radioLabelStyle}>
                   <input

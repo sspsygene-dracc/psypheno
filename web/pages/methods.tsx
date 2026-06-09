@@ -209,10 +209,10 @@ export default function MethodsPage() {
             Because all of our datasets fall within the broad domain of
             neuropsychiatric research, the combined rankings answer the
             question: <em>which genes show consistent evidence of association
-            across a range of neuropsychiatric diseases and assay
+            across a range of neuropsychiatric conditions and assay
             types?</em> Reassuringly, the top-ranked genes are well-known
             players in brain development, many of which already cause known
-            Mendelian neurodevelopmental disorders, giving us confidence
+            Mendelian neurodevelopmental conditions, giving us confidence
             that the method is working as intended.
           </p>
           <p>The pipeline for each gene proceeds as follows:</p>

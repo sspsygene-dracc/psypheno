@@ -50,12 +50,12 @@ maintainers:
 tables:
   - table: gandal_2018_bulk_de
     shortLabel: gandal_2018_bulk_de
-    mediumLabel: "Gandal 2018 - Bulk-Cortex DEGs in ASD, Schizophrenia, and Bipolar Disorder"
-    longLabel: "Per-gene differential gene expression statistics in postmortem cortex bulk RNA-seq for ASD, schizophrenia, and bipolar disorder vs. controls (Gandal et al. Science 2018)"
+    mediumLabel: "Gandal 2018 - Bulk-Cortex DEGs in Autism, Schizophrenia, and Bipolar Disorder"
+    longLabel: "Per-gene differential gene expression statistics in postmortem cortex bulk RNA-seq for Autism, schizophrenia, and bipolar disorder vs. controls (Gandal et al. Science 2018)"
     description: >
       limma-voom differential gene expression summary statistics from
       PsychENCODE postmortem cortex bulk RNA-seq across three
-      neuropsychiatric disorders (ASD, schizophrenia, bipolar
+      neuropsychiatric conditions (ASD, schizophrenia, bipolar
       disorder) vs. controls (Gandal et al. Science 2018, Suppl.
       Table S1 sheet "DGE"). 25,775 genes, with log2FC, standard
       error, degrees of freedom, t-statistic, p-value, and

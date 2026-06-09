@@ -27,7 +27,7 @@ maintainers:
 tables:
   - table: wamsley_2024_cluster_markers
     shortLabel: wamsley_2024_cluster_markers
-    mediumLabel: "Wamsley 2024 - snRNA-seq Cluster-Marker Genes in Postmortem ASD Cortex"
+    mediumLabel: "Wamsley 2024 - snRNA-seq Cluster-Marker Genes in Postmortem Autism Cortex"
     longLabel: "Per-gene per-cluster Seurat marker statistics from postmortem ASD/CTL cortex single-nucleus RNA-seq (Wamsley et al. Science 2024)"
     description: >
       Per-gene per-cluster Seurat FindMarkers output from the

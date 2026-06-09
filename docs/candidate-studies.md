@@ -286,7 +286,7 @@ is a per-gene × cell-type score matrix — direct fit.
   PsychENCODE 2 papers — fewer donors but more direct cell-type-resolved
   per-gene effect sizes.
 
-### 28. Luo 2024 — brain proteome QTLs implicating psychiatric disorders
+### 28. Luo 2024 — brain proteome QTLs implicating psychiatric conditions
 - *Mol Psychiatry* **29**, 3330–3343 (2024). PMID 38724566 / doi:10.1038/s41380-024-02576-8.
 - **Per-gene fit:** Per-gene cis-pQTL summary stats from 268 postmortem
   brains (198 CTL, 45 SCZ, 25 BIP); 788 cis-pQTLs covering 883 proteins

@@ -51,8 +51,8 @@ maintainers:
 tables:
   - table: gandal_2022_bulk_de_per_region
     shortLabel: gandal_2022_bulk_de_per_region
-    mediumLabel: "Gandal 2022 - Bulk-Cortex Per-Region DEGs in ASD and dup15q"
-    longLabel: "Per-gene differential expression across whole cortex and 11 Brodmann areas in postmortem cortex bulk RNA-seq, ASD and dup15q vs. controls (Gandal et al. Nature 2022)"
+    mediumLabel: "Gandal 2022 - Bulk-Cortex Per-Region DEGs in Autism and dup15q"
+    longLabel: "Per-gene differential expression across whole cortex and 11 Brodmann areas in postmortem cortex bulk RNA-seq, Autism and dup15q vs. controls (Gandal et al. Nature 2022)"
     description: >
       Per-gene limma DE summary statistics from postmortem cortex
       bulk RNA-seq across 11 Brodmann areas plus a whole-cortex
@@ -77,7 +77,7 @@ tables:
       - bulk RNA-seq
       - postmortem cortex
       - per-Brodmann-area DE
-      - dup15q ASD subtype
+      - dup15q autism subtype
     links:
       - url: https://www.nature.com/articles/s41586-022-05377-7
         label: Gandal 2022 — Nature article

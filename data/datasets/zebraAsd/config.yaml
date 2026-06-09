@@ -54,7 +54,7 @@ tables:
       - date: "2026-05-05"
         message: "Standardized title (full surname Weinschutz Mendes; organism corrected to stable mutants) and added column header tooltips."
     shortLabel: zebrafish_asd_functional_screen
-    mediumLabel: Weinschutz Mendes 2023 - in vivo Functional Screen of 10 ASD Risk Genes in Zebrafish
+    mediumLabel: Weinschutz Mendes 2023 - in vivo Functional Screen of 10 Autism Risk Genes in Zebrafish
     longLabel: High-throughput in vivo screen of autism risk genes in zebrafish
     description:
       Parallel functional analysis of 10 autism risk genes in zebrafish, measuring
@@ -99,9 +99,9 @@ tables:
       - date: "2026-05-05"
         message: "Standardized title (full surname Weinschutz Mendes) and added column header tooltips."
     shortLabel: mutant_behavior_rest_wake_visual_startle
-    mediumLabel: Weinschutz Mendes 2023 - Sleep-Wake and Visual-Startle Behavior in 10 ASD Zebrafish Mutants
+    mediumLabel: Weinschutz Mendes 2023 - Sleep-Wake and Visual-Startle Behavior in 10 Autism Zebrafish Mutants
     source: "Supplemental Table S2, Related to Figure 2"
-    longLabel: "Sleep-wake and Visual-Startle Parameters in Zebrafish Mutants of 10 ASD Genes"
+    longLabel: "Sleep-wake and Visual-Startle Parameters in Zebrafish Mutants of 10 Autism Genes"
     description:
         "Experimental setup and behavioral assays. Visual-startle: Larvae are exposed to
         five 1-s flashes of lights-off or -on stimuli at 29-s intervals at 5 dpf. Sleep-wake:

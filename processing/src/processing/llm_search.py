@@ -102,8 +102,8 @@ def get_top_genes(db_path: Path, top_n: int) -> list[dict[str, Any]]:
 
 _SEARCH_INSTRUCTIONS = """\
 Search for published research about the gene {symbol} in neuropsychiatric \
-and neurodevelopmental disorders (autism, schizophrenia, bipolar disorder, \
-intellectual disability, psychiatric disorders, neurodevelopmental conditions).
+and neurodevelopmental conditions (autism, schizophrenia, bipolar disorder, \
+intellectual disability, psychiatric conditions, neurodevelopmental conditions).
 
 Find the most relevant PubMed papers linking {symbol} to these conditions."""
 
@@ -176,7 +176,7 @@ the gene {symbol}.
 Your task:
 1. Check each PubMed link — verify the PMID exists, the author/year/title \
 are correct, and the paper is actually relevant to {symbol} and \
-neuropsychiatric/neurodevelopmental disorders.
+neuropsychiatric/neurodevelopmental conditions.
 2. Check the summary — verify it accurately reflects the literature. Correct \
 any factual errors. Verify the novelty classification is appropriate.
 3. If any links are broken, incorrect, or irrelevant, replace them with \
@@ -211,7 +211,7 @@ Take the existing information at face value — do NOT re-verify it.
 
 Your task:
 1. Search for additional or more recent PubMed papers linking {symbol} to \
-neuropsychiatric/neurodevelopmental disorders that are not already listed.
+neuropsychiatric/neurodevelopmental conditions that are not already listed.
 2. If you find better or more recent papers, include the best 3 total \
 (you may keep some existing links and add new ones, or replace with better ones).
 3. Update the summary to incorporate any new findings. Keep the novelty \
@@ -246,12 +246,12 @@ Your task (two phases):
 PHASE 1 — VERIFY:
 1. Check each PubMed link — verify the PMID exists, the author/year/title \
 are correct, and the paper is actually relevant to {symbol} and \
-neuropsychiatric/neurodevelopmental disorders.
+neuropsychiatric/neurodevelopmental conditions.
 2. Check the summary for factual accuracy. Remove or correct any errors.
 
 PHASE 2 — UPDATE:
 3. Search for additional or more recent PubMed papers linking {symbol} to \
-neuropsychiatric/neurodevelopmental disorders.
+neuropsychiatric/neurodevelopmental conditions.
 4. Include the best 3 total papers (keeping verified existing ones and \
 adding new ones as appropriate).
 5. Update the summary to incorporate new findings and correct any issues \
