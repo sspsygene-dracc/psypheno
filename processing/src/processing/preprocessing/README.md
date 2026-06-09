@@ -154,9 +154,10 @@ tables:
       columns: [Gene, logFC, ..., Gene_raw, _Gene_resolution]
 ```
 
-Tracked in git so PR diffs of `preprocessing.yaml` make every
-preprocessing change review-visible. Loaded into the per-table
-metadata download by the `load-db` pipeline (follow-up PR).
+Gitignored — not committed (its `generated:` timestamp churns every run, so
+committed copies just dirty the tree). Regenerate it with `sspsygene
+preprocess`. Loaded into the per-table metadata download by the `load-db`
+pipeline when present.
 
 ## Migration guidance for wranglers
 

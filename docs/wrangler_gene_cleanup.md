@@ -166,7 +166,7 @@ SELECT * FROM central_gene WHERE human_symbol = 'NOV';
 
 ### 3.5 The new sibling `preprocessing.yaml`
 
-Every dataset that ships a `Pipeline`-based `preprocess.py` also writes a sibling `preprocessing.yaml` capturing every action: read, gene-clean, dropna, filter_rows, transform_column, rename, drop_columns, write. **Tracked in git**, so PR diffs of `preprocessing.yaml` make manual cleanup changes review-visible.
+Every dataset that ships a `Pipeline`-based `preprocess.py` also writes a sibling `preprocessing.yaml` capturing every action: read, gene-clean, dropna, filter_rows, transform_column, rename, drop_columns, write. **It is gitignored — do not commit it** (its `generated:` timestamp churns every run). It's regenerated locally with `sspsygene preprocess` (and on the server by deploy `--preprocess`), and load-db reads it when present.
 
 Shape (abbreviated):
 
@@ -196,10 +196,10 @@ tables:
 
 Use this when:
 - A user asks "why is row N missing the gene I expected?" — find the `_<col>_resolution` tag in the cleaned TSV, cross-reference with `counts` and `sample_unresolved` in the YAML.
-- A reviewer wants to know what manual cleanup you did — point them at the diff of `preprocessing.yaml` rather than re-eyeballing the script.
+- A reviewer wants to know what manual cleanup you did — regenerate `preprocessing.yaml` (`sspsygene preprocess`) and read it, rather than re-eyeballing the script. (It's gitignored, so there's no PR diff to point at.)
 - You're adding a new rescue helper (e.g. a new pattern category) — the rescue-tier counts in the YAML let you measure impact across all datasets at once.
 
-**You don't need to write this file by hand.** As long as your `preprocess.py` calls `tracker.write(DIR / "preprocessing.yaml")` at the end of `main()`, it's regenerated every run.
+**You don't need to write this file by hand, and you don't commit it.** As long as your `preprocess.py` calls `tracker.write(DIR / "preprocessing.yaml")` at the end of `main()`, it's regenerated every run; it's gitignored, so leave it out of your commits.
 
 ### 3.6 Controls and the `control` search keyword
 
@@ -305,7 +305,7 @@ def _drop_rna_family(df: pd.DataFrame) -> pd.Series:
 If you're spinning up a new wrangle, the workflow is the same as before *except*:
 
 1. **Build a `Pipeline`, not free-function calls.** `from processing.preprocessing import Pipeline, Tracker, GeneSymbolNormalizer` — see `data/datasets/mouse-perturb-4tf/preprocess.py` for the simplest template, or `hsc-autism-organoid-m5/preprocess.py` for a multi-sheet Excel one. The chainable builder methods (`read_csv`, `clean_gene`, `dropna`, `filter_rows`, `transform_column`, `rename`, `drop_columns`, `write_csv`) cover everything; `pipeline.add(MyCustomStep(...))` is the escape hatch.
-2. **Call `tracker.write(DIR / "preprocessing.yaml")` at the end of `main()`.** Every step records into the tracker; this line persists it. The file is git-tracked so PR diffs surface every cleanup decision.
+2. **Call `tracker.write(DIR / "preprocessing.yaml")` at the end of `main()`.** Every step records into the tracker; this line persists it. The file is gitignored (regenerated every run) — don't commit it.
 3. **Don't use `ignore_missing` / `replace` / `to_upper`** — they're gone. Use `non_resolving:` and `manual_aliases` instead.
 4. **Check `<col>_raw` doesn't already exist** in your input frame. The cleaner raises `KeyError` if it does. If you have a column literally named `target_gene_raw` already, rename it before calling `clean_gene`.
 5. **Don't drop rows outside the pipeline.** If you `dropna` or filter, do it via `.dropna(...)` / `.filter_rows(predicate, description=...)` — that way the YAML records the action and the row counts before/after.

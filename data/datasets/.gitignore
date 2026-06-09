@@ -1,1 +1,8 @@
 *.gz
+
+# Per-output preprocessing provenance sidecars (#158) are NOT committed: they
+# carry a `generated:` timestamp that churns on every re-run, so committed
+# copies showed up as spurious diffs / dirty working trees. They're regenerated
+# by preprocess.py (and `sspsygene preprocess` / deploy --preprocess); load-db
+# reads them at build time when present and stores NULL when absent.
+*.preprocessing.yaml
