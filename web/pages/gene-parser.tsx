@@ -601,7 +601,7 @@ NOTAGENE     NOTAGENE          unresolved`}</code>
             in the database.
           </p>
           <p>
-            <strong>Zebrafish.</strong> Only one dataset (<em>zebraAsd</em>)
+            <strong>Zebrafish.</strong> Only one dataset (<em>zebra-autism</em>)
             uses zebrafish. There&apos;s no full ZFIN normalizer; the
             wrangler&apos;s preprocessing script up-cases the gene token and
             applies a manual paralog mapping

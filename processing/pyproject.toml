@@ -17,7 +17,7 @@ dependencies = [
     "tqdm>=4.60.0",
     "biopython>=1.83",
     # openpyxl is the engine pandas uses to read .xlsx supplementary tables
-    # in dataset preprocess.py scripts (e.g. hsc-asd-organoid-m5).
+    # in dataset preprocess.py scripts (e.g. hsc-autism-organoid-m5).
     "openpyxl>=3.1",
 ]
 

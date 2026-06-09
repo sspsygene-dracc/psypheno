@@ -163,14 +163,14 @@ canonical papers are not yet on the site.
 ## Tier 2 — Single-cell brain atlases (per gene × cell type)
 
 Large reference atlases that produce per-gene marker / DEG lists per
-cell type. They mesh well with our `wamsley-postmortem-asd` schema
+cell type. They mesh well with our `wamsley-postmortem-autism` schema
 (cell-type marker tables) and with the volcano-plot UI.
 
 ### 15. Velmeshev 2019 — first ASD postmortem cortex scRNA-seq
 - *Science* **364**, 685–689 (2019). PMID 31097668 / doi:10.1126/science.aav8130.
 - **Per-gene fit:** Suppl Table S4 = ~5K ASD-vs-CTL DEGs per cell type
   with FC and p. Drop-in.
-- **Why:** Direct comparator to Wamsley 2024 (`wamsley-postmortem-asd`).
+- **Why:** Direct comparator to Wamsley 2024 (`wamsley-postmortem-autism`).
   Cited 1500+. The cleanest way to test whether the new Wamsley findings
   replicate. Notably, the Wamsley DEG list itself is gated on
   PsychENCODE Synapse (DUC); Velmeshev's is fully open in the Suppl
@@ -646,4 +646,4 @@ pick them up opportunistically:
   (Tier 6).
 - Polioudakis 2019 / Bhaduri 2020 / Kanton 2019 / Velmeshev 2023
   (Tier 2 — partial overlap with `brain_organoid_atlas` /
-  `wamsley-postmortem-asd`; check before ingesting).
+  `wamsley-postmortem-autism`; check before ingesting).

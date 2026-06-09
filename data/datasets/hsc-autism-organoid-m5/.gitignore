@@ -1,4 +1,4 @@
-# data/datasets/hsc-asd-organoid-m5/.gitignore
+# data/datasets/hsc-autism-organoid-m5/.gitignore
 
 # Raw downloads
 *.xlsx

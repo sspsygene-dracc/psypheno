@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Provenance for the wamsley-postmortem-asd dataset.
+# Provenance for the wamsley-postmortem-autism dataset.
 #
 # Paper:    Wamsley et al., "Molecular cascades and cell type-specific
 #           signatures in ASD revealed by single-cell genomics",

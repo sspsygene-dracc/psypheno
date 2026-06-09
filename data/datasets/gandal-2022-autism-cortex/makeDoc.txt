@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Provenance for the gandal-2022-asd-cortex dataset.
+# Provenance for the gandal-2022-autism-cortex dataset.
 #
 # Paper:    Gandal et al., "Broad transcriptomic dysregulation occurs
 #           across the cerebral cortex in ASD", Nature 2022,

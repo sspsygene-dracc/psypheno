@@ -114,7 +114,7 @@ CCN3         NOV               rescued_manual_alias
 
 > **Migration note (#150):** the old free-function flow had every `preprocess.py` call `df.drop(columns=["_<col>_resolution"])` immediately after `clean_gene_column(...)`. The new pipeline form does NOT do that — keep both `<col>_raw` AND `_<col>_resolution` in the output. If you really need to drop the resolution column for an existing dataset's contract, use `.drop_columns(["_<col>_resolution"])` in the pipeline — that's tracked too, so the YAML records the drop.
 >
-> If you rename `<col>` later in the script, rename `<col>_raw` in lockstep (e.g. hsc-asd-organoid-m5 renames `hgnc_symbol → target_gene` and also `hgnc_symbol_raw → target_gene_raw`). The pipeline's `.rename({...})` step handles this — pass both names in the mapping dict.
+> If you rename `<col>` later in the script, rename `<col>_raw` in lockstep (e.g. hsc-autism-organoid-m5 renames `hgnc_symbol → target_gene` and also `hgnc_symbol_raw → target_gene_raw`). The pipeline's `.rename({...})` step handles this — pass both names in the mapping dict.
 
 ### 3.2 Watch the load-db warning counts
 
@@ -223,10 +223,10 @@ Currently in `record_values:` (creates a stub) but probably should move to `manu
 
 | Symbol | Possible successor(s) | Datasets where it appears |
 |---|---|---|
-| `MPP6` | `MPHOSPH6` (alias) or `PALS2` (prev_symbol) | brain_organoid_atlas, hsc-asd-organoid-m5, polygenic-risk-20, psychscreen |
-| `LOR` | (ambiguous) | brain_organoid_atlas, hsc-asd-organoid-m5, psychscreen |
-| `DEC1` | `BHLHE40` or `DELEC1` | hsc-asd-organoid-m5 |
-| `C18orf21` | `RMP24` or `RMP24P1` | brain_organoid_atlas, dynamic_convergence, hsc-asd-organoid-m5, polygenic-risk-20, psychscreen |
+| `MPP6` | `MPHOSPH6` (alias) or `PALS2` (prev_symbol) | brain_organoid_atlas, hsc-autism-organoid-m5, polygenic-risk-20, psychscreen |
+| `LOR` | (ambiguous) | brain_organoid_atlas, hsc-autism-organoid-m5, psychscreen |
+| `DEC1` | `BHLHE40` or `DELEC1` | hsc-autism-organoid-m5 |
+| `C18orf21` | `RMP24` or `RMP24P1` | brain_organoid_atlas, dynamic_convergence, hsc-autism-organoid-m5, polygenic-risk-20, psychscreen |
 
 **Action:** confirm the successor per paper context. For NDD / neuropsychiatric datasets, lean toward whichever protein the paper's discussion actually means. Once decided, move the entry from `record_values:` (in YAML) to `manual_aliases:` (in preprocess.py).
 
@@ -256,9 +256,9 @@ In `SFARI-Gene_animal-rescues_07-08-2025release_10-03-2025export.csv`, the `mode
 2. OR change the `species:` to per-row driven by another column.
 3. OR the simplest: `record_values: [Slc30a3]` and call it a day if there's only the one offender.
 
-### 4.4 hsc-asd-organoid-m5 silent dropna in supp 3
+### 4.4 hsc-autism-organoid-m5 silent dropna in supp 3
 
-`hsc-asd-organoid-m5/preprocess.py:104-105` silently drops rows where `hgnc_symbol` is NaN/empty (~87,435 rows per supp 3 read). Per the §3.2 design intent, those rows should pass through and let `non_resolving:` decide their fate.
+`hsc-autism-organoid-m5/preprocess.py:104-105` silently drops rows where `hgnc_symbol` is NaN/empty (~87,435 rows per supp 3 read). Per the §3.2 design intent, those rows should pass through and let `non_resolving:` decide their fate.
 
 **Action:** when convenient — remove the dropna + empty-string filter. Add `ignore_empty: true` to the `target_gene` mapping in `config.yaml` so empty values orphan cleanly. **Beware:** this brings 87k extra rows into the DB. Real downstream impact (DB size, search results, dataset table view); do its own commit + rebuild check, not lumped with cleanup.
 
@@ -304,7 +304,7 @@ def _drop_rna_family(df: pd.DataFrame) -> pd.Series:
 
 If you're spinning up a new wrangle, the workflow is the same as before *except*:
 
-1. **Build a `Pipeline`, not free-function calls.** `from processing.preprocessing import Pipeline, Tracker, GeneSymbolNormalizer` — see `data/datasets/mouse-perturb-4tf/preprocess.py` for the simplest template, or `hsc-asd-organoid-m5/preprocess.py` for a multi-sheet Excel one. The chainable builder methods (`read_csv`, `clean_gene`, `dropna`, `filter_rows`, `transform_column`, `rename`, `drop_columns`, `write_csv`) cover everything; `pipeline.add(MyCustomStep(...))` is the escape hatch.
+1. **Build a `Pipeline`, not free-function calls.** `from processing.preprocessing import Pipeline, Tracker, GeneSymbolNormalizer` — see `data/datasets/mouse-perturb-4tf/preprocess.py` for the simplest template, or `hsc-autism-organoid-m5/preprocess.py` for a multi-sheet Excel one. The chainable builder methods (`read_csv`, `clean_gene`, `dropna`, `filter_rows`, `transform_column`, `rename`, `drop_columns`, `write_csv`) cover everything; `pipeline.add(MyCustomStep(...))` is the escape hatch.
 2. **Call `tracker.write(DIR / "preprocessing.yaml")` at the end of `main()`.** Every step records into the tracker; this line persists it. The file is git-tracked so PR diffs surface every cleanup decision.
 3. **Don't use `ignore_missing` / `replace` / `to_upper`** — they're gone. Use `non_resolving:` and `manual_aliases` instead.
 4. **Check `<col>_raw` doesn't already exist** in your input frame. The cleaner raises `KeyError` if it does. If you have a column literally named `target_gene_raw` already, rename it before calling `clean_gene`.
@@ -376,7 +376,7 @@ Look out for "not in gene maps" or "looks like a non-symbol identifier"
   - Simplest pipeline:
     [`data/datasets/mouse-perturb-4tf/preprocess.py`](../data/datasets/mouse-perturb-4tf/preprocess.py)
   - Multi-sheet Excel + concat:
-    [`data/datasets/hsc-asd-organoid-m5/preprocess.py`](../data/datasets/hsc-asd-organoid-m5/preprocess.py)
+    [`data/datasets/hsc-autism-organoid-m5/preprocess.py`](../data/datasets/hsc-autism-organoid-m5/preprocess.py)
   - Free-function era (pre-#149): commit `15edd3d`, dataset `dynamic_convergence`
 - Tickets: [#149](https://github.com/sspsygene-dracc/psypheno/issues/149) (OO library),
   [#150](https://github.com/sspsygene-dracc/psypheno/issues/150) (provenance tracking)

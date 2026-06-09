@@ -190,7 +190,7 @@ tables:
       - psychiatric conditions
     organism: Homo sapiens (postmortem brain)
     organism_key: human
-    in_path: ASD_DEGcombined_cleaned.csv
+    in_path: Autism_DEGcombined_cleaned.csv
     separator: ","
     gene_mappings:
       - column_name: gene

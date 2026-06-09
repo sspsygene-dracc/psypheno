@@ -40,7 +40,7 @@ DIR = Path(__file__).resolve().parent
 
 JOBS: list[tuple[str, str]] = [
     ("Age_DEGcombined.csv", "Age_DEGcombined_cleaned.csv"),
-    ("ASD_DEGcombined.csv", "ASD_DEGcombined_cleaned.csv"),
+    ("Autism_DEGcombined.csv", "Autism_DEGcombined_cleaned.csv"),
     ("Bipolar_DEGcombined.csv", "Bipolar_DEGcombined_cleaned.csv"),
     ("Schizophrenia_DEGcombined.csv", "Schizophrenia_DEGcombined_cleaned.csv"),
 ]

@@ -355,7 +355,7 @@ def derive_manifest_entry(table: PrimaryTable) -> dict[str, Any]:
     else:
         # No sidecar — either there's no preprocess.py at all (sfari × 3),
         # or it's a custom non-Pipeline script (perturb-fish/extract_pheno.py,
-        # zebraAsd/RestWake_VisStart). The contract reduces to raw_rows ==
+        # zebra-autism/RestWake_VisStart). The contract reduces to raw_rows ==
         # db_rows.
         entry["pipeline_used"] = False
         entry["expected_drops"] = []

@@ -144,7 +144,7 @@ guessing.
 - Existing dataset examples to copy patterns from:
   - Simple human expression: `data/datasets/psychscreen/`
   - Mouse: `data/datasets/mouse-perturb-4tf/`
-  - Zebrafish: `data/datasets/zebraAsd/`
+  - Zebrafish: `data/datasets/zebra-autism/`
   - Perturbation with two gene columns: `data/datasets/polygenic-risk-20/`
 - Canonical guide: `docs/adding-datasets.md` — read it before suggesting
   config field values you're not sure about.

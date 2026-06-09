@@ -84,7 +84,7 @@ If the raw data is not already in clean CSV/TSV format (and it usually isn't),
 write a Python script to convert it. Save this script in your dataset directory.
 
 **Example:** See `data/datasets/mouse-perturb-4tf/preprocess.py` for the
-simplest real example, or `data/datasets/hsc-asd-organoid-m5/preprocess.py`
+simplest real example, or `data/datasets/hsc-autism-organoid-m5/preprocess.py`
 for a multi-sheet Excel case.
 
 Use the **`processing.preprocessing` library** to build a `Pipeline` of
@@ -640,7 +640,7 @@ The pieces:
   `Postmortem Brain`, `Zebrafish`).
 
 Datasets with multiple tables from one paper share the author/year prefix and
-differentiate by the Assay/Medium half — see e.g. `data/datasets/zebraAsd/`
+differentiate by the Assay/Medium half — see e.g. `data/datasets/zebra-autism/`
 (`Mendes 2023 - in vivo Functional Screen …` vs
 `Mendes 2023 - Sleep-Wake and Visual-Startle Behavior …`).
 
@@ -1080,5 +1080,5 @@ Look at these existing datasets for reference:
 - **Perturbation dataset (two gene columns):** `data/datasets/polygenic-risk-20/config.yaml`
 - **Mouse dataset:** `data/datasets/mouse-perturb-4tf/config.yaml`
 - **Dataset with preprocessing script:** `data/datasets/geschwind_2026_cnv/` (see `preprocess.py` and `config.yaml`)
-- **Zebrafish dataset:** `data/datasets/zebraAsd/config.yaml`
+- **Zebrafish dataset:** `data/datasets/zebra-autism/config.yaml`
 - **Multi-gene separator:** `data/datasets/geschwind_2026_cnv/config.yaml` (uses `multi_gene_separator`)

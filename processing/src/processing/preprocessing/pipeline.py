@@ -160,7 +160,7 @@ class Tracker:
         """Record a `concat_and_write` action and emit a sidecar.
 
         Used by multi-sheet preprocess.py scripts (e.g.
-        hsc-asd-organoid-m5) that build N sub-pipelines and pd.concat
+        hsc-autism-organoid-m5) that build N sub-pipelines and pd.concat
         their outputs into one combined file. The wrangler calls this
         once after the manual `to_csv`; it tags the action with
         `output_path.name` and writes the sidecar in one shot.
