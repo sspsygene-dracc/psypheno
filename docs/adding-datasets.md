@@ -320,13 +320,13 @@ tables:
                                     # You can also use a list for multiple types:
                                     #   assay: [spatial, perturbation]
 
-    disease:                        # Which diseases this data relates to.
-      - asd                         # Must be from this list:
-      - ndd                         #   asd     — Autism
+    condition:                      # Which conditions this data relates to.
+      - autism                      # Must be from this list:
+      - ndc                         #   autism  — Autism
                                     #   scz     — Schizophrenia
                                     #   bipolar — Bipolar Disorder
-                                    #   ndd     — Neurodevelopmental Conditions
-                                    # Use [] for an empty list if not disease-specific.
+                                    #   ndc     — Neurodevelopmental Conditions
+                                    # Use [] for an empty list if not condition-specific.
 
     categories:                     # Free-text tags describing the data.
       - bulk RNA-seq                # These are for browsing/filtering on the website.
@@ -478,7 +478,7 @@ tables:
     description: "DEGs from RNA-seq of postmortem brain tissue."
     source: "Supplementary Table 1"
     assay: expression
-    disease: ["asd"]
+    condition: ["autism"]
     categories:
       - bulk RNA-seq
     organism: "Homo sapiens"
