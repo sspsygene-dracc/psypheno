@@ -70,10 +70,10 @@ tables:
     organism_key: human
     assay: expression
     disease:
-      - asd
+      - autism
       - scz
       - bipolar
-      - ndd
+      - ndc
     categories:
       - bulk RNA-seq
       - postmortem cortex

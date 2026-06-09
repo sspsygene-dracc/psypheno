@@ -22,10 +22,10 @@ assayTypes:
   phenotype: "Phenotype Annotation"
 
 diseaseTypes:
-  asd: "Autism"
+  autism: "Autism"
   scz: "Schizophrenia"
   bipolar: "Bipolar Disorder"
-  ndd: "Neurodevelopmental Conditions"
+  ndc: "Neurodevelopmental Conditions"
 
 organismTypes:
   human: "Human"

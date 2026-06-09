@@ -97,7 +97,7 @@ tables:
       in brain organoids from neurodevelopmental condition patients at stringent FDR threshold of 0.05.
     source: "Table S10 (filtered, FDR < 0.05)"
     assay: expression
-    disease: ["ndd"]
+    disease: ["ndc"]
     fieldLabels:
       cell_type: "Brain organoid cell type cluster (e.g. oRG = outer radial glia, GABA neurons, Astroglia, vGlut-1 neurons)"
       gene_symbol: "Gene symbol (HGNC)"
@@ -151,7 +151,7 @@ tables:
       condition patients at relaxed FDR threshold of 0.2, capturing additional candidate genes.
     source: "Table S10 (filtered, FDR < 0.2)"
     assay: expression
-    disease: ["ndd"]
+    disease: ["ndc"]
     fieldLabels:
       cell_type: "Brain organoid cell type cluster (e.g. oRG = outer radial glia, GABA neurons, Astroglia, vGlut-1 neurons)"
       gene_symbol: "Gene symbol (HGNC)"
@@ -205,7 +205,7 @@ tables:
       organoid subclasses and neurodevelopmental condition categories using single-cell NEBULA analysis.
     source: "Table S10"
     assay: expression
-    disease: ["ndd"]
+    disease: ["ndc"]
     fieldLabels:
       cell_type: "Brain organoid cell type cluster (e.g. oRG = outer radial glia, GABA neurons, Astroglia, vGlut-1 neurons)"
       gene_symbol: "Gene symbol (HGNC)"
@@ -259,7 +259,7 @@ tables:
       validation of single-cell differential expression findings with FDR-adjusted p-values.
     source: "Table S11"
     assay: expression
-    disease: ["ndd"]
+    disease: ["ndc"]
     fieldLabels:
       gene: "Gene symbol (HGNC)"
       diagnosis: "NDD diagnosis category: MIC=microcephaly, PMG=polymicrogyria, EPI=epilepsy, ID=intellectual disability"

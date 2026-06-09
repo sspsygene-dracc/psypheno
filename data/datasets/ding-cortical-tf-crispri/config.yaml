@@ -43,8 +43,8 @@ tables:
     organism_key: human
     assay: perturbation
     disease:
-      - asd
-      - ndd
+      - autism
+      - ndc
       - scz
     categories:
       - CRISPRi
@@ -103,7 +103,7 @@ tables:
     organism_key: human
     assay: perturbation
     disease:
-      - ndd
+      - ndc
     categories:
       - CRISPRi
       - Perturb-seq

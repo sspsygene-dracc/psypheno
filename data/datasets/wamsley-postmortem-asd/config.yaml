@@ -48,7 +48,7 @@ tables:
     organism_key: human
     assay: expression
     disease:
-      - asd
+      - autism
     categories:
       - snRNA-seq
       - cluster markers

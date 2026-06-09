@@ -71,8 +71,8 @@ tables:
     organism_key: human
     assay: expression
     disease:
-      - asd
-      - ndd
+      - autism
+      - ndc
     categories:
       - bulk RNA-seq
       - postmortem cortex
@@ -175,8 +175,8 @@ tables:
     organism_key: human
     assay: expression
     disease:
-      - asd
-      - ndd
+      - autism
+      - ndc
     categories:
       - snRNA-seq
       - postmortem cortex

@@ -88,8 +88,8 @@ tables:
     source: "Supplementary Table S2, Autosomal sheet"
     assay: curated
     disease:
-      - asd
-      - ndd
+      - autism
+      - ndc
     categories:
       - exome sequencing
       - autism genetics
@@ -196,8 +196,8 @@ tables:
     source: "Supplementary Table S2, ChrX sheet"
     assay: curated
     disease:
-      - asd
-      - ndd
+      - autism
+      - ndc
     categories:
       - exome sequencing
       - autism genetics

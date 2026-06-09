@@ -72,8 +72,8 @@ tables:
     organism_key: human
     assay: curated
     disease:
-      - asd
-      - ndd
+      - autism
+      - ndc
     categories:
       - curated database
       - autism genetics
