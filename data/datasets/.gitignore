@@ -6,3 +6,12 @@
 # by preprocess.py (and `sspsygene preprocess` / deploy --preprocess); load-db
 # reads them at build time when present and stores NULL when absent.
 *.preprocessing.yaml
+
+# Raw spreadsheet downloads are never committed (large binaries, regenerated
+# from the source URL via makeDoc.txt). No .xlsx/.xls is tracked anywhere, so
+# ignoring them globally just closes per-dataset .gitignore gaps.
+*.xlsx
+*.xls
+
+# Editor / scratch backups.
+*~

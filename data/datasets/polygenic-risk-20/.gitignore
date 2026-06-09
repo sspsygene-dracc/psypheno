@@ -1,1 +1,5 @@
 *.csv
+# Raw supplementary data dirs (nothing committed under them; in_path cleaned
+# CSVs live in the dataset root and are covered by *.csv above).
+Supp_1/
+Supp_2/

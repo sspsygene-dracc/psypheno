@@ -1,1 +1,4 @@
 *.csv
+# Raw behavior data dir (nothing committed under it; in_path cleaned CSVs live
+# in the dataset root and are covered by *.csv above).
+behavior/
