@@ -70,7 +70,7 @@ tables:
     organism: "Homo sapiens (postmortem cortex bulk RNA-seq, 11 Brodmann areas)"
     organism_key: human
     assay: expression
-    disease:
+    condition:
       - autism
       - ndc
     categories:
@@ -174,7 +174,7 @@ tables:
     organism: "Homo sapiens (postmortem cortex snRNA-seq, 27 cell types × 11 regions)"
     organism_key: human
     assay: expression
-    disease:
+    condition:
       - autism
       - ndc
     categories:

@@ -47,7 +47,7 @@ tables:
     organism: "Homo sapiens (postmortem ASD + control cortex, 66 donors)"
     organism_key: human
     assay: expression
-    disease:
+    condition:
       - autism
     categories:
       - snRNA-seq

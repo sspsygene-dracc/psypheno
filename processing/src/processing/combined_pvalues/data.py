@@ -20,7 +20,7 @@ Regulation = Literal["any", "up", "down"]
 SourceTableQuad = tuple[str, str, str, str | None]
 
 # Full row from data_tables that drives group enumeration; carries the assay /
-# disease / organism keys needed for filtered groups, plus effect_column.
+# condition / organism keys needed for filtered groups, plus effect_column.
 SourceTableRow = tuple[
     str, str, str, str | None, str | None, str | None, str | None
 ]
@@ -92,7 +92,7 @@ class ComputeGroup:
     direction: str
     regulation: Regulation = "any"
     assay_filter: str | None = None
-    disease_filter: str | None = None
+    condition_filter: str | None = None
     organism_filter: str | None = None
     use_gene_flags: bool = True
     min_tables: int = 1
@@ -109,7 +109,7 @@ class CollectedGroup:
     direction: str
     regulation: Regulation
     assay_filter: str | None
-    disease_filter: str | None
+    condition_filter: str | None
     organism_filter: str | None
     use_gene_flags: bool
     # Source tables that actually contribute p-values for this group's

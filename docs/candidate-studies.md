@@ -99,7 +99,7 @@ canonical papers are not yet on the site.
 - **Per-gene fit:** Suppl. Tables 7–9 = MAGMA, TWAS, fine-mapping
   per-gene. Successor to Demontis 2019 (PMID 30478444).
 - **Why:** ADHD is the second axis missing from the site. ADHD ↔ ASD
-  comorbidity (~30%) — having both lets users do real cross-disorder
+  comorbidity (~30%) — having both lets users do real cross-condition
   comparisons.
 
 ### 9. Howard 2019 / Als 2023 — depression GWAS
@@ -121,18 +121,18 @@ canonical papers are not yet on the site.
   neurons.
 - **Why:** First well-powered OCD GWAS; OCD is a fourth currently-absent
   disease axis (BD, ADHD, MDD, OCD). Pairs with Cross-Disorder PGC 2019
-  for cross-disorder framing.
+  for cross-condition framing.
 - **Caveats:** OCD is part of the broader anxiety / compulsive spectrum
   that is relatively under-represented in the SSPsyGene 250 — relevance
   to that gene list is weaker than ASD/SCZ.
 
 ### 11. Cross-Disorder Group of the PGC 2019 — pleiotropy across 8 disorders
 - *Cell* **179**, 1469–1482 (2019). PMID 31835028 / doi:10.1016/j.cell.2019.11.020.
-- **Per-gene fit:** Suppl. Tables include cross-disorder MAGMA per gene
+- **Per-gene fit:** Suppl. Tables include cross-condition MAGMA per gene
   with disorder-specific Z-scores (ASD, ADHD, AN, BIP, MDD, OCD, SCZ,
   TS).
 - **Why:** Single most useful pleiotropy reference table for our
-  cross-disorder framing. Naturally pairs with the per-disorder GWAS
+  cross-condition framing. Naturally pairs with the per-disorder GWAS
   papers above.
 
 ### 12. Antaki 2022 — rare CNVs in ASD (~15K trios)
@@ -220,7 +220,7 @@ cell type. They mesh well with our `wamsley-postmortem-autism` schema
   expression patterns. A comparator dataset.
 - **Caveats:** Outside the strict neuropsych / neurodev scope —
   borderline. Lower priority unless the wrangler team wants the
-  cross-disorder framing.
+  cross-condition framing.
 
 ### 21. BICCN 2021 — primary motor cortex multi-omic atlas
 - *Nature* **598**, 86–102 (2021). PMID 34616075. Capstone "multimodal
@@ -270,11 +270,11 @@ is a per-gene × cell-type score matrix — direct fit.
   and Bryois 2020. Most cell-type-GWAS papers run both methods; we
   should ingest both reference resources.
 
-### 26. Bryois 2020 — cross-disorder cell-type enrichment
+### 26. Bryois 2020 — cross-condition cell-type enrichment
 - *Nat Genet* **52**, 482–493 (2020). PMID 32341526 / doi:10.1038/s41588-020-0610-9.
 - **Per-gene fit:** Per-gene cell-type specificity for ASD, ADHD, AN,
   BIP, MDD, OCD, SCZ, TS, alcohol dependence.
-- **Why:** Cross-disorder generalisation of Skene. Pairs naturally with
+- **Why:** Cross-condition generalisation of Skene. Pairs naturally with
   Cross-Disorder PGC 2019 (entry 11).
 
 ### 27. Bryois 2022 — eight-cell-type brain cis-eQTLs
@@ -627,8 +627,8 @@ gap):
 4. **Velmeshev 2019 ASD cortex scRNA** (Tier 2) — comparator for the
    already-loaded Wamsley 2024, and the DEG list is open in Suppl while
    Wamsley's is gated.
-5. **Cross-Disorder PGC 2019 + Bryois 2020 cross-disorder cell types**
-   (Tier 1 + Tier 3) — pair them; activates the cross-disorder framing
+5. **Cross-Disorder PGC 2019 + Bryois 2020 cross-condition cell types**
+   (Tier 1 + Tier 3) — pair them; activates the cross-condition framing
    across the whole site at once.
 6. **Pintacuda 2023 ASD-gene PPI** (Tier 9) — first published PPI
    dataset.

@@ -257,7 +257,7 @@ def load_data_tables(
         categories TEXT,
         source TEXT,
         assay TEXT,
-        disease TEXT,
+        condition TEXT,
         field_labels TEXT,
         organism TEXT,
         organism_key TEXT,
@@ -348,7 +348,7 @@ def load_data_tables(
             table_name, short_label, medium_label, long_label, description, gene_columns,
             gene_species, display_columns,
             scalar_columns, link_tables,
-            links, categories, source, assay, disease, field_labels, organism, organism_key,
+            links, categories, source, assay, condition, field_labels, organism, organism_key,
             publication_first_author, publication_last_author, publication_author_count, publication_authors, publication_year,
             publication_journal, publication_doi, publication_pmid, publication_sspsygene_grants,
             pvalue_column, fdr_column, effect_column, preprocessing)
@@ -373,7 +373,7 @@ def load_data_tables(
                 ",".join(table_config.categories) if table_config.categories else None,
                 table_config.source,
                 ",".join(table_config.assay) if table_config.assay else None,
-                ",".join(table_config.disease) if table_config.disease else None,
+                ",".join(table_config.condition) if table_config.condition else None,
                 json.dumps(filtered_field_labels) if filtered_field_labels else None,
                 table_config.organism,
                 ",".join(table_config.organism_key) if table_config.organism_key else None,
@@ -474,16 +474,16 @@ def load_assay_types(conn: sqlite3.Connection, assay_types: dict[str, str]) -> N
     conn.commit()
 
 
-def load_disease_types(conn: sqlite3.Connection, disease_types: dict[str, str]) -> None:
+def load_condition_types(conn: sqlite3.Connection, condition_types: dict[str, str]) -> None:
     cur = conn.cursor()
     cur.execute(
-        """CREATE TABLE disease_types (
+        """CREATE TABLE condition_types (
         key TEXT PRIMARY KEY,
         label TEXT)"""
     )
-    for key, label in disease_types.items():
+    for key, label in condition_types.items():
         cur.execute(
-            "INSERT INTO disease_types (key, label) VALUES (?, ?)",
+            "INSERT INTO condition_types (key, label) VALUES (?, ?)",
             (key, label),
         )
     conn.commit()
@@ -568,7 +568,7 @@ def load_db(
     db_name: Path,
     table_configs: list[TableToProcessConfig],
     assay_types: dict[str, str] | None = None,
-    disease_types: dict[str, str] | None = None,
+    condition_types: dict[str, str] | None = None,
     organism_types: dict[str, str] | None = None,
     skip_missing: bool = False,
     hgnc_path: Path | None = None,
@@ -608,7 +608,7 @@ def load_db(
         load_gene_tables(conn, no_index=no_index)
         compute_ensembl_to_symbol(conn, no_index=no_index)
         load_assay_types(conn, assay_types or {})
-        load_disease_types(conn, disease_types or {})
+        load_condition_types(conn, condition_types or {})
         load_organism_types(conn, organism_types or {})
         if data_dir and not skip_gene_descriptions:
             copy_gene_descriptions(conn, data_dir, no_index=no_index)

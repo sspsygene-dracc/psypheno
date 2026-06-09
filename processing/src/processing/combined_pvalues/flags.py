@@ -16,7 +16,7 @@ import click
 # HGNC gene_group names mapped to filter flag categories.
 # These represent broadly-responsive gene families whose high significance
 # in combined p-values typically reflects general perturbation response
-# rather than disease-specific signal.
+# rather than condition-specific signal.
 FLAG_GENE_GROUPS: dict[str, list[str]] = {
     "heat_shock": [
         "BAG cochaperones",

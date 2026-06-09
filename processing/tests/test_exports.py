@@ -37,7 +37,7 @@ CREATE TABLE data_tables (
     categories TEXT,
     source TEXT,
     assay TEXT,
-    disease TEXT,
+    condition TEXT,
     field_labels TEXT,
     organism TEXT,
     organism_key TEXT,
@@ -77,7 +77,7 @@ def _seed_minimal_db(db_path: Path) -> None:
             """INSERT INTO data_tables (
                 table_name, short_label, medium_label, long_label, description,
                 gene_columns, gene_species, display_columns, scalar_columns,
-                link_tables, links, categories, source, assay, disease,
+                link_tables, links, categories, source, assay, condition,
                 field_labels, organism, organism_key,
                 publication_first_author, publication_last_author,
                 publication_author_count, publication_authors, publication_year,

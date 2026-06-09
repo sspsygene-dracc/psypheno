@@ -20,7 +20,7 @@ type DatasetTableMeta = {
   fdrColumn: string | null;
   effectColumn: string | null;
   assay: string[] | null;
-  disease: string[] | null;
+  condition: string[] | null;
   organismKey: string[] | null;
 };
 
@@ -298,14 +298,14 @@ export default function SignificantRowsPage() {
   const [assayTypeLabels, setAssayTypeLabels] = useState<
     Record<string, string>
   >({});
-  const [diseaseTypeLabels, setDiseaseTypeLabels] = useState<
+  const [conditionTypeLabels, setConditionTypeLabels] = useState<
     Record<string, string>
   >({});
   const [organismTypeLabels, setOrganismTypeLabels] = useState<
     Record<string, string>
   >({});
   const [assayFilter, setAssayFilter] = useState<string | null>(null);
-  const [diseaseFilter, setDiseaseFilter] = useState<string | null>(null);
+  const [conditionFilter, setConditionFilter] = useState<string | null>(null);
   const [organismFilter, setOrganismFilter] = useState<string | null>(null);
   const [regulation, setRegulation] = useState<Regulation>("any");
   const [datasetsLoading, setDatasetsLoading] = useState(true);
@@ -316,9 +316,9 @@ export default function SignificantRowsPage() {
   const [initializedFromUrl, setInitializedFromUrl] = useState(false);
   useEffect(() => {
     if (!router.isReady || initializedFromUrl) return;
-    const { assay, disease, organism, reg } = router.query;
+    const { assay, condition, organism, reg } = router.query;
     if (typeof assay === "string") setAssayFilter(assay);
-    if (typeof disease === "string") setDiseaseFilter(disease);
+    if (typeof condition === "string") setConditionFilter(condition);
     if (typeof organism === "string") setOrganismFilter(organism);
     if (typeof reg === "string" && ["any", "up", "down"].includes(reg)) {
       setRegulation(reg as Regulation);
@@ -343,7 +343,7 @@ export default function SignificantRowsPage() {
       .then((data) => {
         setDatasetTables(data.tables);
         setAssayTypeLabels(data.assayTypeLabels ?? {});
-        setDiseaseTypeLabels(data.diseaseTypeLabels ?? {});
+        setConditionTypeLabels(data.conditionTypeLabels ?? {});
         setOrganismTypeLabels(data.organismTypeLabels ?? {});
         setDatasetsLoading(false);
       })
@@ -352,7 +352,7 @@ export default function SignificantRowsPage() {
 
   const tocGroups = useAssayGroups(datasetTables, assayTypeLabels);
 
-  // Derive available assay/disease filters from dataset tables
+  // Derive available assay/condition filters from dataset tables
   const availableAssays = [
     ...new Set(
       datasetTables
@@ -360,10 +360,10 @@ export default function SignificantRowsPage() {
         .filter(Boolean),
     ),
   ].sort();
-  const availableDiseases = [
+  const availableConditions = [
     ...new Set(
       datasetTables
-        .flatMap((t) => t.disease ?? [])
+        .flatMap((t) => t.condition ?? [])
         .filter(Boolean),
     ),
   ].sort();
@@ -411,7 +411,7 @@ export default function SignificantRowsPage() {
           }}
         >
           Browse the most significant rows from each dataset table. Use the
-          filters below to narrow by assay type, disease, and significance
+          filters below to narrow by assay type, condition, and significance
           measure.{" "}
           <Link
             href="/most-significant"
@@ -421,7 +421,7 @@ export default function SignificantRowsPage() {
           </Link>
         </p>
 
-        {/* Regulation, assay, disease, organism filters */}
+        {/* Regulation, assay, condition, organism filters */}
         <div
           style={{
             marginBottom: 12,
@@ -440,7 +440,7 @@ export default function SignificantRowsPage() {
               flexWrap: "wrap",
               marginBottom:
                 availableAssays.length > 0 ||
-                availableDiseases.length > 0 ||
+                availableConditions.length > 0 ||
                 availableOrganisms.length > 0
                   ? 8
                   : 0,
@@ -491,7 +491,7 @@ export default function SignificantRowsPage() {
                   gap: 14,
                   flexWrap: "wrap",
                   marginBottom:
-                    availableDiseases.length > 0 ||
+                    availableConditions.length > 0 ||
                     availableOrganisms.length > 0
                       ? 8
                       : 0,
@@ -528,7 +528,7 @@ export default function SignificantRowsPage() {
                 ))}
               </div>
             )}
-            {availableDiseases.length > 0 && (
+            {availableConditions.length > 0 && (
               <div
                 style={{
                   display: "flex",
@@ -550,21 +550,21 @@ export default function SignificantRowsPage() {
                 <label style={radioLabelStyle}>
                   <input
                     type="radio"
-                    name="diseaseFilter"
-                    checked={diseaseFilter === null}
-                    onChange={() => setDiseaseFilter(null)}
+                    name="conditionFilter"
+                    checked={conditionFilter === null}
+                    onChange={() => setConditionFilter(null)}
                   />
                   All
                 </label>
-                {availableDiseases.map((key) => (
+                {availableConditions.map((key) => (
                   <label key={key} style={radioLabelStyle}>
                     <input
                       type="radio"
-                      name="diseaseFilter"
-                      checked={diseaseFilter === key}
-                      onChange={() => setDiseaseFilter(key)}
+                      name="conditionFilter"
+                      checked={conditionFilter === key}
+                      onChange={() => setConditionFilter(key)}
                     />
-                    {diseaseTypeLabels[key] || key}
+                    {conditionTypeLabels[key] || key}
                   </label>
                 ))}
               </div>
@@ -684,8 +684,8 @@ export default function SignificantRowsPage() {
                     if (!hasCol) return false;
                     if (regulation !== "any" && !t.effectColumn) return false;
                     if (
-                      diseaseFilter &&
-                      !(t.disease ?? []).includes(diseaseFilter)
+                      conditionFilter &&
+                      !(t.condition ?? []).includes(conditionFilter)
                     )
                       return false;
                     if (

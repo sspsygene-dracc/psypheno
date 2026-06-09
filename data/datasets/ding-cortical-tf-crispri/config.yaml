@@ -42,7 +42,7 @@ tables:
     organism: "Homo sapiens (primary fetal cortical RG culture)"
     organism_key: human
     assay: perturbation
-    disease:
+    condition:
       - autism
       - ndc
       - scz
@@ -102,7 +102,7 @@ tables:
     organism: "Homo sapiens (primary fetal cortical RG culture)"
     organism_key: human
     assay: perturbation
-    disease:
+    condition:
       - ndc
     categories:
       - CRISPRi

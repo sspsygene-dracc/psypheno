@@ -7,7 +7,7 @@ assayTypes:
   perturbation: "Perturbation Screen"
   expression: "Gene Expression (RNA-seq)"
 
-diseaseTypes:
+conditionTypes:
   asd: "Autism"
 
 organismTypes:

@@ -53,7 +53,7 @@ tables:
     organism: "Homo sapiens"
     organism_key: human
     assay: curated
-    disease: []
+    condition: []
     categories:
       - curated database
       - clinical variants

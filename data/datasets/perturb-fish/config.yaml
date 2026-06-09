@@ -50,7 +50,7 @@ tables:
     assay:
       - spatial
       - perturbation
-    disease: ["autism", "ndc"]
+    condition: ["autism", "ndc"]
     links:
       - url: https://download.brainimagelibrary.org/0c/bd/0cbd479c521afff9/astrocytes/processed/finaltables/
         label: BIL — processed final tables

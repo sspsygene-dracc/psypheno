@@ -109,7 +109,7 @@ tables:
       cohorts. Aggregates transcriptomic signatures across age-related comparisons.
     source: "Emani 2024 (PsychENCODE2 brainSCOPE) DEG analysis, downloaded via PsychSCREEN (Pratt 2024, psychscreen.org)"
     assay: expression
-    disease: []
+    condition: []
     links:
       - url: https://downloads.wenglab.org/Age_DEGcombined.csv
         label: Age DEGs CSV (Weng Lab)
@@ -178,7 +178,7 @@ tables:
       transcriptomic studies. Provides ASD-specific gene expression changes across brain regions.
     source: "Emani 2024 (PsychENCODE2 brainSCOPE) DEG analysis, downloaded via PsychSCREEN (Pratt 2024, psychscreen.org)"
     assay: expression
-    disease: ["autism", "ndc"]
+    condition: ["autism", "ndc"]
     links:
       - url: https://downloads.wenglab.org/ASD_DEGcombined.csv
         label: Autism DEGs CSV (Weng Lab)
@@ -247,7 +247,7 @@ tables:
       studies. Captures transcriptional alterations associated with bipolar disorder.
     source: "Emani 2024 (PsychENCODE2 brainSCOPE) DEG analysis, downloaded via PsychSCREEN (Pratt 2024, psychscreen.org)"
     assay: expression
-    disease: ["bipolar", "ndc"]
+    condition: ["bipolar", "ndc"]
     links:
       - url: https://downloads.wenglab.org/Bipolar_DEGcombined.csv
         label: Bipolar DEGs CSV (Weng Lab)
@@ -316,7 +316,7 @@ tables:
       studies. Provides schizophrenia-specific transcriptional changes across brain regions.
     source: "Emani 2024 (PsychENCODE2 brainSCOPE) DEG analysis, downloaded via PsychSCREEN (Pratt 2024, psychscreen.org)"
     assay: expression
-    disease: ["scz", "ndc"]
+    condition: ["scz", "ndc"]
     links:
       - url: https://downloads.wenglab.org/Schizophrenia_DEGcombined.csv
         label: Schizophrenia DEGs CSV (Weng Lab)

@@ -33,7 +33,7 @@ class GeneMapConfig:
 class GlobalConfig(TypedDict, total=False):
     fieldLabels: dict[str, str]
     assayTypes: dict[str, str]
-    diseaseTypes: dict[str, str]
+    conditionTypes: dict[str, str]
     organismTypes: dict[str, str]
 
 

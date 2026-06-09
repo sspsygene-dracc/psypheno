@@ -15,7 +15,7 @@ export default async function handler(
 
     const rows = db
       .prepare(
-        `SELECT table_name, short_label, medium_label, long_label, pvalue_column, fdr_column, effect_column, assay, disease, organism_key
+        `SELECT table_name, short_label, medium_label, long_label, pvalue_column, fdr_column, effect_column, assay, condition, organism_key
          FROM data_tables
          WHERE pvalue_column IS NOT NULL OR fdr_column IS NOT NULL
          ORDER BY id ASC`
@@ -29,7 +29,7 @@ export default async function handler(
         fdr_column: string | null;
         effect_column: string | null;
         assay: string | null;
-        disease: string | null;
+        condition: string | null;
         organism_key: string | null;
       }>;
 
@@ -46,17 +46,17 @@ export default async function handler(
       // assay_types table may not exist
     }
 
-    // Fetch disease type labels
-    let diseaseTypeLabels: Record<string, string> = {};
+    // Fetch condition type labels
+    let conditionTypeLabels: Record<string, string> = {};
     try {
       const diseaseRows = db
-        .prepare("SELECT key, label FROM disease_types")
+        .prepare("SELECT key, label FROM condition_types")
         .all() as Array<{ key: string; label: string }>;
-      diseaseTypeLabels = Object.fromEntries(
+      conditionTypeLabels = Object.fromEntries(
         diseaseRows.map((r) => [r.key, r.label])
       );
     } catch {
-      // disease_types table may not exist
+      // condition_types table may not exist
     }
 
     // Fetch organism type labels
@@ -75,7 +75,7 @@ export default async function handler(
     // Fetch available filter combinations from combined_pvalue_groups
     let combinedPvalueGroups: Array<{
       assayFilter: string | null;
-      diseaseFilter: string | null;
+      conditionFilter: string | null;
       organismFilter: string | null;
       direction: string;
       regulation: string;
@@ -84,10 +84,10 @@ export default async function handler(
     }> = [];
     try {
       const rawGroups = db
-        .prepare("SELECT assay_filter, disease_filter, organism_filter, direction, regulation, table_name, num_source_tables FROM combined_pvalue_groups")
+        .prepare("SELECT assay_filter, condition_filter, organism_filter, direction, regulation, table_name, num_source_tables FROM combined_pvalue_groups")
         .all() as Array<{
           assay_filter: string | null;
-          disease_filter: string | null;
+          condition_filter: string | null;
           organism_filter: string | null;
           direction: string;
           regulation: string;
@@ -96,7 +96,7 @@ export default async function handler(
         }>;
       combinedPvalueGroups = rawGroups.map((g) => ({
         assayFilter: g.assay_filter,
-        diseaseFilter: g.disease_filter,
+        conditionFilter: g.condition_filter,
         organismFilter: g.organism_filter,
         direction: g.direction,
         regulation: g.regulation,
@@ -118,11 +118,11 @@ export default async function handler(
         fdrColumn: r.fdr_column,
         effectColumn: r.effect_column,
         assay: r.assay ? r.assay.split(",").map((s) => s.trim()).filter(Boolean) : null,
-        disease: r.disease ? r.disease.split(",").map((s) => s.trim()).filter(Boolean) : null,
+        condition: r.condition ? r.condition.split(",").map((s) => s.trim()).filter(Boolean) : null,
         organismKey: r.organism_key ? r.organism_key.split(",").map((s) => s.trim()).filter(Boolean) : null,
       })),
       assayTypeLabels,
-      diseaseTypeLabels,
+      conditionTypeLabels,
       organismTypeLabels,
       combinedPvalueGroups,
     });

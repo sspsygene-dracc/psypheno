@@ -456,7 +456,7 @@ export default function Home() {
                 — differential-expression studies, perturbation screens (CRISPR
                 knockouts, knockdowns, overexpression), and phenotype
                 annotations from human, mouse, and zebrafish models of
-                psychiatric disease.
+                psychiatric conditions.
               </p>
               <p style={{ marginTop: 12, marginBottom: 0 }}>
                 Search for a gene as <strong>perturbed</strong> (the gene that

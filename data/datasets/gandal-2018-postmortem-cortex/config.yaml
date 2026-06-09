@@ -69,7 +69,7 @@ tables:
     organism: "Homo sapiens (postmortem cortex bulk RNA-seq, PsychENCODE)"
     organism_key: human
     assay: expression
-    disease:
+    condition:
       - autism
       - scz
       - bipolar
@@ -78,7 +78,7 @@ tables:
       - bulk RNA-seq
       - postmortem cortex
       - PsychENCODE
-      - cross-disorder DE
+      - cross-condition DE
     links:
       - url: https://www.science.org/doi/10.1126/science.aat8127
         label: Gandal 2018 — Science article

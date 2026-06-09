@@ -413,7 +413,7 @@ def _make_test_db():
             organism_key TEXT,
             publication_title TEXT, publication_authors TEXT, publication_year TEXT,
             publication_doi TEXT, publication_url TEXT, publication_journal TEXT,
-            pvalue_column TEXT, fdr_column TEXT, disease TEXT,
+            pvalue_column TEXT, fdr_column TEXT, condition TEXT,
             effect_column TEXT
         )"""
     )
@@ -886,7 +886,7 @@ class TestRegulationSplit:
         # for the global (NULL filters) target group.
         rows = conn.execute(
             "SELECT regulation, table_name FROM combined_pvalue_groups "
-            "WHERE assay_filter IS NULL AND disease_filter IS NULL "
+            "WHERE assay_filter IS NULL AND condition_filter IS NULL "
             "AND organism_filter IS NULL AND direction = 'target' "
             "ORDER BY regulation"
         ).fetchall()
@@ -1177,12 +1177,12 @@ def _make_row(
     pvalue_col: str = "pval",
     link: str = "g:lt:target",
     assay: str | None = None,
-    disease: str | None = None,
+    condition: str | None = None,
     organism: str | None = None,
     effect_col: str | None = None,
 ):
     return (
-        table_name, pvalue_col, link, assay, disease, organism, effect_col,
+        table_name, pvalue_col, link, assay, condition, organism, effect_col,
     )
 
 
@@ -1202,7 +1202,7 @@ class TestComputeGroupBuilder:
             for g in groups
             if g.out_table.startswith("gene_combined_pvalues_")
             and g.assay_filter is None
-            and g.disease_filter is None
+            and g.condition_filter is None
             and g.organism_filter is None
         ]
         assert len(global_groups) == 2  # one per direction
@@ -1225,7 +1225,7 @@ class TestComputeGroupBuilder:
             _make_row(
                 "tbl_x",
                 assay="rnaseq",
-                disease="asd",
+                condition="asd",
                 organism="human",
             ),
         ]
@@ -1249,16 +1249,16 @@ class TestComputeGroupBuilder:
         assert assays == {"rnaseq", "atacseq"}
 
     def test_empty_keys_skipped(self):
-        rows = [_make_row("tbl_a", assay=None, disease="", organism="  ")]
+        rows = [_make_row("tbl_a", assay=None, condition="", organism="  ")]
         groups = ComputeGroupBuilder(rows).build()
         # Only direction-level globals should remain
         filtered = [
-            g for g in groups if g.assay_filter or g.disease_filter or g.organism_filter
+            g for g in groups if g.assay_filter or g.condition_filter or g.organism_filter
         ]
         assert filtered == []
 
     def test_groups_use_table_quads(self):
-        """ComputeGroup.tables drops the assay/disease/organism columns but
+        """ComputeGroup.tables drops the assay/condition/organism columns but
         keeps (table_name, pvalue_column, link_tables, effect_column)."""
         rows = [
             _make_row(

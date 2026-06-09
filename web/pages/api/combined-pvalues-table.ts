@@ -41,7 +41,7 @@ const bodySchema = z.object({
     .default([...SHOW_FLAGS, "__other__" as any]),
   showOther: z.boolean().default(true),
   assayFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
-  diseaseFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
+  conditionFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
   organismFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().default(null),
   geneSearch: z.string().max(50).regex(/^[A-Za-z0-9._-]*$/).default(""),
   direction: z.enum(["target", "perturbed"]).default("target"),
@@ -71,7 +71,7 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { page, pageSize, method, hideFlags, showFlags, showOther, assayFilter, diseaseFilter, organismFilter, geneSearch, direction, regulation } =
+  const { page, pageSize, method, hideFlags, showFlags, showOther, assayFilter, conditionFilter, organismFilter, geneSearch, direction, regulation } =
     parse.data;
   const methodCol = METHOD_COLUMNS[method];
 
@@ -89,18 +89,18 @@ export default async function handler(
     let cpTable = `gene_combined_pvalues_${direction}${regSuffix}`;
     let noTable = false;
     let numSourceTables = 0;
-    if (assayFilter || diseaseFilter || organismFilter) {
+    if (assayFilter || conditionFilter || organismFilter) {
       const hasGroups = tableExists(db, "combined_pvalue_groups");
       if (hasGroups) {
         const group = db
           .prepare(
             `SELECT table_name, num_source_tables FROM combined_pvalue_groups
-             WHERE assay_filter IS ? AND disease_filter IS ? AND organism_filter IS ?
+             WHERE assay_filter IS ? AND condition_filter IS ? AND organism_filter IS ?
              AND direction = ? AND regulation = ?`
           )
           .get(
             assayFilter ?? null,
-            diseaseFilter ?? null,
+            conditionFilter ?? null,
             organismFilter ?? null,
             direction,
             regulation,

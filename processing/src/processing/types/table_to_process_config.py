@@ -70,7 +70,7 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "description",
         "source",
         "assay",
-        "disease",
+        "condition",
         "organism",
         "organism_key",
         "fieldLabels",
@@ -192,7 +192,7 @@ class TableToProcessConfig:
     categories: list[str] = field(default_factory=list)
     source: str | None = None
     assay: list[str] = field(default_factory=list)
-    disease: list[str] = field(default_factory=list)
+    condition: list[str] = field(default_factory=list)
     field_labels: dict[str, str] = field(default_factory=dict)
     organism: str | None = None
     organism_key: list[str] = field(default_factory=list)
@@ -286,12 +286,12 @@ class TableToProcessConfig:
         else:
             assay = list(raw_assay)
 
-        # Disease: normalize string to list
-        raw_disease = json_data.get("disease", [])
+        # Condition: normalize string to list
+        raw_disease = json_data.get("condition", [])
         if isinstance(raw_disease, str):
-            disease = [raw_disease]
+            condition = [raw_disease]
         else:
-            disease = list(raw_disease)
+            condition = list(raw_disease)
 
         # Organism key: controlled vocabulary (e.g. "human", "mouse"); separate
         # from the free-form `organism` description. Normalize string to list.
@@ -360,7 +360,7 @@ class TableToProcessConfig:
             categories=list(json_data.get("categories", [])),
             source=json_data.get("source"),
             assay=assay,
-            disease=disease,
+            condition=condition,
             field_labels=merged_field_labels,
             organism=json_data.get("organism"),
             organism_key=organism_key,

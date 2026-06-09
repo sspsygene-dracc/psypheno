@@ -42,7 +42,7 @@ tables:
     organism: "Homo sapiens (brain organoids; H9 hESC + 409B2 hiPSC)"
     organism_key: human
     assay: perturbation
-    disease: []
+    condition: []
     categories:
       - GRN inference
       - brain organoids

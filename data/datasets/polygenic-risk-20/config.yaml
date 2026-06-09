@@ -55,7 +55,7 @@ tables:
       - NGN2 induction
       - CRISPRa and RNAi knockout
     assay: perturbation
-    disease: ["scz", "ndc"]
+    condition: ["scz", "ndc"]
     pvalue_column: P.Value
     fdr_column: adj.P.Val
     effect_column: logFC
@@ -122,7 +122,7 @@ tables:
       - NGN2 induction
       - CRISPRa and RNAi knockout
     assay: perturbation
-    disease: ["scz", "ndc"]
+    condition: ["scz", "ndc"]
     pvalue_column: pval
     fdr_column: padj
     effect_column: logFC

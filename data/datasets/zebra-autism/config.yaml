@@ -62,7 +62,7 @@ tables:
       pathways across ASD gene perturbations.
     source: "Table S4"
     assay: behavior
-    disease: ["autism", "ndc"]
+    condition: ["autism", "ndc"]
     fieldLabels:
       mutant_experiment_sample: "Combined identifier: mutant gene + experiment + genotype (HOM/HET/WT) + larva replicate"
       mutant_experiment_sample_gene: "Zebrafish mutant gene symbol — the first token of mutant_experiment_sample, mapped to its human ortholog."
@@ -113,7 +113,7 @@ tables:
       - mutant zebrafish
       - behavioral fingerprints
     assay: behavior
-    disease: ["autism", "ndc"]
+    condition: ["autism", "ndc"]
     fieldLabels:
       human_gene_name: "Human ortholog gene symbol (the ASD risk gene whose zebrafish ortholog was mutated)"
       mutant_line: "Zebrafish mutant line and genotype (e.g. 'HET: chd8_del5' = heterozygous chd8 deletion line del5)"

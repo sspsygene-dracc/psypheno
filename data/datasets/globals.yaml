@@ -21,7 +21,7 @@ assayTypes:
   curated: "Curated Database"
   phenotype: "Phenotype Annotation"
 
-diseaseTypes:
+conditionTypes:
   autism: "Autism"
   scz: "Schizophrenia"
   bipolar: "Bipolar Disorder"

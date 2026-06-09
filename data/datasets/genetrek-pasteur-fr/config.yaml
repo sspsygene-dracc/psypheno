@@ -71,7 +71,7 @@ tables:
     organism: "Homo sapiens"
     organism_key: human
     assay: curated
-    disease:
+    condition:
       - autism
       - ndc
     categories:

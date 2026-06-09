@@ -40,12 +40,12 @@ class ComputeGroupBuilder:
     we emit:
       - a global group spanning all source tables
       - one group per assay key
-      - one group per disease key
+      - one group per condition key
       - one group per organism key
-      - one group per (assay, disease) pair
+      - one group per (assay, condition) pair
       - one group per (assay, organism) pair
-      - one group per (disease, organism) pair
-      - one group per (assay, disease, organism) triple
+      - one group per (condition, organism) pair
+      - one group per (assay, condition, organism) triple
 
     Filtered groups require ≥2 source tables; the global group has no minimum.
     Under "up" / "down" regulation, tables without an effect_column are
@@ -107,14 +107,14 @@ class ComputeGroupBuilder:
                         min_tables=2,
                     ))
 
-                for dk in sorted(buckets.disease.keys()):
+                for dk in sorted(buckets.condition.keys()):
                     groups.append(ComputeGroup(
-                        tables=buckets.disease[dk],
+                        tables=buckets.condition[dk],
                         out_table=f"gene_combined_pvalues_d_{dk}_{sfx_dir}{rsfx}",
-                        label=f"[disease={dk}, {direction}{rlbl}] ",
+                        label=f"[condition={dk}, {direction}{rlbl}] ",
                         direction=direction,
                         regulation=regulation,
-                        disease_filter=dk,
+                        condition_filter=dk,
                         min_tables=2,
                     ))
 
@@ -135,11 +135,11 @@ class ComputeGroupBuilder:
                         out_table=(
                             f"gene_combined_pvalues_{ak}_d_{dk}_{sfx_dir}{rsfx}"
                         ),
-                        label=f"[assay={ak}, disease={dk}, {direction}{rlbl}] ",
+                        label=f"[assay={ak}, condition={dk}, {direction}{rlbl}] ",
                         direction=direction,
                         regulation=regulation,
                         assay_filter=ak,
-                        disease_filter=dk,
+                        condition_filter=dk,
                         min_tables=2,
                     ))
 
@@ -164,12 +164,12 @@ class ComputeGroupBuilder:
                             f"gene_combined_pvalues_d_{dk}_o_{ok}_{sfx_dir}{rsfx}"
                         ),
                         label=(
-                            f"[disease={dk}, organism={ok}, "
+                            f"[condition={dk}, organism={ok}, "
                             f"{direction}{rlbl}] "
                         ),
                         direction=direction,
                         regulation=regulation,
-                        disease_filter=dk,
+                        condition_filter=dk,
                         organism_filter=ok,
                         min_tables=2,
                     ))
@@ -182,13 +182,13 @@ class ComputeGroupBuilder:
                             f"o_{ok}_{sfx_dir}{rsfx}"
                         ),
                         label=(
-                            f"[assay={ak}, disease={dk}, organism={ok}, "
+                            f"[assay={ak}, condition={dk}, organism={ok}, "
                             f"{direction}{rlbl}] "
                         ),
                         direction=direction,
                         regulation=regulation,
                         assay_filter=ak,
-                        disease_filter=dk,
+                        condition_filter=dk,
                         organism_filter=ok,
                         min_tables=2,
                     ))
@@ -205,11 +205,11 @@ class ComputeGroupBuilder:
 
 # pylint: disable=too-many-instance-attributes
 class _Buckets:
-    """Per-(assay/disease/organism × combinations) source-table buckets."""
+    """Per-(assay/condition/organism × combinations) source-table buckets."""
 
     def __init__(self) -> None:
         self.assay: dict[str, list[SourceTableQuad]] = defaultdict(list)
-        self.disease: dict[str, list[SourceTableQuad]] = defaultdict(list)
+        self.condition: dict[str, list[SourceTableQuad]] = defaultdict(list)
         self.organism: dict[str, list[SourceTableQuad]] = defaultdict(list)
         self.ad: dict[tuple[str, str], list[SourceTableQuad]] = defaultdict(list)
         self.ao: dict[tuple[str, str], list[SourceTableQuad]] = defaultdict(list)
@@ -223,7 +223,7 @@ def _build_buckets(
     source_tables: list[SourceTableRow],
     regulation: Regulation,
 ) -> _Buckets:
-    """Bucket source tables by assay/disease/organism keys + their combos.
+    """Bucket source tables by assay/condition/organism keys + their combos.
 
     Under up/down, tables without an effect_column are dropped — they could
     never contribute to a sign-filtered combine.
@@ -235,34 +235,34 @@ def _build_buckets(
             pvalue_col,
             link_tables,
             assay_raw,
-            disease_raw,
+            condition_raw,
             organism_raw,
             effect_col,
         ) = row
         if regulation != "any" and not effect_col:
             continue
         assay_keys = ComputeGroupBuilder._split_keys(assay_raw)
-        disease_keys = ComputeGroupBuilder._split_keys(disease_raw)
+        condition_keys = ComputeGroupBuilder._split_keys(condition_raw)
         organism_keys = ComputeGroupBuilder._split_keys(organism_raw)
         entry: SourceTableQuad = (table_name, pvalue_col, link_tables, effect_col)
 
         for ak in assay_keys:
             buckets.assay[ak].append(entry)
-        for dk in disease_keys:
-            buckets.disease[dk].append(entry)
+        for dk in condition_keys:
+            buckets.condition[dk].append(entry)
         for ok in organism_keys:
             buckets.organism[ok].append(entry)
         for ak in assay_keys:
-            for dk in disease_keys:
+            for dk in condition_keys:
                 buckets.ad[(ak, dk)].append(entry)
         for ak in assay_keys:
             for ok in organism_keys:
                 buckets.ao[(ak, ok)].append(entry)
-        for dk in disease_keys:
+        for dk in condition_keys:
             for ok in organism_keys:
                 buckets.do[(dk, ok)].append(entry)
         for ak in assay_keys:
-            for dk in disease_keys:
+            for dk in condition_keys:
                 for ok in organism_keys:
                     buckets.ado[(ak, dk, ok)].append(entry)
     return buckets

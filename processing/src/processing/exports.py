@@ -62,7 +62,7 @@ def _list_data_tables(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     rows = conn.execute(
         """SELECT table_name, short_label, medium_label, long_label, description,
                   gene_columns, gene_species, display_columns, scalar_columns,
-                  link_tables, links, categories, source, assay, disease,
+                  link_tables, links, categories, source, assay, condition,
                   field_labels, organism, organism_key,
                   publication_first_author, publication_last_author,
                   publication_author_count, publication_authors, publication_year,
@@ -184,7 +184,7 @@ def _table_metadata_dict(table_row: sqlite3.Row) -> dict[str, object]:
         "organism": table_row["organism"],
         "organism_key": _split_csv(table_row["organism_key"]),
         "assay": _split_csv(table_row["assay"]),
-        "disease": _split_csv(table_row["disease"]),
+        "condition": _split_csv(table_row["condition"]),
         "categories": _split_csv(table_row["categories"]),
         "links": _parse_json_list(table_row["links"]),
         "gene_species": table_row["gene_species"],

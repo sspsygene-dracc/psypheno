@@ -130,7 +130,7 @@ tables:
       16p11dup, 22q11del, 22q13del, IdiopathicASD, PCDH19, SHANK3, and Timothy syndrome.
     source: "Supplementary Table 3"
     assay: expression
-    disease: ["autism", "ndc"]
+    condition: ["autism", "ndc"]
     fieldLabels:
       perturbation: "ASD-associated CNV or point-mutation modeled in the organoid"
       organoid_age_(days): "Organoid age in days post-differentiation. 'all timepoints' = meta-analysis combined across all timepoints."

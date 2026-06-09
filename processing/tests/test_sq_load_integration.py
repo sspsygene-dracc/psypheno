@@ -32,7 +32,7 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
         out_db,
         config.tables_config.tables,
         assay_types=config.global_config.get("assayTypes", {}),
-        disease_types=config.global_config.get("diseaseTypes", {}),
+        condition_types=config.global_config.get("conditionTypes", {}),
         organism_types=config.global_config.get("organismTypes", {}),
         skip_missing=False,
         hgnc_path=config.gene_map_config.hgnc_file,
@@ -210,7 +210,7 @@ def _assert_lookup_tables(conn: sqlite3.Connection) -> None:
     assert assay_rows.get("perturbation") == "Perturbation Screen"
 
     disease_rows = dict(
-        conn.execute("SELECT key, label FROM disease_types").fetchall()
+        conn.execute("SELECT key, label FROM condition_types").fetchall()
     )
     assert disease_rows.get("asd") == "Autism"
 

@@ -52,7 +52,7 @@ class MetaAnalysisRun:
       1. `_load_source_tables` — query data_tables for tables with a
          pvalue_column.
       2. `_load_gene_flagger` — load HGNC / TF / NIMH reference data.
-      3. `_build_compute_groups` — enumerate the global / assay / disease /
+      3. `_build_compute_groups` — enumerate the global / assay / condition /
          organism / pairwise / 3-way ComputeGroup specs per direction.
       4. `_collect_master_pvalues` — two SQLite scans (one per direction)
          producing master CollectedPvalues that all groups derive from.
@@ -117,7 +117,7 @@ class MetaAnalysisRun:
 
     def _load_source_tables(self) -> list[SourceTableRow]:
         return self.conn.execute(
-            "SELECT table_name, pvalue_column, link_tables, assay, disease, "
+            "SELECT table_name, pvalue_column, link_tables, assay, condition, "
             "organism_key, effect_column FROM data_tables "
             "WHERE pvalue_column IS NOT NULL"
         ).fetchall()
@@ -220,7 +220,7 @@ class MetaAnalysisRun:
                 direction=group.direction,
                 regulation=group.regulation,
                 assay_filter=group.assay_filter,
-                disease_filter=group.disease_filter,
+                condition_filter=group.condition_filter,
                 organism_filter=group.organism_filter,
                 use_gene_flags=group.use_gene_flags,
                 num_contributing_tables=len(contributing),
@@ -355,14 +355,14 @@ class MetaAnalysisRun:
         self.conn.execute(
             """CREATE TABLE IF NOT EXISTS combined_pvalue_groups (
             assay_filter TEXT,
-            disease_filter TEXT,
+            condition_filter TEXT,
             organism_filter TEXT,
             direction TEXT,
             regulation TEXT NOT NULL DEFAULT 'any',
             table_name TEXT,
             num_source_tables INTEGER,
             PRIMARY KEY (
-                assay_filter, disease_filter, organism_filter,
+                assay_filter, condition_filter, organism_filter,
                 direction, regulation
             )
             )"""
@@ -377,12 +377,12 @@ class MetaAnalysisRun:
     ) -> None:
         self.conn.execute(
             "INSERT INTO combined_pvalue_groups "
-            "(assay_filter, disease_filter, organism_filter, direction, "
+            "(assay_filter, condition_filter, organism_filter, direction, "
             "regulation, table_name, num_source_tables) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 cg.assay_filter,
-                cg.disease_filter,
+                cg.condition_filter,
                 cg.organism_filter,
                 cg.direction,
                 cg.regulation,
@@ -402,7 +402,7 @@ def compute_combined_pvalues(
     use_r_cache: bool = True,
 ) -> None:
     """Compute and store combined p-values per gene across all datasets,
-    then separately per assay / disease / organism (and their combinations)."""
+    then separately per assay / condition / organism (and their combinations)."""
     MetaAnalysisRun(
         conn,
         hgnc_path=hgnc_path,

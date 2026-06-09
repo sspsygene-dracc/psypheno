@@ -268,9 +268,9 @@ export default function MostSignificantPage() {
     Record<string, string>
   >({});
   const [assayFilter, setAssayFilter] = useState<string | null>(null);
-  const [diseaseFilter, setDiseaseFilter] = useState<string | null>(null);
+  const [conditionFilter, setConditionFilter] = useState<string | null>(null);
   const [organismFilter, setOrganismFilter] = useState<string | null>(null);
-  const [diseaseTypeLabels, setDiseaseTypeLabels] = useState<
+  const [conditionTypeLabels, setConditionTypeLabels] = useState<
     Record<string, string>
   >({});
   const [organismTypeLabels, setOrganismTypeLabels] = useState<
@@ -278,7 +278,7 @@ export default function MostSignificantPage() {
   >({});
   type CpGroup = {
     assayFilter: string | null;
-    diseaseFilter: string | null;
+    conditionFilter: string | null;
     organismFilter: string | null;
     tableName: string | null;
     numSourceTables: number;
@@ -293,7 +293,7 @@ export default function MostSignificantPage() {
     fdrColumn: string | null;
     effectColumn: string | null;
     assay: string[] | null;
-    disease: string[] | null;
+    condition: string[] | null;
     organismKey: string[] | null;
   };
   const [datasetTables, setDatasetTables] = useState<DatasetTableMeta[]>([]);
@@ -318,7 +318,7 @@ export default function MostSignificantPage() {
       setRegulation(q.reg as Regulation);
     }
     if (typeof q.assay === "string") setAssayFilter(q.assay);
-    if (typeof q.disease === "string") setDiseaseFilter(q.disease);
+    if (typeof q.condition === "string") setConditionFilter(q.condition);
     if (typeof q.organism === "string") setOrganismFilter(q.organism);
     if (typeof q.gene === "string") setGeneSearch(q.gene);
     if (typeof q.page === "string") {
@@ -348,7 +348,7 @@ export default function MostSignificantPage() {
     if (direction !== "target") params.dir = direction;
     if (regulation !== "any") params.reg = regulation;
     if (assayFilter) params.assay = assayFilter;
-    if (diseaseFilter) params.disease = diseaseFilter;
+    if (conditionFilter) params.condition = conditionFilter;
     if (organismFilter) params.organism = organismFilter;
     if (geneSearch) params.gene = geneSearch;
     if (page > 1) params.page = String(page);
@@ -375,7 +375,7 @@ export default function MostSignificantPage() {
 
     router.replace({ pathname: router.pathname, query: params }, undefined, { shallow: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [method, direction, regulation, assayFilter, diseaseFilter, organismFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady, urlInitialized]);
+  }, [method, direction, regulation, assayFilter, conditionFilter, organismFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady, urlInitialized]);
 
   useEffect(() => {
     fetch("/api/dataset-tables-with-pvalues")
@@ -385,7 +385,7 @@ export default function MostSignificantPage() {
       })
       .then((data) => {
         setAssayTypeLabels(data.assayTypeLabels ?? {});
-        setDiseaseTypeLabels(data.diseaseTypeLabels ?? {});
+        setConditionTypeLabels(data.conditionTypeLabels ?? {});
         setOrganismTypeLabels(data.organismTypeLabels ?? {});
         setCpGroups(data.combinedPvalueGroups ?? []);
         setDatasetTables(data.tables ?? []);
@@ -412,7 +412,7 @@ export default function MostSignificantPage() {
         showFlags,
         showOther,
         assayFilter,
-        diseaseFilter,
+        conditionFilter,
         organismFilter,
         geneSearch,
       }),
@@ -441,7 +441,7 @@ export default function MostSignificantPage() {
     showFlags,
     showOther,
     assayFilter,
-    diseaseFilter,
+    conditionFilter,
     organismFilter,
     geneSearch,
   ]);
@@ -563,7 +563,7 @@ export default function MostSignificantPage() {
           </Link>
         </p>
 
-        {/* Method + Direction + filter radios (assay / disease / organism) */}
+        {/* Method + Direction + filter radios (assay / condition / organism) */}
         {cpGroups.length > 0 &&
           (() => {
             const availableAssays = [
@@ -573,11 +573,11 @@ export default function MostSignificantPage() {
                   .map((g) => g.assayFilter as string),
               ),
             ].sort();
-            const availableDiseases = [
+            const availableConditions = [
               ...new Set(
                 cpGroups
-                  .filter((g) => g.diseaseFilter != null)
-                  .map((g) => g.diseaseFilter as string),
+                  .filter((g) => g.conditionFilter != null)
+                  .map((g) => g.conditionFilter as string),
               ),
             ].sort();
             const availableOrganisms = [
@@ -659,7 +659,7 @@ export default function MostSignificantPage() {
                     ...filterRowStyle,
                     marginBottom:
                       availableAssays.length > 0 ||
-                      availableDiseases.length > 0 ||
+                      availableConditions.length > 0 ||
                       availableOrganisms.length > 0
                         ? 8
                         : 0,
@@ -744,7 +744,7 @@ export default function MostSignificantPage() {
                       gap: 14,
                       flexWrap: "wrap",
                       marginBottom:
-                        availableDiseases.length > 0 ||
+                        availableConditions.length > 0 ||
                         availableOrganisms.length > 0
                           ? 8
                           : 0,
@@ -787,7 +787,7 @@ export default function MostSignificantPage() {
                     ))}
                   </div>
                 )}
-                {availableDiseases.length > 0 && (
+                {availableConditions.length > 0 && (
                   <div
                     style={{
                       display: "flex",
@@ -809,27 +809,27 @@ export default function MostSignificantPage() {
                     <label style={radioLabelStyle}>
                       <input
                         type="radio"
-                        name="diseaseFilter"
-                        checked={diseaseFilter === null}
+                        name="conditionFilter"
+                        checked={conditionFilter === null}
                         onChange={() => {
-                          setDiseaseFilter(null);
+                          setConditionFilter(null);
                           setPage(1);
                         }}
                       />
                       All
                     </label>
-                    {availableDiseases.map((key) => (
+                    {availableConditions.map((key) => (
                       <label key={key} style={radioLabelStyle}>
                         <input
                           type="radio"
-                          name="diseaseFilter"
-                          checked={diseaseFilter === key}
+                          name="conditionFilter"
+                          checked={conditionFilter === key}
                           onChange={() => {
-                            setDiseaseFilter(key);
+                            setConditionFilter(key);
                             setPage(1);
                           }}
                         />
-                        {diseaseTypeLabels[key] || key}
+                        {conditionTypeLabels[key] || key}
                       </label>
                     ))}
                   </div>
@@ -891,7 +891,7 @@ export default function MostSignificantPage() {
             if (regulation !== "any" && !t.effectColumn) return false;
             if (assayFilter && !(t.assay ?? []).includes(assayFilter))
               return false;
-            if (diseaseFilter && !(t.disease ?? []).includes(diseaseFilter))
+            if (conditionFilter && !(t.condition ?? []).includes(conditionFilter))
               return false;
             if (
               organismFilter &&
@@ -1179,7 +1179,7 @@ export default function MostSignificantPage() {
                 Only one dataset matches this combination — no meta-analysis
                 needed.{" "}
                 <Link
-                  href={`/significant-rows${assayFilter || diseaseFilter || organismFilter ? "?" + [assayFilter && `assay=${encodeURIComponent(assayFilter)}`, diseaseFilter && `disease=${encodeURIComponent(diseaseFilter)}`, organismFilter && `organism=${encodeURIComponent(organismFilter)}`].filter(Boolean).join("&") : ""}`}
+                  href={`/significant-rows${assayFilter || conditionFilter || organismFilter ? "?" + [assayFilter && `assay=${encodeURIComponent(assayFilter)}`, conditionFilter && `condition=${encodeURIComponent(conditionFilter)}`, organismFilter && `organism=${encodeURIComponent(organismFilter)}`].filter(Boolean).join("&") : ""}`}
                   style={{ color: "#92400e", fontWeight: 600 }}
                 >
                   Browse individual dataset results &rarr;

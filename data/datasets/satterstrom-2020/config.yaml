@@ -87,7 +87,7 @@ tables:
       Figure 2; Table S2).
     source: "Supplementary Table S2, Autosomal sheet"
     assay: curated
-    disease:
+    condition:
       - autism
       - ndc
     categories:
@@ -195,7 +195,7 @@ tables:
       between males and females.
     source: "Supplementary Table S2, ChrX sheet"
     assay: curated
-    disease:
+    condition:
       - autism
       - ndc
     categories:
