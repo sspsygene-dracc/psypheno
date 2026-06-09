@@ -22,7 +22,9 @@ local rather than cross-host:
 from __future__ import annotations
 
 import concurrent.futures
+import getpass
 import os
+import re
 import shlex
 import subprocess
 import threading
@@ -667,6 +669,104 @@ def _step_restart_psygene(instances: list[str]) -> None:
             raise DeployError(
                 f"Timed out after 60s waiting for {INSTANCE_LABELS[inst]} to respond at {url}"
             )
+
+
+# ── Standalone restart (run directly on psygene) ─────────────────────────────
+
+
+def _find_npm_pids_local(ports: list[int]) -> list[tuple[str, str]]:
+    """Return (pid, full ps line) for `npm start --port P` processes owned by
+    the current user, for any P in *ports*.
+
+    Mirrors the grep the SSH-based restart step uses, but runs `ps` locally
+    (no SSH) and filters in Python so a `grep`-finds-nothing exit code isn't
+    mistaken for an error. `ps -fu` scopes to the current user, so a process
+    owned by another user (e.g. the systemd unit's User=jbirgmei) won't show
+    up — which is exactly why a non-owner's kill no-ops.
+    """
+    user = getpass.getuser()
+    result = subprocess.run(["ps", "-fu", user], capture_output=True, text=True)
+    pattern = re.compile(
+        r"npm start --port (?:" + "|".join(str(p) for p in ports) + r")\b"
+    )
+    matches: list[tuple[str, str]] = []
+    for line in result.stdout.splitlines():
+        if not pattern.search(line):
+            continue
+        # `ps -f` columns: UID PID PPID C STIME TTY TIME CMD — PID is field 2.
+        parts = line.split()
+        if len(parts) >= 2:
+            matches.append((parts[1], line.strip()))
+    return matches
+
+
+def _wait_for_local_service(port: int, label: str, timeout: int = 60) -> None:
+    """Poll localhost:PORT until the instance answers (or *timeout* elapses).
+
+    Probes the local Next.js server directly rather than the public URL, so
+    the check reflects the actual respawned process on this box, independent
+    of Apache's reverse proxy / off-campus DNS.
+    """
+    url = f"http://localhost:{port}/api/full-datasets"
+    click.echo(f"  Waiting for {label} ({url}) to respond...")
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        probe = subprocess.run(
+            ["curl", "-fsS", "--max-time", "5", url],
+            capture_output=True,
+            text=True,
+        )
+        if probe.returncode == 0:
+            click.echo(f"    -> {label} is up.")
+            return
+        time.sleep(2)
+    raise DeployError(
+        f"Timed out after {timeout}s waiting for {label} to respond at {url}"
+    )
+
+
+def run_restart(instances: list[str]) -> None:
+    """Restart Next.js web servers locally on psygene by killing their
+    `npm start --port NNNN` parent; systemd respawns the unit (which also
+    terminates the next-server child).
+
+    Unlike _step_restart_psygene (which drives the kill over SSH from a
+    developer laptop as part of a deploy), this is meant to be run *directly
+    on psygene*: it greps the local process table, kills the matching PIDs,
+    and waits for each service to answer on localhost:PORT again.
+
+    Multi-user caveat: `kill` only signals processes you own, and the systemd
+    units run as User=jbirgmei, so this only actually bounces a service when
+    run by jbirgmei. For another user it finds no matching processes (they're
+    owned by jbirgmei) and no-ops with a warning — ask Johannes, or
+    `sudo systemctl restart sspsygene{,-dev,-int}` if you have sudo.
+    """
+    labels = ", ".join(INSTANCE_LABELS[i] for i in instances)
+    ports = [INSTANCE_PORTS[i] for i in instances]
+    click.secho(f"Restarting web servers on psygene ({labels})", bold=True)
+
+    matches = _find_npm_pids_local(ports)
+    if not matches:
+        click.secho(
+            f"  No npm processes found for {labels} owned by "
+            f"{getpass.getuser()} — nothing to kill.\n"
+            "  (The systemd units run as jbirgmei, so `kill` only finds them "
+            "when you run this AS jbirgmei. As another user this is expected; "
+            "ask Johannes or use `sudo systemctl restart sspsygene{,-dev,-int}`.)",
+            fg="yellow",
+        )
+    else:
+        click.echo(f"  Found {len(matches)} process(es):")
+        for _, line in matches:
+            click.echo(f"    {line}")
+        pids = [pid for pid, _ in matches]
+        _run_local(["kill", *pids], desc=f"Killing {len(pids)} process(es)")
+        click.echo("  Processes killed — systemd should restart them automatically.")
+
+    for inst in instances:
+        _wait_for_local_service(INSTANCE_PORTS[inst], INSTANCE_LABELS[inst])
+
+    click.secho("\nRestart complete!", fg="green", bold=True)
 
 
 # ── Main entry point ────────────────────────────────────────────────────────

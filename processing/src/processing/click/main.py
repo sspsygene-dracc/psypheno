@@ -329,6 +329,40 @@ def deploy(
     )
 
 
+@cli.command(name="restart")
+@click.argument(
+    "instances",
+    nargs=-1,
+    type=click.Choice(["dev", "int", "prod"], case_sensitive=False),
+)
+def restart(instances: tuple[str, ...]) -> None:
+    """Restart web server(s) on psygene by killing them so systemd respawns.
+
+    Run this DIRECTLY ON psygene. For each named instance it finds the
+    `npm start --port NNNN` process, kills it (systemd auto-restarts the
+    unit), and waits for the service to come back on localhost. Pass one or
+    more of {dev, int, prod}:
+
+        sspsygene restart prod
+        sspsygene restart dev int
+
+    This is the standalone equivalent of `sspsygene deploy --restart`'s
+    restart step, minus the SSH (it's already local) and minus push/pull/
+    build/load-db. Caveat: the systemd units run as jbirgmei, so `kill` only
+    bounces a service when you run this as jbirgmei. As another user it finds
+    no matching processes and no-ops; ask Johannes, or `sudo systemctl
+    restart sspsygene{,-dev,-int}` if you have sudo.
+    """
+    from processing.deploy import INSTANCE_ORDER, run_restart
+
+    if not instances:
+        raise click.UsageError(
+            "Specify at least one instance to restart: " + ", ".join(INSTANCE_ORDER)
+        )
+    requested = {i.lower() for i in instances}
+    run_restart([i for i in INSTANCE_ORDER if i in requested])
+
+
 @cli.command(name="e2e-deployed")
 @click.argument(
     "instance", type=click.Choice(["dev", "int", "prod"], case_sensitive=False)
