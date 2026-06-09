@@ -86,6 +86,12 @@ class MetaAnalysisRun:
     def run(self) -> None:
         click.echo("\nComputing combined p-values...")
 
+        # Re-evaluate R availability fresh each run (and only once across this
+        # run's parallel R jobs — see r_runner.prepare_r). If R can't be set up,
+        # the jobs short-circuit to None and the DB loads with empty combined
+        # columns rather than every job re-attempting a failing install.
+        r_runner.reset_r_prep()
+
         source_tables = self._load_source_tables()
         if not source_tables:
             click.echo("  No tables with pvalue_column configured, skipping.")

@@ -28,6 +28,23 @@ def _isolate_r_cache(  # type: ignore
         )
 
 
+@pytest.fixture(autouse=True)
+def _reset_r_prep() -> Iterator[None]:
+    """Clear r_runner's per-run R-readiness memo around every test.
+
+    `prepare_r()` memoizes the resolve/install check so a run's parallel R jobs
+    don't each re-attempt it. In production `run()` resets it per run, but tests
+    that call `call_r_combine` directly (or patch `_resolve_rscript` /
+    `_ensure_r_packages`) would otherwise see a stale cached result from an
+    earlier test and have their patches ignored.
+    """
+    from processing.combined_pvalues import r_runner
+
+    r_runner.reset_r_prep()
+    yield
+    r_runner.reset_r_prep()
+
+
 # Files the central_gene_table builder reads from data/homology/.
 _REQUIRED_HOMOLOGY_FILES = (
     "hgnc_complete_set.txt",

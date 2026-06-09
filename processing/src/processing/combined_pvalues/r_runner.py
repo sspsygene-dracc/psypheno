@@ -17,6 +17,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
 from pathlib import Path
 
 import click
@@ -37,6 +38,82 @@ _R_USER_LIB = Path(__file__).parent.parent / "r" / "lib"
 # Rscript (e.g. one matching libgfortran versions on the host) when `which
 # Rscript` would pick up a system R that doesn't satisfy our packages.
 _RSCRIPT_ENV_VAR = "SSPSYGENE_RSCRIPT"
+
+# One-time-per-run memo for R readiness. Without this, every parallel R job
+# independently re-runs the resolve + (failing) package install, spamming dozens
+# of concurrent install attempts that race on the shared project lib and never
+# converge. `prepare_r()` runs the check at most once per run (guarded by the
+# lock); `reset_r_prep()` clears it at the start of each run so a later run
+# re-evaluates (e.g. after packages were installed manually).
+_R_PREP_LOCK = threading.Lock()
+_r_prep_done = False
+_r_ready = False
+_r_rscript: str | None = None
+
+_MANUAL_INSTALL_HINT = (
+    "  To enable combined p-values, install R and the required packages once:\n"
+    "    Rscript -e 'install.packages(c(\"poolr\",\"harmonicmeanp\",\"remotes\"), "
+    'repos="https://cloud.r-project.org")\'\n'
+    "    Rscript -e 'remotes::install_github(\"yaowuliu/ACAT\")'\n"
+    f'  (or into the project library: lib="{_R_USER_LIB}").\n'
+    "  If a package fails to compile, install a build toolchain first\n"
+    "    macOS:        xcode-select --install   (and `brew install gcc` for gfortran)\n"
+    "    Debian/Ubuntu: apt install r-base-dev\n"
+    f"  Then re-run, or point {_RSCRIPT_ENV_VAR} at a known-good Rscript.\n"
+)
+
+
+def reset_r_prep() -> None:
+    """Clear the memoized R-readiness state. Call once at the start of a run."""
+    global _r_prep_done, _r_ready, _r_rscript
+    with _R_PREP_LOCK:
+        _r_prep_done = False
+        _r_ready = False
+        _r_rscript = None
+
+
+def prepare_r() -> str | None:
+    """Resolve Rscript and ensure required packages — at most once per run.
+
+    Memoized under a lock so that concurrent R jobs trigger a single resolve +
+    install attempt rather than one per job. Returns the Rscript path when R is
+    ready, or None (printing a one-time warning + manual-install instructions)
+    when it is not. Call `reset_r_prep()` at the start of a run to re-evaluate.
+    """
+    global _r_prep_done, _r_ready, _r_rscript
+    with _R_PREP_LOCK:
+        if _r_prep_done:
+            return _r_rscript if _r_ready else None
+        _r_prep_done = True
+
+        rscript = _resolve_rscript()
+        if rscript is None:
+            click.echo(
+                click.style(
+                    "\n  WARNING: Rscript not found on PATH. Combined p-values "
+                    "will not be computed (the database still loads).\n"
+                    + _MANUAL_INSTALL_HINT,
+                    fg="yellow",
+                    bold=True,
+                )
+            )
+            return None
+
+        if not _ensure_r_packages(rscript):
+            click.echo(
+                click.style(
+                    "\n  WARNING: Required R packages are unavailable. Combined "
+                    "p-values will not be computed (the database still loads).\n"
+                    + _MANUAL_INSTALL_HINT,
+                    fg="yellow",
+                    bold=True,
+                )
+            )
+            return None
+
+        _r_rscript = rscript
+        _r_ready = True
+        return rscript
 
 
 def _resolve_rscript() -> str | None:
@@ -249,30 +326,10 @@ def call_r_combine(
     try:
         write_r_inputs(tmp_dir, pvalues)
 
-        rscript = _resolve_rscript()
+        # Resolve Rscript + ensure packages once per run (memoized under a
+        # lock), so concurrent jobs don't each re-attempt the install.
+        rscript = prepare_r()
         if rscript is None:
-            click.echo(
-                click.style(
-                    "\n  WARNING: Rscript not found on PATH. "
-                    "Combined p-values will not be computed.\n"
-                    f"  Install R to enable this feature: brew install r (macOS) "
-                    f"or apt install r-base (Ubuntu), or set {_RSCRIPT_ENV_VAR} "
-                    "to a specific Rscript binary.\n",
-                    fg="yellow",
-                    bold=True,
-                )
-            )
-            return None
-
-        if not _ensure_r_packages(rscript):
-            click.echo(
-                click.style(
-                    "\n  WARNING: Required R packages could not be installed. "
-                    "Combined p-values will not be computed.\n",
-                    fg="yellow",
-                    bold=True,
-                )
-            )
             return None
 
         result = subprocess.run(
