@@ -359,6 +359,57 @@ def e2e_deployed(instance: str) -> None:
         raise click.exceptions.Exit(rc)
 
 
+@cli.command(name="preprocess")
+@click.option(
+    "--dataset",
+    type=str,
+    default=None,
+    help="Run only this dataset's preprocess.py (e.g. 'satterstrom-2020').",
+)
+@click.option(
+    "--all",
+    "run_all",
+    is_flag=True,
+    default=False,
+    help="Run preprocess.py for every dataset that has one, not just those "
+    "missing an in_path file.",
+)
+@click.option(
+    "--max-workers",
+    type=int,
+    default=8,
+    show_default=True,
+    help="Number of preprocess.py scripts to run in parallel.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="List which datasets would be preprocessed without running them.",
+)
+def preprocess(
+    dataset: str | None,
+    run_all: bool,
+    max_workers: int,
+    dry_run: bool,
+) -> None:
+    """Run dataset preprocess.py scripts locally to regenerate data files.
+
+    The cleaned <table>.tsv/.csv outputs that in_path points at are gitignored
+    and produced by preprocess.py from the raw download. After `sspsygene
+    sync-data` pulls the raw inputs, this regenerates the cleaned outputs the
+    server never persisted. Defaults to only datasets missing an in_path file.
+    """
+    from processing.preprocess_local import run_local_preprocess
+
+    run_local_preprocess(
+        dataset=dataset,
+        run_all=run_all,
+        dry_run=dry_run,
+        max_workers=max_workers,
+    )
+
+
 @cli.command(name="sync-data")
 @click.option(
     "--dataset",
