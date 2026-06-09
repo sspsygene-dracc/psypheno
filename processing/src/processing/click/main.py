@@ -359,6 +359,67 @@ def e2e_deployed(instance: str) -> None:
         raise click.exceptions.Exit(rc)
 
 
+@cli.command(name="sync-data")
+@click.option(
+    "--dataset",
+    type=str,
+    default=None,
+    help="Sync only this dataset directory (e.g. 'satterstrom-2020'). "
+    "Default: every local dataset directory.",
+)
+@click.option(
+    "--instance",
+    type=click.Choice(["dev", "int", "prod"], case_sensitive=False),
+    default="dev",
+    show_default=True,
+    help="Reference instance to pull data files from. dev is effectively a "
+    "superset of int and prod, so it's the right default.",
+)
+@click.option(
+    "--host",
+    type=str,
+    default="hgwdev",
+    show_default=True,
+    help="SSH host used to read the instance's /hive tree. hgwdev is directly "
+    "reachable and sees every instance's tree; pass 'psygene' to proxy-jump.",
+)
+@click.option(
+    "--overwrite",
+    is_flag=True,
+    default=False,
+    help="Also refresh files that already exist locally (rsync by size/mtime). "
+    "Default is missing-files-only (never clobbers local edits).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Show what would be transferred without writing anything.",
+)
+def sync_data(
+    dataset: str | None,
+    instance: str,
+    host: str,
+    overwrite: bool,
+    dry_run: bool,
+) -> None:
+    """Sync gitignored dataset data files from a reference instance (default: dev).
+
+    Raw downloads and cleaned <table>.tsv outputs aren't in git, so a fresh
+    checkout is missing the inputs load-db needs. This rsyncs the missing files
+    down from dev without overwriting anything that already exists locally.
+    """
+    from processing.sync_data import run_sync_data
+
+    run_sync_data(
+        dataset=dataset,
+        instance=instance.lower(),
+        host=host,
+        overwrite=overwrite,
+        dry_run=dry_run,
+    )
+
+
 @cli.command(name="notify-wranglers")
 @click.option(
     "--since",
