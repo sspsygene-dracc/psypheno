@@ -25,6 +25,8 @@ import concurrent.futures
 import os
 import shlex
 import subprocess
+import threading
+import time
 from pathlib import Path
 
 import click
@@ -134,6 +136,47 @@ class DeployError(click.ClickException):
 
 # ── Low-level helpers ────────────────────────────────────────────────────────
 
+# Seconds between "still running" pings for a captured (non-streaming) step.
+HEARTBEAT_INTERVAL = 15
+
+
+class _Heartbeat:
+    """Emit a periodic "still running" line while a blocking step executes.
+
+    Captured subprocess calls (the non-streaming branch of `_run_local` /
+    `_run_ssh`) print nothing between the initial `-> desc` line and the
+    command returning, so a slow step — `npm run build`, a big `git pull`,
+    a stuck remote — looks indistinguishable from a hang. This spins up a
+    daemon thread that prints `... still running (Ns elapsed): <desc>` every
+    `HEARTBEAT_INTERVAL` seconds, so the user always sees forward motion and
+    a running elapsed time. Steps that already stream their own output
+    (load-db, npm install, the test suites) don't use this — their live
+    output is the progress signal.
+    """
+
+    def __init__(self, desc: str, interval: int = HEARTBEAT_INTERVAL) -> None:
+        self._desc = desc
+        self._interval = interval
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._beat, daemon=True)
+        self._start = 0.0
+
+    def _beat(self) -> None:
+        # Event.wait returns True only when stopped; on timeout it returns
+        # False, which is our cue to print one heartbeat and loop again.
+        while not self._stop.wait(self._interval):
+            elapsed = int(time.monotonic() - self._start)
+            click.echo(f"     ... still running ({elapsed}s elapsed): {self._desc}")
+
+    def __enter__(self) -> "_Heartbeat":
+        self._start = time.monotonic()
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self._stop.set()
+        self._thread.join(timeout=1)
+
 
 def _run_local(
     cmd: list[str], *, desc: str, timeout: int = LOCAL_TIMEOUT
@@ -141,7 +184,10 @@ def _run_local(
     """Run a local command; raise DeployError on failure."""
     click.echo(f"  -> {desc}")
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        with _Heartbeat(desc):
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=timeout
+            )
     except subprocess.TimeoutExpired as e:
         raise DeployError(f"Timed out after {timeout}s: {desc}") from e
     if result.returncode != 0:
@@ -194,12 +240,13 @@ def _run_ssh(
                 proc.args, proc.returncode, stdout="", stderr=""
             )
         else:
-            result = subprocess.run(
-                [*_ssh_command(host), remote_cmd],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
+            with _Heartbeat(f"[{host}] {desc}"):
+                result = subprocess.run(
+                    [*_ssh_command(host), remote_cmd],
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                )
     except subprocess.TimeoutExpired as e:
         raise DeployError(f"Timed out after {timeout}s on {host}: {desc}") from e
     if check and result.returncode != 0:
@@ -302,10 +349,14 @@ def _step_preprocess_site(
 
     Each dataset gets its own ssh + `conda run python preprocess.py`
     invocation, dispatched through a ThreadPoolExecutor (PREPROCESS_MAX_WORKERS
-    concurrent jobs). Output is captured per-job and printed when each job
-    finishes, prefixed with the dataset name. Waits for all in-flight jobs
-    to finish before raising, so the user sees every failure rather than
-    only the first one to hit.
+    concurrent jobs). Each job logs a `START` line when it begins and an
+    `OK`/`FAIL` line (with a running done/total count) when it finishes; its
+    captured stdout/stderr is printed on completion, prefixed with the
+    dataset name. A background heartbeat lists which datasets are still in
+    flight (and for how long) every HEARTBEAT_INTERVAL seconds, so a slow or
+    stuck dataset is visible immediately instead of looking like a hang.
+    Waits for all in-flight jobs to finish before raising, so the user sees
+    every failure rather than only the first one to hit.
     """
     click.echo(f"\n  --- {label} preprocess ({path}) ---")
 
@@ -327,7 +378,20 @@ def _step_preprocess_site(
         f"with {workers} parallel workers..."
     )
 
+    total = len(dataset_dirs)
+    # in_flight maps a currently-running dataset name -> its start time, so the
+    # heartbeat can report which jobs are live and for how long. `completed`
+    # is the running done count. Both are touched from worker threads, the
+    # heartbeat thread, and the main loop, so guard them with `lock`.
+    in_flight: dict[str, float] = {}
+    completed = 0
+    lock = threading.Lock()
+
     def run_one(dataset_dir: str) -> tuple[str, int, str]:
+        name = dataset_dir.removeprefix("data/datasets/")
+        with lock:
+            in_flight[name] = time.monotonic()
+        click.echo(f"  START [preprocess] {name}")
         inner = f"cd {shlex.quote(dataset_dir)} && python preprocess.py"
         cmd = (
             f"cd {path} && {CONDA_INIT} && "
@@ -343,22 +407,55 @@ def _step_preprocess_site(
             )
         except subprocess.TimeoutExpired:
             return dataset_dir, -1, f"Timed out after {PREPROCESS_TIMEOUT}s"
+        finally:
+            with lock:
+                in_flight.pop(name, None)
         output = (proc.stdout or "") + (proc.stderr or "")
         return dataset_dir, proc.returncode, output
 
+    stop_beat = threading.Event()
+
+    def heartbeat() -> None:
+        while not stop_beat.wait(HEARTBEAT_INTERVAL):
+            with lock:
+                snapshot = sorted(
+                    (time.monotonic() - started, n)
+                    for n, started in in_flight.items()
+                )
+                done = completed
+            if snapshot:
+                running = ", ".join(f"{n} ({int(e)}s)" for e, n in snapshot)
+                click.echo(
+                    f"     ... preprocess {done}/{total} done; "
+                    f"{len(snapshot)} in flight: {running}"
+                )
+
+    beat = threading.Thread(target=heartbeat, daemon=True)
+    beat.start()
+
     failures: list[str] = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = [pool.submit(run_one, d) for d in dataset_dirs]
-        for future in concurrent.futures.as_completed(futures):
-            dataset_dir, rc, output = future.result()
-            name = dataset_dir.removeprefix("data/datasets/")
-            if rc == 0:
-                click.echo(f"  OK   [preprocess] {name}")
-            else:
-                click.secho(f"  FAIL [preprocess] {name} (exit {rc})", fg="red")
-                for line in output.strip().splitlines():
-                    click.echo(f"    | {line}")
-                failures.append(name)
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(run_one, d) for d in dataset_dirs]
+            for future in concurrent.futures.as_completed(futures):
+                dataset_dir, rc, output = future.result()
+                name = dataset_dir.removeprefix("data/datasets/")
+                with lock:
+                    completed += 1
+                    done = completed
+                if rc == 0:
+                    click.echo(f"  OK   [preprocess] {name} ({done}/{total})")
+                else:
+                    click.secho(
+                        f"  FAIL [preprocess] {name} (exit {rc}) ({done}/{total})",
+                        fg="red",
+                    )
+                    for line in output.strip().splitlines():
+                        click.echo(f"    | {line}")
+                    failures.append(name)
+    finally:
+        stop_beat.set()
+        beat.join(timeout=1)
 
     if failures:
         raise DeployError(
@@ -484,11 +581,15 @@ def _step_deploy_site(
         stream=True,
     )
 
+    # Stream the build (like npm install above) so its per-route compilation
+    # progress is visible live rather than buffered until the build finishes
+    # — a captured build is a multi-minute silent black box.
     _run_ssh(
         PSYGENE,
         f"cd {path}/web && npm run build",
         desc="npm run build (this may take a few minutes)",
         timeout=BUILD_TIMEOUT,
+        stream=True,
     )
 
 
@@ -500,8 +601,6 @@ def _step_restart_psygene(instances: list[str]) -> None:
     with it). Then waits for each instance's public URL to respond before
     returning, so subsequent steps (e.g. e2e tests) don't race the restart.
     """
-    import time
-
     ports = [INSTANCE_PORTS[i] for i in instances]
     labels = ", ".join(INSTANCE_LABELS[i] for i in instances)
     click.secho(f"\n[4/5] Restarting web servers on psygene ({labels})", bold=True)
