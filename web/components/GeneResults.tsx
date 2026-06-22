@@ -506,7 +506,10 @@ export default function GeneResults({
             </span>
           </div>
         )}
-        {perturbedGene && (
+        {/* The "all controls" sentinel isn't a real gene to describe, so it
+            gets no side panel — otherwise it renders a misleading
+            "Perturbed/Target gene: CONTROL" header over an empty blurb (#192). */}
+        {perturbedGene && perturbedGene.kind !== "control" && (
           <GeneSidePanel
             label="Perturbed"
             geneSymbol={perturbedGene.humanSymbol ?? "—"}
@@ -515,7 +518,7 @@ export default function GeneResults({
             tone="perturbed"
           />
         )}
-        {targetGene && (
+        {targetGene && targetGene.kind !== "control" && (
           <GeneSidePanel
             label="Target"
             geneSymbol={targetGene.humanSymbol ?? "—"}
