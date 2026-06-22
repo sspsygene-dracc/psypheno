@@ -1541,6 +1541,9 @@ export default function MostSignificantPage() {
                               centralGeneId={row.central_gene_id}
                               direction={direction}
                               regulation={regulation}
+                              assayFilter={assayFilter}
+                              conditionFilter={conditionFilter}
+                              organismFilter={organismFilter}
                               assayTypeLabels={assayTypeLabels}
                             />
                             <GeneInfoBox
@@ -1589,11 +1592,17 @@ function GeneSignificanceFetcher({
   centralGeneId,
   direction,
   regulation,
+  assayFilter,
+  conditionFilter,
+  organismFilter,
   assayTypeLabels,
 }: {
   centralGeneId: number;
   direction: "target" | "perturbed";
   regulation: Regulation;
+  assayFilter: string | null;
+  conditionFilter: string | null;
+  organismFilter: string | null;
   assayTypeLabels: Record<string, string>;
 }) {
   const [data, setData] = useState<{
@@ -1606,7 +1615,17 @@ function GeneSignificanceFetcher({
     fetch("/api/combined-pvalues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ centralGeneId, direction, regulation }),
+      // metaAnalysisOnly: the breakdown is restricted to the datasets that fed
+      // the selected meta-analysis group (facets + DEG + exclusions).
+      body: JSON.stringify({
+        centralGeneId,
+        direction,
+        regulation,
+        assayFilter,
+        conditionFilter,
+        organismFilter,
+        metaAnalysisOnly: true,
+      }),
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -1620,7 +1639,14 @@ function GeneSignificanceFetcher({
     return () => {
       cancelled = true;
     };
-  }, [centralGeneId, direction, regulation]);
+  }, [
+    centralGeneId,
+    direction,
+    regulation,
+    assayFilter,
+    conditionFilter,
+    organismFilter,
+  ]);
 
   if (!data) return null;
   return (

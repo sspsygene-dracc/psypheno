@@ -11,6 +11,16 @@ const bodySchema = z.object({
   centralGeneId: z.number().min(0),
   direction: z.enum(["target", "perturbed"]).optional(),
   regulation: z.enum(["any", "up", "down"]).optional(),
+  // Dataset-restrictor facets (assay/condition/organism) the breakdown should
+  // subset to. Null = "All" for that facet. Applied on both the home page and
+  // /most-significant.
+  assayFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().optional(),
+  conditionFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().optional(),
+  organismFilter: z.string().regex(/^[a-z0-9_]+$/).nullable().optional(),
+  // When true (the /most-significant gene expansion), the breakdown is further
+  // restricted to the datasets that actually fed the meta-analysis for the
+  // selected group, and the combined number comes from that group's table.
+  metaAnalysisOnly: z.boolean().optional(),
 });
 
 function combinedTableFor(
@@ -39,15 +49,60 @@ export default async function handler(
   const centralGeneId = parse.data.centralGeneId;
   const direction = parse.data.direction ?? "target";
   const regulation = parse.data.regulation ?? "any";
-  const combinedTable = combinedTableFor(direction, regulation);
+  const assayFilter = parse.data.assayFilter ?? null;
+  const conditionFilter = parse.data.conditionFilter ?? null;
+  const organismFilter = parse.data.organismFilter ?? null;
+  const metaAnalysisOnly = parse.data.metaAnalysisOnly ?? false;
 
   try {
     const db = getDb();
 
-    // Fetch pre-computed combined p-values for this direction from the meta DB.
-    // When meta isn't computed for this instance (or this specific
-    // direction/regulation group wasn't built), leave it null — the
-    // contributing per-dataset rows below still render.
+    // Resolve which combined-pvalue group this breakdown reflects.
+    //  - metaAnalysisOnly (/most-significant): the group matching the current
+    //    assay/condition/organism/direction/regulation selection. Its
+    //    source_table_names is the authoritative set of datasets that fed it
+    //    (DEG-only, minus meta_analysis:false tables), and combinedPvalues comes
+    //    from that group's table. A null assay/condition/organism naturally
+    //    matches the global group.
+    //  - otherwise (home page): no meta restriction; the combined number stays
+    //    the global meta group and the breakdown list is facet-filtered from
+    //    dataset metadata below.
+    let combinedTable: string | null = combinedTableFor(direction, regulation);
+    let metaSourceSet: Set<string> | null = null;
+    if (metaAnalysisOnly && getMetaStatus().attached) {
+      try {
+        const grp = db
+          .prepare(
+            `SELECT table_name, source_table_names FROM meta.combined_pvalue_groups
+             WHERE assay_filter IS ? AND condition_filter IS ? AND organism_filter IS ?
+             AND direction = ? AND regulation = ?`
+          )
+          .get(
+            assayFilter,
+            conditionFilter,
+            organismFilter,
+            direction,
+            regulation,
+          ) as
+          | { table_name: string | null; source_table_names: string | null }
+          | undefined;
+        combinedTable = grp?.table_name ? `meta.${grp.table_name}` : null;
+        metaSourceSet = new Set(
+          (grp?.source_table_names ?? "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+        );
+      } catch {
+        // Group lookup failed (meta DB shape mismatch) — fall back to the
+        // global table with no source-table restriction.
+        metaSourceSet = null;
+      }
+    }
+
+    // Fetch pre-computed combined p-values for the resolved group from the meta
+    // DB. Null when meta isn't computed, or the group has no table (fewer than
+    // the minimum contributing tables) — the per-dataset rows below still render.
     type CombinedRow = {
       fisher_pvalue: number | null;
       fisher_fdr: number | null;
@@ -59,7 +114,7 @@ export default async function handler(
       num_pvalues: number;
     };
     let combined: CombinedRow | undefined;
-    if (getMetaStatus().attached) {
+    if (combinedTable && getMetaStatus().attached) {
       try {
         combined = db
           .prepare(
@@ -70,8 +125,6 @@ export default async function handler(
           )
           .get(centralGeneId) as CombinedRow | undefined;
       } catch {
-        // This direction/regulation group's table may not exist (e.g. fewer
-        // than the minimum contributing tables). Treat as no combined value.
         combined = undefined;
       }
     }
@@ -80,7 +133,7 @@ export default async function handler(
     const tablesWithPvalues = db
       .prepare(
         `SELECT table_name, short_label, medium_label, long_label, description, pvalue_column, fdr_column,
-                link_tables, field_labels, assay, effect_column
+                link_tables, field_labels, assay, condition, organism_key, effect_column
          FROM data_tables
          WHERE pvalue_column IS NOT NULL OR fdr_column IS NOT NULL
          ORDER BY id ASC`
@@ -96,8 +149,26 @@ export default async function handler(
         link_tables: string | null;
         field_labels: string | null;
         assay: string | null;
+        condition: string | null;
+        organism_key: string | null;
         effect_column: string | null;
       }>;
+
+    // Does this table pass the current restrictor facets? (home-page path)
+    const facetMatch = (t: {
+      assay: string | null;
+      condition: string | null;
+      organism_key: string | null;
+    }): boolean => {
+      const split = (v: string | null) =>
+        v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [];
+      if (assayFilter && !split(t.assay).includes(assayFilter)) return false;
+      if (conditionFilter && !split(t.condition).includes(conditionFilter))
+        return false;
+      if (organismFilter && !split(t.organism_key).includes(organismFilter))
+        return false;
+      return true;
+    };
 
     // For each table, count rows and fetch best p-value/FDR for this gene
     const contributingTables: Array<{
@@ -115,6 +186,18 @@ export default async function handler(
     }> = [];
 
     for (const t of tablesWithPvalues) {
+      // Subset the breakdown:
+      //  - metaAnalysisOnly: keep only the datasets that fed the selected
+      //    meta-analysis group (authoritative set from the meta DB, which
+      //    already reflects the facet selection + DEG restriction + per-table
+      //    meta_analysis:false exclusions).
+      //  - otherwise (home): keep datasets matching the restrictor facets.
+      if (metaAnalysisOnly) {
+        if (metaSourceSet && !metaSourceSet.has(t.table_name)) continue;
+      } else if (!facetMatch(t)) {
+        continue;
+      }
+
       const linkTableNames = parseLinkTablesForDirection(
         t.link_tables || "",
         direction,

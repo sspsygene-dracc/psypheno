@@ -22,6 +22,7 @@ const EffectDistributionChart = dynamic(
 import { ROW_LIMIT } from "@/lib/gene-query";
 import { formatAuthors } from "@/lib/format-authors";
 import type { SearchSuggestion } from "@/state/SearchSuggestion";
+import type { DatasetRestriction } from "@/components/DatasetRestrictor";
 
 const formatTableName = (section: TableResult) =>
   section.mediumLabel ??
@@ -62,15 +63,22 @@ export default function GeneResults({
   assayTypeLabels = {},
   perturbedGene,
   targetGene,
+  restriction = { assay: null, condition: null, organism: null },
 }: {
   geneDisplayName: string | null;
   data: TableResult[];
   assayTypeLabels?: Record<string, string>;
   perturbedGene: SearchSuggestion | null;
   targetGene: SearchSuggestion | null;
+  // Dataset-restrictor facets so the per-gene breakdown subsets to the same
+  // datasets the user restricted the main results to. No metaAnalysisOnly here
+  // — the home page shows all p-values (incl. non-DEG / meta-excluded).
+  restriction?: DatasetRestriction;
 }) {
   const perturbedCentralGeneId = perturbedGene?.centralGeneId ?? null;
   const targetCentralGeneId = targetGene?.centralGeneId ?? null;
+  const { assay: rAssay, condition: rCondition, organism: rOrganism } =
+    restriction;
   const [perturbedInfo, setPerturbedInfo] = useState<GeneInfoData | null>(null);
   const [targetInfo, setTargetInfo] = useState<GeneInfoData | null>(null);
 
@@ -89,6 +97,9 @@ export default function GeneResults({
       body: JSON.stringify({
         centralGeneId: perturbedCentralGeneId,
         direction: "perturbed",
+        assayFilter: rAssay,
+        conditionFilter: rCondition,
+        organismFilter: rOrganism,
       }),
     })
       .then((r) => (r.ok ? r.json() : null))
@@ -105,7 +116,7 @@ export default function GeneResults({
     return () => {
       cancelled = true;
     };
-  }, [perturbedCentralGeneId]);
+  }, [perturbedCentralGeneId, rAssay, rCondition, rOrganism]);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +130,9 @@ export default function GeneResults({
       body: JSON.stringify({
         centralGeneId: targetCentralGeneId,
         direction: "target",
+        assayFilter: rAssay,
+        conditionFilter: rCondition,
+        organismFilter: rOrganism,
       }),
     })
       .then((r) => (r.ok ? r.json() : null))
@@ -135,7 +149,7 @@ export default function GeneResults({
     return () => {
       cancelled = true;
     };
-  }, [targetCentralGeneId]);
+  }, [targetCentralGeneId, rAssay, rCondition, rOrganism]);
   const [expandedDistributions, setExpandedDistributions] = useState<
     Set<string>
   >(new Set());

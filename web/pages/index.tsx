@@ -677,6 +677,7 @@ export default function Home() {
                         assayTypeLabels={assayTypeLabels}
                         perturbedGene={perturbed}
                         targetGene={target}
+                        restriction={restriction}
                       />
                     )}
                   </>
