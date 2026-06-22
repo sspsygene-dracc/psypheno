@@ -304,6 +304,21 @@ export default function MostSignificantPage() {
   };
   const [datasetTables, setDatasetTables] = useState<DatasetTableMeta[]>([]);
 
+  // Expand/collapse state for the "datasets included" panel (#183).
+  // Collapsed by default; persisted in localStorage so a user who prefers the
+  // chip list always sees it expanded. Read in an effect to avoid an SSR/CSR
+  // hydration mismatch.
+  const [datasetsExpanded, setDatasetsExpanded] = useState(false);
+  useEffect(() => {
+    try {
+      setDatasetsExpanded(
+        localStorage.getItem("ms.datasetsExpanded") === "1",
+      );
+    } catch {
+      // localStorage unavailable (e.g. privacy mode) — keep default collapsed.
+    }
+  }, []);
+
   // Default flag values for URL diffing
   const defaultHideFlags = HIDE_FLAG_OPTIONS.map((o) => o.key);
   const defaultShowFlags = SHOW_FLAG_OPTIONS.map((o) => o.key);
@@ -794,39 +809,61 @@ export default function MostSignificantPage() {
               .replace(/_/g, " ")
               .replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
           return (
-            <div
-              style={{
-                marginBottom: 12,
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: 6,
-                fontSize: 13,
-                color: "#6b7280",
+            <details
+              open={datasetsExpanded}
+              onToggle={(e) => {
+                const open = (e.currentTarget as HTMLDetailsElement).open;
+                setDatasetsExpanded(open);
+                try {
+                  localStorage.setItem(
+                    "ms.datasetsExpanded",
+                    open ? "1" : "0",
+                  );
+                } catch {
+                  // localStorage unavailable — toggle still works for this session.
+                }
               }}
+              style={{ marginBottom: 12, fontSize: 13, color: "#6b7280" }}
             >
-              <span
-                style={{ fontWeight: 600, color: "#374151", marginRight: 4 }}
+              <summary
+                style={{
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  color: "#374151",
+                  listStyle: "revert",
+                  width: "fit-content",
+                }}
               >
-                {filtered.length} dataset{filtered.length !== 1 ? "s" : ""} included:
-              </span>
-              {filtered.map((t) => (
-                <Link
-                  key={t.tableName}
-                  href={`/full-datasets?select=${encodeURIComponent(t.shortLabel ? t.shortLabel.replace(/\s+/g, "_") : t.tableName)}`}
-                  style={{
-                    padding: "2px 8px",
-                    background: "#eff6ff",
-                    color: "#2563eb",
-                    borderRadius: 9999,
-                    textDecoration: "none",
-                    fontSize: 12,
-                  }}
-                >
-                  {formatName(t)}
-                </Link>
-              ))}
-            </div>
+                {filtered.length} dataset{filtered.length !== 1 ? "s" : ""}{" "}
+                included
+              </summary>
+              <div
+                style={{
+                  marginTop: 8,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                {filtered.map((t) => (
+                  <Link
+                    key={t.tableName}
+                    href={`/full-datasets?select=${encodeURIComponent(t.shortLabel ? t.shortLabel.replace(/\s+/g, "_") : t.tableName)}`}
+                    style={{
+                      padding: "2px 8px",
+                      background: "#eff6ff",
+                      color: "#2563eb",
+                      borderRadius: 9999,
+                      textDecoration: "none",
+                      fontSize: 12,
+                    }}
+                  >
+                    {formatName(t)}
+                  </Link>
+                ))}
+              </div>
+            </details>
           );
         })()}
 
