@@ -1357,6 +1357,23 @@ export default function MostSignificantPage() {
                     </td>
                   </tr>
                 )}
+                {rows.length === 0 && !loading && (
+                  <tr>
+                    <td
+                      colSpan={NUM_COLS}
+                      style={{
+                        padding: 24,
+                        textAlign: "center",
+                        color: "#6b7280",
+                      }}
+                    >
+                      No genes match the current filters.
+                      {geneSearch
+                        ? ` No gene name contains "${geneSearch}".`
+                        : " Try broadening the method, direction, regulation, or flag filters."}
+                    </td>
+                  </tr>
+                )}
                 {rows.map((row, idx) => {
                   const isExpanded = expandedRows.has(row.human_symbol);
 
