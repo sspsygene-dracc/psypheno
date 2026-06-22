@@ -28,13 +28,19 @@ const VALID_FLAGS = [
 const SHOW_FLAGS = [
   "nimh_priority",
   "transcription_factor",
-  "lncrna",
 ] as const;
+
+/**
+ * Gene biotype filter (#193). `lncrna` is always a strict subset of
+ * `non_coding` in the data, so "non_coding" subsumes "lncrna".
+ */
+const VALID_BIOTYPES = ["any", "protein_coding", "non_coding", "lncrna"] as const;
 
 const bodySchema = z.object({
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(100).default(25),
   method: z.enum(VALID_METHODS).default("hmp"),
+  biotype: z.enum(VALID_BIOTYPES).default("any"),
   hideFlags: z.array(z.enum(VALID_FLAGS)).default([]),
   showFlags: z
     .array(z.enum(VALID_FLAGS))
@@ -71,7 +77,7 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { page, pageSize, method, hideFlags, showFlags, showOther, assayFilter, conditionFilter, organismFilter, geneSearch, direction, regulation } =
+  const { page, pageSize, method, biotype, hideFlags, showFlags, showOther, assayFilter, conditionFilter, organismFilter, geneSearch, direction, regulation } =
     parse.data;
   const methodCol = METHOD_COLUMNS[method];
 
@@ -142,6 +148,21 @@ export default async function handler(
     // Build WHERE conditions
     const conditions: string[] = [];
     const flagParams: string[] = [];
+
+    // 0. Gene biotype filter (#193). `lncrna` is a strict subset of
+    // `non_coding`, so "non_coding" matches lncRNAs too.
+    if (biotype === "protein_coding") {
+      conditions.push(
+        "(cp.gene_flags IS NULL OR (cp.gene_flags NOT LIKE ? AND cp.gene_flags NOT LIKE ?))"
+      );
+      flagParams.push("%non_coding%", "%lncrna%");
+    } else if (biotype === "non_coding") {
+      conditions.push("cp.gene_flags LIKE ?");
+      flagParams.push("%non_coding%");
+    } else if (biotype === "lncrna") {
+      conditions.push("cp.gene_flags LIKE ?");
+      flagParams.push("%lncrna%");
+    }
 
     // 1. Exclude genes with hidden flags
     if (hideFlags.length > 0) {

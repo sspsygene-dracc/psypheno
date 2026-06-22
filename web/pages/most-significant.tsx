@@ -32,6 +32,23 @@ type RankedRow = {
 
 type Method = "fisher" | "cauchy" | "hmp";
 type Regulation = "any" | "up" | "down";
+type Biotype = "any" | "protein_coding" | "non_coding" | "lncrna";
+
+/**
+ * Gene biotype filter (#193). A single radio that expresses "coding-ness"
+ * cleanly, since the old show/hide checkbox model could not represent
+ * "only non-coding RNAs" without surfacing protein-coding genes. The
+ * `lncrna` gene flag is always a strict subset of `non_coding` in the data,
+ * so "Non-coding only" subsumes "lncRNA only".
+ */
+const BIOTYPE_OPTIONS: { key: Biotype; label: string }[] = [
+  { key: "any", label: "Any" },
+  { key: "protein_coding", label: "Protein-coding only" },
+  { key: "non_coding", label: "Non-coding only" },
+  { key: "lncrna", label: "lncRNA only" },
+];
+
+const BIOTYPE_DEFAULT: Biotype = "protein_coding";
 
 /** Positive "show" flags \u2014 categories of interest. */
 const SHOW_FLAG_OPTIONS: { key: string; label: string; href?: string }[] = [
@@ -41,7 +58,6 @@ const SHOW_FLAG_OPTIONS: { key: string; label: string; href?: string }[] = [
     href: "https://www.nimh.nih.gov/research/priority-research-areas/genomics-research",
   },
   { key: "transcription_factor", label: "Transcription Factors" },
-  { key: "lncrna", label: "lncRNAs" },
 ];
 
 /** Negative "hide" flags \u2014 broadly-responsive gene families. */
@@ -49,24 +65,10 @@ const HIDE_FLAG_OPTIONS: { key: string; label: string }[] = [
   { key: "heat_shock", label: "Heat shock / chaperones" },
   { key: "mitochondrial_rna", label: "Mitochondrial RNA" },
   { key: "no_hgnc", label: "No HGNC annotation" },
-  { key: "non_coding", label: "Non-coding RNA" },
   { key: "pseudogene", label: "Pseudogenes" },
   { key: "ribosomal", label: "Ribosomal proteins" },
   { key: "ubiquitin", label: "Ubiquitin pathway" },
 ];
-
-/**
- * Conflict map: when a show flag is checked, the listed hide flags
- * should be unchecked (and vice versa) because they are logically
- * mutually exclusive.
- */
-const SHOW_HIDE_CONFLICTS: Record<string, string[]> = {
-  // lncRNAs are a subset of non-coding RNA
-  lncrna: ["non_coding"],
-};
-const HIDE_SHOW_CONFLICTS: Record<string, string[]> = {
-  non_coding: ["lncrna"],
-};
 
 const METHOD_DESCRIPTIONS: {
   key: Method;
@@ -249,15 +251,18 @@ export default function MostSignificantPage() {
     setPage(p);
   }, []);
 
+  // Gene biotype filter (#193) \u2014 protein-coding only by default, which
+  // preserves the historical behavior of hiding non-coding RNAs.
+  const [biotype, setBiotype] = useState<Biotype>(BIOTYPE_DEFAULT);
+
   // Gene flag filter state \u2014 all hidden by default
   const [hideFlags, setHideFlags] = useState<string[]>(
     HIDE_FLAG_OPTIONS.map((o) => o.key),
   );
 
-  // Show-flag filter state \u2014 all checked except lncrna (excluded by default
-  // via non_coding hide flag, so showing lncrna would conflict)
+  // Show-flag filter state \u2014 all checked by default
   const [showFlags, setShowFlags] = useState<string[]>(
-    SHOW_FLAG_OPTIONS.filter((o) => o.key !== "lncrna").map((o) => o.key),
+    SHOW_FLAG_OPTIONS.map((o) => o.key),
   );
   const [showOther, setShowOther] = useState(true);
 
@@ -300,7 +305,7 @@ export default function MostSignificantPage() {
 
   // Default flag values for URL diffing
   const defaultHideFlags = HIDE_FLAG_OPTIONS.map((o) => o.key);
-  const defaultShowFlags = SHOW_FLAG_OPTIONS.filter((o) => o.key !== "lncrna").map((o) => o.key);
+  const defaultShowFlags = SHOW_FLAG_OPTIONS.map((o) => o.key);
 
   // Initialize state from URL query params on first load
   const [urlInitialized, setUrlInitialized] = useState(false);
@@ -317,6 +322,12 @@ export default function MostSignificantPage() {
     if (typeof q.reg === "string" && ["any", "up", "down"].includes(q.reg)) {
       setRegulation(q.reg as Regulation);
     }
+    if (
+      typeof q.biotype === "string" &&
+      BIOTYPE_OPTIONS.some((o) => o.key === q.biotype)
+    ) {
+      setBiotype(q.biotype as Biotype);
+    }
     if (typeof q.assay === "string") setAssayFilter(q.assay);
     if (typeof q.condition === "string") setConditionFilter(q.condition);
     if (typeof q.organism === "string") setOrganismFilter(q.organism);
@@ -326,10 +337,18 @@ export default function MostSignificantPage() {
       if (p >= 1) setPage(p);
     }
     if (typeof q.show === "string") {
-      setShowFlags(q.show === "" ? [] : q.show.split(","));
+      // Intersect with known options so stale flags from old URLs
+      // (e.g. the retired `lncrna` show flag, now the biotype radio) drop out.
+      const known = new Set(SHOW_FLAG_OPTIONS.map((o) => o.key));
+      setShowFlags(
+        q.show === "" ? [] : q.show.split(",").filter((f: string) => known.has(f)),
+      );
     }
     if (typeof q.hide === "string") {
-      setHideFlags(q.hide === "" ? [] : q.hide.split(","));
+      const known = new Set(HIDE_FLAG_OPTIONS.map((o) => o.key));
+      setHideFlags(
+        q.hide === "" ? [] : q.hide.split(",").filter((f: string) => known.has(f)),
+      );
     }
     if (typeof q.showOther === "string") {
       setShowOther(q.showOther !== "0");
@@ -347,6 +366,7 @@ export default function MostSignificantPage() {
     if (method !== "hmp") params.method = method;
     if (direction !== "target") params.dir = direction;
     if (regulation !== "any") params.reg = regulation;
+    if (biotype !== BIOTYPE_DEFAULT) params.biotype = biotype;
     if (assayFilter) params.assay = assayFilter;
     if (conditionFilter) params.condition = conditionFilter;
     if (organismFilter) params.organism = organismFilter;
@@ -375,7 +395,7 @@ export default function MostSignificantPage() {
 
     router.replace({ pathname: router.pathname, query: params }, undefined, { shallow: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [method, direction, regulation, assayFilter, conditionFilter, organismFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady, urlInitialized]);
+  }, [method, direction, regulation, biotype, assayFilter, conditionFilter, organismFilter, geneSearch, page, showFlags, hideFlags, showOther, router.isReady, urlInitialized]);
 
   useEffect(() => {
     fetch("/api/dataset-tables-with-pvalues")
@@ -408,6 +428,7 @@ export default function MostSignificantPage() {
         method,
         direction,
         regulation,
+        biotype,
         hideFlags,
         showFlags,
         showOther,
@@ -437,6 +458,7 @@ export default function MostSignificantPage() {
     method,
     direction,
     regulation,
+    biotype,
     hideFlags,
     showFlags,
     showOther,
@@ -447,32 +469,20 @@ export default function MostSignificantPage() {
   ]);
 
   const toggleHideFlag = (flag: string) => {
-    setHideFlags((prev) => {
-      const adding = !prev.includes(flag);
-      if (adding) {
-        // Uncheck conflicting show flags
-        const conflicts = HIDE_SHOW_CONFLICTS[flag];
-        if (conflicts) {
-          setShowFlags((sf) => sf.filter((f) => !conflicts.includes(f)));
-        }
-      }
-      return adding ? [...prev, flag] : prev.filter((f) => f !== flag);
-    });
+    setHideFlags((prev) =>
+      prev.includes(flag)
+        ? prev.filter((f: string) => f !== flag)
+        : [...prev, flag],
+    );
     setPage(1);
   };
 
   const toggleShowFlag = (flag: string) => {
-    setShowFlags((prev) => {
-      const adding = !prev.includes(flag);
-      if (adding) {
-        // Uncheck conflicting hide flags
-        const conflicts = SHOW_HIDE_CONFLICTS[flag];
-        if (conflicts) {
-          setHideFlags((hf) => hf.filter((f) => !conflicts.includes(f)));
-        }
-      }
-      return adding ? [...prev, flag] : prev.filter((f) => f !== flag);
-    });
+    setShowFlags((prev) =>
+      prev.includes(flag)
+        ? prev.filter((f: string) => f !== flag)
+        : [...prev, flag],
+    );
     setPage(1);
   };
 
@@ -967,6 +977,62 @@ export default function MostSignificantPage() {
             Gene selection
           </div>
 
+          {/* Biotype radio (#193) */}
+          <div
+            style={{
+              padding: "10px 14px",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+              borderBottom: "1px solid #e5e7eb",
+            }}
+          >
+            <span
+              style={{
+                fontWeight: 600,
+                color: "#374151",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Biotype
+              <InfoTooltip
+                text={
+                  "Restrict the ranking by gene biotype. " +
+                  "Protein-coding only: exclude non-coding RNAs and lncRNAs. " +
+                  "Non-coding only: keep only genes flagged as non-coding RNA (this includes lncRNAs). " +
+                  "lncRNA only: keep only long non-coding RNAs."
+                }
+                size={13}
+              />
+              :
+            </span>
+            {BIOTYPE_OPTIONS.map((opt) => (
+              <label
+                key={opt.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  cursor: "pointer",
+                  color: "#4b5563",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="biotype"
+                  checked={biotype === opt.key}
+                  onChange={() => {
+                    setBiotype(opt.key);
+                    setPage(1);
+                  }}
+                />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+
           {/* Show union of row */}
           <div
             style={{
@@ -1042,8 +1108,6 @@ export default function MostSignificantPage() {
                 onClick={() => {
                   setShowFlags(SHOW_FLAG_OPTIONS.map((o) => o.key));
                   setShowOther(true);
-                  // Handle conflict: lncrna being checked means non_coding must be unchecked
-                  setHideFlags((hf) => hf.filter((f) => f !== "non_coding"));
                   setPage(1);
                 }}
                 style={{
