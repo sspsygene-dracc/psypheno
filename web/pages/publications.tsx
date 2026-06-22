@@ -15,17 +15,6 @@ import type {
 
 const TITLE_CASE_RE = /\w\S*/g;
 
-// Brian Lee's institutional mapping for SSPsyGene consortium grants (GH #59).
-const GRANT_INSTITUTIONS: Record<string, string> = {
-  RM1MH132651: "UCLA",
-  R01MH131296: "Rutgers",
-  RM1MH132648: "Yale",
-  R01MH128366: "Broad",
-  U24MH132628: "UCSC",
-  R01HG012819: "Scripps",
-  RM1MH138313: "WUSTL",
-};
-
 function titleCase(s: string): string {
   return s.replace(TITLE_CASE_RE, (t) => t.charAt(0).toUpperCase() + t.slice(1));
 }
@@ -54,7 +43,6 @@ export default function PublicationsPage() {
   const [fundingFilter, setFundingFilter] = useState<"any" | "funded" | "not_funded">(
     "any",
   );
-  const [grantFilter, setGrantFilter] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -141,22 +129,6 @@ export default function PublicationsPage() {
       .sort((a, b) => a.display.localeCompare(b.display));
   }, [publications, assayTypeLabels]);
 
-  const grantOptions = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const p of publications) {
-      for (const g of p.sspsygeneGrants) counts.set(g, (counts.get(g) ?? 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .map(([key, count]) => ({
-        key,
-        display: GRANT_INSTITUTIONS[key]
-          ? `${key} (${GRANT_INSTITUTIONS[key]})`
-          : key,
-        count,
-      }))
-      .sort((a, b) => a.display.localeCompare(b.display));
-  }, [publications]);
-
   const fundedCount = useMemo(
     () => publications.filter((p) => p.sspsygeneGrants.length > 0).length,
     [publications],
@@ -190,9 +162,6 @@ export default function PublicationsPage() {
         return false;
       if (fundingFilter === "not_funded" && p.sspsygeneGrants.length > 0)
         return false;
-      if (grantFilter.size > 0) {
-        if (!p.sspsygeneGrants.some((g) => grantFilter.has(g))) return false;
-      }
       return true;
     });
   }, [
@@ -202,7 +171,6 @@ export default function PublicationsPage() {
     organismFilter,
     assayFilter,
     fundingFilter,
-    grantFilter,
   ]);
 
   const toggleSetValue = <T,>(set: Set<T>, value: T): Set<T> => {
@@ -217,8 +185,7 @@ export default function PublicationsPage() {
     yearFilter.size > 0 ||
     organismFilter.size > 0 ||
     assayFilter.size > 0 ||
-    fundingFilter !== "any" ||
-    grantFilter.size > 0;
+    fundingFilter !== "any";
 
   const clearAllFilters = () => {
     setAuthorQuery("");
@@ -226,7 +193,6 @@ export default function PublicationsPage() {
     setOrganismFilter(new Set());
     setAssayFilter(new Set());
     setFundingFilter("any");
-    setGrantFilter(new Set());
   };
 
   const goToDataset = (dataset: Dataset) => {
@@ -263,7 +229,7 @@ export default function PublicationsPage() {
         >
           Papers contributing data to the SSPsyGene knowledge base, with their
           source datasets shown beneath each publication. Filter by author,
-          SSPsyGene funding, grant number, year, organism, or experiment type.
+          SSPsyGene funding, year, organism, or experiment type.
           Click a dataset to expand its metadata, or jump straight to its full
           data table.
         </p>
@@ -354,38 +320,6 @@ export default function PublicationsPage() {
                 </label>
               ))}
             </div>
-
-            {grantOptions.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>
-                  Grant number
-                </div>
-                {grantOptions.map((g) => (
-                  <label
-                    key={g.key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "2px 0",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={grantFilter.has(g.key)}
-                      onChange={() =>
-                        setGrantFilter((s) => toggleSetValue(s, g.key))
-                      }
-                    />
-                    <span style={{ flex: 1 }}>{g.display}</span>
-                    <span style={{ color: "#6b7280", fontSize: 12 }}>
-                      {g.count}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )}
 
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Year</div>
@@ -640,14 +574,7 @@ function PublicationCard({
         >
           {pub.sspsygeneGrants.length > 0 && (
             <span
-              title={
-                pub.sspsygeneGrants
-                  .map(
-                    (g) =>
-                      `${g}${GRANT_INSTITUTIONS[g] ? ` (${GRANT_INSTITUTIONS[g]})` : ""}`,
-                  )
-                  .join(", ")
-              }
+              title="Funded by SSPsyGene"
               style={{
                 fontSize: 12,
                 color: "#065f46",
@@ -660,31 +587,6 @@ function PublicationCard({
               SSPsyGene
             </span>
           )}
-          {pub.sspsygeneGrants.map((g) => (
-            <span
-              key={g}
-              title={
-                GRANT_INSTITUTIONS[g]
-                  ? `Consortium grant: ${GRANT_INSTITUTIONS[g]}`
-                  : "Consortium grant"
-              }
-              style={{
-                fontSize: 12,
-                color: "#065f46",
-                background: "#ecfdf5",
-                border: "1px solid #a7f3d0",
-                borderRadius: 9999,
-                padding: "2px 10px",
-              }}
-            >
-              {g}
-              {GRANT_INSTITUTIONS[g] && (
-                <span style={{ color: "#047857", marginLeft: 4 }}>
-                  ({GRANT_INSTITUTIONS[g]})
-                </span>
-              )}
-            </span>
-          ))}
           {pub.organisms.map((o) => (
             <span
               key={o}
