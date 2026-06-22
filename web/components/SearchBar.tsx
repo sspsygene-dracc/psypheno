@@ -209,13 +209,21 @@ export default function SearchBar({
       <input
         value={query}
         onChange={(e) => {
+          const next = e.target.value;
           if (suppress) setSuppress(false);
-          setQuery(e.target.value);
+          setQuery(next);
           // Manual edits (typing, backspace) update the input text and the
           // suggestions dropdown only — the previously selected gene stays
           // selected until the user explicitly clears via the X button or
           // picks a new suggestion. This avoids surprise resets when the
           // user is just refining their query.
+          //
+          // Exception: an empty input can't be a refinement of a selection —
+          // the user has either changed their mind or cleared by hand, so
+          // reset the parent state to match the visually empty box (#167).
+          if (next.trim() === "") {
+            onSelect(null);
+          }
         }}
         onFocus={() => {
           if (query && !suppress) {
