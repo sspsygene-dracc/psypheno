@@ -18,10 +18,6 @@ TODO: Claude modes --- shift tab --- auto mode
 
 TODO: sspsygene conda env should install a bunch of useful python packages by default
 
-TODO: tell Claude in CLAUDE.md that if it's missing python packages, it should
-consider installing them and either just do it if they're common or ask the user
-if it's OK to install them
-
 TODO: create ticket of all the stuff that didn't work in the tutorial, collect
 all the stuff I remember here, then send it to wranglers and tell them to add
 more stuff that they remember was confusing or didn't work
@@ -129,8 +125,6 @@ cd ~/code/psypheno
 code CLAUDE.md
 ```
 
-TODO: CLAUDE.md needs to be pointed to the conda environment
-
 ### Wrangler `CLAUDE.md` starter template
 
 ````markdown
@@ -152,6 +146,20 @@ guessing.
 - Canonical guide: `docs/adding-datasets.md` — read it before suggesting
   config field values you're not sure about.
 
+## Python environment
+
+- **All Python work runs in the `sspsygene` conda env.** Before running
+  `sspsygene`, `python`, `pip`, `pytest`, or any `preprocess.py`, make sure
+  the env is active: `conda activate sspsygene`. Don't run Python against
+  the base interpreter or a system Python — the `sspsygene` CLI and its
+  dependencies (pandas, R packages, etc.) only exist in that env.
+- **If a Python package is missing, install it into the `sspsygene` env.**
+  For common, well-known packages (e.g. `openpyxl`, `xlrd`, `requests`,
+  `tqdm`) just install it — `conda install -y -c conda-forge <pkg>`, or
+  `pip install <pkg>` if it's not on conda-forge — and keep going. For
+  anything unusual, niche, or that pulls a large/compiled dependency
+  tree, **ask me first** before installing.
+
 ## How I work on a dataset ticket
 
 - Tickets are on `sspsygene-dracc/psypheno`. Use `gh issue view NN
@@ -169,11 +177,20 @@ guessing.
 
 ## Hard rules I want enforced
 
-- **Every column gets an informative `fieldLabel`.** "p-value" is useless;
-  "Empirical p-value from 1000-permutation test (Smith et al. 2026,
-  Methods §2.4)" is good. If you don't know what a column means, **ask
-  me to download the paper PDF** to `papers/<author>_<year>.pdf` rather
-  than guessing.
+- **Every column gets an informative `fieldLabel`** — and these render as
+  tooltips on the site, so keep them **uniform and concise**:
+  - **One sentence, no more.** No multi-sentence paragraphs, no trailing
+    notes or parentheticals stacked on. If it doesn't fit in one sentence,
+    it's too long.
+  - **Shape: what it measures + units/scale + source.** e.g. "Empirical
+    p-value from a 1000-permutation test (Smith et al. 2026)" or
+    "Log2 fold-change of expression vs. control (Smith et al. 2026)".
+    "p-value" alone is useless; a three-line methods excerpt is too much.
+  - Match the style of the labels already in the dataset so tooltips read
+    consistently across columns.
+
+  If you don't know what a column means, **ask me to download the paper
+  PDF** to `papers/<author>_<year>.pdf` rather than guessing.
 - **Gene-identifier resolution preference:** HGNC symbol > Ensembl (ENSG)
   > AC accession > everything else. If a column has both ENSG and a
   symbol, surface the symbol; preserve the original in `<col>_raw`.
@@ -203,6 +220,7 @@ To check my changes load without rebuilding the entire database:
 
 ```bash
 cd ~/code/psypheno
+conda activate sspsygene
 SSPSYGENE_DATA_DIR=$(pwd)/data \
 SSPSYGENE_CONFIG_JSON=processing/src/processing/config.json \
 SSPSYGENE_DATA_DB=$(pwd)/data/db/sspsygene-claude.db \
