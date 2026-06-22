@@ -1,11 +1,3 @@
-Clean dev directory changeset
-Update GitHub ticket with new comment
-Write wranglers email about updates
-Write wranglers about the cruft directory
-Deploy on dev and prod
-
-
-
 Catharina, email May 8: 1) We need to update from Bioarchives to the actual publications once they come out. Are you already having alerts for the listed pre-publications or should I do that and let you know? 
 
 "included datasets" grow more and more. Make this an expandable box just saying
@@ -38,8 +30,3 @@ Catharina asks email May 7th:
   - Most significant genes page: when only non-coding RNAs are selected,
     protein-coding genes come up (see screenshot)
   - Most significant genes: can one select which datasets are included?
-  - Publications page: I’d drop the actual grant numbers and have only a yes/no
-    for SSPsyGene funded (the first selection). There might have been a
-    miscommunication when Brian and I listed those numbers. This was just so we
-    can select internally if studies were SSPsyGene funded. The top selection on
-    the side bar is great. 
