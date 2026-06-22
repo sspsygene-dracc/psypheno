@@ -1110,6 +1110,18 @@ that includes your dataset name as a prefix.
 You need SSH access to the UCSC servers (especially psygene). Contact the
 system administrator if you don't have access.
 
+### `git pull` fails with "Permission denied (publickey)" on psygene
+
+The deploy's `git pull` runs **on psygene** and authenticates to GitHub
+from there (the server checkouts use a `git@github.com:…` remote). If it
+fails with `Permission denied (publickey)`, psygene has no GitHub-usable
+key for you. The deploy forwards your laptop's SSH agent (`ssh -A`), so
+usually loading your key locally (`ssh-add`) is enough — but if your
+agent has no key or forwarding is disabled, generate a key that lives on
+psygene and add it to your GitHub account. Both options are written up in
+[docs/tutorial/pre-meeting-setup.md](tutorial/pre-meeting-setup.md) →
+section 10c ("GitHub access for the deploy's `git pull`").
+
 ### The website doesn't show my dataset after deployment
 
 1. Did `sspsygene load-db` actually finish without errors? Re-read its output.

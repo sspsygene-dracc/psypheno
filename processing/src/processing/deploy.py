@@ -205,6 +205,19 @@ def _ssh_command(host: str, *, tty: bool = False) -> list[str]:
     For PSYGENE we always inject `-J hgwdev` and `accept-new` host-key
     handling, so deploys succeed without per-user ~/.ssh/config entries
     for `psygene` and without an interactive host-key prompt on first run.
+
+    We also force agent forwarding (`-A`) to psygene. The git remote on the
+    server checkouts is `git@github.com:…` (SSH), so the `git pull` step
+    authenticates to GitHub *from psygene* — which needs a GitHub-authorized
+    key there. Without `-A`, the only ways that worked were a per-user key
+    sitting in `~/.ssh` on psygene or a per-user `Host psygene → ForwardAgent
+    yes` config block — neither of which the "you don't need a psygene config
+    block" deploy design gives wranglers, so their pull failed with
+    `Permission denied (publickey)`. `-A` forwards the deployer's *laptop*
+    agent (the same one they push from) all the way to psygene, so the pull
+    authenticates with no server-side setup. (Forwarding to the final hop of a
+    `-J` jump requires `-A` on the command line; a ForwardAgent setting for the
+    jump host alone does not reach psygene.)
     """
     cmd = ["ssh"]
     if tty:
@@ -212,6 +225,7 @@ def _ssh_command(host: str, *, tty: bool = False) -> list[str]:
     if host == PSYGENE:
         cmd.extend(
             [
+                "-A",
                 "-o", "StrictHostKeyChecking=accept-new",
                 "-J", PSYGENE_PROXY_JUMP,
                 PSYGENE_SSH_HOST,
@@ -428,10 +442,17 @@ def _step_pull_all(transport: _Transport, instances: list[str]) -> None:
         path = INSTANCE_PATHS[inst]
         _run_psygene(
             transport,
-            f"cd {path} && git -c safe.directory='*' pull && "
+            # Run the pull, then the best-effort group-write chmod, but preserve
+            # the PULL's exit code so a failed pull fails the deploy. The old
+            # form `pull && chmod … || true` let the trailing `|| true` (there
+            # for the chmod) swallow a non-zero pull, so the deploy reported
+            # success on a pull that never happened. Capture rc right after the
+            # pull and re-exit with it.
+            f"cd {path} && git -c safe.directory='*' pull; rc=$?; "
             f"find . -user \"$(id -un)\" ! -perm -g+w "
             f"\\( -type d -exec chmod g+ws {{}} + "
-            f"-o -type f -exec chmod g+w {{}} + \\) 2>/dev/null || true",
+            f"-o -type f -exec chmod g+w {{}} + \\) 2>/dev/null || true; "
+            f"exit $rc",
             desc=f"git pull ({path})",
             # On psygene, inherit the TTY so a git credential/password prompt is
             # visible and answerable (issue #203 §1.1). Over SSH it stays

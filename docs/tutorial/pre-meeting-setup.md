@@ -247,16 +247,13 @@ don't need to do anything for that one.)
 
 ---
 
+## 10. Configure SSH for the deploy
 
-TODO: Need to set up git pull on the server
-TODO: git pull during the deploy step fails silently --- doesn't do anything
-asks brittney for password --- didn't do anything for brian, no password ask
-we need to set up the remote server such that git pull on there works without
-password
+> Not optional if you'll be deploying. This is also what makes the
+> deploy's server-side `git pull` authenticate — see 10c below, which
+> resolves the earlier "git pull fails silently / asks for a password"
+> problem.
 
-TODO: This is not optional
-
-## 10. (Optional but very nice) Configure SSH for the deploy
 
 To deploy datasets to the dev/int/prod servers from your laptop, your
 SSH client needs to know how to reach the UCSC machines. Add this block
@@ -325,6 +322,65 @@ umask 0002
 ```
 
 Then open a fresh shell on the host and re-run `umask` to confirm.
+
+**c) GitHub access for the deploy's `git pull`.** The server checkouts
+pull from GitHub over SSH (`git@github.com:…`), so when `sspsygene
+deploy` runs `git pull` *on psygene*, that pull has to authenticate to
+GitHub **from psygene** — not from your laptop. There are two ways to
+make that work; you only need one.
+
+**Option 1 — agent forwarding (nothing to set up on psygene).** The
+deploy forwards your laptop's SSH agent all the way to psygene (it runs
+`ssh -A`), so if the GitHub key you already push with is loaded in your
+laptop's agent, the pull just uses it. Check your laptop agent has a
+key:
+
+```bash
+ssh-add -l          # should list at least one key; if "no identities", run: ssh-add
+```
+
+Then verify GitHub auth reaches all the way to psygene through the
+forwarded agent:
+
+```bash
+ssh -A -J hgwdev psygene "ssh -T git@github.com"
+# Expect: "Hi <your-github-username>! You've successfully authenticated…"
+```
+
+If you see `Hi <username>!`, you're done — `sspsygene deploy` will pull
+fine.
+
+**Option 2 — a dedicated GitHub key that lives on psygene (robust
+fallback).** If Option 1 doesn't print `Hi <username>!` (no key in your
+agent, agent-forwarding disabled by your org, etc.), generate a key
+*on psygene* and register it with your GitHub account. This key stays on
+the server, so the pull never depends on forwarding:
+
+```bash
+ssh -J hgwdev psygene                          # log into psygene
+ssh-keygen -t ed25519 -C "psygene-$(id -un)" -f ~/.ssh/id_ed25519 -N ""
+cat ~/.ssh/id_ed25519.pub                       # copy this line
+```
+
+Add the printed public key to GitHub — either paste it at
+<https://github.com/settings/keys> → **New SSH key**, or, if `gh` is
+authenticated on psygene, run it there directly:
+
+```bash
+gh ssh-key add ~/.ssh/id_ed25519.pub --title "psygene-$(id -un)"
+```
+
+Then confirm, still on psygene:
+
+```bash
+ssh -T git@github.com
+# Expect: "Hi <your-github-username>! You've successfully authenticated…"
+```
+
+Once either option prints `Hi <username>!`, the deploy's `git pull` on
+psygene will authenticate as you. (The key/agent identifies *you* to
+GitHub; the shared checkout is pulled with whichever wrangler's
+credentials run the deploy.)
 
 ---
 
