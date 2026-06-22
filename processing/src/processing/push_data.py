@@ -1,8 +1,8 @@
 """Push gitignored dataset *data payloads* up to a server instance.
 
-The push-direction mirror of ``sspsygene sync-data`` (issue #203, items 1.2/1.3).
-Where ``sync-data`` pulls missing data files *down* from a reference instance,
-``rsync-dataset`` pushes the gitignored data files of explicitly-named datasets
+The push-direction mirror of ``sspsygene pull-data`` (issue #203, items 1.2/1.3).
+Where ``pull-data`` pulls missing data files *down* from a reference instance,
+``push-data`` pushes the gitignored data files of explicitly-named datasets
 *up* to a server instance's ``/hive`` tree.
 
 Why a dedicated command instead of the old manual ``rsync -av
@@ -20,7 +20,7 @@ data/datasets/<name>/ …``:
   ``protein`` group, not mode 644/755 owned solely by the pusher (§1.2b/1.2c/
   §1.3) — otherwise the next wrangler can't overwrite them.
 
-Reuses ``sync_data``'s rsync transport/streaming helpers — this is the same
+Reuses ``pull_data``'s rsync transport/streaming helpers — this is the same
 ``/hive``-over-``hgwdev`` plumbing, just running in the opposite direction.
 """
 
@@ -35,7 +35,7 @@ import click
 import yaml
 
 from processing.deploy import INSTANCE_PATHS
-from processing.sync_data import (
+from processing.pull_data import (
     EXCLUDES,
     _local_datasets_dir,
     _rsync_one,
@@ -124,7 +124,7 @@ def _ensure_remote_dir(host: str, remote_dataset_dir: str, dry_run: bool) -> Non
         )
 
 
-def run_rsync_dataset(
+def run_push_data(
     *,
     datasets: tuple[str, ...],
     instance: str,

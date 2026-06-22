@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from processing.shared_inputs import require_shared_input
+
 
 Species = Literal["human", "mouse"]
 
@@ -59,8 +61,8 @@ class GeneSymbolNormalizer:
         mgi_file: Path,
     ) -> "GeneSymbolNormalizer":
         rv = cls()
-        rv._load_hgnc(hgnc_file)
-        rv._load_mgi(mgi_file)
+        rv._load_hgnc(require_shared_input(hgnc_file, description="HGNC complete set"))
+        rv._load_mgi(require_shared_input(mgi_file, description="MGI EntrezGene"))
         rv._mouse_symbols_lower = {s.lower(): s for s in rv.mouse_symbols}
         return rv
 

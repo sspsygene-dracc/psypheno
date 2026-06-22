@@ -235,14 +235,24 @@ Two deployment paths:
   See the CLI reference below and the wrangler-facing recipe in
   [adding-datasets.md](adding-datasets.md) → Step 7.
 
+- **Pulling data files (fresh machine):** the inverse problem. A local
+  `load-db` needs both the shared/global gene-reference inputs (homology
+  tables under `data/homology/`) and each dataset's gitignored data
+  payloads — none of which travel through `git pull`. `sspsygene pull-data`
+  rsyncs the missing ones **down** from a reference instance (dev by
+  default), without overwriting anything you have locally. Run it once on a
+  new checkout (and again any time `load-db` reports a missing file);
+  `--dataset NAME` limits the per-dataset pull, `--no-shared` skips the
+  homology inputs. It's the pull-direction mirror of `push-data`.
+
 - **Pushing data files:** the server-side `git pull` only carries tracked
   files, so a dataset's gitignored data payloads (raw downloads + cleaned
-  `<table>.tsv`) must be pushed separately with `sspsygene rsync-dataset
+  `<table>.tsv`) must be pushed separately with `sspsygene push-data
   <name> --instance dev` *before* the deploy's `load-db`, or that load-db
-  fails on a missing `in_path`. `rsync-dataset` pushes only the gitignored
+  fails on a missing `in_path`. `push-data` pushes only the gitignored
   files (so the server git tree stays clean), creates the remote dir if
   missing, and preserves group-write. The usual wrangler sequence is
-  `git push` → `sspsygene rsync-dataset <name> --instance dev` → `sspsygene
+  `git push` → `sspsygene push-data <name> --instance dev` → `sspsygene
   deploy --instances dev --load-db`, all from the laptop.
 
 - **Manually on the server (fallback):** SSH to psygene, `cd` into the
@@ -341,10 +351,30 @@ Commands:
                                          (default 1).
     --dry-run                          Preview without writing.
 
-  rsync-dataset DATASETS...          Push the gitignored data payloads of
+  pull-data                      Pull the gitignored files load-db needs
+                                       DOWN from a server instance: the
+                                       shared/global gene-reference inputs
+                                       (homology tables under data/homology/)
+                                       plus per-dataset raw + cleaned data.
+                                       Missing-files-only by default (never
+                                       clobbers local edits). The pull-
+                                       direction mirror of push-data.
+    --dataset TEXT                     Pull only this dataset (+ shared
+                                         inputs). Default: every local dataset.
+    --instance dev|int|prod            Reference instance. Default: dev
+                                         (a superset of int/prod).
+    --host TEXT                        SSH host to read /hive (default
+                                         hgwdev; 'psygene' proxy-jumps).
+    --shared / --no-shared             Include the shared homology inputs.
+                                         Default: shared.
+    --overwrite                        Also refresh files already present
+                                         locally. Default: missing-only.
+    --dry-run                          Preview without writing.
+
+  push-data DATASETS...          Push the gitignored data payloads of
                                        the named dataset(s) up to a server
                                        instance (the push-direction mirror
-                                       of sync-data). Copies ONLY gitignored
+                                       of pull-data). Copies ONLY gitignored
                                        files (config.yaml/preprocess.py
                                        arrive via git pull), creates the
                                        remote dir if missing, and preserves

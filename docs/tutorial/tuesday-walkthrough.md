@@ -44,7 +44,7 @@ do this end-to-end, without help:
 7. Comment on the ticket (in the browser, or ask Claude) with what landed,
    what was skipped, and why.
 8. Push the dataset out to the live servers: push the data files with
-   `sspsygene rsync-dataset`, rebuild the dev DB with `sspsygene deploy`,
+   `sspsygene push-data`, rebuild the dev DB with `sspsygene deploy`,
    **inspect it on the dev site**, then — for a **public** dataset — promote
    the verified dev build to prod with `sspsygene promote-dev-to-prod`
    (copies dev's DB straight over; don't rebuild on prod). For an
@@ -275,6 +275,21 @@ https://github.com/sspsygene-dracc/psypheno/issues?q=is%3Aopen+label%3Adataset+n
 and pick one. Read its title, body, and any comments **right there in the
 browser** — we do ticket reading, assigning, and commenting on the GitHub
 website, not in the terminal. Note the issue number.
+
+> **One-time: fetch the shared data files before your first `load-db`.**
+> `sspsygene load-db` reads shared, non-dataset inputs — the gene-homology
+> tables under `data/homology/` (HGNC, MGI, Alliance, …) — plus each dataset's
+> raw/cleaned data files. Both are **gitignored**, so a fresh checkout doesn't
+> have them and `load-db` would die with a `FileNotFoundError`. Pull them down
+> from the dev server in one command (re-run any time something's missing — it
+> only fetches what you don't already have):
+>
+> ```bash
+> sspsygene pull-data            # shared homology inputs + every local dataset
+> ```
+>
+> See [Fetching data files from the server](#fetching-data-files-from-the-server-pull-data)
+> below for the full rundown (single-dataset pull, `--no-shared`, `--dry-run`).
 
 ### 4.2 Assign yourself
 
@@ -530,7 +545,13 @@ sspsygene load-db --dataset <your-dataset> --no-index
 
 If it fails, read the error message; common ones:
 
-- `FileNotFoundError` — `in_path` is wrong.
+- `FileNotFoundError` on `in_path` — either your `in_path` is wrong, or the
+  dataset's gitignored data files just aren't on this machine yet. If the path
+  looks right, the files probably live on the server — pull them with
+  `sspsygene pull-data --dataset <your-dataset>`.
+- `FileNotFoundError` on a `homology/...` path (HGNC / MGI / Alliance) — a
+  shared input is missing. The error itself tells you to run `sspsygene
+  pull-data`; do that once and re-run `load-db`.
 - `KeyError: '<column>'` — `column_name` in `gene_mappings` doesn't
   match an actual column header.
 - `ValueError` about `shortLabel` — must be lowercase letters, digits,
@@ -541,6 +562,35 @@ If you can't resolve a column's meaning or units, **rename
 question at the top of the file. We don't ship datasets we don't
 understand — better to leave the ticket open than to publish wrong
 data.
+
+### Fetching data files from the server (`pull-data`)
+
+`load-db` reads two kinds of files that **aren't in git**, so a fresh
+checkout doesn't have them:
+
+- **Shared/global gene-reference inputs** — the homology tables under
+  `data/homology/` (HGNC, MGI, Alliance, …). These are the same for every
+  dataset.
+- **Per-dataset data** — each dataset's raw download(s) and the cleaned
+  `<table>.tsv`/`.csv` outputs that `in_path` points at.
+
+`sspsygene pull-data` rsyncs the missing ones **down** from the dev server
+(`server → laptop`), without ever overwriting something you already have
+locally. It's the **pull** half of the pair; [`push-data`](#5-get-your-dataset-onto-the-dev-server-5-min)
+(Section 5) is the **push** half that sends *your* dataset's files back up.
+
+```bash
+sspsygene pull-data                       # shared inputs + every local dataset
+sspsygene pull-data --dataset <name>      # one dataset (+ shared inputs)
+sspsygene pull-data --no-shared           # dataset files only, skip homology
+sspsygene pull-data --dry-run             # show what would transfer, write nothing
+sspsygene pull-data --overwrite           # also refresh files you already have
+```
+
+By default it pulls from **dev** (effectively a superset of int and prod);
+`--instance int|prod` picks another reference. You normally run plain
+`sspsygene pull-data` once on a new machine, then again any time `load-db`
+complains a file is missing.
 
 ### 4.9 Commit your work
 
@@ -761,14 +811,14 @@ dev SQLite DB gets rebuilt. Both are quick to do from your laptop.
 > pre-meeting setup doc. If yours is elsewhere, a one-time `ln -s` into
 > one of those paths is enough.
 
-**Step 1 — push the gitignored data files with `sspsygene rsync-dataset`.**
+**Step 1 — push the gitignored data files with `sspsygene push-data`.**
 Configs and `preprocess.py` reach the dev server through `git pull` in
 the next step. But the processed data files (`results.tsv` and the raw
 downloads) are gitignored, so they have to be copied separately or the
 dev `load-db` fails on a missing file. From your laptop:
 
 ```bash
-sspsygene rsync-dataset <your-dataset> --instance dev
+sspsygene push-data <your-dataset> --instance dev
 ```
 
 This pushes **only** the gitignored data payloads — never `config.yaml`
@@ -820,7 +870,7 @@ API and cross-check counts/values against the paper for you — but you
 should still look at the rendered pages yourself.
 
 If something is off, fix it locally, commit, push, re-run `sspsygene
-rsync-dataset <your-dataset> --instance dev`, and re-run `sspsygene
+push-data <your-dataset> --instance dev`, and re-run `sspsygene
 deploy --instances dev --load-db`. Iterate freely — dev exists to absorb
 this kind of churn, and rebuilding it costs nothing but a few minutes of
 wall time.
@@ -850,7 +900,7 @@ from your laptop, then build on the server:
 
 ```bash
 # Publish to int:
-sspsygene rsync-dataset <your-dataset> --instance int    # push data files
+sspsygene push-data <your-dataset> --instance int    # push data files
 sspsygene deploy --instances int --load-db               # deploy + rebuild
 ```
 
@@ -1004,7 +1054,8 @@ Full reference: `docs/development.md` → "Testing".
 | Comment on ticket | GitHub website (or ask Claude to draft/post) |
 | Single-dataset rebuild | `sspsygene load-db --dataset NAME --no-index` |
 | Full rebuild (pre-deploy) | `sspsygene load-db` |
-| Rsync data to dev | `sspsygene rsync-dataset NAME --instance dev` |
+| Pull data files (fresh machine) | `sspsygene pull-data` |
+| Push data to dev | `sspsygene push-data NAME --instance dev` |
 | Rebuild dev DB | `sspsygene deploy --instances dev --load-db` |
 | Publish to int (internal / embargoed) | `sspsygene deploy --instances int --load-db` |
 | Publish to prod (public, after dev verify) | `sspsygene promote-dev-to-prod` |

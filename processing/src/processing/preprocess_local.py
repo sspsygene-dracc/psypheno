@@ -4,7 +4,7 @@
 server; this is the local equivalent. The cleaned ``<table>.tsv`` / ``.csv``
 outputs that ``in_path`` points at are gitignored and *produced* by
 ``preprocess.py`` from the raw download — so a fresh checkout, or one populated
-by ``sspsygene sync-data`` (which only pulls files that already exist on the
+by ``sspsygene pull-data`` (which only pulls files that already exist on the
 server), is still missing any output the server never persisted.
 
 By default this runs ``preprocess.py`` only for datasets that are actually

@@ -584,7 +584,7 @@ def preprocess(
 
     The cleaned <table>.tsv/.csv outputs that in_path points at are gitignored
     and produced by preprocess.py from the raw download. After `sspsygene
-    sync-data` pulls the raw inputs, this regenerates the cleaned outputs the
+    pull-data` pulls the raw inputs, this regenerates the cleaned outputs the
     server never persisted. Defaults to only datasets missing an in_path file.
     """
     from processing.preprocess_local import run_local_preprocess
@@ -597,7 +597,7 @@ def preprocess(
     )
 
 
-@cli.command(name="sync-data")
+@cli.command(name="pull-data")
 @click.option(
     "--dataset",
     type=str,
@@ -629,36 +629,54 @@ def preprocess(
     "Default is missing-files-only (never clobbers local edits).",
 )
 @click.option(
+    "--shared/--no-shared",
+    default=True,
+    show_default=True,
+    help="Also pull the shared/global gene-reference inputs (homology, HGNC, "
+    "MGI, …) that load-db needs, not just per-dataset files. These live in "
+    "data/homology/ and are gitignored, so a fresh checkout lacks them.",
+)
+@click.option(
     "--dry-run",
     is_flag=True,
     default=False,
     help="Show what would be transferred without writing anything.",
 )
-def sync_data(
+def pull_data(
     dataset: str | None,
     instance: str,
     host: str,
     overwrite: bool,
+    shared: bool,
     dry_run: bool,
 ) -> None:
-    """Sync gitignored dataset data files from a reference instance (default: dev).
+    """Sync gitignored data files from a reference instance (default: dev).
 
-    Raw downloads and cleaned <table>.tsv outputs aren't in git, so a fresh
-    checkout is missing the inputs load-db needs. This rsyncs the missing files
-    down from dev without overwriting anything that already exists locally.
+    Two kinds of inputs load-db needs aren't in git, so a fresh checkout is
+    missing them:
+
+    \b
+    - Per-dataset data: raw downloads + cleaned <table>.tsv outputs.
+    - Shared/global gene-reference inputs: the homology tables under
+      data/homology/ (HGNC, MGI, Alliance, …) listed in config.json's
+      gene_map_files.
+
+    This rsyncs the missing files (both kinds, unless --no-shared) down from
+    dev without overwriting anything that already exists locally.
     """
-    from processing.sync_data import run_sync_data
+    from processing.pull_data import run_pull_data
 
-    run_sync_data(
+    run_pull_data(
         dataset=dataset,
         instance=instance.lower(),
         host=host,
         overwrite=overwrite,
         dry_run=dry_run,
+        shared=shared,
     )
 
 
-@cli.command(name="rsync-dataset")
+@cli.command(name="push-data")
 @click.argument("datasets", nargs=-1, required=True)
 @click.option(
     "--instance",
@@ -681,7 +699,7 @@ def sync_data(
     default=False,
     help="Show what would be transferred without writing anything.",
 )
-def rsync_dataset(
+def push_data(
     datasets: tuple[str, ...],
     instance: str,
     host: str,
@@ -689,7 +707,7 @@ def rsync_dataset(
 ) -> None:
     """Push gitignored data files of named DATASETS up to a server instance.
 
-    The push-direction mirror of `sync-data`. Pushes only the gitignored data
+    The push-direction mirror of `pull-data`. Pushes only the gitignored data
     payloads (raw downloads + cleaned <table>.tsv outputs) — never tracked files
     like config.yaml/preprocess.py, which reach the server via `git pull`, so
     the server's git tree stays clean. Creates the remote dataset dir if missing
@@ -697,12 +715,12 @@ def rsync_dataset(
 
     At least one dataset name is required — there is no implicit "all":
 
-        sspsygene rsync-dataset satterstrom-2020 --instance dev
-        sspsygene rsync-dataset sfari psychscreen --instance int
+        sspsygene push-data satterstrom-2020 --instance dev
+        sspsygene push-data sfari psychscreen --instance int
     """
-    from processing.rsync_dataset import run_rsync_dataset
+    from processing.push_data import run_push_data
 
-    run_rsync_dataset(
+    run_push_data(
         datasets=datasets,
         instance=instance.lower(),
         host=host,

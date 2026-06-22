@@ -18,6 +18,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from processing.shared_inputs import require_shared_input
+
 from processing.preprocessing.symbol_index import Species
 
 
@@ -43,8 +45,12 @@ class EnsemblToSymbolMapper:
         alliance_homology_file: Path,
     ) -> "EnsemblToSymbolMapper":
         rv = cls()
-        rv._load_hgnc(hgnc_file)
-        rv._load_alliance(alliance_homology_file)
+        rv._load_hgnc(require_shared_input(hgnc_file, description="HGNC complete set"))
+        rv._load_alliance(
+            require_shared_input(
+                alliance_homology_file, description="Alliance homology"
+            )
+        )
         return rv
 
     @classmethod

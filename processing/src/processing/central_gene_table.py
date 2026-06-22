@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 from processing.config import get_sspsygene_config
+from processing.shared_inputs import require_shared_input
 from processing.types.ensembl_gene import EnsemblGene
 from processing.types.entrez_gene import EntrezGene
 from processing.types.mgi_accession_id import MGIAcessionID
@@ -214,13 +215,18 @@ class CentralGeneTable:
         return rv_entrez
 
     def construct(self):
-        self.parse_hgnc(get_sspsygene_config().gene_map_config.hgnc_file)
+        gene_map = get_sspsygene_config().gene_map_config
+        self.parse_hgnc(
+            require_shared_input(gene_map.hgnc_file, description="HGNC complete set")
+        )
         mgi_accession_id_to_hgnc, mgi_accession_id_to_ensembl = self.parse_mgi_homology(
-            get_sspsygene_config().gene_map_config.alliance_homology_file
+            require_shared_input(
+                gene_map.alliance_homology_file, description="Alliance homology"
+            )
         )
         hgnc_to_human_entrez = self.get_hgnc_id_to_human_entrez_id()
         self.parse_mgi(
-            get_sspsygene_config().gene_map_config.mgi_file,
+            require_shared_input(gene_map.mgi_file, description="MGI EntrezGene"),
             hgnc_to_human_entrez=hgnc_to_human_entrez,
             mgi_accession_id_to_hgnc=mgi_accession_id_to_hgnc,
             mgi_accession_id_to_ensembl=mgi_accession_id_to_ensembl,

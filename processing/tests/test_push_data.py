@@ -1,4 +1,4 @@
-"""Tests for `sspsygene rsync-dataset` (issue #203).
+"""Tests for `sspsygene push-data` (issue #203).
 
 Network-free: exercises the gitignored-file selection, config.yaml in_path
 parsing, and the argument-validation error paths that fire *before* any SSH /
@@ -16,10 +16,10 @@ import pytest
 from click.testing import CliRunner
 
 from processing.click.main import cli
-from processing.rsync_dataset import (
+from processing.push_data import (
     _config_in_paths,
     _gitignored_files,
-    run_rsync_dataset,
+    run_push_data,
 )
 
 
@@ -33,7 +33,7 @@ def repo_with_dataset(tmp_path: Path) -> Path:
 
     Mirrors the real layout — config.yaml / preprocess.py are tracked, the raw
     + cleaned data files are gitignored — so _gitignored_files sees exactly the
-    payloads rsync-dataset should push.
+    payloads push-data should push.
     """
     repo = tmp_path / "repo"
     ds = repo / "data" / "datasets" / "foo"
@@ -85,13 +85,13 @@ def test_config_in_paths_no_config(tmp_path: Path) -> None:
     assert _config_in_paths(tmp_path) == []
 
 
-def test_rsync_dataset_requires_a_name() -> None:
+def test_push_data_requires_a_name() -> None:
     with pytest.raises(Exception) as exc:
-        run_rsync_dataset(datasets=(), instance="dev", host="hgwdev", dry_run=True)
+        run_push_data(datasets=(), instance="dev", host="hgwdev", dry_run=True)
     assert "at least one dataset" in str(exc.value)
 
 
-def test_rsync_dataset_rejects_bad_instance(
+def test_push_data_rejects_bad_instance(
     repo_with_dataset: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv(
@@ -99,19 +99,19 @@ def test_rsync_dataset_rejects_bad_instance(
     )
     monkeypatch.delenv("SSPSYGENE_CONFIG_JSON", raising=False)
     with pytest.raises(Exception) as exc:
-        run_rsync_dataset(
+        run_push_data(
             datasets=("foo",), instance="staging", host="hgwdev", dry_run=True
         )
     assert "--instance" in str(exc.value)
 
 
-def test_rsync_dataset_unknown_dataset_errors(
+def test_push_data_unknown_dataset_errors(
     repo_with_dataset: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("SSPSYGENE_DATA_DIR", str(repo_with_dataset / "data"))
     monkeypatch.delenv("SSPSYGENE_CONFIG_JSON", raising=False)
     with pytest.raises(Exception) as exc:
-        run_rsync_dataset(
+        run_push_data(
             datasets=("does-not-exist",),
             instance="dev",
             host="hgwdev",
@@ -120,8 +120,8 @@ def test_rsync_dataset_unknown_dataset_errors(
     assert "does-not-exist" in str(exc.value)
 
 
-def test_cli_rsync_dataset_requires_arg() -> None:
+def test_cli_push_data_requires_arg() -> None:
     """The Click command itself rejects a missing dataset name."""
-    result = CliRunner().invoke(cli, ["rsync-dataset"])
+    result = CliRunner().invoke(cli, ["push-data"])
     assert result.exit_code != 0
     assert "Missing argument" in result.output or "DATASETS" in result.output
