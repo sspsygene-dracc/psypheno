@@ -439,6 +439,89 @@ def deploy_meta_analysis(
     )
 
 
+@cli.command(name="wrangler-deploy")
+@click.option(
+    "--load-db",
+    is_flag=True,
+    default=False,
+    help="Run sspsygene load-db on each deployed site.",
+)
+@click.option(
+    "--instances",
+    type=str,
+    default=None,
+    help="Comma-separated subset of {dev, int, prod} to deploy to. Default: "
+    "all three. The three sites are independent (dev stages prod's public "
+    "datasets; int is a parallel site for embargoed data) — not a staging chain.",
+)
+@click.option(
+    "--build/--no-build",
+    default=False,
+    help="Run `npm install` + `npm run build` on each selected site. Default "
+    "off — data/preprocess-only deploys never need it. Implies --restart unless "
+    "--no-restart is passed.",
+)
+@click.option(
+    "--restart/--no-restart",
+    default=None,
+    help="Restart web servers on psygene for the deployed instances after "
+    "build/load-db. Default tracks --build. Caveat: the systemd units run as "
+    "User=jbirgmei, so `kill` only bounces a service when you run this AS "
+    "jbirgmei; for other wranglers it no-ops — ask Johannes or `sudo systemctl "
+    "restart sspsygene{,-dev,-int}`.",
+)
+@click.option(
+    "--preprocess",
+    is_flag=True,
+    default=False,
+    help="Run each dataset's preprocess.py on every selected site before load-db.",
+)
+@click.option(
+    "--run-tests",
+    is_flag=True,
+    default=False,
+    help="Run scripts/test.sh server on each selected site after build/load-db. "
+    "The e2e suite is skipped (no playwright browsers on psygene) — run it from "
+    "your laptop with `sspsygene e2e-deployed <instance>`.",
+)
+def wrangler_deploy(
+    load_db: bool,
+    instances: str | None,
+    build: bool,
+    restart: bool | None,
+    preprocess: bool,
+    run_tests: bool,
+) -> None:
+    """Deploy from ON psygene (the wrangler-side counterpart of `deploy`).
+
+    Run this DIRECTLY ON psygene (after `ssh -J hgwdev psygene`). Unlike
+    `deploy`, which SSHes in from a laptop and runs `git pull` non-interactively
+    (swallowing any credential prompt), `wrangler-deploy` runs every step as a
+    local subprocess: `git pull` inherits your TTY so a password prompt is
+    visible and answerable, and it uses your own git credentials. Skips the
+    laptop-only git push — push from your laptop first.
+
+    Typical wrangler flow:
+
+        # on your laptop
+        git commit -am "Add dataset foo" && git push
+        sspsygene rsync-dataset foo --instance dev
+        # then, on psygene
+        ssh -J hgwdev psygene
+        sspsygene wrangler-deploy --instances dev --load-db
+    """
+    from processing.deploy import run_wrangler_deploy
+
+    run_wrangler_deploy(
+        load_db=load_db,
+        instances=instances,
+        build=build,
+        restart=restart,
+        preprocess=preprocess,
+        run_tests=run_tests,
+    )
+
+
 @cli.command(name="restart")
 @click.argument(
     "instances",
@@ -611,6 +694,58 @@ def sync_data(
         instance=instance.lower(),
         host=host,
         overwrite=overwrite,
+        dry_run=dry_run,
+    )
+
+
+@cli.command(name="rsync-dataset")
+@click.argument("datasets", nargs=-1, required=True)
+@click.option(
+    "--instance",
+    type=click.Choice(["dev", "int", "prod"], case_sensitive=False),
+    default="dev",
+    show_default=True,
+    help="Server instance to push the data files to.",
+)
+@click.option(
+    "--host",
+    type=str,
+    default="hgwdev",
+    show_default=True,
+    help="SSH host used to write the instance's /hive tree. hgwdev is directly "
+    "reachable and sees every instance's tree; pass 'psygene' to proxy-jump.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Show what would be transferred without writing anything.",
+)
+def rsync_dataset(
+    datasets: tuple[str, ...],
+    instance: str,
+    host: str,
+    dry_run: bool,
+) -> None:
+    """Push gitignored data files of named DATASETS up to a server instance.
+
+    The push-direction mirror of `sync-data`. Pushes only the gitignored data
+    payloads (raw downloads + cleaned <table>.tsv outputs) — never tracked files
+    like config.yaml/preprocess.py, which reach the server via `git pull`, so
+    the server's git tree stays clean. Creates the remote dataset dir if missing
+    and preserves group-write so the next wrangler can overwrite.
+
+    At least one dataset name is required — there is no implicit "all":
+
+        sspsygene rsync-dataset satterstrom-2020 --instance dev
+        sspsygene rsync-dataset sfari psychscreen --instance int
+    """
+    from processing.rsync_dataset import run_rsync_dataset
+
+    run_rsync_dataset(
+        datasets=datasets,
+        instance=instance.lower(),
+        host=host,
         dry_run=dry_run,
     )
 

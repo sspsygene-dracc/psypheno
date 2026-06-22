@@ -44,8 +44,9 @@ do this end-to-end, without help:
 4. Commit your work on a **branch named after the ticket**.
 5. Rebase onto the latest `main`, fast-forward `main` to your branch, push.
 6. Comment on the ticket with what landed, what was skipped, and why.
-7. Push the dataset out to the live servers: rsync the data files, rebuild
-   the dev DB with `sspsygene deploy`, eyeball it on the dev site, then
+7. Push the dataset out to the live servers: push the data files with
+   `sspsygene rsync-dataset`, rebuild the dev DB on the server with
+   `sspsygene wrangler-deploy`, eyeball it on the dev site, then
    deploy to int and/or prod depending on whether the dataset is publishable
    yet (int holds the things we can't or don't yet want to publish; prod is
    the public site). Close the ticket once it's live where it should be.
@@ -674,7 +675,9 @@ dev SQLite DB gets rebuilt. Both are quick to do from your laptop.
 >   to be run from your laptop, against your local clone — it does the
 >   `git push` from there and SSHes into psygene to do the rest. Running
 >   it on psygene fails with confusing errors because the server
->   checkout isn't a branch you can push from.
+>   checkout isn't a branch you can push from. The command meant to run
+>   *on* psygene is `sspsygene wrangler-deploy` (no push, local build) —
+>   that's what Step 2 below uses.
 >
 > If you ever do need to touch a server checkout for an emergency, run
 > `git status` before you leave and either commit + push from there or
@@ -692,40 +695,52 @@ dev SQLite DB gets rebuilt. Both are quick to do from your laptop.
 > pre-meeting setup doc. If yours is elsewhere, a one-time `ln -s` into
 > one of those paths is enough.
 
-TODO: rsync data files is wrong. This must not happen! First of all, it copies
-everything, which is going to mess up further git pulls, second it copies the
-files without group write permissions. TODO: finally, this necessitates creating
-the data directory on the server first AND THIS NEEDS TO HAPPEN WITH GROUP WRITE
-PERMISSIONS
-
-**Step 1 — rsync the data files.** Configs and `preprocess.py` reach
-the dev server through the `git pull` that `sspsygene deploy` runs in
+**Step 1 — push the gitignored data files with `sspsygene rsync-dataset`.**
+Configs and `preprocess.py` reach the dev server through `git pull` in
 the next step. But the processed data files (`results.tsv` and the raw
 downloads) are gitignored, so they have to be copied separately or the
-dev `load-db` fails on a missing file:
+dev `load-db` fails on a missing file. From your laptop:
 
 ```bash
-rsync -av data/datasets/<your-dataset>/ \
-    hgwdev:/hive/groups/SSPsyGene/sspsygene_website_dev/data/datasets/<your-dataset>/
+sspsygene rsync-dataset <your-dataset> --instance dev
 ```
 
-(The trailing slashes matter — they sync directory *contents* into the
-target rather than nesting one inside another.)
+This pushes **only** the gitignored data payloads — never `config.yaml`
+or `preprocess.py`, which arrive via `git pull` — so the server's git
+tree stays clean and the next person's `git pull` won't choke on a
+locally-modified tracked file. It also creates the remote dataset
+directory if it's missing and copies everything **group-writable**, so
+the next wrangler can overwrite your files. (The old `rsync -av
+data/datasets/<name>/ …` did none of this: it copied tracked files too,
+dirtying the server tree, and left files mode-644 owned only by you.)
+Name more than one dataset to push several at once; add `--dry-run` to
+preview.
 
-**Step 2 — rebuild the dev DB.** From your laptop:
+**Step 2 — rebuild the dev DB from the server with `wrangler-deploy`.**
+SSH into psygene and run the build there:
 
 ```bash
-sspsygene deploy --instances dev --load-db
+ssh -J hgwdev psygene
+sspsygene wrangler-deploy --instances dev --load-db
 ```
 
-TODO: git pull didn't execute for Brian at all, failed silently, and for
-Brittney it asked for password
+Running the build *on* the server (rather than `sspsygene deploy`'s
+SSH-from-your-laptop path) means `git pull` runs in your own
+foreground shell with your own credentials — so if it ever needs a
+password or asks a question, you see the prompt and can answer it. (The
+laptop `sspsygene deploy` runs `git pull` non-interactively over SSH,
+which swallows that prompt — it's why the pull failed silently for one
+wrangler and hung asking for a password for another.) `wrangler-deploy`
+then rebuilds the dev SQLite DB and the running web process auto-detects
+the new file. Takes a few minutes — the full rebuild runs the indexing +
+meta-analysis steps that the fast-iteration recipe in Section 4.7
+deliberately skipped.
 
-This pushes `main` to GitHub if you haven't already, `git pull`s on the
-dev server, rebuilds the dev SQLite DB, and the running web process
-auto-detects the new file. Takes a few minutes — the full rebuild runs
-the indexing + meta-analysis steps that the fast-iteration recipe in
-Section 4.7 deliberately skipped.
+> **Maintainer shortcut:** Johannes can still run the whole thing from a
+> laptop in one shot with `sspsygene deploy --instances dev --load-db`
+> (push + SSH pull + load-db). Wranglers should prefer the
+> rsync-dataset + wrangler-deploy split above — it's the flow that
+> sidesteps the swallowed-credential-prompt problem.
 
 **Step 3 — verify on the dev site.** Open
 https://psypheno-dev.gi.ucsc.edu and check:
@@ -738,9 +753,10 @@ https://psypheno-dev.gi.ucsc.edu and check:
   the values you expect.
 - The dataset's headline biology recapitulates on the live site.
 
-If something is off, fix it locally, commit, push, rsync again, and
-re-run `sspsygene deploy --instances dev --load-db`. Iterate freely —
-dev exists to absorb this kind of churn, and rebuilding it costs
+If something is off, fix it locally, commit, push, re-run `sspsygene
+rsync-dataset <your-dataset> --instance dev`, and re-run `sspsygene
+wrangler-deploy --instances dev --load-db` on the server. Iterate freely
+— dev exists to absorb this kind of churn, and rebuilding it costs
 nothing but a few minutes of wall time.
 
 ---
@@ -763,24 +779,28 @@ when that makes editorial sense. The "where does this go?" decision
 is an editorial one, not a technical one; if you're not sure where a
 particular dataset belongs, ask Max or Catharina.
 
-The commands look the same as the dev deploy, just with a different
+The flow is the same as the dev deploy — push the data files from your
+laptop, then build on the server — just with a different `--instance` /
 `--instances` value:
 
 ```bash
 # Publish to int:
-sspsygene deploy --instances int --load-db
+sspsygene rsync-dataset <your-dataset> --instance int    # laptop
+ssh -J hgwdev psygene
+sspsygene wrangler-deploy --instances int --load-db       # server
 
 # Publish to prod:
-sspsygene deploy --instances prod --load-db
-
-# Both at once:
-sspsygene deploy --instances int,prod --load-db
+sspsygene rsync-dataset <your-dataset> --instance prod   # laptop
+ssh -J hgwdev psygene
+sspsygene wrangler-deploy --instances prod --load-db      # server
 ```
 
-Useful flags:
+Useful `wrangler-deploy` flags:
 
 - `--instances dev,int,prod` — comma-separated subset; order is
-  ignored, deploy always rolls dev → int → prod.
+  ignored. The three sites are independent deploys (not a chain) —
+  they're iterated in dev → int → prod order purely for log
+  readability.
 - `--preprocess` — re-run each dataset's `preprocess.py` on the
   server before `load-db`. Use this when a `preprocess.py` change
   has landed and the server's cleaned data files are now stale.
@@ -792,11 +812,10 @@ Useful flags:
 - `--restart` / `--no-restart` — explicit override of the implicit
   restart. Data-only deploys don't need it (the web process
   auto-detects DB file swaps).
-- `--no-push` — skip the `git push` step (useful if you've already
-  pushed manually).
 - `--run-tests` — after each site's build, run server tests on
-  psygene plus e2e tests against the deployed URL. Hard-aborts on
-  first failure.
+  psygene. (The e2e suite is skipped there — no browsers on psygene;
+  run it from your laptop with `sspsygene e2e-deployed <instance>`.)
+  Hard-aborts on first failure.
 
 Full reference: [docs/development.md](../development.md) → "CLI Reference".
 
