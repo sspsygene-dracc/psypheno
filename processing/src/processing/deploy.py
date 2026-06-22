@@ -862,6 +862,292 @@ def run_restart(instances: list[str]) -> None:
     click.secho("\nRestart complete!", fg="green", bold=True)
 
 
+# ── Promote dev → prod (copy built DBs, no rebuild) ──────────────────────────
+#
+# dev and prod live on the same /hive filesystem (both reachable from psygene
+# and hgwdev), so "promote" is a local `cp` of dev's already-built SQLite
+# file(s) into prod's db dir followed by an atomic `mv` swap — never a
+# cross-host rsync or a rebuild on prod. The web process re-opens its read-only
+# handle when the file inode changes (web/lib/db.ts re-stats sspsygene.db and
+# sspsygene-meta.db), exactly as it does after `load-db` / `meta-analysis`, so
+# no service restart is needed — which makes this multi-user-safe (no
+# systemd/kill interaction, unlike `deploy --restart`).
+#
+# Direction is asymmetric on purpose (issue #178): only dev → prod. There is no
+# copy-from-prod (no reason to overwrite dev with prod's older build) and int is
+# never a source or target (it carries its own, possibly-embargoed dataset set).
+
+DB_FILENAME = "sspsygene.db"
+META_DB_FILENAME = "sspsygene-meta.db"
+
+
+def _db_file(site_path: str, filename: str) -> str:
+    return f"{site_path}/data/db/{filename}"
+
+
+def _on_hive_host() -> bool:
+    """True when dev and prod's /hive trees are visible as local directories.
+
+    This is what distinguishes a developer laptop (paths absent → must SSH)
+    from psygene/hgwdev (paths present → run the copy locally)."""
+    return Path(DEV_PATH).is_dir() and Path(PROD_PATH).is_dir()
+
+
+def _resolve_promote_local(local: bool | None) -> bool:
+    """Decide whether to run the promote copy locally or over SSH.
+
+    `local=None` auto-detects via `_on_hive_host()`; an explicit `local=True`
+    off a /hive host is a hard error (the local `cp` would have nothing to copy).
+    """
+    if local is None:
+        local = _on_hive_host()
+    if local and not _on_hive_host():
+        raise DeployError(
+            "--local was requested but this host can't see the /hive trees "
+            f"({DEV_PATH} is not a local directory). Run promote-dev-to-prod "
+            "directly on hgwdev or psygene, or drop --local to SSH in from a "
+            "laptop."
+        )
+    return local
+
+
+def _run_promote(
+    local: bool,
+    shell_cmd: str,
+    *,
+    desc: str,
+    timeout: int = SSH_TIMEOUT,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    """Run a promote shell command on psygene/hgwdev — locally or over SSH.
+
+    The promote path is the one place that still needs the laptop-vs-server
+    duality the old `_Transport` gave `deploy` (issue #178: "run on a laptop
+    or on hgwdev/psygene"). `deploy` itself is SSH-only again, so rather than
+    resurrect the whole transport abstraction we keep one tiny dispatcher: SSH
+    delegates to `_run_ssh`; local runs `bash -c` and captures output with the
+    same `check` semantics, so a smoke check like `test -f` can tolerate a
+    non-zero exit.
+    """
+    if not local:
+        return _run_ssh(PSYGENE, shell_cmd, desc=desc, timeout=timeout, check=check)
+    click.echo(f"  -> [psygene-local] {desc}")
+    try:
+        result = subprocess.run(
+            ["bash", "-c", shell_cmd], capture_output=True, text=True, timeout=timeout
+        )
+    except subprocess.TimeoutExpired as e:
+        raise DeployError(
+            f"Timed out after {timeout}s on psygene-local: {desc}"
+        ) from e
+    if check and result.returncode != 0:
+        output = (result.stderr or result.stdout or "").strip()
+        raise DeployError(f"Failed on psygene-local: {desc}", detail=output)
+    return result
+
+
+def _sqlite_scalar(
+    local: bool,
+    db_path: str,
+    query: str,
+    *,
+    desc: str,
+    check: bool = True,
+) -> int | None:
+    """Run a scalar SELECT against *db_path* read-only and return the int.
+
+    Uses the stdlib `sqlite3` via `python3 -c` rather than the `sqlite3` CLI
+    (not guaranteed on a bare psygene PATH; python3 + its bundled sqlite3 are).
+    Opens the file in read-only URI mode so a smoke check never perturbs a DB
+    that's being served. Returns None when `check=False` and the query fails
+    (e.g. file missing / table absent), so callers can treat that as "unknown".
+    """
+    code = (
+        "import sqlite3;"
+        f"c=sqlite3.connect('file:{db_path}?mode=ro',uri=True);"
+        f"print(c.execute({query!r}).fetchone()[0])"
+    )
+    cmd = f"python3 -c {shlex.quote(code)}"
+    result = _run_promote(local, cmd, desc=desc, check=check)
+    if result.returncode != 0:
+        return None
+    try:
+        return int(result.stdout.strip())
+    except (ValueError, AttributeError):
+        return None
+
+
+def _assert_source_db(
+    local: bool, db_path: str, *, label: str, min_data_tables: int
+) -> int:
+    """Refuse to promote unless dev's *db_path* exists and looks sane.
+
+    Returns the `data_tables` row count so the caller can verify prod matches
+    it after the swap. Hard-fails (DeployError) if the file is missing or the
+    smoke count is below `min_data_tables`.
+    """
+    exists = _run_promote(
+        local,
+        f"test -f {shlex.quote(db_path)}",
+        desc=f"Checking {label} exists ({db_path})",
+        check=False,
+    )
+    if exists.returncode != 0:
+        raise DeployError(
+            f"Source {label} not found on dev at {db_path}. Build it on dev "
+            "first (`sspsygene deploy --load-db --instances dev`)."
+        )
+    count = _sqlite_scalar(
+        local,
+        db_path,
+        "SELECT count(*) FROM data_tables",
+        desc=f"Smoke-checking {label} (data_tables row count)",
+    )
+    if count is None or count < min_data_tables:
+        raise DeployError(
+            f"Source {label} smoke check failed: data_tables has "
+            f"{count if count is not None else 'an unreadable number of'} "
+            f"row(s), need at least {min_data_tables}. Refusing to promote a "
+            "stale/empty build to prod."
+        )
+    click.echo(f"  -> {label}: {count} data_tables row(s) — OK")
+    return count
+
+
+def run_promote_dev_to_prod(
+    *,
+    include_meta_analysis: bool = True,
+    local: bool | None = None,
+    dry_run: bool = False,
+    min_data_tables: int = 1,
+) -> None:
+    """Copy dev's built SQLite DB file(s) into prod and atomically swap them in.
+
+    Promotes a *verified* dev build to prod without re-running preprocess /
+    load-db on prod — dev becomes the source-of-truth build server, so prod
+    serves byte-identical bytes (issue #178). Copies the main dataset DB
+    (`sspsygene.db`) and, by default, the meta-analysis DB (`sspsygene-meta.db`)
+    when dev has one; pass `include_meta_analysis=False` to copy only the main
+    DB. Both files are copied into prod's db dir as `.new` siblings first, then
+    renamed back-to-back, minimising the window where prod's main and meta DBs
+    disagree. No restart: the web app re-opens on inode change.
+
+    `local=None` auto-detects whether to run the copy locally (on hgwdev/psygene)
+    or over SSH (from a laptop). int is never involved — neither source nor
+    target.
+    """
+    local = _resolve_promote_local(local)
+    where = "locally" if local else "over SSH (proxy-jump hgwdev)"
+    click.secho(
+        f"Promote dev → prod (copy built DB file{'s' if include_meta_analysis else ''}, "
+        f"running {where})",
+        bold=True,
+    )
+
+    src_main = _db_file(DEV_PATH, DB_FILENAME)
+    dst_main = _db_file(PROD_PATH, DB_FILENAME)
+    src_meta = _db_file(DEV_PATH, META_DB_FILENAME)
+    dst_meta = _db_file(PROD_PATH, META_DB_FILENAME)
+
+    # ── 1. Sanity-check the source(s) on dev ─────────────────────────────────
+    click.secho("\n[1/3] Checking dev source build", bold=True)
+    dev_main_count = _assert_source_db(
+        local, src_main, label="main DB", min_data_tables=min_data_tables
+    )
+
+    copy_meta = include_meta_analysis
+    if include_meta_analysis:
+        meta_exists = _run_promote(
+            local,
+            f"test -f {shlex.quote(src_meta)}",
+            desc=f"Checking meta DB exists ({src_meta})",
+            check=False,
+        )
+        if meta_exists.returncode != 0:
+            click.secho(
+                "  No meta-analysis DB on dev — skipping the meta copy. Prod's "
+                "existing meta DB (if any) is left untouched; it may now be "
+                "stale relative to the promoted main DB. Run `sspsygene "
+                "deploy-meta-analysis --instances dev` then re-promote to "
+                "refresh it.",
+                fg="yellow",
+            )
+            copy_meta = False
+
+    # ── 2. Copy into prod and atomically swap ────────────────────────────────
+    click.secho("\n[2/3] Copying into prod and swapping", bold=True)
+    pairs = [(src_main, dst_main, "main DB")]
+    if copy_meta:
+        pairs.append((src_meta, dst_meta, "meta DB"))
+
+    if dry_run:
+        for src, dst, lbl in pairs:
+            click.echo(f"  [dry-run] would copy {lbl}: {src} -> {dst} (atomic swap)")
+        click.secho("\n[dry-run] No files were modified.", fg="yellow", bold=True)
+        return
+
+    # Copy every file to a `.new` sibling first, then rename them all — so the
+    # two DBs flip in quick succession rather than leaving a long window where
+    # prod's main DB is new but its meta DB is still old.
+    copy_lines = "\n".join(
+        f"cp -f {shlex.quote(src)} {shlex.quote(dst + '.new')}\n"
+        # Keep the staged file group-writable so the next wrangler to promote
+        # (a different protein-group user) can overwrite it. Best-effort: only
+        # works on files we own, hence `|| true`.
+        f"chmod g+w {shlex.quote(dst + '.new')} 2>/dev/null || true"
+        for src, dst, _ in pairs
+    )
+    swap_lines = "\n".join(
+        f"mv -f {shlex.quote(dst + '.new')} {shlex.quote(dst)}" for _, dst, _ in pairs
+    )
+    _run_promote(
+        local,
+        "set -e\n" + copy_lines + "\n" + swap_lines,
+        desc="cp dev DB(s) → prod .new, then atomic mv swap",
+        timeout=LOAD_DB_TIMEOUT,
+    )
+    for _, _, lbl in pairs:
+        click.echo(f"  -> swapped {lbl} into prod")
+
+    # ── 3. Verify prod now serves the promoted bytes ─────────────────────────
+    click.secho("\n[3/3] Verifying prod", bold=True)
+    prod_main_count = _sqlite_scalar(
+        local,
+        dst_main,
+        "SELECT count(*) FROM data_tables",
+        desc="Re-reading prod main DB (data_tables row count)",
+    )
+    if prod_main_count != dev_main_count:
+        raise DeployError(
+            f"Post-swap check failed: prod main DB has {prod_main_count} "
+            f"data_tables row(s) but dev had {dev_main_count}. The copy may "
+            "not have landed — inspect prod's data/db/ manually."
+        )
+    click.echo(
+        f"  -> prod main DB matches dev ({prod_main_count} data_tables rows)."
+    )
+    if copy_meta:
+        prod_meta_groups = _sqlite_scalar(
+            local,
+            dst_meta,
+            "SELECT count(*) FROM combined_pvalue_groups",
+            desc="Re-reading prod meta DB (combined_pvalue_groups)",
+            check=False,
+        )
+        click.echo(
+            f"  -> prod meta DB present "
+            f"({prod_meta_groups if prod_meta_groups is not None else '?'} "
+            "combined_pvalue_groups)."
+        )
+
+    click.secho(
+        "\nPromotion complete! Prod now serves dev's build. The web process "
+        "picks up the new DB inode on its next request — no restart needed.",
+        fg="green",
+        bold=True,
+    )
+
+
 # ── Main entry point ────────────────────────────────────────────────────────
 
 
@@ -990,6 +1276,44 @@ def _run_build_pipeline(
     click.secho("\nDeployment complete!", fg="green", bold=True)
 
 
+def _confirm_prod_db_rebuild(
+    selected: list[str],
+    *,
+    load_db: bool,
+    preprocess: bool,
+) -> None:
+    """Warn + confirm before rebuilding the DB directly on prod.
+
+    Rebuilding prod's DB in place (`--load-db` / `--preprocess` against prod)
+    is the thing `promote-dev-to-prod` exists to replace (issue #178): it
+    re-runs preprocess/load-db on prod independently of dev, which risks
+    serving different bytes than the verified dev build (gitignored-payload
+    skew, tool/version drift). The standard path is to promote dev's
+    already-built DB instead. Only fires when prod is actually a data-rebuild
+    target — a code-only deploy (`--build`, no DB rebuild) isn't covered by
+    promote and is left alone.
+    """
+    if "prod" not in selected or not (load_db or preprocess):
+        return
+    click.secho(
+        "\nWARNING: this will rebuild the database directly on PRODUCTION.",
+        fg="yellow",
+        bold=True,
+    )
+    click.echo(
+        "  The standard way to update prod is to promote a verified dev build\n"
+        "  rather than re-running preprocess/load-db on prod. Promoting copies\n"
+        "  dev's already-built DB so prod serves byte-identical bytes (no drift\n"
+        "  from gitignored-payload skew or tool/version differences); it's\n"
+        "  faster and multi-user-safe (no restart). See issue #178.\n"
+        "\n"
+        "  Standard path:  sspsygene promote-dev-to-prod\n"
+    )
+    if not click.confirm("  Rebuild on prod directly anyway?"):
+        click.secho("  Aborted — use the promote path above instead.", fg="yellow")
+        raise SystemExit(0)
+
+
 def run_deploy(
     *,
     load_db: bool = False,
@@ -1016,6 +1340,7 @@ def run_deploy(
     selected = _resolve_instances(instances)
 
     _preflight_checks()
+    _confirm_prod_db_rebuild(selected, load_db=load_db, preprocess=preprocess)
 
     # Step 1 — git push
     if no_push:

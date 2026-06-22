@@ -252,6 +252,31 @@ Two deployment paths:
   file, no restart. Use this when `sspsygene deploy` isn't available or when
   you want to do exactly one step and nothing else.
 
+- **Promote a verified dev build to prod (no rebuild):** once dev serves a
+  build you've verified, `sspsygene promote-dev-to-prod` copies dev's
+  already-built `sspsygene.db` (and, by default, `sspsygene-meta.db`) into
+  prod's db dir and atomically swaps them in — so prod serves *byte-identical*
+  bytes instead of independently re-running preprocess/`load-db` and risking
+  drift from gitignored-payload skew or tool/version differences (issue #178).
+  dev and prod share the `/hive` filesystem, so the copy is a local `cp` + `mv`
+  on the server — no cross-host rsync. **No restart needed** (the web process
+  re-opens on the new inode, exactly as after `load-db`/`meta-analysis`), which
+  makes it multi-user-safe — unlike `deploy --restart`, it has no systemd/kill
+  interaction. It runs from a laptop (SSHes into psygene) or directly on
+  hgwdev/psygene (`--local`, or auto-detected by whether the `/hive` trees are
+  visible locally). **int is never a source or target** — it carries its own,
+  possibly-embargoed dataset set. Before copying it smoke-checks dev's DB
+  (exists + non-empty `data_tables`) and after the swap confirms prod's row
+  count matches dev's. `--no-meta-analysis` copies only the main DB;
+  `--dry-run` previews without writing.
+
+  This is the **standard way to update prod**: prefer it over
+  `sspsygene deploy --instances prod --load-db`, which rebuilds the DB on prod
+  independently of dev. To steer you there, `deploy` warns and prompts for
+  confirmation when you target prod with a DB rebuild (`--load-db` /
+  `--preprocess`). A code-only prod deploy (`--build`, no DB rebuild) isn't
+  affected — promotion only moves DBs, not code.
+
 ## CLI Reference
 
 ```
@@ -302,6 +327,23 @@ Commands:
                                          whose systemd unit owns the npm
                                          process — currently jbirgmei. Other
                                          wranglers' restart silently no-ops.
+
+  promote-dev-to-prod                Copy dev's built DB file(s) to prod and
+                                       atomically swap them in (no rebuild, no
+                                       restart). The standard way to update
+                                       prod. Runs from a laptop (SSH) or on
+                                       hgwdev/psygene (--local). int is never a
+                                       source/target. (issue #178)
+    --include-meta-analysis /          Also copy sspsygene-meta.db. ON by
+      --no-meta-analysis                 default (keeps prod's meta consistent
+                                         with the promoted main DB); skipped
+                                         with a warning if dev has no meta DB.
+    --local / --ssh                    Force local (on /hive host) vs SSH (from
+                                         a laptop). Default: auto-detect.
+    --min-data-tables INT              Refuse to promote if dev's main DB has
+                                         fewer than N data_tables rows
+                                         (default 1).
+    --dry-run                          Preview without writing.
 
   rsync-dataset DATASETS...          Push the gitignored data payloads of
                                        the named dataset(s) up to a server

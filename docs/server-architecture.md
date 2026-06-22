@@ -114,7 +114,7 @@ Restart=always
 
 ## Deployment Flow
 
-Two distinct paths:
+Three distinct paths:
 
 **Data-only updates (wranglers, on the server, no sudo).** `cd` into the
 target site's directory, set the `SSPSYGENE_*` environment variables for
@@ -123,6 +123,18 @@ DB at `sspsygene.db.new` and atomically swaps it in (`sq_load.py`), and
 the running web process auto-detects the inode/mtime change and re-opens
 its connection on the next query. No restart, no sudo. See
 [adding-datasets.md](adding-datasets.md) for the full wrangler workflow.
+
+**Promote a verified dev build to prod (the dev → prod data path).** Use
+`sspsygene promote-dev-to-prod` — it copies dev's already-built
+`sspsygene.db` (and `sspsygene-meta.db`) into prod's db dir and atomically
+swaps them in, so prod serves byte-identical bytes rather than re-running
+`load-db` independently and risking drift (issue #178). dev and prod share
+`/hive`, so it's a local `cp` + `mv`; no rebuild, no restart (same inode-swap
+auto-reload as above). This is the standard way onto prod for public datasets;
+`sspsygene deploy --instances prod --load-db` warns and prompts because
+rebuilding on prod is what this command replaces. int is never a source or
+target (its dataset set is disjoint from prod's). Runs from a laptop (SSH) or
+on the server (`--local`).
 
 **Code deploys (JS changes, from a developer laptop).** Use
 `sspsygene deploy` — a Click command in `processing/src/processing/deploy.py`

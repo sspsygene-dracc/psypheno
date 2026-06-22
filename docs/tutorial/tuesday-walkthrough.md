@@ -46,10 +46,12 @@ do this end-to-end, without help:
 6. Comment on the ticket with what landed, what was skipped, and why.
 7. Push the dataset out to the live servers: push the data files with
    `sspsygene rsync-dataset`, rebuild the dev DB with `sspsygene deploy`,
-   eyeball it on the dev site, then
-   deploy to int and/or prod depending on whether the dataset is publishable
-   yet (int holds the things we can't or don't yet want to publish; prod is
-   the public site). Close the ticket once it's live where it should be.
+   eyeball it on the dev site, then — for a **public** dataset — promote the
+   verified dev build to prod with `sspsygene promote-dev-to-prod` (copies
+   dev's DB straight over; don't rebuild on prod). For an **embargoed**
+   dataset, deploy to int instead (int holds the things we can't or don't yet
+   want to publish; prod is the public site). Close the ticket once it's live
+   where it should be.
 
 ---
 
@@ -771,19 +773,29 @@ when that makes editorial sense. The "where does this go?" decision
 is an editorial one, not a technical one; if you're not sure where a
 particular dataset belongs, ask Max or Catharina.
 
-The flow is the same as the dev deploy — push the data files from your
-laptop, then build on the server — just with a different `--instance` /
-`--instances` value:
+**For int**, the flow is the same as the dev deploy — push the data files
+from your laptop, then build on the server:
 
 ```bash
 # Publish to int:
 sspsygene rsync-dataset <your-dataset> --instance int    # push data files
 sspsygene deploy --instances int --load-db               # deploy + rebuild
-
-# Publish to prod:
-sspsygene rsync-dataset <your-dataset> --instance prod   # push data files
-sspsygene deploy --instances prod --load-db              # deploy + rebuild
 ```
+
+**For prod**, don't rebuild — **promote the verified dev build**. Since dev
+is the staging instance for prod, `promote-dev-to-prod` copies dev's
+already-built DB straight to prod, so prod serves byte-identical bytes (no
+re-running `load-db`, no risk of drift, no data-file push needed — the built
+DB already contains everything):
+
+```bash
+# Publish to prod (the standard path):
+sspsygene promote-dev-to-prod                            # copy dev DB → prod
+```
+
+> If you run `sspsygene deploy --instances prod --load-db` instead, the deploy
+> warns and asks for confirmation — rebuilding on prod is exactly what
+> `promote-dev-to-prod` is meant to replace. Use the promote command.
 
 Useful `sspsygene deploy` flags:
 
@@ -961,7 +973,7 @@ slow and clean when you're about to deploy.
 | Rsync data to dev | `rsync -av data/datasets/NAME/ hgwdev:/hive/groups/SSPsyGene/sspsygene_website_dev/data/datasets/NAME/` |
 | Rebuild dev DB | `sspsygene deploy --instances dev --load-db` |
 | Publish to int (internal / embargoed) | `sspsygene deploy --instances int --load-db` |
-| Publish to prod (public) | `sspsygene deploy --instances prod --load-db` |
+| Publish to prod (public, after dev verify) | `sspsygene promote-dev-to-prod` |
 | Close ticket once live | `gh issue close NN --repo sspsygene-dracc/psypheno` |
 | List branches | `git branch` |
 | Delete merged branch | `git branch -d <branch>` |

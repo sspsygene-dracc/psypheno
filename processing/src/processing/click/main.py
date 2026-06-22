@@ -439,6 +439,72 @@ def deploy_meta_analysis(
     )
 
 
+@cli.command(name="promote-dev-to-prod")
+@click.option(
+    "--include-meta-analysis/--no-meta-analysis",
+    "include_meta_analysis",
+    default=True,
+    help="Also copy dev's meta-analysis DB (sspsygene-meta.db) alongside the "
+    "main dataset DB. On by default so prod's meta stays consistent with the "
+    "promoted main DB. If dev has no meta DB, the meta copy is skipped with a "
+    "warning. Pass --no-meta-analysis to copy only the main DB.",
+)
+@click.option(
+    "--local/--ssh",
+    "local",
+    default=None,
+    help="Force running the copy locally (on hgwdev/psygene) or over SSH "
+    "(from a laptop, proxy-jumping through hgwdev). Default: auto-detect by "
+    "whether the /hive trees are visible as local directories.",
+)
+@click.option(
+    "--min-data-tables",
+    type=int,
+    default=1,
+    show_default=True,
+    help="Refuse to promote if dev's main DB has fewer than this many "
+    "data_tables rows (guards against promoting a stale/empty build).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Print what would be copied without modifying any files.",
+)
+def promote_dev_to_prod(
+    include_meta_analysis: bool,
+    local: bool | None,
+    min_data_tables: int,
+    dry_run: bool,
+) -> None:
+    """Promote dev's built DB(s) to prod by copying the files (no rebuild).
+
+    Once dev has a verified build, this copies dev's `sspsygene.db` (and, by
+    default, `sspsygene-meta.db`) into prod's db dir and atomically swaps them
+    in, so prod serves byte-identical bytes instead of re-running preprocess /
+    load-db (issue #178). dev and prod share the /hive filesystem, so the copy
+    is a local `cp` + `mv` on the server; no cross-host rsync, no service
+    restart (the web app re-opens on inode change). int is never a source or
+    target.
+
+    Run it from a laptop (SSHes into psygene) or directly on hgwdev/psygene
+    (`--local`, or auto-detected):
+
+        # from a laptop
+        sspsygene promote-dev-to-prod
+        # on hgwdev or psygene
+        sspsygene promote-dev-to-prod --local
+    """
+    from processing.deploy import run_promote_dev_to_prod
+
+    run_promote_dev_to_prod(
+        include_meta_analysis=include_meta_analysis,
+        local=local,
+        dry_run=dry_run,
+        min_data_tables=min_data_tables,
+    )
+
+
 @cli.command(name="restart")
 @click.argument(
     "instances",

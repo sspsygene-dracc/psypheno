@@ -881,12 +881,24 @@ rollouts follow this pattern:
 sspsygene deploy --instances dev --load-db
 ```
 
-Verify at https://psypheno-dev.gi.ucsc.edu. Once you're happy, push the same
-to prod:
+Verify at https://psypheno-dev.gi.ucsc.edu. Once you're happy, **promote the
+verified dev build to prod** — don't rebuild on prod. `promote-dev-to-prod`
+copies dev's already-built DB straight to prod, so prod serves byte-identical
+bytes instead of re-running `load-db` independently (which can drift from dev
+if data files or tool versions differ):
 
 ```bash
-sspsygene deploy --instances prod --load-db   # then check psypheno (live)
+sspsygene promote-dev-to-prod                 # then check psypheno (live)
 ```
+
+This is the standard dev → prod path (issue #178); it copies dev's
+`sspsygene.db` (and `sspsygene-meta.db`) and atomically swaps them in, no
+rebuild and no restart. See [development.md](development.md) for the full
+flag reference (`--no-meta-analysis`, `--dry-run`, `--local`).
+
+> If you instead run `sspsygene deploy --instances prod --load-db`, the deploy
+> now **warns and asks for confirmation**, because rebuilding on prod is the
+> thing `promote-dev-to-prod` is meant to replace. Prefer the promote command.
 
 For an **embargoed** dataset, skip dev and prod and deploy directly to int:
 
@@ -1000,6 +1012,12 @@ you want to make it part of prod. It is **not** part of any automatic flow —
 int and prod are independent sites with possibly disjoint dataset sets, and
 most embargoed datasets stay on int. Public datasets follow the dev → prod
 path in Step 7 and don't go through int at all.
+
+> **Why not `promote-dev-to-prod` here?** That command copies the *whole* DB
+> dev → prod, which only works when dev is a superset of prod. int and prod
+> have disjoint dataset sets, so a whole-DB copy would clobber prod's other
+> datasets. Moving a single dataset from int to prod is therefore a per-dataset
+> rsync + rebuild, as below — not a DB-file copy.
 
 Each instance has its **own data directory** on `/hive`. The `config.yaml`
 and preprocessing script live in git, so they reach prod automatically via
