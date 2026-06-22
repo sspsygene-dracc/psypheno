@@ -102,6 +102,35 @@ export default function GeneSignificanceSummary({
           .gene-sig-summary .col-dataset { max-width: 160px; }
           .gene-sig-summary .col-assay { max-width: 100px; }
         }
+        /* Narrow viewports: reflow the breakdown table into one card per
+           dataset so long names stop word-wrapping a character at a time. */
+        @media (max-width: 640px) {
+          .gene-sig-summary table { display: block; }
+          .gene-sig-summary thead { display: none; }
+          .gene-sig-summary tbody { display: block; }
+          .gene-sig-summary tbody tr {
+            display: block;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            padding: 2px 0;
+          }
+          .gene-sig-summary tbody td {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            text-align: right !important;
+            max-width: none !important;
+          }
+          .gene-sig-summary tbody td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #6b7280;
+            text-align: left;
+            white-space: nowrap;
+            flex: 0 0 auto;
+          }
+        }
       `}</style>
       <button
         onClick={() => setExpanded((prev) => !prev)}
@@ -165,19 +194,34 @@ export default function GeneSignificanceSummary({
                 <tbody>
                   {tables.map((t) => (
                     <tr key={t.tableName}>
-                      <td className="col-dataset" style={wrapTdStyle}>
+                      <td
+                        className="col-dataset"
+                        data-label="Dataset"
+                        style={wrapTdStyle}
+                      >
                         {formatTableName(t.tableName, t.mediumLabel)}
                       </td>
-                      <td className="col-assay" style={wrapTdStyle}>
+                      <td
+                        className="col-assay"
+                        data-label="Assay"
+                        style={wrapTdStyle}
+                      >
                         {t.assay
                           ? t.assay
                               .map((a) => assayTypeLabels[a] || a)
                               .join(", ")
                           : "—"}
                       </td>
-                      <td style={tdStyle}>{formatPvalue(t.bestPvalue)}</td>
-                      <td style={tdStyle}>{formatPvalue(t.bestFdr)}</td>
-                      <td style={{ ...tdStyle, textAlign: "right" }}>
+                      <td data-label="Best p-value" style={tdStyle}>
+                        {formatPvalue(t.bestPvalue)}
+                      </td>
+                      <td data-label="Best FDR" style={tdStyle}>
+                        {formatPvalue(t.bestFdr)}
+                      </td>
+                      <td
+                        data-label="Rows"
+                        style={{ ...tdStyle, textAlign: "right" }}
+                      >
                         {t.rowCount}
                       </td>
                     </tr>
