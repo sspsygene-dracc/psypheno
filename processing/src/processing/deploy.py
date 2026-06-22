@@ -24,7 +24,6 @@ from __future__ import annotations
 import concurrent.futures
 import getpass
 import os
-import platform
 import re
 import shlex
 import subprocess
@@ -272,103 +271,6 @@ def _run_ssh(
     return result
 
 
-# ── Transport: SSH (laptop `deploy`) vs local (`wrangler-deploy`) ─────────────
-#
-# Every build/load-db/pull/test step ultimately runs a shell-command string
-# "on psygene". The laptop `deploy` path wraps that string in an ssh (proxy-
-# jumping through hgwdev); the server-side `wrangler-deploy` path runs it as a
-# direct local subprocess, because the wrangler is already on psygene with an
-# interactive TTY and their own git credentials. The step bodies are shared
-# (issue #203) — they take a _Transport and call _run_psygene(), so the only
-# difference between the two entry points is which transport they pass.
-
-
-class _Transport:
-    """How to run a psygene shell command + the small behavioural differences
-    between the SSH and local paths.
-
-    - ``host_label`` — shown in the ``-> [label] desc`` progress line.
-    - ``is_local`` — True on psygene; gates the e2e split (playwright browsers
-      live on the laptop, not psygene) and the restart implementation.
-    - ``interactive_pull`` — True on psygene so ``git pull`` inherits the real
-      TTY and a credential/password prompt is visible and answerable (the core
-      issue #203 §1.1 fix; the non-interactive SSH path swallowed that prompt).
-    """
-
-    host_label: str
-    is_local: bool
-    interactive_pull: bool
-
-    def argv(self, shell_cmd: str, *, tty: bool = False) -> list[str]:
-        raise NotImplementedError
-
-
-class _SshTransport(_Transport):
-    host_label = PSYGENE
-    is_local = False
-    interactive_pull = False
-
-    def argv(self, shell_cmd: str, *, tty: bool = False) -> list[str]:
-        return [*_ssh_command(PSYGENE, tty=tty), shell_cmd]
-
-
-class _LocalTransport(_Transport):
-    host_label = "psygene-local"
-    is_local = True
-    interactive_pull = True
-
-    def argv(self, shell_cmd: str, *, tty: bool = False) -> list[str]:
-        # Already on psygene — run the shell string through bash locally. No
-        # ssh, no ProxyJump. ``tty`` is irrelevant (a local subprocess that
-        # doesn't capture already shares this process's TTY).
-        return ["bash", "-c", shell_cmd]
-
-
-SSH_TRANSPORT = _SshTransport()
-LOCAL_TRANSPORT = _LocalTransport()
-
-
-def _run_psygene(
-    transport: _Transport,
-    shell_cmd: str,
-    *,
-    desc: str,
-    timeout: int = SSH_TIMEOUT,
-    check: bool = True,
-    stream: bool = False,
-) -> subprocess.CompletedProcess[str]:
-    """Run *shell_cmd* on psygene through *transport*; raise on failure.
-
-    The SSH/local generalisation of ``_run_ssh``: in ``stream`` mode the child
-    inherits stdio (live output, and — for the local transport — an answerable
-    interactive prompt); otherwise output is captured and a heartbeat reports
-    progress.
-    """
-    click.echo(f"  -> [{transport.host_label}] {desc}")
-    try:
-        if stream:
-            proc = subprocess.run(transport.argv(shell_cmd, tty=True), timeout=timeout)
-            result = subprocess.CompletedProcess(
-                proc.args, proc.returncode, stdout="", stderr=""
-            )
-        else:
-            with _Heartbeat(f"[{transport.host_label}] {desc}"):
-                result = subprocess.run(
-                    transport.argv(shell_cmd),
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-    except subprocess.TimeoutExpired as e:
-        raise DeployError(
-            f"Timed out after {timeout}s on {transport.host_label}: {desc}"
-        ) from e
-    if check and result.returncode != 0:
-        output = (result.stderr or result.stdout or "").strip()
-        raise DeployError(f"Failed on {transport.host_label}: {desc}", detail=output)
-    return result
-
-
 # ── Preflight checks ────────────────────────────────────────────────────────
 
 
@@ -419,7 +321,7 @@ def _step_push() -> None:
     _run_local(["git", "push"], desc="git push")
 
 
-def _step_pull_all(transport: _Transport, instances: list[str]) -> None:
+def _step_pull_all(instances: list[str]) -> None:
     """Pull latest code on the selected sites before any build/load-db steps.
 
     This ensures shared resources (e.g. the processing package installed
@@ -440,8 +342,8 @@ def _step_pull_all(transport: _Transport, instances: list[str]) -> None:
     click.secho("\n[2/5] Pulling latest code on psygene", bold=True)
     for inst in instances:
         path = INSTANCE_PATHS[inst]
-        _run_psygene(
-            transport,
+        _run_ssh(
+            PSYGENE,
             # Run the pull, then the best-effort group-write chmod, but preserve
             # the PULL's exit code so a failed pull fails the deploy. The old
             # form `pull && chmod … || true` let the trailing `|| true` (there
@@ -454,10 +356,6 @@ def _step_pull_all(transport: _Transport, instances: list[str]) -> None:
             f"-o -type f -exec chmod g+w {{}} + \\) 2>/dev/null || true; "
             f"exit $rc",
             desc=f"git pull ({path})",
-            # On psygene, inherit the TTY so a git credential/password prompt is
-            # visible and answerable (issue #203 §1.1). Over SSH it stays
-            # captured, matching the prior behaviour.
-            stream=transport.interactive_pull,
         )
 
 
@@ -465,7 +363,6 @@ PREPROCESS_MAX_WORKERS = 8
 
 
 def _step_preprocess_site(
-    transport: _Transport,
     path: str,
     *,
     label: str,
@@ -486,8 +383,8 @@ def _step_preprocess_site(
     """
     click.echo(f"\n  --- {label} preprocess ({path}) ---")
 
-    list_result = _run_psygene(
-        transport,
+    list_result = _run_ssh(
+        PSYGENE,
         f"cd {path} && find data/datasets -mindepth 2 -maxdepth 2 "
         f"-name preprocess.py -printf '%h\\n' | sort",
         desc="Listing datasets with preprocess.py",
@@ -526,7 +423,7 @@ def _step_preprocess_site(
         )
         try:
             proc = subprocess.run(
-                transport.argv(cmd),
+                [*_ssh_command(PSYGENE), cmd],
                 capture_output=True,
                 text=True,
                 timeout=PREPROCESS_TIMEOUT,
@@ -591,24 +488,18 @@ def _step_preprocess_site(
 
 
 def _step_run_tests_site(
-    transport: _Transport,
     path: str,
     *,
-    instance: str,
     label: str,
     base_url: str,
     env_vars: dict[str, str],
 ) -> None:
-    """Run scripts/test.sh server on the deployed site, then scripts/test.sh
-    e2e locally against base_url. Splits like this because psygene doesn't have
-    playwright browsers and `npx playwright install` needs system deps that
-    aren't there — so e2e has to run from a developer laptop, where
-    web/node_modules already has playwright + its browsers. Aborts on first
-    failure (raises DeployError).
-
-    Under the local (wrangler-deploy) transport the e2e half is skipped — there
-    are no browsers on psygene — and the wrangler is pointed at
-    `sspsygene e2e-deployed` to run it from their laptop instead."""
+    """Run scripts/test.sh server on the deployed site (via ssh), then
+    scripts/test.sh e2e locally against base_url. Splits like this because
+    psygene doesn't have playwright browsers and `npx playwright install`
+    needs system deps that aren't there — so e2e has to run from a
+    developer laptop, where web/node_modules already has playwright +
+    its browsers. Aborts on first failure (raises DeployError)."""
     click.echo(f"\n  --- {label} tests ({path}) ---")
 
     # 1. Server-side suites on psygene (python + web-tsc + web-unit + data-corr).
@@ -629,8 +520,8 @@ def _step_run_tests_site(
         f"cd {path} && {CONDA_INIT} && "
         f"conda run --no-capture-output -n {CONDA_ENV} bash -c {shlex.quote(inner)}"
     )
-    _run_psygene(
-        transport,
+    _run_ssh(
+        PSYGENE,
         cmd,
         desc="Running scripts/test.sh server (python + web + data-corr)",
         timeout=TEST_TIMEOUT,
@@ -639,16 +530,7 @@ def _step_run_tests_site(
 
     # 2. e2e suite locally against base_url. Playwright drives browsers from
     # the laptop's web/node_modules; the deployed Next.js server only
-    # serves HTTP requests. On psygene (local transport) there are no browsers,
-    # so skip it and point the wrangler at the laptop-side command.
-    if transport.is_local:
-        click.echo(
-            "  Skipping e2e suite — playwright browsers aren't installed on "
-            "psygene. Run it from your laptop with: "
-            f"sspsygene e2e-deployed {instance}"
-        )
-        return
-
+    # serves HTTP requests.
     repo_root = Path(__file__).resolve().parents[3]
     test_sh = repo_root / "scripts" / "test.sh"
     if not test_sh.is_file():
@@ -672,7 +554,6 @@ def _step_run_tests_site(
 
 
 def _step_deploy_site(
-    transport: _Transport,
     path: str,
     *,
     label: str,
@@ -697,8 +578,8 @@ def _step_deploy_site(
             f"{CONDA_INIT} && "
             f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} sspsygene load-db"
         )
-        _run_psygene(
-            transport,
+        _run_ssh(
+            PSYGENE,
             cmd,
             desc="sspsygene load-db (this may take a while)",
             timeout=LOAD_DB_TIMEOUT,
@@ -715,8 +596,8 @@ def _step_deploy_site(
     # Sync npm deps from package-lock.json before building so a package.json
     # bump in the just-pulled commit doesn't get built against a stale
     # node_modules.
-    _run_psygene(
-        transport,
+    _run_ssh(
+        PSYGENE,
         f"cd {path}/web && npm install",
         desc="npm install",
         timeout=BUILD_TIMEOUT,
@@ -726,8 +607,8 @@ def _step_deploy_site(
     # Stream the build (like npm install above) so its per-route compilation
     # progress is visible live rather than buffered until the build finishes
     # — a captured build is a multi-minute silent black box.
-    _run_psygene(
-        transport,
+    _run_ssh(
+        PSYGENE,
         f"cd {path}/web && npm run build",
         desc="npm run build (this may take a few minutes)",
         timeout=BUILD_TIMEOUT,
@@ -736,7 +617,6 @@ def _step_deploy_site(
 
 
 def _step_meta_analysis_site(
-    transport: _Transport,
     path: str,
     *,
     label: str,
@@ -763,8 +643,8 @@ def _step_meta_analysis_site(
         f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} "
         f"sspsygene meta-analysis{flags}"
     )
-    _run_psygene(
-        transport,
+    _run_ssh(
+        PSYGENE,
         cmd,
         desc="sspsygene meta-analysis (this may take a while)",
         timeout=LOAD_DB_TIMEOUT,
@@ -794,12 +674,11 @@ def run_deploy_meta_analysis(
     else:
         _step_push()
 
-    _step_pull_all(SSH_TRANSPORT, selected)
+    _step_pull_all(selected)
 
     click.secho("\n[3/3] Running meta-analysis on selected sites", bold=True)
     for inst in selected:
         _step_meta_analysis_site(
-            SSH_TRANSPORT,
             INSTANCE_PATHS[inst],
             label=INSTANCE_LABELS[inst],
             no_r_cache=no_r_cache,
@@ -1012,7 +891,6 @@ def _resolve_instances(instances: str | None) -> list[str]:
 
 
 def _run_build_pipeline(
-    transport: _Transport,
     selected: list[str],
     *,
     load_db: bool,
@@ -1022,24 +900,22 @@ def _run_build_pipeline(
     run_tests: bool,
     include_meta_analysis: bool = False,
 ) -> None:
-    """Steps 2–5 (pull → preprocess/load-db/build → restart → tests), shared by
-    `run_deploy` (SSH transport) and `run_wrangler_deploy` (local transport).
+    """Steps 2–5 of a deploy (pull → preprocess/load-db/build → restart →
+    tests) on the selected psygene sites.
 
-    Steps 1 (git push) and preflight are *not* here — they're laptop-only and
-    belong to `run_deploy`; `wrangler-deploy` runs on the server after the
-    wrangler has already pushed from their laptop.
+    Step 1 (git push) and the preflight checks live in `run_deploy` — they're
+    laptop-only — so this helper is just the server-side build pipeline.
     """
     # Step 2 — git pull selected sites first (the processing package may be
     # installed from one site but used by others, so all selected must be
     # current before any runs load-db or npm build).
-    _step_pull_all(transport, selected)
+    _step_pull_all(selected)
 
     # Step 3 — build/load-db per site (iterated in INSTANCE_ORDER for log clarity)
     if preprocess:
         click.secho("\n[3a/5] Running preprocess.py on selected sites", bold=True)
         for inst in selected:
             _step_preprocess_site(
-                transport,
                 INSTANCE_PATHS[inst],
                 label=INSTANCE_LABELS[inst],
                 env_vars=INSTANCE_ENVS[inst],
@@ -1048,7 +924,6 @@ def _run_build_pipeline(
     click.secho("\n[3/5] Deploying sites on psygene", bold=True)
     for inst in selected:
         _step_deploy_site(
-            transport,
             INSTANCE_PATHS[inst],
             label=INSTANCE_LABELS[inst],
             load_db=load_db,
@@ -1068,7 +943,6 @@ def _run_build_pipeline(
         )
         for inst in selected:
             _step_meta_analysis_site(
-                transport,
                 INSTANCE_PATHS[inst],
                 label=INSTANCE_LABELS[inst],
                 env_vars=INSTANCE_ENVS[inst],
@@ -1082,15 +956,7 @@ def _run_build_pipeline(
     # (--load-db / --preprocess) don't, since the web process auto-detects
     # DB inode/mtime changes via web/lib/db.ts.
     if restart:
-        if transport.is_local:
-            # On psygene: kill the npm processes locally (run_restart prints its
-            # own header). Caveat: the systemd units run as jbirgmei, so a
-            # non-owner's kill no-ops — run_restart says so. run_restart prints
-            # its own "[4/5]"-equivalent header, so we don't add one here.
-            click.echo()
-            run_restart(selected)
-        else:
-            _step_restart_psygene(selected)
+        _step_restart_psygene(selected)
     elif build:
         click.secho(
             "\n[4/5] Skipping restart (--no-restart) AFTER --build. Heads up: ",
@@ -1115,9 +981,7 @@ def _run_build_pipeline(
         click.secho("\n[5/5] Running test suite on selected sites", bold=True)
         for inst in selected:
             _step_run_tests_site(
-                transport,
                 INSTANCE_PATHS[inst],
-                instance=inst,
                 label=INSTANCE_LABELS[inst],
                 base_url=INSTANCE_E2E_URLS[inst],
                 env_vars=INSTANCE_ENVS[inst],
@@ -1160,7 +1024,6 @@ def run_deploy(
         _step_push()
 
     _run_build_pipeline(
-        SSH_TRANSPORT,
         selected,
         load_db=load_db,
         build=build,
@@ -1168,58 +1031,4 @@ def run_deploy(
         preprocess=preprocess,
         run_tests=run_tests,
         include_meta_analysis=include_meta_analysis,
-    )
-
-
-def run_wrangler_deploy(
-    *,
-    load_db: bool = False,
-    instances: str | None = None,
-    build: bool = False,
-    restart: bool | None = None,
-    preprocess: bool = False,
-    run_tests: bool = False,
-) -> None:
-    """Run the build steps directly on psygene (no SSH), for wranglers.
-
-    Deliberately has no meta-analysis option — the combined-p-value
-    meta-analysis is maintainer-run (Johannes, on his own cadence, via
-    `sspsygene deploy --include-meta-analysis` or `sspsygene
-    deploy-meta-analysis`), never part of a wrangler's dataset deploy.
-
-    The server-side counterpart of `run_deploy` (issue #203): the wrangler is
-    already on psygene with an interactive shell and their own git credentials,
-    so `git pull` runs in the foreground (a credential prompt is visible and
-    answerable — the core §1.1 fix) and every other step is a local subprocess
-    instead of being wrapped in ssh. Skips the laptop-only git push + preflight;
-    the wrangler pushes from their laptop first.
-    """
-    if restart is None:
-        restart = build
-
-    selected = _resolve_instances(instances)
-
-    click.secho(
-        "wrangler-deploy: running build steps locally on psygene", bold=True
-    )
-    node = platform.node()
-    if "psygene" not in node:
-        click.secho(
-            f"  WARNING: hostname is '{node}', which doesn't look like psygene. "
-            "wrangler-deploy is meant to run ON the server (after `ssh -J hgwdev "
-            "psygene`); the build steps will run against this host's local "
-            "filesystem.",
-            fg="yellow",
-        )
-        if not click.confirm("  Continue anyway?"):
-            raise SystemExit(0)
-
-    _run_build_pipeline(
-        LOCAL_TRANSPORT,
-        selected,
-        load_db=load_db,
-        build=build,
-        restart=restart,
-        preprocess=preprocess,
-        run_tests=run_tests,
     )

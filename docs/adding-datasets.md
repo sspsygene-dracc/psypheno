@@ -921,7 +921,7 @@ Full reference: `sspsygene deploy --help` and `docs/development.md`.
 > `/hive/groups/SSPsyGene/sspsygene_website*/data/datasets/<your-dataset>/`,
 > the `load-db` will fail (or silently skip your dataset). Push them first with
 > **`sspsygene rsync-dataset <name> --instance dev`** (see
-> [7c](#7c-from-the-server-with-sspsygene-wrangler-deploy) below), or pass
+> [7c](#7c-push-your-data-files-with-sspsygene-rsync-dataset) below), or pass
 > `--preprocess` so the server re-runs `preprocess.py` itself.
 
 ### 7b. Manual rebuild on the server (fallback)
@@ -951,42 +951,30 @@ After it finishes, verify at the corresponding URL:
 
 **Important:** Before rebuilding, make sure the processed data files exist on
 the server (processed CSV/TSVs are not committed to git — see
-[7c](#7c-from-the-server-with-sspsygene-wrangler-deploy) for how to push them).
+[7c](#7c-push-your-data-files-with-sspsygene-rsync-dataset) for how to push them).
 
-### 7c. From the server with `sspsygene wrangler-deploy`
+### 7c. Push your data files with `sspsygene rsync-dataset`
 
-`sspsygene deploy` (7a) SSHes into psygene from your laptop and runs `git pull`
-**non-interactively** — which means if the server checkout ever needs your git
-credentials, the prompt is swallowed and the pull fails silently (or hangs).
-The wrangler-side flow avoids that by splitting the deploy into a push from
-your laptop and a build *on* the server, where you have a real shell and your
-own credentials:
+`config.yaml` and `preprocess.py` reach the server through the `git pull` that
+`sspsygene deploy` runs. But the processed data files (the cleaned
+`results.tsv`, raw downloads) are **gitignored**, so they have to be pushed
+separately — otherwise the server's `load-db` fails on a missing `in_path`.
+`sspsygene rsync-dataset` does that push from your laptop. The full flow:
 
 ```bash
-# 1. On your laptop — commit and push your config/preprocess changes:
+# 1. Commit and push your config/preprocess changes:
 git commit -am "Add dataset my-dataset"
 git push
 
-# 2. On your laptop — push the gitignored data payloads up to dev. This sends
-#    ONLY the raw downloads + cleaned <table>.tsv files (never config.yaml /
-#    preprocess.py, which arrive via git pull), group-writable so the next
-#    wrangler can overwrite them:
+# 2. Push the gitignored data payloads up to dev. This sends ONLY the raw
+#    downloads + cleaned <table>.tsv files (never config.yaml / preprocess.py,
+#    which arrive via git pull), group-writable so the next wrangler can
+#    overwrite them:
 sspsygene rsync-dataset my-dataset --instance dev
 
-# 3. SSH to the server and run the build there:
-ssh -J hgwdev psygene
-sspsygene wrangler-deploy --instances dev --load-db
+# 3. Deploy + rebuild the dev DB (7a):
+sspsygene deploy --instances dev --load-db
 ```
-
-`wrangler-deploy` runs the same steps as `deploy` (git pull → preprocess →
-load-db → build → restart → tests) but as **local** subprocesses on psygene
-instead of over SSH, so `git pull` runs in the foreground and any password
-prompt is visible and answerable. Its flags mirror `deploy`
-(`--instances`, `--load-db`, `--preprocess`, `--build/--no-build`,
-`--restart/--no-restart`, `--run-tests`) minus `--no-push` (there's no push
-step — you pushed from your laptop in step 1). The e2e test suite is skipped
-on the server (no playwright browsers there); run it from your laptop with
-`sspsygene e2e-deployed <instance>`.
 
 `rsync-dataset` takes one or more dataset names (there is no implicit "all"),
 plus `--instance dev|int|prod` (default `dev`), `--host` (default `hgwdev`),
@@ -997,16 +985,11 @@ sspsygene rsync-dataset sfari psychscreen --instance int
 sspsygene rsync-dataset my-dataset --instance dev --dry-run   # preview only
 ```
 
-It warns if any `in_path` named in your `config.yaml` is absent both locally
-and on the server, since `load-db` would fail on it.
-
-> **Restart caveat (multi-user):** the `--restart` step (and `--build`, which
-> implies it) kill-and-respawns the npm processes, but the systemd units run as
-> `User=jbirgmei`, so `kill` only bounces a service when *Johannes* runs it.
-> For other wranglers it no-ops with a warning — ask Johannes, or
-> `sudo systemctl restart sspsygene{,-dev,-int}` if you have sudo. Data-only
-> deploys (`--load-db` without `--build`) don't need a restart anyway: the web
-> process auto-detects the swapped DB.
+It pushes only gitignored files, creates the remote dataset dir if missing,
+preserves group-write, and warns if any `in_path` named in your `config.yaml`
+is absent both locally and on the server (since `load-db` would fail on it).
+Unlike the old manual `rsync -av data/datasets/<name>/ …`, it never copies
+tracked files, so the server's git tree stays clean for the next `git pull`.
 
 ---
 
@@ -1027,8 +1010,8 @@ script).
 The cleanest path is to push the data files from your laptop with
 `sspsygene rsync-dataset my-dataset --instance prod` (it copies only the
 gitignored payloads, group-writable, without dirtying prod's git tree) and then
-run `sspsygene wrangler-deploy --instances prod --load-db` on the server — the
-[7c](#7c-from-the-server-with-sspsygene-wrangler-deploy) flow, pointed at prod.
+run `sspsygene deploy --instances prod --load-db` — the
+[7c](#7c-push-your-data-files-with-sspsygene-rsync-dataset) flow, pointed at prod.
 
 If you're already SSHed into the server and want to copy directly between
 instance trees on `/hive`, you can rsync int → prod by hand:
@@ -1145,7 +1128,6 @@ section 10c ("GitHub access for the deploy's `git pull`").
 | Deploy to internal (from laptop) | `sspsygene deploy --instances int --load-db` |
 | Deploy to production (from laptop) | `sspsygene deploy --instances prod --load-db` |
 | Push data files to a server (from laptop) | `sspsygene rsync-dataset NAME --instance dev` |
-| Deploy from the server (after `ssh -J hgwdev psygene`) | `sspsygene wrangler-deploy --instances dev --load-db` |
 | Manual deploy to internal (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website_int && git pull && sspsygene load-db` |
 | Manual deploy to dev (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website_dev && git pull && sspsygene load-db` |
 | Manual deploy to production (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website && git pull && sspsygene load-db` |

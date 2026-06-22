@@ -45,8 +45,8 @@ do this end-to-end, without help:
 5. Rebase onto the latest `main`, fast-forward `main` to your branch, push.
 6. Comment on the ticket with what landed, what was skipped, and why.
 7. Push the dataset out to the live servers: push the data files with
-   `sspsygene rsync-dataset`, rebuild the dev DB on the server with
-   `sspsygene wrangler-deploy`, eyeball it on the dev site, then
+   `sspsygene rsync-dataset`, rebuild the dev DB with `sspsygene deploy`,
+   eyeball it on the dev site, then
    deploy to int and/or prod depending on whether the dataset is publishable
    yet (int holds the things we can't or don't yet want to publish; prod is
    the public site). Close the ticket once it's live where it should be.
@@ -671,13 +671,11 @@ dev SQLite DB gets rebuilt. Both are quick to do from your laptop.
 >   you want to land — config tweak, typo fix, anything — should happen
 >   in your **local clone**, get committed and pushed, and then reach
 >   the server through the deploy below.
-> - **Don't run `sspsygene deploy` from psygene itself.** It's designed
->   to be run from your laptop, against your local clone — it does the
->   `git push` from there and SSHes into psygene to do the rest. Running
->   it on psygene fails with confusing errors because the server
->   checkout isn't a branch you can push from. The command meant to run
->   *on* psygene is `sspsygene wrangler-deploy` (no push, local build) —
->   that's what Step 2 below uses.
+> - **Run `sspsygene deploy` from your laptop, not from psygene.** It's
+>   designed to run against your local clone — it does the `git push`
+>   from there and SSHes into psygene to do the rest. Running it on
+>   psygene fails with confusing errors because the server checkout
+>   isn't a branch you can push from.
 >
 > If you ever do need to touch a server checkout for an emergency, run
 > `git status` before you leave and either commit + push from there or
@@ -716,31 +714,25 @@ dirtying the server tree, and left files mode-644 owned only by you.)
 Name more than one dataset to push several at once; add `--dry-run` to
 preview.
 
-**Step 2 — rebuild the dev DB from the server with `wrangler-deploy`.**
-SSH into psygene and run the build there:
+**Step 2 — deploy and rebuild the dev DB from your laptop.**
 
 ```bash
-ssh -J hgwdev psygene
-sspsygene wrangler-deploy --instances dev --load-db
+sspsygene deploy --instances dev --load-db
 ```
 
-Running the build *on* the server (rather than `sspsygene deploy`'s
-SSH-from-your-laptop path) means `git pull` runs in your own
-foreground shell with your own credentials — so if it ever needs a
-password or asks a question, you see the prompt and can answer it. (The
-laptop `sspsygene deploy` runs `git pull` non-interactively over SSH,
-which swallows that prompt — it's why the pull failed silently for one
-wrangler and hung asking for a password for another.) `wrangler-deploy`
-then rebuilds the dev SQLite DB and the running web process auto-detects
-the new file. Takes a few minutes — the full rebuild runs the indexing +
-meta-analysis steps that the fast-iteration recipe in Section 4.7
-deliberately skipped.
+This pushes `main` to GitHub if you haven't already, `git pull`s on the
+dev server, and rebuilds the dev SQLite DB; the running web process
+auto-detects the new file. Takes a few minutes — the full rebuild runs
+the indexing + meta-analysis steps that the fast-iteration recipe in
+Section 4.7 deliberately skipped.
 
-> **Maintainer shortcut:** Johannes can still run the whole thing from a
-> laptop in one shot with `sspsygene deploy --instances dev --load-db`
-> (push + SSH pull + load-db). Wranglers should prefer the
-> rsync-dataset + wrangler-deploy split above — it's the flow that
-> sidesteps the swallowed-credential-prompt problem.
+> **One-time SSH setup:** the deploy's `git pull` runs *on* psygene and
+> authenticates to GitHub from there, so psygene needs your GitHub key —
+> either via agent forwarding (the deploy passes `ssh -A`) or a key you
+> generate on psygene. Section 10c of the pre-meeting-setup doc walks
+> through both, and it's the one-time fix for the old "git pull fails
+> silently / asks for a password" problem. If `deploy` errors with
+> `Permission denied (publickey)`, that's the section to read.
 
 **Step 3 — verify on the dev site.** Open
 https://psypheno-dev.gi.ucsc.edu and check:
@@ -755,9 +747,9 @@ https://psypheno-dev.gi.ucsc.edu and check:
 
 If something is off, fix it locally, commit, push, re-run `sspsygene
 rsync-dataset <your-dataset> --instance dev`, and re-run `sspsygene
-wrangler-deploy --instances dev --load-db` on the server. Iterate freely
-— dev exists to absorb this kind of churn, and rebuilding it costs
-nothing but a few minutes of wall time.
+deploy --instances dev --load-db`. Iterate freely — dev exists to absorb
+this kind of churn, and rebuilding it costs nothing but a few minutes of
+wall time.
 
 ---
 
@@ -785,17 +777,15 @@ laptop, then build on the server — just with a different `--instance` /
 
 ```bash
 # Publish to int:
-sspsygene rsync-dataset <your-dataset> --instance int    # laptop
-ssh -J hgwdev psygene
-sspsygene wrangler-deploy --instances int --load-db       # server
+sspsygene rsync-dataset <your-dataset> --instance int    # push data files
+sspsygene deploy --instances int --load-db               # deploy + rebuild
 
 # Publish to prod:
-sspsygene rsync-dataset <your-dataset> --instance prod   # laptop
-ssh -J hgwdev psygene
-sspsygene wrangler-deploy --instances prod --load-db      # server
+sspsygene rsync-dataset <your-dataset> --instance prod   # push data files
+sspsygene deploy --instances prod --load-db              # deploy + rebuild
 ```
 
-Useful `wrangler-deploy` flags:
+Useful `sspsygene deploy` flags:
 
 - `--instances dev,int,prod` — comma-separated subset; order is
   ignored. The three sites are independent deploys (not a chain) —
@@ -813,9 +803,8 @@ Useful `wrangler-deploy` flags:
   restart. Data-only deploys don't need it (the web process
   auto-detects DB file swaps).
 - `--run-tests` — after each site's build, run server tests on
-  psygene. (The e2e suite is skipped there — no browsers on psygene;
-  run it from your laptop with `sspsygene e2e-deployed <instance>`.)
-  Hard-aborts on first failure.
+  psygene plus `scripts/test.sh e2e` against the deployed URL from
+  your laptop. Hard-aborts on first failure.
 
 Full reference: [docs/development.md](../development.md) → "CLI Reference".
 

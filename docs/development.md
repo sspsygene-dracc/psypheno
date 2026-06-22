@@ -236,24 +236,21 @@ Two deployment paths:
   See the CLI reference below and the wrangler-facing recipe in
   [adding-datasets.md](adding-datasets.md) → Step 7.
 
-- **From the server (the wrangler flow):** push the gitignored data
-  payloads from your laptop with `sspsygene rsync-dataset <name>
-  --instance dev`, then SSH to psygene and run `sspsygene wrangler-deploy
-  --instances dev --load-db`. This is the server-side counterpart of
-  `deploy`: it runs the same steps (pull → preprocess → load-db → build →
-  restart → tests) but as **local** subprocesses, so `git pull` runs in
-  your foreground shell with your own credentials — the prompt isn't
-  swallowed the way it is over `deploy`'s non-interactive SSH. Flags mirror
-  `deploy` minus `--no-push` (there's no push step) and
-  `--include-meta-analysis` (the meta-analysis is maintainer-run — see
-  below); the e2e suite is skipped on psygene (no browsers) — run it from
-  your laptop with `sspsygene e2e-deployed <instance>`.
+- **Pushing data files:** the server-side `git pull` only carries tracked
+  files, so a dataset's gitignored data payloads (raw downloads + cleaned
+  `<table>.tsv`) must be pushed separately with `sspsygene rsync-dataset
+  <name> --instance dev` *before* the deploy's `load-db`, or that load-db
+  fails on a missing `in_path`. `rsync-dataset` pushes only the gitignored
+  files (so the server git tree stays clean), creates the remote dir if
+  missing, and preserves group-write. The usual wrangler sequence is
+  `git push` → `sspsygene rsync-dataset <name> --instance dev` → `sspsygene
+  deploy --instances dev --load-db`, all from the laptop.
 
 - **Manually on the server (fallback):** SSH to psygene, `cd` into the
   target site's directory, set the `SSPSYGENE_*` env vars for that site,
   and run `sspsygene load-db`. The web process auto-detects the new DB
-  file, no restart. Use this when neither CLI is available or when you want
-  to do exactly one step and nothing else.
+  file, no restart. Use this when `sspsygene deploy` isn't available or when
+  you want to do exactly one step and nothing else.
 
 ## CLI Reference
 
@@ -305,21 +302,6 @@ Commands:
                                          whose systemd unit owns the npm
                                          process — currently jbirgmei. Other
                                          wranglers' restart silently no-ops.
-
-  wrangler-deploy                    Server-side counterpart of `deploy`:
-                                       run the build steps as LOCAL
-                                       subprocesses on psygene (run it ON
-                                       psygene, after `ssh -J hgwdev
-                                       psygene`). Same flags as `deploy`
-                                       (--instances / --load-db /
-                                       --preprocess / --build / --restart /
-                                       --run-tests) minus --no-push and
-                                       --include-meta-analysis (meta-analysis
-                                       is maintainer-run, not part of a
-                                       wrangler deploy). `git pull` runs
-                                       interactively so a credential prompt is
-                                       answerable; the e2e suite is skipped
-                                       (no browsers on psygene).
 
   rsync-dataset DATASETS...          Push the gitignored data payloads of
                                        the named dataset(s) up to a server
