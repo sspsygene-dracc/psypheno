@@ -18,7 +18,13 @@ import pytest
 import subprocess
 
 from processing import deploy
-from processing.deploy import PSYGENE, DeployError, _run_ssh, _ssh_command
+from processing.deploy import (
+    PSYGENE,
+    DeployError,
+    _detect_missing_dependency,
+    _run_ssh,
+    _ssh_command,
+)
 
 
 def test_ssh_command_psygene_forwards_agent_and_proxy_jumps() -> None:
@@ -96,3 +102,33 @@ def test_run_ssh_check_false_does_not_raise(
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: _completed(1))
     result = _run_ssh(PSYGENE, "grep x", desc="find procs", check=False)
     assert result.returncode == 1
+
+
+@pytest.mark.parametrize(
+    "output, expected",
+    [
+        # pandas' optional-dependency error (the velmeshev_2019 / xlrd case
+        # that motivated #204).
+        (
+            "ImportError: Missing optional dependency 'xlrd'. "
+            "Install xlrd >= 2.0.1 for xls Excel support.",
+            "xlrd",
+        ),
+        ("ModuleNotFoundError: No module named 'requests'", "requests"),
+        # Dotted submodule names are captured whole.
+        (
+            "ModuleNotFoundError: No module named 'sklearn.linear_model'",
+            "sklearn.linear_model",
+        ),
+        ("Traceback ...\nImportError: No module named scipy", "scipy"),
+        # Not a dependency problem — must not be mistaken for one.
+        ("KeyError: 'gene_symbol' column not found", None),
+        ("ValueError: Length mismatch", None),
+        ("", None),
+    ],
+)
+def test_detect_missing_dependency(output: str, expected: str | None) -> None:
+    """A missing-package traceback is turned into the package name so the
+    deploy can print an actionable install hint; unrelated errors return
+    None so we don't mislabel them as install problems (#204)."""
+    assert _detect_missing_dependency(output) == expected

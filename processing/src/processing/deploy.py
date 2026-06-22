@@ -362,6 +362,29 @@ def _step_pull_all(instances: list[str]) -> None:
 PREPROCESS_MAX_WORKERS = 8
 
 
+# Patterns that mean "preprocess.py died because a Python package isn't
+# installed in the sspsygene conda env", in priority order. The capture group
+# is the missing package name. pandas' "Missing optional dependency" is the
+# common one (it's what xlrd/openpyxl/etc. surface as); the bare ImportError /
+# ModuleNotFoundError forms cover everything else. #204.
+_MISSING_DEP_PATTERNS = (
+    re.compile(r"Missing optional dependency ['\"]([\w.\-]+)['\"]"),
+    re.compile(r"ModuleNotFoundError: No module named ['\"]([\w.\-]+)['\"]"),
+    re.compile(r"ImportError: No module named ['\"]?([\w.\-]+)['\"]?"),
+)
+
+
+def _detect_missing_dependency(output: str) -> str | None:
+    """Return the missing package name if `output` looks like a preprocess.py
+    failure caused by an uninstalled dependency, else None. Used to turn a raw
+    pandas/import traceback into an actionable "install X into the env" hint."""
+    for pattern in _MISSING_DEP_PATTERNS:
+        match = pattern.search(output)
+        if match:
+            return match.group(1)
+    return None
+
+
 def _step_preprocess_site(
     path: str,
     *,
@@ -457,6 +480,8 @@ def _step_preprocess_site(
     beat.start()
 
     failures: list[str] = []
+    # dataset name -> missing package, for the actionable summary at the end.
+    missing_deps: dict[str, str] = {}
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
             futures = [pool.submit(run_one, d) for d in dataset_dirs]
@@ -473,6 +498,19 @@ def _step_preprocess_site(
                         f"  FAIL [preprocess] {name} (exit {rc}) ({done}/{total})",
                         fg="red",
                     )
+                    missing = _detect_missing_dependency(output)
+                    if missing:
+                        # Surface an actionable hint above the raw traceback so
+                        # the wrangler doesn't have to decode a pandas error
+                        # to know what to install (#204).
+                        missing_deps[name] = missing
+                        click.secho(
+                            f"    -> missing dependency '{missing}' — install "
+                            f"it into the {CONDA_ENV} conda env "
+                            f"(conda run -n {CONDA_ENV} pip install {missing}), "
+                            f"and consider adding it to processing/pyproject.toml.",
+                            fg="yellow",
+                        )
                     for line in output.strip().splitlines():
                         click.echo(f"    | {line}")
                     failures.append(name)
@@ -481,6 +519,20 @@ def _step_preprocess_site(
         beat.join(timeout=1)
 
     if failures:
+        if missing_deps:
+            # Group the missing-dependency failures into one install line so the
+            # operator can fix them all at once before re-running the deploy.
+            pkgs = " ".join(sorted(set(missing_deps.values())))
+            affected = ", ".join(
+                f"{name} ({pkg})" for name, pkg in sorted(missing_deps.items())
+            )
+            click.secho(
+                f"\n  {len(missing_deps)} dataset(s) failed on a missing "
+                f"Python dependency: {affected}.\n"
+                f"  Install into the {CONDA_ENV} env, then re-deploy:\n"
+                f"      conda run -n {CONDA_ENV} pip install {pkgs}",
+                fg="yellow",
+            )
         raise DeployError(
             f"{len(failures)}/{len(dataset_dirs)} preprocess job(s) failed: "
             + ", ".join(failures)
