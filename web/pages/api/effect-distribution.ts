@@ -31,6 +31,10 @@ type VolcanoPoint = {
   negLog10P: number;
   fdr: number | null;
   topByP: boolean;
+  // Gene symbol for this row, resolved via the table's label-direction link
+  // table (target if present, else perturbed). null when the row doesn't
+  // resolve to a central gene. Drives the hoverable tooltip link (#189).
+  symbol: string | null;
 };
 
 type SampleRow = {
@@ -131,6 +135,23 @@ export default async function handler(
     // would shrink to 1–2 rows, just the orange dot).
     const linkTablesRaw = tableMeta.link_tables || "";
     const perturbedLTs = parseLinkTablesForDirection(linkTablesRaw, "perturbed");
+
+    // Per-point gene labels (#189): label every background dot with the gene
+    // that row is "about". Prefer the target direction (the gene whose
+    // effect/p-value the row reports); fall back to perturbed for tables that
+    // only carry a perturbed link (e.g. patient/variant lists). Only usable
+    // when there's exactly one link table in that direction — otherwise a row
+    // could map ambiguously and we leave points unlabeled.
+    const targetLTs = parseLinkTablesForDirection(linkTablesRaw, "target");
+    let labelDirection: "target" | "perturbed" | null = null;
+    let labelLinkTable: string | null = null;
+    if (targetLTs.length === 1) {
+      labelDirection = "target";
+      labelLinkTable = targetLTs[0];
+    } else if (perturbedLTs.length === 1) {
+      labelDirection = "perturbed";
+      labelLinkTable = perturbedLTs[0];
+    }
     let backgroundFilter = "";
     const backgroundParams: unknown[] = [];
     const isAllControls = perturbedCentralGeneId === ALL_CONTROLS_SENTINEL_ID;
@@ -194,6 +215,9 @@ export default async function handler(
     // free of math.h.
     const seen = new Set<number>();
     const volcanoPoints: VolcanoPoint[] = [];
+    // Parallel array of the source row id for each volcanoPoints entry, so we
+    // can attach gene symbols after the fact (one batched lookup, below).
+    const volcanoIds: number[] = [];
     const addRow = (row: SampleRow, topByP: boolean) => {
       if (seen.has(row.id)) return;
       if (row.effect == null || row.pvalue == null) return;
@@ -206,10 +230,23 @@ export default async function handler(
         negLog10P: -Math.log10(Math.max(pvalue, PVALUE_FLOOR)),
         fdr: row.fdr == null ? null : Number(row.fdr),
         topByP,
+        symbol: null,
       });
+      volcanoIds.push(row.id);
     };
     for (const r of topRows) addRow(r, true);
     for (const r of bulkRows) addRow(r, false);
+
+    // Resolve a gene symbol per sampled row via the label-direction link
+    // table. One batched query (chunked to stay under SQLite's bind-param
+    // cap), preferring the HGNC human symbol, then a mouse symbol — mirrors
+    // the identifier preference used across the app (#189).
+    if (labelLinkTable && volcanoIds.length > 0) {
+      const symbolById = resolveRowSymbols(db, labelLinkTable, volcanoIds);
+      volcanoPoints.forEach((p, i) => {
+        p.symbol = symbolById.get(volcanoIds[i]) ?? null;
+      });
+    }
 
     // n_nonnull is the number of rows that *would* contribute to the
     // background — i.e. the size of the (possibly-filtered) population the
@@ -266,6 +303,10 @@ export default async function handler(
       fdrColumn: tableMeta.fdr_column,
       nTotal: nNonNull,
       nNonNull,
+      // Which gene a tooltip link should search by: "target" → /?target=SYM,
+      // "perturbed" → /?perturbed=SYM. null when the table has no single
+      // labelling link table (#189).
+      labelDirection,
       volcanoPoints,
       geneRows,
       fieldLabels,
@@ -275,4 +316,64 @@ export default async function handler(
     console.error("effect-distribution handler error", err);
     return res.status(500).json({ error: "Internal server error" });
   }
+}
+
+// SQLite's default SQLITE_MAX_VARIABLE_NUMBER is 999; chunk the id list well
+// under that so the IN (...) bind never overflows.
+const ID_CHUNK = 500;
+
+/**
+ * Resolve one display gene symbol per row id via a link table. `linkTable`
+ * is already a sanitized identifier (it came from parseLinkTablesForDirection).
+ * For a row that maps to several central genes we prefer the one carrying an
+ * HGNC human symbol, then a mouse symbol — matching the app-wide
+ * HGNC > … identifier preference; ties broken by central_gene_id for
+ * determinism. Rows with no resolvable symbol are simply absent from the map.
+ */
+function resolveRowSymbols(
+  db: ReturnType<typeof getDb>,
+  linkTable: string,
+  ids: number[],
+): Map<number, string> {
+  const out = new Map<number, string>();
+  for (let i = 0; i < ids.length; i += ID_CHUNK) {
+    const chunk = ids.slice(i, i + ID_CHUNK);
+    const placeholders = chunk.map(() => "?").join(", ");
+    const sql = `
+      SELECT lt.id AS id, cg.human_symbol AS human_symbol,
+             cg.mouse_symbols AS mouse_symbols
+      FROM ${linkTable} lt
+      JOIN central_gene cg ON cg.id = lt.central_gene_id
+      WHERE lt.id IN (${placeholders})
+      ORDER BY (cg.human_symbol IS NULL), cg.id
+    `;
+    const rows = db.prepare(sql).all(...chunk) as Array<{
+      id: number;
+      human_symbol: string | null;
+      mouse_symbols: string | null;
+    }>;
+    for (const r of rows) {
+      // ORDER BY puts the preferred gene first, so keep the first symbol seen.
+      if (out.has(r.id)) continue;
+      const symbol = pickDisplaySymbol(r.human_symbol, r.mouse_symbols);
+      if (symbol) out.set(r.id, symbol);
+    }
+  }
+  return out;
+}
+
+/** human_symbol if present, else the first comma-separated mouse symbol. */
+function pickDisplaySymbol(
+  humanSymbol: string | null,
+  mouseSymbols: string | null,
+): string | null {
+  if (humanSymbol) return humanSymbol;
+  if (mouseSymbols) {
+    const first = mouseSymbols
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)[0];
+    return first ?? null;
+  }
+  return null;
 }

@@ -23,6 +23,7 @@ type VolcanoPoint = {
   negLog10P: number;
   fdr: number | null;
   topByP: boolean;
+  symbol: string | null;
 };
 
 type DistributionResponse = {
@@ -31,6 +32,9 @@ type DistributionResponse = {
   fdrColumn: string | null;
   nTotal: number;
   nNonNull: number;
+  // Which home-page query param a tooltip's gene link should use, or null
+  // when the table has no single labelling link table (#189).
+  labelDirection: "target" | "perturbed" | null;
   volcanoPoints: VolcanoPoint[];
   geneRows: GeneRow[];
   fieldLabels?: Record<string, string>;
@@ -293,6 +297,15 @@ export default function EffectDistributionChart({
                 | undefined;
               if (!p) return null;
               const isGene = "rowKey" in p && p.rowKey != null;
+              // The orange (queried-gene) dots always carry the searched
+              // target gene, so link them as ?target=. Background dots use
+              // whatever direction the table labels by (#189).
+              const symbol = isGene ? geneSymbol ?? null : p.symbol ?? null;
+              const direction = isGene ? "target" : data.labelDirection;
+              const href =
+                symbol && direction
+                  ? `/?${direction}=${encodeURIComponent(symbol)}`
+                  : null;
               return (
                 <div
                   style={{
@@ -304,11 +317,21 @@ export default function EffectDistributionChart({
                     boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
                   }}
                 >
-                  {isGene && (
-                    <div
-                      style={{ fontWeight: 600, marginBottom: 4 }}
-                    >
-                      {geneSymbol ?? "queried gene"}
+                  {symbol && (
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                      {href ? (
+                        <a
+                          href={href}
+                          style={{
+                            color: "#1d4ed8",
+                            textDecoration: "none",
+                          }}
+                        >
+                          {symbol}
+                        </a>
+                      ) : (
+                        symbol
+                      )}
                     </div>
                   )}
                   <TooltipRow
@@ -338,6 +361,13 @@ export default function EffectDistributionChart({
               );
             }}
             cursor={{ strokeDasharray: "3 3" }}
+            // Let the cursor move into the tooltip without it vanishing, so
+            // the gene link is clickable (#189). Recharts otherwise renders
+            // tooltips with pointer-events disabled.
+            wrapperStyle={{ pointerEvents: "auto" }}
+            // Small dwell before auto-hide gives users time to cross the gap
+            // from dot to tooltip.
+            animationDuration={150}
           />
           <Scatter
             name="ns"
