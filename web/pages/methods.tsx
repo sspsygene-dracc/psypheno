@@ -163,6 +163,7 @@ export default function MethodsPage() {
               ["hmp", "Harmonic Mean P-Value (HMP)"],
               ["uniformity", "A Note on the Uniform(0,1) Assumption"],
               ["rationale", "Why These Three Methods?"],
+              ["volcano", "Volcano Plot Sampling"],
             ].map(([id, label]) => (
               <li key={id} style={{ marginBottom: 2 }}>
                 <a
@@ -831,6 +832,48 @@ export default function MethodsPage() {
             HMP may be driven by a single very small p-value from one table.
           </p>
         </section>
+
+        {/* 7. Volcano Plot Sampling */}
+        <section
+          id="sec-volcano"
+          style={{ ...sectionStyle, scrollMarginTop: 16 }}
+        >
+          <h2 style={h2Style}>Volcano Plot Sampling</h2>
+          <p>
+            The effect-distribution (volcano) chart on each dataset table plots
+            effect size against &minus;log<sub>10</sub>(p). Tables can hold many
+            thousands of rows, so the grey background is a <em>sample</em> rather
+            than every row, drawn from rows with a non-null effect size and
+            p-value.
+          </p>
+          <p>The sample is a union of two sets:</p>
+          <ol>
+            <li>
+              <strong>Top by p-value:</strong> the most-significant rows
+              (smallest p) are <em>always</em> included, so the volcano&apos;s
+              tails are visible regardless of the random draw.
+            </li>
+            <li>
+              <strong>Deterministic pseudo-random sample:</strong> the
+              remaining background is filled by ordering rows on Knuth&apos;s
+              multiplicative hash of the row id and taking the first ~1,000.
+              This is reproducible per database build and breaks any correlation
+              between insertion order and effect/p-value &mdash; it is{" "}
+              <em>not</em> a uniform random draw redrawn on each request.
+            </li>
+          </ol>
+          <p>
+            By default, rows whose perturbed-gene link points at a control
+            sentinel (e.g. <span style={codeStyle}>NonTarget1</span>,{" "}
+            <span style={codeStyle}>SafeTarget</span>,{" "}
+            <span style={codeStyle}>GFP</span>) are excluded so the distribution
+            is not biased toward &ldquo;no biological perturbation.&rdquo; When a
+            specific perturbed gene is selected, the background is further
+            restricted to that perturbation&apos;s rows. The queried gene&apos;s
+            own rows are always drawn at full opacity on top of the sample.
+          </p>
+        </section>
+
         <p style={{ marginTop: 36, textAlign: "right", fontFamily: "serif", fontSize: 16 }}>
           Johannes Birgmeier, using Claude Opus 4.6, March 3rd, 2026
         </p>

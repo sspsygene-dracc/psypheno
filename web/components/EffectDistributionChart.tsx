@@ -178,7 +178,7 @@ export default function EffectDistributionChart({
 
   const explainer = [
     `Each background dot is one row from the table.`,
-    `Sample is uniformly drawn from non-null rows, capped at ${VOLCANO_SAMPLE_CAP.toLocaleString()} (${data.nNonNull.toLocaleString()} non-null total).`,
+    `The sample is the top rows by p-value plus a deterministic pseudo-random sample (~${VOLCANO_SAMPLE_CAP.toLocaleString()} dots total); control-perturbed rows are excluded by default.`,
     `Red = significantly up, blue = significantly down, grey = not significant (${sigLabel}).`,
     `Orange dot${geneScatter.length === 1 ? "" : "s"} = ${geneSymbol ?? "the queried gene"}'s row${geneScatter.length === 1 ? "" : "s"} in this table (full opacity).`,
   ].join(" ");
