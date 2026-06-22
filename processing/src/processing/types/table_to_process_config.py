@@ -82,6 +82,8 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "pvalue_column",
         "fdr_column",
         "effect_column",
+        "meta_analysis",
+        "why_excluded_from_meta_analysis",
         "changelog",
         # Internal: dataset-level publication block, merged in by TablesConfig.
         "_publication",
@@ -199,6 +201,14 @@ class TableToProcessConfig:
     pvalue_column: str | None = None
     fdr_column: str | None = None
     effect_column: str | None = None
+    # Whether this table's p-values feed the cross-study meta-analysis
+    # (/most-significant). Default True. Set `meta_analysis: false` in the YAML
+    # to keep the dataset fully browsable while excluding it from the combined
+    # p-values — e.g. for tables whose p-values aren't comparable disease-DEG
+    # evidence (Seurat cluster-marker tables, see #187). When excluded, record
+    # the reason in `why_excluded_from_meta_analysis` so it's self-documenting.
+    meta_analysis: bool = True
+    why_excluded_from_meta_analysis: str | None = None
     publication_first_author: str | None = None
     publication_last_author: str | None = None
     publication_author_count: int | None = None
@@ -238,6 +248,14 @@ class TableToProcessConfig:
         if num_perturbed + num_target == 0 and self.gene_mappings:
             raise ValueError(
                 f"table {self.table}: At least one gene_mapping must be present"
+            )
+        # A reason without an exclusion is almost certainly a mistake (the
+        # author meant to also set meta_analysis: false). Flag it loudly.
+        if self.why_excluded_from_meta_analysis and self.meta_analysis:
+            raise ValueError(
+                f"table {self.table}: why_excluded_from_meta_analysis is set but "
+                f"meta_analysis is still true — set `meta_analysis: false` to "
+                f"actually exclude it, or drop the reason."
             )
 
     @classmethod
@@ -341,6 +359,16 @@ class TableToProcessConfig:
             normalize_column_name(raw_effect_col) if raw_effect_col else None
         )
 
+        # Meta-analysis inclusion flag (#187). Defaults to True; only an explicit
+        # `meta_analysis: false` excludes the table from the combined p-values.
+        meta_analysis = bool(json_data.get("meta_analysis", True))
+        why_excluded = json_data.get("why_excluded_from_meta_analysis")
+        if why_excluded is not None and not isinstance(why_excluded, str):
+            raise ValueError(
+                f"table {table_name}: why_excluded_from_meta_analysis must be a "
+                f"string; got {type(why_excluded).__name__}"
+            )
+
         return cls(
             table=json_data["table"],
             description=json_data["description"],
@@ -367,6 +395,8 @@ class TableToProcessConfig:
             pvalue_column=pvalue_column,
             fdr_column=fdr_column,
             effect_column=effect_column,
+            meta_analysis=meta_analysis,
+            why_excluded_from_meta_analysis=why_excluded,
             publication_first_author=first_author,
             publication_last_author=last_author,
             publication_author_count=author_count,

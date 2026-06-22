@@ -65,6 +65,17 @@ tables:
     pvalue_column: p_val
     fdr_column: p_val_adj
     effect_column: avg_logFC
+    # Excluded from the cross-study meta-analysis (#187). These are Seurat
+    # FindMarkers cluster-vs-all p-values, not ASD-vs-CTL differential
+    # expression: ~81% are exactly 0 (underflow) and the test treats each
+    # nucleus as independent (pseudoreplication), so the p-values are not
+    # comparable disease-DEG evidence and would dominate the combined ranking
+    # with a cell-type-identity signal. The dataset stays fully browsable.
+    meta_analysis: false
+    why_excluded_from_meta_analysis: >-
+      Seurat FindMarkers cluster-vs-all marker p-values (pseudoreplicated across
+      nuclei; ~81% underflow to 0), not ASD-vs-control differential expression,
+      so they are not comparable disease-DEG evidence for the combined p-values.
     fieldLabels:
       gene: "Marker gene — HGNC symbol (resolved at preprocess time; raw value preserved in gene_raw)."
       p_val: "Wilcoxon rank-sum nominal p-value from Seurat FindMarkers (cluster-of-interest cells vs cells in all other clusters)."

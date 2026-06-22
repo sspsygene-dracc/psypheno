@@ -117,6 +117,11 @@ class CollectedGroup:
     # below `min_tables` get their `pvalues` emptied for the R-job stage; the
     # writer still needs the real count for `combined_pvalue_groups`.
     num_contributing_tables: int = 0
+    # The actual contributing source-table names (sorted), persisted into
+    # `combined_pvalue_groups.source_table_names` so the web "datasets included"
+    # panel reads what was combined straight from the meta DB rather than
+    # reconstructing it from dataset metadata (#187).
+    source_table_names: list[str] = field(default_factory=list)
 
 
 @dataclass

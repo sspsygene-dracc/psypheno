@@ -17,7 +17,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from processing.combined_pvalues.data import CollectedPvalues
-from processing.combined_pvalues.runner import compute_combined_pvalues
+from processing.combined_pvalues.runner import (
+    MetaAnalysisRun,
+    compute_combined_pvalues,
+)
 from processing.combined_pvalues.collection import (
     precollapse,
     parse_link_tables_for_direction,
@@ -1465,3 +1468,57 @@ class TestParseRResults:
         path = tmp_path / "results.csv"
         self._write_results_csv(path, [])
         assert parse_r_results(path) == {}
+
+
+# ===================================================================
+# Per-table meta-analysis exclusion (#187)
+# ===================================================================
+
+
+def _data_tables_with_flag(conn: sqlite3.Connection) -> None:
+    """data_tables with the include_in_meta_analysis column + two p-value
+    tables, one of them flagged out (meta_analysis: false)."""
+    conn.execute(
+        """CREATE TABLE data_tables (
+            table_name TEXT, pvalue_column TEXT, link_tables TEXT, assay TEXT,
+            condition TEXT, organism_key TEXT, effect_column TEXT,
+            include_in_meta_analysis INTEGER NOT NULL DEFAULT 1,
+            why_excluded_from_meta_analysis TEXT
+        )"""
+    )
+    conn.execute(
+        "INSERT INTO data_tables (table_name, pvalue_column, link_tables, assay, "
+        "include_in_meta_analysis) VALUES "
+        "('gandal', 'pval', 'gene:gandal__link:target', 'expression', 1)"
+    )
+    conn.execute(
+        "INSERT INTO data_tables (table_name, pvalue_column, link_tables, assay, "
+        "include_in_meta_analysis, why_excluded_from_meta_analysis) VALUES "
+        "('wamsley', 'pval', 'gene:wamsley__link:target', 'expression', 0, "
+        "'Seurat cluster markers, not disease DEG')"
+    )
+    conn.commit()
+
+
+class TestMetaAnalysisExclusion:
+    def test_flagged_table_excluded_from_source_tables(self):
+        """A table with include_in_meta_analysis=0 is dropped before collection."""
+        conn = sqlite3.connect(":memory:")
+        _data_tables_with_flag(conn)
+        run = MetaAnalysisRun(conn, deg_assays={"expression", "perturbation_deg"})
+        names = [r[0] for r in run._load_source_tables()]
+        assert "gandal" in names
+        assert "wamsley" not in names
+
+    def test_missing_column_is_back_compatible(self):
+        """A data_tables without the column (legacy DB / fixture) includes all
+        p-value tables — the column guard must not raise."""
+        conn = _make_test_db()  # data_tables here has no include_in_meta_analysis
+        conn.execute(
+            "INSERT INTO data_tables (table_name, pvalue_column, link_tables, assay)"
+            " VALUES ('tbl_a', 'pval', 'gene:tbl_a__link:target', 'expression')"
+        )
+        conn.commit()
+        run = MetaAnalysisRun(conn, deg_assays=None)
+        names = [r[0] for r in run._load_source_tables()]
+        assert names == ["tbl_a"]

@@ -286,8 +286,12 @@ export default function MostSignificantPage() {
     assayFilter: string | null;
     conditionFilter: string | null;
     organismFilter: string | null;
+    direction: string;
+    regulation: string;
     tableName: string | null;
     numSourceTables: number;
+    // Exact source tables that fed this group, from the meta DB (#187).
+    sourceTableNames: string[];
   };
   const [cpGroups, setCpGroups] = useState<CpGroup[]>([]);
   // Meta-analysis DB availability + freshness (#176). null until first fetch.
@@ -856,28 +860,37 @@ export default function MostSignificantPage() {
             );
           })()}
 
-        {/* Datasets included in current filter */}
+        {/* Datasets included in current ranking — read straight from the meta
+            DB's record of what fed this group (#187), not reconstructed from
+            dataset metadata. Dataset labels are looked up from the catalog. */}
         {(() => {
-          const filtered = datasetTables.filter((t) => {
-            if (!t.pvalueColumn) return false;
-            if (regulation !== "any" && !t.effectColumn) return false;
-            if (assayFilter && !(t.assay ?? []).includes(assayFilter))
-              return false;
-            if (conditionFilter && !(t.condition ?? []).includes(conditionFilter))
-              return false;
-            if (
-              organismFilter &&
-              !(t.organismKey ?? []).includes(organismFilter)
-            )
-              return false;
-            return true;
-          });
-          if (filtered.length === 0) return null;
-          const formatName = (t: DatasetTableMeta) =>
-            t.mediumLabel ??
-            t.tableName
+          // The group matching the current filter selection. Its
+          // sourceTableNames is exactly what the meta-analysis combined.
+          const group = cpGroups.find(
+            (g) =>
+              g.assayFilter === assayFilter &&
+              g.conditionFilter === conditionFilter &&
+              g.organismFilter === organismFilter &&
+              g.direction === direction &&
+              g.regulation === regulation,
+          );
+          const sourceNames: string[] = group?.sourceTableNames ?? [];
+          if (sourceNames.length === 0) return null;
+          const byName = new Map<string, DatasetTableMeta>(
+            datasetTables.map((t) => [t.tableName, t]),
+          );
+          const prettify = (name: string) =>
+            name
               .replace(/_/g, " ")
               .replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+          const formatName = (name: string) =>
+            byName.get(name)?.mediumLabel ?? prettify(name);
+          const linkSlug = (name: string) => {
+            const t = byName.get(name);
+            return encodeURIComponent(
+              t?.shortLabel ? t.shortLabel.replace(/\s+/g, "_") : name,
+            );
+          };
           return (
             <details
               open={datasetsExpanded}
@@ -904,8 +917,8 @@ export default function MostSignificantPage() {
                   width: "fit-content",
                 }}
               >
-                {filtered.length} dataset{filtered.length !== 1 ? "s" : ""}{" "}
-                included
+                {sourceNames.length} dataset
+                {sourceNames.length !== 1 ? "s" : ""} included
               </summary>
               <div
                 style={{
@@ -916,10 +929,10 @@ export default function MostSignificantPage() {
                   gap: 6,
                 }}
               >
-                {filtered.map((t) => (
+                {sourceNames.map((name) => (
                   <Link
-                    key={t.tableName}
-                    href={`/full-datasets?select=${encodeURIComponent(t.shortLabel ? t.shortLabel.replace(/\s+/g, "_") : t.tableName)}`}
+                    key={name}
+                    href={`/full-datasets?select=${linkSlug(name)}`}
                     style={{
                       padding: "2px 8px",
                       background: "#eff6ff",
@@ -929,7 +942,7 @@ export default function MostSignificantPage() {
                       fontSize: 12,
                     }}
                   >
-                    {formatName(t)}
+                    {formatName(name)}
                   </Link>
                 ))}
               </div>

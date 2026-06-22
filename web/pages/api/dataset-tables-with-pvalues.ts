@@ -13,6 +13,10 @@ export default async function handler(
   try {
     const db = getDb();
 
+    // Dataset catalog: labels + per-table assay/condition/organism. Used only
+    // to resolve display labels for the table names the meta DB reports as
+    // contributing — the "which datasets fed the ranking" decision itself comes
+    // from the meta DB (combined_pvalue_groups.source_table_names), not here.
     const rows = db
       .prepare(
         `SELECT table_name, short_label, medium_label, long_label, pvalue_column, fdr_column, effect_column, assay, condition, organism_key
@@ -72,7 +76,10 @@ export default async function handler(
       // organism_types table may not exist
     }
 
-    // Fetch available filter combinations from combined_pvalue_groups
+    // Fetch available filter combinations from combined_pvalue_groups. Each
+    // group carries the exact list of source tables that fed it
+    // (source_table_names) — this is the authoritative "which datasets are in
+    // the ranking" record, straight from the meta DB (#187).
     let combinedPvalueGroups: Array<{
       assayFilter: string | null;
       conditionFilter: string | null;
@@ -81,10 +88,11 @@ export default async function handler(
       regulation: string;
       tableName: string | null;
       numSourceTables: number;
+      sourceTableNames: string[];
     }> = [];
     try {
       const rawGroups = db
-        .prepare("SELECT assay_filter, condition_filter, organism_filter, direction, regulation, table_name, num_source_tables FROM meta.combined_pvalue_groups")
+        .prepare("SELECT assay_filter, condition_filter, organism_filter, direction, regulation, table_name, num_source_tables, source_table_names FROM meta.combined_pvalue_groups")
         .all() as Array<{
           assay_filter: string | null;
           condition_filter: string | null;
@@ -93,6 +101,7 @@ export default async function handler(
           regulation: string;
           table_name: string | null;
           num_source_tables: number;
+          source_table_names: string | null;
         }>;
       combinedPvalueGroups = rawGroups.map((g) => ({
         assayFilter: g.assay_filter,
@@ -102,6 +111,9 @@ export default async function handler(
         regulation: g.regulation,
         tableName: g.table_name,
         numSourceTables: g.num_source_tables,
+        sourceTableNames: g.source_table_names
+          ? g.source_table_names.split(",").map((s) => s.trim()).filter(Boolean)
+          : [],
       }));
     } catch {
       // table may not exist

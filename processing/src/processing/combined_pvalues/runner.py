@@ -126,11 +126,26 @@ class MetaAnalysisRun:
 
     # -- stages --------------------------------------------------------------
 
+    def _has_data_tables_column(self, column: str) -> bool:
+        """Whether data_tables (in the source schema) has `column`. Lets the
+        runner stay compatible with older DBs and the in-memory test fixtures
+        that predate a column (e.g. include_in_meta_analysis)."""
+        info = self.conn.execute(
+            f"PRAGMA {self.src_schema}.table_info(data_tables)"
+        ).fetchall()
+        return any(r[1] == column for r in info)
+
     def _load_source_tables(self) -> list[SourceTableRow]:
+        # Per-table opt-out (#187): exclude tables flagged
+        # `meta_analysis: false`. Guarded so DBs/fixtures without the column
+        # (treat every table as included) still load.
+        exclude_clause = ""
+        if self._has_data_tables_column("include_in_meta_analysis"):
+            exclude_clause = " AND COALESCE(include_in_meta_analysis, 1) = 1"
         rows = self.conn.execute(
             "SELECT table_name, pvalue_column, link_tables, assay, condition, "
             f"organism_key, effect_column FROM {self.src_schema}.data_tables "
-            "WHERE pvalue_column IS NOT NULL"
+            f"WHERE pvalue_column IS NOT NULL{exclude_clause}"
         ).fetchall()
         if self.deg_assays is None:
             return rows
@@ -254,6 +269,7 @@ class MetaAnalysisRun:
                 organism_filter=group.organism_filter,
                 use_gene_flags=group.use_gene_flags,
                 num_contributing_tables=len(contributing),
+                source_table_names=sorted(contributing),
             ))
         return out
 
@@ -391,6 +407,7 @@ class MetaAnalysisRun:
             regulation TEXT NOT NULL DEFAULT 'any',
             table_name TEXT,
             num_source_tables INTEGER,
+            source_table_names TEXT,
             PRIMARY KEY (
                 assay_filter, condition_filter, organism_filter,
                 direction, regulation
@@ -408,8 +425,8 @@ class MetaAnalysisRun:
         self.conn.execute(
             "INSERT INTO combined_pvalue_groups "
             "(assay_filter, condition_filter, organism_filter, direction, "
-            "regulation, table_name, num_source_tables) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "regulation, table_name, num_source_tables, source_table_names) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 cg.assay_filter,
                 cg.condition_filter,
@@ -418,6 +435,7 @@ class MetaAnalysisRun:
                 cg.regulation,
                 table_name,
                 num_source_tables,
+                ",".join(cg.source_table_names) or None,
             ),
         )
         self.conn.commit()

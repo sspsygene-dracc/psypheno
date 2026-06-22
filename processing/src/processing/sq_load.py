@@ -274,6 +274,8 @@ def load_data_tables(
         pvalue_column TEXT,
         fdr_column TEXT,
         effect_column TEXT,
+        include_in_meta_analysis INTEGER NOT NULL DEFAULT 1,
+        why_excluded_from_meta_analysis TEXT,
         preprocessing TEXT)"""
     )
     log = get_sspsygene_logger()
@@ -352,8 +354,9 @@ def load_data_tables(
             links, categories, source, assay, condition, field_labels, organism, organism_key,
             publication_first_author, publication_last_author, publication_author_count, publication_authors, publication_year,
             publication_journal, publication_doi, publication_pmid, publication_sspsygene_grants,
-            pvalue_column, fdr_column, effect_column, preprocessing)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            pvalue_column, fdr_column, effect_column,
+            include_in_meta_analysis, why_excluded_from_meta_analysis, preprocessing)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -394,6 +397,8 @@ def load_data_tables(
                 table_config.pvalue_column,
                 table_config.fdr_column,
                 table_config.effect_column,
+                1 if table_config.meta_analysis else 0,
+                table_config.why_excluded_from_meta_analysis,
                 json.dumps(preprocessing_dict) if preprocessing_dict else None,
             ),
         )
