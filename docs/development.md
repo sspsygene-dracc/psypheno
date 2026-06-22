@@ -43,8 +43,8 @@ sspsygene load-db
 # Load a single dataset (fast, for testing)
 sspsygene load-db --dataset my-dataset
 
-# Load all datasets but skip slow steps (for testing)
-sspsygene load-db --no-index --skip-meta-analysis
+# Load all datasets but skip index creation (for testing)
+sspsygene load-db --no-index
 
 # Fast end-to-end smoke test (~seconds, exercises every pipeline stage)
 sspsygene load-db --test
@@ -74,9 +74,8 @@ Regenerate it from a current full build with:
 processing/.venv-claude/bin/python processing/scripts/build_test_fixture.py
 ```
 
-`--test` is orthogonal to `--no-index` and `--skip-meta-analysis` — combine as
-needed. Datasets whose tables have empty `gene_mappings` (pure metadata) pass
-through unfiltered.
+`--test` is orthogonal to `--no-index` — combine as needed. Datasets whose
+tables have empty `gene_mappings` (pure metadata) pass through unfiltered.
 
 ## Web Application
 
@@ -286,11 +285,8 @@ Commands:
   load-db                            Load/rebuild the database
     --dataset TEXT                     Load only this dataset
     --no-index                         Skip index creation
-    --skip-meta-analysis               Skip combined p-value computation
     --skip-gene-descriptions           Skip gene description copying
     --skip-missing-datasets            Skip missing input files
-    --no-r-cache                       Bypass processing/r-cache and re-run
-                                         every R meta-analysis job
     --export-only                      Skip the rebuild; only regenerate the
                                          user-facing download blobs
                                          (export_files) inside the existing DB

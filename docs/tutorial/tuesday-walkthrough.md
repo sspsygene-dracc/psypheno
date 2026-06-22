@@ -226,12 +226,12 @@ conda activate sspsygene
 SSPSYGENE_DATA_DIR=$(pwd)/data \
 SSPSYGENE_CONFIG_JSON=processing/src/processing/config.json \
 SSPSYGENE_DATA_DB=$(pwd)/data/db/sspsygene-claude.db \
-sspsygene load-db --dataset NAME --no-index --skip-meta-analysis
+sspsygene load-db --dataset NAME --no-index
 ```
 
-`--no-index --skip-meta-analysis` skips the slow steps; useful for
-"does my YAML even parse" checks. The full build (without those flags)
-is needed before deploy.
+`--no-index` skips the slow index-creation step; useful for "does my
+YAML even parse" checks. The full build (without that flag) is needed
+before deploy.
 
 ## Things to NOT do without explicitly asking me
 
@@ -516,16 +516,15 @@ Then run the fast-iteration form:
 SSPSYGENE_DATA_DIR=$(pwd)/data \
 SSPSYGENE_CONFIG_JSON=processing/src/processing/config.json \
 SSPSYGENE_DATA_DB=$(pwd)/data/db/sspsygene-claude.db \
-sspsygene load-db --dataset <your-dataset> --no-index --skip-meta-analysis
+sspsygene load-db --dataset <your-dataset> --no-index
 ```
 
 > **Why the `sspsygene-claude.db` path?** If you wrote to the default
 > `sspsygene.db`, you'd fight any other rebuild that's running on the
 > same machine. The `sspsygene-claude.db` path is a safe scratch file.
 
-> **Why `--no-index --skip-meta-analysis`?** They skip the two slowest
-> stages (SQLite index creation and combined-p-value computation across
-> datasets), so the test cycle is seconds rather than minutes. We're
+> **Why `--no-index`?** It skips the slowest stage (SQLite index
+> creation), so the test cycle is seconds rather than minutes. We're
 > just checking *does my YAML parse and does the loader accept my
 > data*, not building a production DB.
 
@@ -792,8 +791,8 @@ sspsygene deploy --instances dev --load-db
 This pushes `main` to GitHub if you haven't already, `git pull`s on the
 dev server, and rebuilds the dev SQLite DB; the running web process
 auto-detects the new file. Takes a few minutes — the full rebuild runs
-the indexing + meta-analysis steps that the fast-iteration recipe in
-Section 4.8 deliberately skipped.
+the indexing step that the fast-iteration recipe in Section 4.8
+deliberately skipped.
 
 > **One-time SSH setup:** the deploy's `git pull` runs *on* psygene and
 > authenticates to GitHub from there, so psygene needs your GitHub key —
@@ -988,42 +987,6 @@ Full reference: `docs/development.md` → "Testing".
 
 ---
 
-## 10. Sidebar: what the meta-analysis step is and why it matters (3 min)
-
-You've seen the `--skip-meta-analysis` flag in the fast-iteration recipe.
-Here's what it actually skips, so you know when to leave it on and when
-to drop it.
-
-The website's "most significant" page and the gene-search ranking are
-powered by a **combined p-value** computed *across* datasets. For a
-given gene, we take the per-dataset p-values from every table where the
-gene shows up (with a sign — direction matters), and combine them using
-**Cauchy combination** (perturbation side) and **Fisher's method**
-(target side). The result is a single number that says "across all the
-evidence in our database, how strong is the signal for this gene?". This
-is what makes Psypheno more than just "a website with N tables on it" —
-it's the cross-dataset synthesis.
-
-Concretely, that means:
-
-- **For dataset development** (testing your `config.yaml` parses, your
-  preprocess output looks right, your single dataset loads): pass
-  `--skip-meta-analysis`. The combined p-values for *other* datasets
-  don't matter to you; you just want fast cycles.
-- **For the build that ships** (the build that goes onto the dev / int /
-  prod database): **do not skip**. The website needs the meta-analysis
-  table for the "most significant" page and for ranking. A DB without
-  meta-analysis will load and won't crash, but the gene pages and
-  dataset breakdowns will be missing the cross-dataset numbers.
-
-Same applies to `--no-index` — fine for local dev cycles, drop it for
-the production build (the server queries are slow without indexes).
-
-So the rhythm is: rebuild fast and dirty while you're iterating; rebuild
-slow and clean when you're about to deploy.
-
----
-
 ## Cheat sheet (one-page reference)
 
 | What | How |
@@ -1039,7 +1002,7 @@ slow and clean when you're about to deploy.
 | Merge to `main` | `git checkout main && git merge --ff-only <branch>` |
 | Push | `git push origin main` |
 | Comment on ticket | GitHub website (or ask Claude to draft/post) |
-| Single-dataset rebuild | `sspsygene load-db --dataset NAME --no-index --skip-meta-analysis` |
+| Single-dataset rebuild | `sspsygene load-db --dataset NAME --no-index` |
 | Full rebuild (pre-deploy) | `sspsygene load-db` |
 | Rsync data to dev | `sspsygene rsync-dataset NAME --instance dev` |
 | Rebuild dev DB | `sspsygene deploy --instances dev --load-db` |

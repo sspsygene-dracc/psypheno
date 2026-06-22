@@ -71,21 +71,6 @@ def cli(
     help="Skip copying gene descriptions into the database.",
 )
 @click.option(
-    "--skip-meta-analysis",
-    is_flag=True,
-    default=False,
-    help="DEPRECATED no-op. As of issue #176, load-db never computes the "
-    "meta-analysis; it is a separate command (`sspsygene meta-analysis`). "
-    "Accepted for backwards compatibility with existing scripts.",
-)
-@click.option(
-    "--no-r-cache",
-    is_flag=True,
-    default=False,
-    help="DEPRECATED no-op on load-db (meta-analysis moved to its own "
-    "command). Use `sspsygene meta-analysis --no-r-cache`.",
-)
-@click.option(
     "--export-only",
     is_flag=True,
     default=False,
@@ -101,25 +86,17 @@ def cli(
     help="Restrict each dataset to rows whose gene columns all intersect the "
     "bundled top-genes fixture (processing/src/processing/test_fixture_genes.json), "
     "then cap each unique gene-key combo to 200 rows. Fast end-to-end smoke "
-    "tests. Orthogonal to --no-index and --skip-meta-analysis.",
+    "tests. Orthogonal to --no-index.",
 )
 def load_db(
     dataset: str | None,
     skip_missing_datasets: bool,
     no_index: bool,
     skip_gene_descriptions: bool,
-    skip_meta_analysis: bool,
-    no_r_cache: bool,
     export_only: bool,
     test_mode: bool,
 ) -> None:
     """Load the database"""
-    if skip_meta_analysis or no_r_cache:
-        click.echo(
-            "Note: --skip-meta-analysis / --no-r-cache are no-ops on load-db "
-            "as of #176 — meta-analysis is now `sspsygene meta-analysis`.",
-            err=True,
-        )
     try:
         from processing.sq_load import load_db
 

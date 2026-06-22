@@ -740,11 +740,11 @@ Fix the error and try again until this step passes.
 
 ### 5b. Load the full database without slow steps
 
-Once your single dataset loads, try loading ALL datasets together. Use these
-flags to skip the slow parts (index creation and meta-analysis):
+Once your single dataset loads, try loading ALL datasets together. Use
+`--no-index` to skip the slow index-creation step:
 
 ```bash
-sspsygene load-db --no-index --skip-meta-analysis
+sspsygene load-db --no-index
 ```
 
 This checks that your dataset doesn't conflict with any other dataset (e.g.
@@ -1140,7 +1140,7 @@ section 10c ("GitHub access for the deploy's `git pull`").
 | What | Command |
 |------|---------|
 | Load single dataset (fast test) | `sspsygene load-db --dataset NAME` |
-| Load all datasets, skip slow steps | `sspsygene load-db --no-index --skip-meta-analysis` |
+| Load all datasets, skip indexing | `sspsygene load-db --no-index` |
 | Load all datasets (full build) | `sspsygene load-db` |
 | Deploy to dev (from laptop) | `sspsygene deploy --instances dev --load-db` |
 | Deploy to internal (from laptop) | `sspsygene deploy --instances int --load-db` |

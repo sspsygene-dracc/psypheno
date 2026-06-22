@@ -17,7 +17,7 @@ from click.testing import CliRunner
 from processing.click.main import cli
 
 
-_FAST_FLAGS = ["--skip-meta-analysis", "--skip-gene-descriptions", "--no-index"]
+_FAST_FLAGS = ["--skip-gene-descriptions", "--no-index"]
 
 
 def _out_db(mini_data_root: Path) -> Path:
