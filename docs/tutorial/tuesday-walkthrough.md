@@ -18,10 +18,6 @@ TODO: Claude modes --- shift tab --- auto mode
 
 TODO: sspsygene conda env should install a bunch of useful python packages by default
 
-TODO: create ticket of all the stuff that didn't work in the tutorial, collect
-all the stuff I remember here, then send it to wranglers and tell them to add
-more stuff that they remember was confusing or didn't work
-
 TODO: decide on whether to work locally on remotely in a separate checkout
 
 TODO: set appropriate environment variables in ~/.bashrc somewhere, we need
@@ -32,22 +28,29 @@ do this end-to-end, without help:
 
 1. Pick up a dataset ticket from
    [the GitHub issue tracker](https://github.com/sspsygene-dracc/psypheno/issues)
-   and assign it to yourself.
-2. Have Claude Code do most of the wrangling work for you (read the paper,
-   draft `preprocess.py` and `config.yaml`, write `makeDoc.txt`).
-3. Run a single-dataset local rebuild to test that your config actually
+   in your **browser**, and assign it to yourself there.
+2. Create the dataset directory and **download the paper + supplementary
+   files into it first**, then have Claude Code do most of the wrangling
+   work for you (read the paper, draft `preprocess.py` and `config.yaml`,
+   write `makeDoc.txt`).
+3. Let Claude run `preprocess.py`, fix the errors it hits, and sanity-check
+   the output; then have Claude re-read its own draft against the paper as a
+   verification pass.
+4. Run a single-dataset local rebuild to test that your config actually
    loads.
-4. Commit your work on a **branch named after the ticket**.
-5. Rebase onto the latest `main`, fast-forward `main` to your branch, push.
-6. Comment on the ticket with what landed, what was skipped, and why.
-7. Push the dataset out to the live servers: push the data files with
+5. Commit your work (Claude can draft the commit for you) on a **branch
+   named after the ticket**, pushed to GitHub at creation time.
+6. Rebase onto the latest `main`, fast-forward `main` to your branch, push.
+7. Comment on the ticket (in the browser, or ask Claude) with what landed,
+   what was skipped, and why.
+8. Push the dataset out to the live servers: push the data files with
    `sspsygene rsync-dataset`, rebuild the dev DB with `sspsygene deploy`,
-   eyeball it on the dev site, then — for a **public** dataset — promote the
-   verified dev build to prod with `sspsygene promote-dev-to-prod` (copies
-   dev's DB straight over; don't rebuild on prod). For an **embargoed**
-   dataset, deploy to int instead (int holds the things we can't or don't yet
-   want to publish; prod is the public site). Close the ticket once it's live
-   where it should be.
+   **inspect it on the dev site**, then — for a **public** dataset — promote
+   the verified dev build to prod with `sspsygene promote-dev-to-prod`
+   (copies dev's DB straight over; don't rebuild on prod). For an
+   **embargoed** dataset, deploy to int instead (int holds the things we
+   can't or don't yet want to publish; prod is the public site). Close the
+   ticket once it's live where it should be.
 
 ---
 
@@ -61,7 +64,6 @@ gh --version
 node --version
 conda --version          # or python --version if they skipped miniconda
 ls ~/code/psypheno
-gh issue list --repo sspsygene-dracc/psypheno --limit 3
 ```
 
 If any of these fails, **fix it now** — don't push through. The rest of
@@ -162,8 +164,8 @@ guessing.
 
 ## How I work on a dataset ticket
 
-- Tickets are on `sspsygene-dracc/psypheno`. Use `gh issue view NN
-  --repo sspsygene-dracc/psypheno` to read one.
+- Tickets are on `sspsygene-dracc/psypheno`. I read, assign, and comment
+  on them in the **GitHub website**, not the terminal.
 - I work on a **branch** named `dataset-NN-<short-name>`. Never directly
   on `main`.
 - **First propose a plan** — don't write any files until I've reviewed
@@ -243,20 +245,20 @@ is needed before deploy.
 
 ## Issue tracker workflow
 
-- Assign yourself when you start: `gh issue edit NN
-  --repo sspsygene-dracc/psypheno --add-assignee MY_GH_HANDLE`.
+- I assign tickets, read them, and comment on them in the **GitHub
+  website**. You don't need to run `gh` for that — but you *may* draft a
+  ticket comment for me to paste, or post one yourself if I ask.
 - Reference the ticket in commit messages: `Add Smith 2026 dataset
-  (#142)`.
-- After every dataset commit, comment on the ticket with: commit hash,
+  (#142)`. **The `(#NN)` in the commit title is required.**
+- After every dataset commit, draft a ticket comment with: commit hash,
   dataset directory, source citation (DOI / PMID / supplementary table),
   row count, anything intentionally skipped and why, any "interpreted
   by analogy" decisions, and a "pending dev verify" note.
 ````
 
 > *Live with the room: have everyone open a new file `CLAUDE.md` in the
-> repo root, paste the template, replace `MY_GH_HANDLE` with their own
-> handle, save. Confirm with `git status` that the file is **not** marked
-> for commit (because it's gitignored).*
+> repo root, paste the template, save. Confirm with `git status` that the
+> file is **not** marked for commit (because it's gitignored).*
 
 ---
 
@@ -270,43 +272,31 @@ Johannes circulates.
 
 In a browser, open
 https://github.com/sspsygene-dracc/psypheno/issues?q=is%3Aopen+label%3Adataset+no%3Aassignee
-and pick one. Note the issue number.
-
-TODO: instead of reading/modifying tickets/commenting/assigning in your terminal, point users to the github.com website and make them do stuff there
-
-TODO: need to set up environment variables
-
-TODO: need to scp data/homology/other necessary files to localhost before
-sspsygene load-db runs
-
-```bash
-gh issue view 142 --repo sspsygene-dracc/psypheno
-```
-
-You should see the ticket title, body, and any comments printed in the
-terminal.
+and pick one. Read its title, body, and any comments **right there in the
+browser** — we do ticket reading, assigning, and commenting on the GitHub
+website, not in the terminal. Note the issue number.
 
 ### 4.2 Assign yourself
 
-Convention: when you start a `dataset` ticket, assign it to your GitHub
-handle so the team sees you've picked it up:
+Convention: when you start a `dataset` ticket, assign it to yourself so
+the team sees you've picked it up. On the ticket page, click **Assignees**
+in the right-hand sidebar and select your GitHub handle.
 
-```bash
-gh issue edit 142 --repo sspsygene-dracc/psypheno --add-assignee YOUR_GH_HANDLE
-```
+(Doing this in the browser instead of the terminal keeps everything about
+the ticket — reading, assigning, commenting, closing — in one place that
+the whole team can see.)
 
-(Replace `YOUR_GH_HANDLE` with your actual GitHub username.)
-
-### 4.3 Make a branch
+### 4.3 Make a branch and push it
 
 Right now you're on `main`. **We never edit `main` directly.** Make a
-branch named after the ticket:
+branch named after the ticket and push it to GitHub immediately:
 
 ```bash
 # from inside ~/code/psypheno
 git checkout main
 git pull
 git checkout -b dataset-142-smith-2026
+git push -u origin dataset-142-smith-2026
 ```
 
 What this does:
@@ -317,6 +307,10 @@ What this does:
 - `git checkout -b dataset-142-smith-2026` — create a new branch
   starting from the current commit, and switch to it. The name is
   free-form; the convention is `dataset-<issue#>-<short-name>`.
+- `git push -u origin dataset-142-smith-2026` — publish the branch to
+  GitHub right away and set it as the upstream (`-u`), so your work is
+  backed up off your laptop from the start and later `git push` /
+  `git pull` on this branch need no arguments.
 
 To see which branch you're on:
 
@@ -324,13 +318,54 @@ To see which branch you're on:
 git branch --show-current
 ```
 
-### 4.4 Hand the ticket to Claude
+### 4.4 Prepare the dataset directory and download the source files
 
-TODO: before, create a data/datasets directory with naming convention 
+**Do this before you bring Claude in.** Claude works far better when the
+paper and the actual data files are already sitting on disk where it can
+read them — rather than being told to go fetch them from a URL behind a
+login wall or a Cloudflare check.
 
-TODO: before doing anything else, download the paper PDF, supplementary methods
-PDF (if available) and all necessary supplementary data files to the newly
-created dir. 
+First, create the dataset directory. The naming convention:
+
+- Lowercase letters, digits, and hyphens only — no spaces, no
+  underscores, no capitals.
+- Short and descriptive — usually an author/topic shorthand. Match the
+  `<short-name>` you used in the branch where it makes sense.
+- Examples already in the repo: `psychscreen`, `mouse-perturb-4tf`,
+  `zebra-autism`, `polygenic-risk-20`, `sfari`.
+
+```bash
+cd ~/code/psypheno
+mkdir -p data/datasets/smith-2026
+```
+
+Then download, **into that directory**, everything Claude will need to
+understand the data:
+
+- The **paper PDF**.
+- The **supplementary methods** (often a separate PDF) — this is usually
+  where the column definitions actually live.
+- The **supplementary data files** themselves (the Excel / CSV / TSV
+  tables the dataset is built from).
+
+```bash
+cd data/datasets/smith-2026
+# e.g.
+curl -L -o smith_2026.pdf            'https://…/article.pdf'
+curl -L -o smith_2026_supp.pdf       'https://…/supplementary.pdf'
+curl -L -o supp_table_s3.xlsx        'https://…/SuppTable3.xlsx'
+```
+
+If a source pushes back — login wall, Cloudflare, a single-page app with
+no direct download link — **don't fight it**. Open the page in your
+browser, download the file by hand, and drop it into the dataset
+directory. You usually already have authenticated browser access, and the
+manual hop is faster than scripting around the wall.
+
+(The exact download commands are also what you'll record in `makeDoc.txt`
+later — keep the URLs handy.)
+
+### 4.5 Hand the ticket to Claude
 
 In the same terminal, from the repo root:
 
@@ -338,17 +373,19 @@ In the same terminal, from the repo root:
 claude
 ```
 
-TODO: edit the prompt to point Claude to the downloaded data
-
 A `>` prompt appears. The pattern Johannes uses (verbatim from real
-sessions) is to paste the issue URL or number and ask for a plan
-first:
+sessions) is to paste the issue URL, **point Claude at the files you just
+downloaded**, and ask for a plan first:
 
 > ```
 > Let's work on this: https://github.com/sspsygene-dracc/psypheno/issues/142
 >
+> I've already created data/datasets/smith-2026/ and downloaded the paper,
+> supplementary methods, and supplementary data into it. Use those files —
+> don't try to re-download them.
+>
 > Please:
-> 1. Read the ticket with gh.
+> 1. Read the ticket and the files in data/datasets/smith-2026/.
 > 2. Read docs/adding-datasets.md and pick one similar existing dataset
 >    under data/datasets/ to use as a structural reference.
 > 3. Propose a plan: which paper, which supplementary table, what the
@@ -383,7 +420,7 @@ When the plan is right, give Claude the green light:
 > breaking anyone's local rebuild — including yours. We rename to
 > `config.yaml` only once we're happy.*
 
-### 4.5 Review what Claude produced
+### 4.6 Review what Claude produced
 
 In VSCode you'll see new files under `data/datasets/<name>/`. Open each
 one. Things to actively look for:
@@ -406,11 +443,39 @@ If Claude got something wrong, tell it — natural language is fine:
 > Bonferroni-corrected per-cell-type p-value. Update the fieldLabel
 > and rename the column to `padj_bonferroni`."*
 
-### 4.6 Run `preprocess.py` locally
+### 4.7 Let Claude run `preprocess.py` and sanity-check the output
 
-TODO: instead of running this manually, tell Claude to run it, fix any problems
-that appear, and if it runs successfully, have a look at the output to see if
-everything's working
+The recommended path is to **have Claude run `preprocess.py` itself**,
+fix any errors it hits, and then look at the output to confirm it's
+sensible. The Claude session already knows what the columns are supposed
+to mean, so it's well placed to catch a preprocess that "ran fine" but
+produced garbage. A prompt that works:
+
+> ```
+> Run preprocess.py for this dataset. If it errors, fix the script and
+> re-run until it produces the cleaned TSV. Then show me: the column
+> headers, a few example rows, and the row count — and tell me whether
+> the gene symbols landed in the right column and whether the row count
+> is in the ballpark the paper describes.
+> ```
+
+Then run an explicit **verification pass** — this is the cheap insurance
+that catches the subtle mistakes:
+
+> ```
+> Now re-read the paper (and supplementary methods) against the
+> config_DRAFT.yaml and the cleaned output you just produced. Check that
+> each fieldLabel matches what the paper actually says the column is, that
+> the species and gene-identifier handling are right, and that the
+> dataset's headline biological result recapitulates in the output (for
+> an ASD postmortem-cortex dataset, e.g., PVALB down, GFAP up). Report
+> anything that doesn't line up — don't just tell me it looks good.
+> ```
+
+Asking Claude to *try to find problems* (rather than confirm it's fine)
+is what makes this pass worth running.
+
+**Manual fallback.** If you'd rather drive it yourself:
 
 ```bash
 conda activate sspsygene
@@ -420,11 +485,7 @@ head results.tsv
 wc -l results.tsv
 ```
 
-TODO: when creating your branch and comitting, push the branch with -u
-
-TODO: just don't delete branches, let's keep them around
-
-Sanity-check the output:
+Sanity-check the output by hand:
 
 - Are gene symbols in the right column?
 - Do the row counts match what the paper claims (within reason —
@@ -432,9 +493,11 @@ Sanity-check the output:
 - Anything that looks like Excel date-mangling (`MARCH1` → `1-Mar`,
   `SEPT1` → `1-Sep`)?
 
-### 4.7 Run a single-dataset load to test `config_DRAFT.yaml`
+### 4.8 Run a single-dataset load to test `config_DRAFT.yaml`
 
-The loader **skips** `config_DRAFT.yaml`, so first promote it:
+The loader **skips** `config_DRAFT.yaml`, so first promote it. Once
+you're happy with the draft and Claude's verification pass came back
+clean, rename it:
 
 ```bash
 cd ~/code/psypheno
@@ -442,7 +505,10 @@ mv data/datasets/<your-dataset>/config_DRAFT.yaml \
    data/datasets/<your-dataset>/config.yaml
 ```
 
-TODO: this needs a git commit again
+(This promotion is a real change to the repo and gets committed in the
+next step — see §4.9. If you'd already committed the `config_DRAFT.yaml`
+as a checkpoint, the rename is its own commit; don't leave both the DRAFT
+and the live `config.yaml` floating in history.)
 
 Then run the fast-iteration form:
 
@@ -471,26 +537,46 @@ If it fails, read the error message; common ones:
 - `ValueError` about `shortLabel` — must be lowercase letters, digits,
   and underscores only.
 
-TODO: if data files are missing, perhaps they exist on the server (e.g., the
-homology file)
-
-TODO: skip to the recommended alternative (letting claude commit for you) by
-default
-
-If the loader passes, **sanity-check biology** before signing off. The
-pattern Johannes uses is to ask Claude to confirm a known biological
-result recapitulates — for an ASD postmortem-cortex dataset, for
-instance, "PVALB should be down, GFAP up". For other datasets the
-check is different. Whatever the dataset's headline result is, verify
-your loaded data agrees with it before treating it as done.
-
 If you can't resolve a column's meaning or units, **rename
 `config.yaml` back to `config_DRAFT.yaml`** and call out the open
 question at the top of the file. We don't ship datasets we don't
 understand — better to leave the ticket open than to publish wrong
 data.
 
-### 4.8 Commit your work
+### 4.9 Commit your work
+
+The Claude session you've been chatting with already knows what work it
+just did, what files changed, and what convention `CLAUDE.md` says commit
+messages should follow. **The recommended path is to let Claude draft the
+commit for you:**
+
+> ```
+> Please commit the dataset work. Use our commit convention (PMID line,
+> source citation line, one-line biology check) and put the ticket number
+> (#142) in the commit TITLE. Stage only config.yaml, preprocess.py,
+> makeDoc.txt, and the .gitignore — do NOT stage the raw download,
+> results.tsv, or the (gitignored) *.preprocessing.yaml sidecar. Show me
+> the message and the staged file list before running `git commit`.
+> ```
+
+Claude will run `git status` and `git diff --staged` itself, draft a
+message, and (if you've granted it permission to run `git commit`) ask
+before actually committing. This saves typing and produces more
+consistent messages — but **always read the proposed message and the
+list of staged files before approving**. Claude is not infallible; it
+sometimes wants to stage a file that should be gitignored, or omits the
+PMID, or forgets the `(#NN)`. The two-second sanity check is worth it.
+
+> **⚠️ The `(#NN)` ticket number MUST be in the commit *title*.** GitHub
+> uses it to link the commit back to the ticket — e.g.
+> `Add Smith 2026 ASD cortex dataset (#142)`. This is not optional. If
+> Claude's drafted title is missing it, have it redo the message.
+
+If you'd rather Claude only stages the files and leaves the actual commit
+to you, swap the last line for *"stage the files but don't commit; I'll
+write the message myself."*
+
+**Manual fallback.** If you want to do it by hand:
 
 ```bash
 git status                  # see what changed
@@ -501,8 +587,6 @@ git add data/datasets/<your-dataset>/config.yaml \
 git status                  # confirm — should NOT include the raw download, results.tsv, or the *.preprocessing.yaml sidecar (all gitignored)
 git commit
 ```
-
-TODO: note prominently that we want the ticket number in the commit message
 
 Your editor opens for the commit message. The convention (from real
 recent commits) is:
@@ -517,18 +601,6 @@ Verified via single-dataset load-db; <one-line biology check that
 recapitulates>.
 ```
 
-TODO claude verification pass after first pass
-
-TODO inspect dataset on server
-
-TODO tooltip length
-
-TODO always run a recursive chmod o+w on the remote directories after doing
-anything (deploy should do this automatically)
-
-The `#142` at the end of the **title line** is important — GitHub
-uses it to link the commit to the ticket.
-
 What we **don't** commit:
 
 - Raw download files (Excel, large CSVs).
@@ -539,65 +611,42 @@ What we **don't** commit:
 If you accidentally added something you shouldn't have, unstage with
 `git restore --staged path/to/file`.
 
-#### Recommended alternative — let Claude commit for you
+### 4.10 Rebase onto current `main`
 
-The Claude session you've been chatting with already knows what work it
-just did, what files changed, and what convention `CLAUDE.md` says commit
-messages should follow. So instead of typing the `git add` / `git commit`
-dance by hand, you can just ask:
-
-> ```
-> Please commit the dataset work. Use our commit convention (PMID line,
-> source citation line, one-line biology check). Stage only config.yaml,
-> preprocess.py, makeDoc.txt, and the .gitignore — do NOT stage the raw
-> download, results.tsv, or the (gitignored) *.preprocessing.yaml sidecar.
-> Show me the message before running `git commit`.
-> ```
-
-Claude will then run `git status` and `git diff --staged` itself, draft
-a message, and (if you've granted it permission to run `git commit`) ask
-before actually committing. This saves you typing and produces more
-consistent messages — but **always read the proposed message and the
-list of staged files before approving**. Claude is not infallible; it
-sometimes wants to stage a file that should be gitignored, or omits the
-PMID. The two-second sanity check is worth it.
-
-If you'd rather Claude only does the staging and leaves the actual commit
-to you, swap the last line for *"stage the files but don't commit; I'll
-write the message myself"* — fine pattern too.
-
-### 4.9 Rebase onto current `main`
-
-While you were working, others may have pushed changes to `main`. You
-need to replay your commits on top of theirs *before* you can merge:
-
-TODO: let's just switch to main, git pull, then switch to the branch again, and
-rebase on the local main. This is less complicated mentally
+While you were working, others may have landed changes on `main`. You
+need to replay your commits on top of theirs *before* you can merge. The
+simplest way to think about it: **refresh your local `main`, then rebase
+your branch onto it.**
 
 ```bash
-git fetch origin main
-git rebase origin/main
+git checkout main
+git pull                                  # update local main
+git checkout dataset-142-smith-2026       # back to your branch
+git rebase main                           # replay your commits on top of main
 ```
-
-TODO: instead of the below, just write, instead of conflicts, let claude analyze
-the situation and resolve with the other wranglers how to continue if necessary
 
 Two things can happen:
 
 - **No conflicts:** rebase finishes silently. You're done.
-- **Conflicts:** git stops and tells you which file. Open it in
-  VSCode, find the `<<<<<<<` and `>>>>>>>` markers, pick the right
-  resolution, save, then:
+- **Conflicts:** git stops and tells you which file. **Don't hand-resolve
+  the `<<<<<<<` markers yourself** — let Claude analyze the conflict and
+  propose a resolution:
 
-  ```bash
-  git add path/to/file
-  git rebase --continue
-  ```
+  > ```
+  > A git rebase stopped on a merge conflict in <file>. Please look at
+  > both sides of the conflict and explain what each change is doing, then
+  > propose how to resolve it. Don't run git add / git rebase --continue
+  > until I've agreed.
+  > ```
 
-  If you get hopelessly stuck, `git rebase --abort` puts you back
-  where you started — no harm done. Then ping in chat for help.
+  If the conflict touches someone else's work and the right resolution
+  isn't obvious, **coordinate with the other wrangler** (and Johannes)
+  before continuing — better to ask than to silently clobber their edit.
 
-### 4.10 Merge to `main` with `--ff-only`
+  If you get hopelessly stuck, `git rebase --abort` puts you back where
+  you started — no harm done. Then ping in chat for help.
+
+### 4.11 Merge to `main` with `--ff-only`
 
 ```bash
 git checkout main
@@ -607,7 +656,7 @@ git merge --ff-only dataset-142-smith-2026
 `--ff-only` means: "only let this merge happen if it's just a
 fast-forward of `main` to my branch's tip." If git refuses with "Not
 possible to fast-forward, aborting", it means you didn't rebase — go
-back to step 4.9 and rebase.
+back to step 4.10 and rebase.
 
 > **Why the rebase + `--ff-only` discipline?** It keeps `main`'s
 > history linear. Linear history makes `git log`, `git bisect`, and
@@ -615,7 +664,7 @@ back to step 4.9 and rebase.
 > tangle of merge commits. The whole team relies on this — please
 > follow it.
 
-### 4.11 Push to GitHub
+### 4.12 Push to GitHub
 
 ```bash
 git push origin main
@@ -628,18 +677,32 @@ git pull --rebase
 git push origin main
 ```
 
-### 4.12 Comment on the ticket
+(Your feature branch stays on GitHub too — we **keep branches around**,
+we don't delete them after merging. If you want the remote branch to
+reflect the rebased commits, `git push -f origin dataset-142-smith-2026`,
+but that's optional.)
+
+### 4.13 Comment on the ticket
 
 After pushing, leave a comment with the commit hash and a structured
 summary. **Don't close the ticket yet** — dataset tickets stay open
-until you've pushed through to prod and verified the live site. You'll
-close it yourself in Section 6.
+until you've pushed through to its live instance and verified the site.
+You'll close it in Section 6.
 
-TODO: don't forget to comment in the browser, not on the command line. Or in
-fact, better ask Claude to comment
+Do this **in the browser** on the ticket page — or, easier, **ask Claude
+to draft (or post) the comment**, since it already has all the details:
 
-```bash
-gh issue comment 142 --repo sspsygene-dracc/psypheno --body "$(cat <<'EOF'
+> ```
+> Draft a ticket comment for #142 summarizing what we landed: the commit
+> hash, the dataset directory, the source citation (DOI / PMID / supp
+> table), the row count, anything we deliberately skipped and why, any
+> "interpreted by analogy" calls, and a "pending dev verify" note. I'll
+> paste it into the GitHub web UI.
+> ```
+
+A good comment looks like:
+
+```
 Landed in <commit-hash>.
 
 - Dataset directory: `data/datasets/<your-dataset>/`
@@ -652,23 +715,9 @@ Landed in <commit-hash>.
   judgment call that should be revisited later, or "none">
 
 Pending: deploy through dev/int/prod.
-EOF
-)"
 ```
 
-(Replace `<commit-hash>` with the real hash — `git log -1 --format=%h`.)
-
-### 4.13 Clean up your local branch (optional)
-
-TODO: let's remove the cleaning up the branch stuff
-
-Once your changes are on `main`, the feature branch is dead weight:
-
-```bash
-git branch -d dataset-142-smith-2026
-```
-
-(`-d` will refuse if the branch isn't merged — that's a safety check.)
+(Get the real short hash with `git log -1 --format=%h`.)
 
 ---
 
@@ -744,7 +793,7 @@ This pushes `main` to GitHub if you haven't already, `git pull`s on the
 dev server, and rebuilds the dev SQLite DB; the running web process
 auto-detects the new file. Takes a few minutes — the full rebuild runs
 the indexing + meta-analysis steps that the fast-iteration recipe in
-Section 4.7 deliberately skipped.
+Section 4.8 deliberately skipped.
 
 > **One-time SSH setup:** the deploy's `git pull` runs *on* psygene and
 > authenticates to GitHub from there, so psygene needs your GitHub key —
@@ -754,16 +803,22 @@ Section 4.7 deliberately skipped.
 > silently / asks for a password" problem. If `deploy` errors with
 > `Permission denied (publickey)`, that's the section to read.
 
-**Step 3 — verify on the dev site.** Open
-https://psypheno-dev.gi.ucsc.edu and check:
+**Step 3 — inspect the dataset on the dev site.** This is a required
+verification step, not a glance — broken data slips through here if you
+skip it. Open https://psypheno-dev.gi.ucsc.edu and check:
 
 - Your dataset shows up where it should — gene pages, the full-dataset
   table view, the dataset list.
 - Column headers and tooltips read sensibly. Hover a header; the
-  `fieldLabel` you wrote should appear.
+  `fieldLabel` you wrote should appear, and it should read cleanly.
 - A handful of representative genes (the paper's headline hits) carry
   the values you expect.
-- The dataset's headline biology recapitulates on the live site.
+- The dataset's headline biology recapitulates on the live site (same
+  check you ran locally in §4.7 — confirm it survived the full build).
+
+If you want a second pair of eyes, you can ask Claude to hit the dev
+API and cross-check counts/values against the paper for you — but you
+should still look at the rendered pages yourself.
 
 If something is off, fix it locally, commit, push, re-run `sspsygene
 rsync-dataset <your-dataset> --instance dev`, and re-run `sspsygene
@@ -840,7 +895,7 @@ Full reference: [docs/development.md](../development.md) → "CLI Reference".
 
 **A couple of things to keep in mind:**
 
-- **Always check the dev site first.** dev is where you catch the
+- **Always inspect the dev site first.** dev is where you catch the
   loader misreading a column or a tooltip rendering wrong. Going
   straight to int or prod without that step is how broken data ends
   up on a live site.
@@ -849,14 +904,11 @@ Full reference: [docs/development.md](../development.md) → "CLI Reference".
   to fix something, fix the loader inputs locally, commit, and
   redeploy.
 
-Once the dataset is live where it belongs, leave a final comment on
-the GitHub issue and close it:
-
-```bash
-gh issue comment 142 --repo sspsygene-dracc/psypheno \
-    --body "Live on int as of <commit-hash>."   # or "on prod" / "on int + prod"
-gh issue close 142 --repo sspsygene-dracc/psypheno
-```
+Once the dataset is live where it belongs, leave a final comment on the
+GitHub issue (in the browser) and **close it there** — click **Close
+issue** at the bottom of the ticket. A final comment like
+`Live on int as of <commit-hash>.` (or "on prod" / "on int + prod")
+before closing keeps the record clear.
 
 If a dataset is later moved from int to prod (or vice versa), reopen
 the ticket, redeploy, and close it again.
@@ -866,16 +918,16 @@ the ticket, redeploy, and close it again.
 ## 7. Try it on a real ticket — group exercise (20 min)
 
 Each of you picks a *different* open `dataset` ticket from the queue
-and walks through 4.1–4.8 (pick → assign → branch → Claude → review →
-preprocess → load-db test → commit). Pair up if you'd rather, or solo.
-Johannes circulates and unblocks.
+and walks through 4.1–4.9 (pick → assign → branch → download → Claude →
+review → preprocess → load-db test → commit). Pair up if you'd rather,
+or solo. Johannes circulates and unblocks.
 
-We'll do 4.9–4.13 (rebase, merge, push, comment) **once everyone is at
+We'll do 4.10–4.13 (rebase, merge, push, comment) **once everyone is at
 "I have a commit"** — rebasing and merging are easier as a group when
 several branches need to land.
 
 Once everyone's pushed to `main`, we'll also walk through Section 5
-together — rsync, dev deploy, verify on the dev site. Section 6
+together — rsync, dev deploy, inspect on the dev site. Section 6
 (publish to int and/or prod) you can do at your desk afterward, or
 now if we still have time and you're confident about where the
 dataset belongs.
@@ -974,27 +1026,27 @@ slow and clean when you're about to deploy.
 
 ## Cheat sheet (one-page reference)
 
-| What | Command |
+| What | How |
 |------|---------|
-| Read a ticket | `gh issue view NN --repo sspsygene-dracc/psypheno` |
-| Assign yourself | `gh issue edit NN --repo sspsygene-dracc/psypheno --add-assignee YOUR_HANDLE` |
-| Start a branch | `git checkout main && git pull && git checkout -b dataset-NN-<name>` |
+| Read a ticket | GitHub website → open the issue |
+| Assign yourself | GitHub website → **Assignees** sidebar → your handle |
+| Start a branch | `git checkout main && git pull && git checkout -b dataset-NN-<name> && git push -u origin dataset-NN-<name>` |
+| Prep dataset dir | `mkdir -p data/datasets/<name>/`, download paper + supp + data into it |
 | Launch Claude | `claude` |
-| Stage files | `git add <file>` |
-| Commit | `git commit` (then write a multi-line message) |
-| Rebase onto `main` | `git fetch origin main && git rebase origin/main` |
+| Run preprocess | ask Claude to run `preprocess.py`, fix errors, sanity-check output |
+| Stage + commit | ask Claude to commit (read the message + staged files first); manual: `git add <file> && git commit` |
+| Rebase onto `main` | `git checkout main && git pull && git checkout <branch> && git rebase main` |
 | Merge to `main` | `git checkout main && git merge --ff-only <branch>` |
 | Push | `git push origin main` |
-| Comment on ticket | `gh issue comment NN --repo sspsygene-dracc/psypheno --body "..."` |
+| Comment on ticket | GitHub website (or ask Claude to draft/post) |
 | Single-dataset rebuild | `sspsygene load-db --dataset NAME --no-index --skip-meta-analysis` |
 | Full rebuild (pre-deploy) | `sspsygene load-db` |
-| Rsync data to dev | `rsync -av data/datasets/NAME/ hgwdev:/hive/groups/SSPsyGene/sspsygene_website_dev/data/datasets/NAME/` |
+| Rsync data to dev | `sspsygene rsync-dataset NAME --instance dev` |
 | Rebuild dev DB | `sspsygene deploy --instances dev --load-db` |
 | Publish to int (internal / embargoed) | `sspsygene deploy --instances int --load-db` |
 | Publish to prod (public, after dev verify) | `sspsygene promote-dev-to-prod` |
-| Close ticket once live | `gh issue close NN --repo sspsygene-dracc/psypheno` |
+| Close ticket once live | GitHub website → **Close issue** |
 | List branches | `git branch` |
-| Delete merged branch | `git branch -d <branch>` |
 | Promote DRAFT | `mv config_DRAFT.yaml config.yaml` |
 | Demote to DRAFT | `mv config.yaml config_DRAFT.yaml` |
 
@@ -1011,3 +1063,5 @@ slow and clean when you're about to deploy.
   update it. This file is a living reference, not a one-shot.
 
 — Johannes
+</content>
+</invoke>
