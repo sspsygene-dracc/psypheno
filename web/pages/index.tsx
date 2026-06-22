@@ -6,6 +6,10 @@ import GeneResults from "@/components/GeneResults";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import InfoTooltip from "@/components/InfoTooltip";
+import DatasetRestrictor, {
+  type DatasetRestriction,
+  EMPTY_RESTRICTION,
+} from "@/components/DatasetRestrictor";
 import { TableResult } from "@/lib/table_result";
 import {
   SearchSuggestion,
@@ -23,6 +27,31 @@ export default function Home() {
     Record<string, string>
   >({});
   const hydratedFromQuery = useRef<boolean>(false);
+
+  // Dataset restrictor (#191): assay / condition / organism filter shared with
+  // /most-significant. `available*` come from the datasets that have data for
+  // the queried gene (computed server-side, pre-filter), so the chips reflect
+  // what the gene actually has — not the global set.
+  const [restriction, setRestriction] =
+    useState<DatasetRestriction>(EMPTY_RESTRICTION);
+  const restrictionHydrated = useRef<boolean>(false);
+  const [availableAssays, setAvailableAssays] = useState<string[]>([]);
+  const [availableConditions, setAvailableConditions] = useState<string[]>([]);
+  const [availableOrganisms, setAvailableOrganisms] = useState<string[]>([]);
+  const [conditionTypeLabels, setConditionTypeLabels] = useState<
+    Record<string, string>
+  >({});
+  const [organismTypeLabels, setOrganismTypeLabels] = useState<
+    Record<string, string>
+  >({});
+  const hasActiveRestriction =
+    restriction.assay != null ||
+    restriction.condition != null ||
+    restriction.organism != null;
+  const hasRestrictorOptions =
+    availableAssays.length > 0 ||
+    availableConditions.length > 0 ||
+    availableOrganisms.length > 0;
 
   useEffect(() => {
     fetch("/api/assay-types")
@@ -66,6 +95,19 @@ export default function Home() {
     typeof router.query.perturbed === "string" ? router.query.perturbed : null;
   const qTarget =
     typeof router.query.target === "string" ? router.query.target : null;
+
+  // Hydrate the restrictor from the URL once on first load (synchronous, so it
+  // doesn't need to share the async gene-resolution effect below).
+  useEffect(() => {
+    if (!router.isReady || restrictionHydrated.current) return;
+    restrictionHydrated.current = true;
+    const q = router.query;
+    setRestriction({
+      assay: typeof q.assay === "string" ? q.assay : null,
+      condition: typeof q.condition === "string" ? q.condition : null,
+      organism: typeof q.organism === "string" ? q.organism : null,
+    });
+  }, [router.isReady, router.query]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -120,6 +162,9 @@ export default function Home() {
     const nextQuery: Record<string, string> = {};
     if (perturbed?.humanSymbol) nextQuery.perturbed = perturbed.humanSymbol;
     if (target?.humanSymbol) nextQuery.target = target.humanSymbol;
+    if (restriction.assay) nextQuery.assay = restriction.assay;
+    if (restriction.condition) nextQuery.condition = restriction.condition;
+    if (restriction.organism) nextQuery.organism = restriction.organism;
 
     const curr = router.query as Record<string, any>;
     const keys = new Set([...Object.keys(curr), ...Object.keys(nextQuery)]);
@@ -137,12 +182,15 @@ export default function Home() {
     router.replace({ pathname: router.pathname, query: nextQuery }, undefined, {
       shallow: true,
     });
-  }, [perturbed, target, router.isReady]);
+  }, [perturbed, target, restriction, router.isReady]);
 
   useEffect(() => {
     const fetchPair = async () => {
       if (!perturbed && !target) {
         setPairData([]);
+        setAvailableAssays([]);
+        setAvailableConditions([]);
+        setAvailableOrganisms([]);
         return;
       }
       setLoading(true);
@@ -155,12 +203,32 @@ export default function Home() {
           body: JSON.stringify({
             perturbedCentralGeneId: perturbed?.centralGeneId || null,
             targetCentralGeneId: target?.centralGeneId || null,
+            assay: restriction.assay,
+            condition: restriction.condition,
+            organism: restriction.organism,
           }),
         });
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const payload = await res.json();
         const results = Array.isArray(payload.results) ? payload.results : [];
         setPairData(results);
+        setAvailableAssays(
+          Array.isArray(payload.availableAssays) ? payload.availableAssays : [],
+        );
+        setAvailableConditions(
+          Array.isArray(payload.availableConditions)
+            ? payload.availableConditions
+            : [],
+        );
+        setAvailableOrganisms(
+          Array.isArray(payload.availableOrganisms)
+            ? payload.availableOrganisms
+            : [],
+        );
+        if (payload.conditionTypeLabels)
+          setConditionTypeLabels(payload.conditionTypeLabels);
+        if (payload.organismTypeLabels)
+          setOrganismTypeLabels(payload.organismTypeLabels);
       } catch (e: any) {
         setError(e?.message || "Failed to load data");
       } finally {
@@ -168,7 +236,7 @@ export default function Home() {
       }
     };
     fetchPair();
-  }, [perturbed, target]);
+  }, [perturbed, target, restriction]);
 
   const showResults = perturbed != null || target != null;
 
@@ -521,13 +589,97 @@ export default function Home() {
               <div style={{ width: "100%" }}>
                 {maybeLoading}
                 {!loading && !error && (
-                  <GeneResults
-                    geneDisplayName={displayGeneString()}
-                    data={pairData}
-                    assayTypeLabels={assayTypeLabels}
-                    perturbedGene={perturbed}
-                    targetGene={target}
-                  />
+                  <>
+                    {hasRestrictorOptions && (
+                      <div
+                        style={{
+                          width: "min(1100px, 96%)",
+                          margin: "24px auto 0",
+                          boxSizing: "border-box",
+                          background: "#f9fafb",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 12,
+                          padding: "10px 14px",
+                          fontSize: 13,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <span
+                            style={{ fontWeight: 600, color: "#374151" }}
+                          >
+                            Restrict to datasets
+                          </span>
+                          <InfoTooltip
+                            size={13}
+                            text="Limit the results below to datasets matching the selected assay, condition, and/or organism. Options reflect what this gene actually has data for."
+                          />
+                          {hasActiveRestriction && (
+                            <button
+                              type="button"
+                              onClick={() => setRestriction(EMPTY_RESTRICTION)}
+                              style={{
+                                marginLeft: "auto",
+                                padding: "2px 8px",
+                                fontSize: 12,
+                                background: "#fff",
+                                border: "1px solid #d1d5db",
+                                borderRadius: 4,
+                                cursor: "pointer",
+                                color: "#6b7280",
+                              }}
+                            >
+                              Clear restrictions
+                            </button>
+                          )}
+                        </div>
+                        <DatasetRestrictor
+                          availableAssays={availableAssays}
+                          availableConditions={availableConditions}
+                          availableOrganisms={availableOrganisms}
+                          assayTypeLabels={assayTypeLabels}
+                          conditionTypeLabels={conditionTypeLabels}
+                          organismTypeLabels={organismTypeLabels}
+                          value={restriction}
+                          onChange={setRestriction}
+                          idPrefix="home-restrictor"
+                        />
+                      </div>
+                    )}
+                    {hasActiveRestriction && pairData.length === 0 ? (
+                      <div
+                        style={{
+                          width: "min(1100px, 96%)",
+                          margin: "20px auto 0",
+                          boxSizing: "border-box",
+                          padding: "16px 20px",
+                          background: "#fef3c7",
+                          border: "1px solid #fcd34d",
+                          borderRadius: 8,
+                          color: "#92400e",
+                          fontSize: 14,
+                        }}
+                      >
+                        No datasets match these filters — try expanding.
+                      </div>
+                    ) : (
+                      <GeneResults
+                        geneDisplayName={displayGeneString()}
+                        data={pairData}
+                        assayTypeLabels={assayTypeLabels}
+                        perturbedGene={perturbed}
+                        targetGene={target}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             )}

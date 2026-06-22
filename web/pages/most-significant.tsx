@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import InfoTooltip from "@/components/InfoTooltip";
 import DoubleScrollX from "@/components/DoubleScrollX";
+import DatasetRestrictor from "@/components/DatasetRestrictor";
 
 const PAGE_SIZE = 10;
 const NUM_COLS = 6; // rank, gene, pvalue, tables, pvalues, gene info
@@ -746,150 +747,26 @@ export default function MostSignificantPage() {
                     Down-regulated
                   </label>
                 </div>
-                {availableAssays.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 14,
-                      flexWrap: "wrap",
-                      marginBottom:
-                        availableConditions.length > 0 ||
-                        availableOrganisms.length > 0
-                          ? 8
-                          : 0,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        color: "#374151",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Assay type:
-                    </span>
-                    <label style={radioLabelStyle}>
-                      <input
-                        type="radio"
-                        name="assayFilter"
-                        checked={assayFilter === null}
-                        onChange={() => {
-                          setAssayFilter(null);
-                          setPage(1);
-                        }}
-                      />
-                      All
-                    </label>
-                    {availableAssays.map((key) => (
-                      <label key={key} style={radioLabelStyle}>
-                        <input
-                          type="radio"
-                          name="assayFilter"
-                          checked={assayFilter === key}
-                          onChange={() => {
-                            setAssayFilter(key);
-                            setPage(1);
-                          }}
-                        />
-                        {assayTypeLabels[key] || key}
-                      </label>
-                    ))}
-                  </div>
-                )}
-                {availableConditions.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 14,
-                      flexWrap: "wrap",
-                      marginBottom: availableOrganisms.length > 0 ? 8 : 0,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        color: "#374151",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Condition:
-                    </span>
-                    <label style={radioLabelStyle}>
-                      <input
-                        type="radio"
-                        name="conditionFilter"
-                        checked={conditionFilter === null}
-                        onChange={() => {
-                          setConditionFilter(null);
-                          setPage(1);
-                        }}
-                      />
-                      All
-                    </label>
-                    {availableConditions.map((key) => (
-                      <label key={key} style={radioLabelStyle}>
-                        <input
-                          type="radio"
-                          name="conditionFilter"
-                          checked={conditionFilter === key}
-                          onChange={() => {
-                            setConditionFilter(key);
-                            setPage(1);
-                          }}
-                        />
-                        {conditionTypeLabels[key] || key}
-                      </label>
-                    ))}
-                  </div>
-                )}
-                {availableOrganisms.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 14,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        color: "#374151",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Organism:
-                    </span>
-                    <label style={radioLabelStyle}>
-                      <input
-                        type="radio"
-                        name="organismFilter"
-                        checked={organismFilter === null}
-                        onChange={() => {
-                          setOrganismFilter(null);
-                          setPage(1);
-                        }}
-                      />
-                      All
-                    </label>
-                    {availableOrganisms.map((key) => (
-                      <label key={key} style={radioLabelStyle}>
-                        <input
-                          type="radio"
-                          name="organismFilter"
-                          checked={organismFilter === key}
-                          onChange={() => {
-                            setOrganismFilter(key);
-                            setPage(1);
-                          }}
-                        />
-                        {organismTypeLabels[key] || key}
-                      </label>
-                    ))}
-                  </div>
-                )}
+                <DatasetRestrictor
+                  availableAssays={availableAssays}
+                  availableConditions={availableConditions}
+                  availableOrganisms={availableOrganisms}
+                  assayTypeLabels={assayTypeLabels}
+                  conditionTypeLabels={conditionTypeLabels}
+                  organismTypeLabels={organismTypeLabels}
+                  value={{
+                    assay: assayFilter,
+                    condition: conditionFilter,
+                    organism: organismFilter,
+                  }}
+                  onChange={(next) => {
+                    setAssayFilter(next.assay);
+                    setConditionFilter(next.condition);
+                    setOrganismFilter(next.organism);
+                    setPage(1);
+                  }}
+                  idPrefix="mostsig-restrictor"
+                />
               </div>
             );
           })()}
