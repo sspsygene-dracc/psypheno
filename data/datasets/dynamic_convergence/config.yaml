@@ -62,7 +62,7 @@ tables:
       neurodevelopmental condition risk genes in neural progenitors, glutamatergic neurons, and GABAergic
       neurons. Integrates effect sizes and significance across cell types and developmental stages.
     source: "Supplemental Data 2"
-    assay: perturbation
+    assay: perturbation_deg
     condition: ["ndc"]
     fieldLabels:
       markername: "Gene symbol (the 'marker name' in METAL terminology)"

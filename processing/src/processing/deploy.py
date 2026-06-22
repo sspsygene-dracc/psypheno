@@ -595,6 +595,78 @@ def _step_deploy_site(
     )
 
 
+def _step_meta_analysis_site(
+    path: str,
+    *,
+    label: str,
+    no_r_cache: bool = False,
+    env_vars: dict[str, str] | None = None,
+) -> None:
+    """Run `sspsygene meta-analysis` on one psygene site.
+
+    Reads that site's already-built sspsygene.db and writes its sibling
+    sspsygene-meta.db via atomic swap (issue #176). No build / restart needed:
+    the web process auto-detects the new meta DB file the same way it detects a
+    rebuilt sspsygene.db (web/lib/db.ts re-stats both files). Multi-user-safe —
+    it only creates/replaces the meta DB file under the deployer's account (no
+    systemd / kill interaction), so unlike the restart step it works the same
+    for any wrangler in the protein group."""
+    click.echo(f"\n  --- meta-analysis: {label} ({path}) ---")
+    env_prefix = ""
+    if env_vars:
+        env_prefix = " ".join(f"{k}={v}" for k, v in env_vars.items()) + " "
+    flags = " --no-r-cache" if no_r_cache else ""
+    cmd = (
+        f"cd {path} && "
+        f"{CONDA_INIT} && "
+        f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} "
+        f"sspsygene meta-analysis{flags}"
+    )
+    _run_ssh(
+        PSYGENE,
+        cmd,
+        desc="sspsygene meta-analysis (this may take a while)",
+        timeout=LOAD_DB_TIMEOUT,
+        stream=True,
+    )
+
+
+def run_deploy_meta_analysis(
+    *,
+    no_push: bool = False,
+    instances: str | None = None,
+    no_r_cache: bool = False,
+) -> None:
+    """Refresh sspsygene-meta.db on the selected psygene sites (issue #176).
+
+    The meta chain is independent of the dataset/deploy chain: it pushes +
+    pulls code (so the server runs the current meta-analysis logic), then runs
+    `sspsygene meta-analysis` on each selected site against that site's existing
+    sspsygene.db. It does NOT rebuild datasets, build the web app, or restart
+    services. The maintainer invokes this on their own cadence, e.g. after a
+    batch of dataset additions has settled."""
+    selected = _resolve_instances(instances)
+    _preflight_checks()
+
+    if no_push:
+        click.secho("\n[1/3] Skipping git push (--no-push)", bold=True)
+    else:
+        _step_push()
+
+    _step_pull_all(selected)
+
+    click.secho("\n[3/3] Running meta-analysis on selected sites", bold=True)
+    for inst in selected:
+        _step_meta_analysis_site(
+            INSTANCE_PATHS[inst],
+            label=INSTANCE_LABELS[inst],
+            no_r_cache=no_r_cache,
+            env_vars=INSTANCE_ENVS[inst],
+        )
+
+    click.secho("\nMeta-analysis deployment complete!", fg="green", bold=True)
+
+
 def _step_restart_psygene(instances: list[str]) -> None:
     """Restart Next.js processes on psygene for the given instances.
 
@@ -806,6 +878,7 @@ def run_deploy(
     restart: bool | None = None,
     preprocess: bool = False,
     run_tests: bool = False,
+    include_meta_analysis: bool = False,
 ) -> None:
     """Run the full deployment pipeline.
 
@@ -852,6 +925,23 @@ def run_deploy(
             build=build,
             env_vars=INSTANCE_ENVS[inst],
         )
+
+    # Step 3c — optional convenience: refresh the separate meta DB on the same
+    # sites (issue #176). Off by default; equivalent to following this deploy
+    # with `sspsygene deploy-meta-analysis` on the same instances. Runs after
+    # load-db so it reads the freshly-built datasets.
+    if include_meta_analysis:
+        click.secho(
+            "\n[3c/5] Refreshing meta-analysis on selected sites "
+            "(--include-meta-analysis)",
+            bold=True,
+        )
+        for inst in selected:
+            _step_meta_analysis_site(
+                INSTANCE_PATHS[inst],
+                label=INSTANCE_LABELS[inst],
+                env_vars=INSTANCE_ENVS[inst],
+            )
 
     # Step 4 — restart web servers BEFORE tests so e2e hits the new build.
     # Default tracks --build: a build mints a new Next.js build ID that

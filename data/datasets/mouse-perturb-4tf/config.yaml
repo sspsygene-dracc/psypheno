@@ -53,7 +53,7 @@ tables:
       targeting Foxg1, Nr2f1, Tbr1, and Tcf4 in developing mouse cortex. Captures transcriptional changes
       across excitatory and inhibitory neuron subtypes.
     source: "Table S8"
-    assay: perturbation
+    assay: perturbation_deg
     fieldLabels:
       gene: "Mouse gene symbol (MGI) whose expression was measured (target gene)"
       logfc: "log2 fold change in expression: target-gRNA cells vs non-targeting-control cells. Positive = upregulated when perturbed. Computed by edgeR pseudobulk likelihood-ratio test per cell type."

@@ -44,7 +44,7 @@ tables:
       Module 5 is a co-expression gene module defined in Gordon et al. (2026) 
       that includes transcription factors implicated in neurodevelopmental regulation.
     source: "Supplementary Table 12"
-    assay: perturbation
+    assay: perturbation_deg
     links:
       - url: https://www.nature.com/articles/s41586-025-10047-5#data-availability
         label: Nature — data availability

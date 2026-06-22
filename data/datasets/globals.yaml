@@ -18,8 +18,21 @@ assayTypes:
   spatial: "Spatial Transcriptomics"
   behavior: "Behavioral Assays"
   perturbation: "Perturbation Screen"
+  perturbation_deg: "Perturbation Differential Expression (DEG)"
   curated: "Curated Database"
   phenotype: "Phenotype Annotation"
+
+# Assay types whose per-study p-values are comparable enough to combine in the
+# cross-study meta-analysis (/most-significant). Restricting the combination to
+# differential-expression assays keeps the combined ranking interpretable and
+# stable as non-DEG datasets (GRN edges, cell-proportion shifts, curated lists)
+# are added. See psypheno issue #187. The `perturbation_deg` assay is the subset
+# of perturbation screens that report genuine per-gene differential expression
+# (Perturb-seq / ECCITE-seq / bulk-RNA DEGs), as opposed to GRN inference or
+# cell-type abundance shifts, which stay tagged `perturbation`.
+metaAnalysisAssays:
+  - expression
+  - perturbation_deg
 
 conditionTypes:
   autism: "Autism"

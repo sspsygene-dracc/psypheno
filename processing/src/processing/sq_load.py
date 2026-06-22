@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 from pathlib import Path
@@ -571,16 +572,16 @@ def load_db(
     condition_types: dict[str, str] | None = None,
     organism_types: dict[str, str] | None = None,
     skip_missing: bool = False,
-    hgnc_path: Path | None = None,
     no_index: bool = False,
     data_dir: Path | None = None,
     skip_gene_descriptions: bool = False,
-    nimh_csv_path: Path | None = None,
-    tf_list_path: Path | None = None,
-    skip_meta_analysis: bool = False,
     test_central_gene_ids: set[int] | None = None,
-    use_r_cache: bool = True,
 ) -> None:
+    """Build the dataset SQLite DB (sspsygene.db) and atomically swap it in.
+
+    As of issue #176 this does NOT compute the combined-p-value meta-analysis.
+    That is a separate, slower-cadence step (`sspsygene meta-analysis`) that
+    reads this DB and writes its own file (sspsygene-meta.db)."""
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
 
@@ -588,13 +589,7 @@ def load_db(
     # This lets long-running readers (the web process) keep serving the old
     # inode while we build, then flip to the new one on the next stat check
     # without ever observing a missing or half-written file.
-    staging = db_name.with_name(db_name.name + ".new")
-    for p in (
-        staging,
-        staging.with_name(staging.name + "-wal"),
-        staging.with_name(staging.name + "-shm"),
-    ):
-        p.unlink(missing_ok=True)
+    staging = _staging_path(db_name)
 
     with NewSqlite3(staging, logger) as new_sqlite3:
         conn = new_sqlite3.conn
@@ -612,15 +607,6 @@ def load_db(
         load_organism_types(conn, organism_types or {})
         if data_dir and not skip_gene_descriptions:
             copy_gene_descriptions(conn, data_dir, no_index=no_index)
-        if not skip_meta_analysis:
-            compute_combined_pvalues(
-                conn,
-                hgnc_path=hgnc_path,
-                no_index=no_index,
-                nimh_csv_path=nimh_csv_path,
-                tf_list_path=tf_list_path,
-                use_r_cache=use_r_cache,
-            )
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)
 
@@ -637,6 +623,25 @@ def load_db(
             "write_exports failed — DB will be swapped without download bundles"
         )
 
+    _checkpoint_and_swap(staging, db_name)
+
+
+def _staging_path(db_name: Path) -> Path:
+    """`{db}.new` staging sibling, with any stale WAL/SHM sidecars removed."""
+    staging = db_name.with_name(db_name.name + ".new")
+    for p in (
+        staging,
+        staging.with_name(staging.name + "-wal"),
+        staging.with_name(staging.name + "-shm"),
+    ):
+        p.unlink(missing_ok=True)
+    return staging
+
+
+def _checkpoint_and_swap(staging: Path, db_name: Path) -> None:
+    """Checkpoint the staging DB to a self-contained file and atomically swap
+    it onto `db_name`. Shared by the dataset build (`load_db`) and the
+    meta-analysis build (`run_meta_analysis`)."""
     # Checkpoint WAL into the main file and switch to rollback journal mode so
     # the final file is self-contained — no -wal/-shm sidecars needed by readers.
     with sqlite3.connect(staging) as swap_conn:
@@ -660,3 +665,97 @@ def load_db(
         db_name.with_name(db_name.name + "-shm"),
     ):
         old_sidecar.unlink(missing_ok=True)
+
+
+# Schema version of the meta DB layout. Bump if the combined_pvalue_groups /
+# per-group table shape changes in a way the web app must notice.
+META_SCHEMA_VERSION = "1"
+
+
+def _write_meta_analysis_info(
+    conn: sqlite3.Connection,
+    main_db: Path,
+    deg_assays: set[str] | None,
+) -> None:
+    """Record provenance + a fingerprint of the source dataset DB into the meta
+    DB, so the web app can detect when the meta-analysis has drifted from the
+    underlying datasets and show a stale-meta banner (issue #176).
+
+    The fingerprint is the source DB's (mtime, size) at meta-build time. The
+    dataset build's atomic swap mints a fresh inode + mtime on every `load-db`,
+    so any dataset rebuild bumps the fingerprint and marks the meta as stale
+    until `meta-analysis` is re-run. This is an advisory signal, not a hard
+    consistency guarantee — the banner never blocks rendering."""
+    st = main_db.stat()
+    built_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    info: dict[str, str] = {
+        "schema_version": META_SCHEMA_VERSION,
+        "built_at": built_at,
+        "source_db_mtime": repr(st.st_mtime),
+        "source_db_size": str(st.st_size),
+        "meta_assays": ",".join(sorted(deg_assays)) if deg_assays else "",
+    }
+    conn.execute(
+        "CREATE TABLE meta_analysis_info (key TEXT PRIMARY KEY, value TEXT)"
+    )
+    conn.executemany(
+        "INSERT INTO meta_analysis_info (key, value) VALUES (?, ?)",
+        list(info.items()),
+    )
+    conn.commit()
+
+
+def run_meta_analysis(
+    main_db: Path,
+    meta_db: Path,
+    *,
+    hgnc_path: Path | None = None,
+    no_index: bool = False,
+    nimh_csv_path: Path | None = None,
+    tf_list_path: Path | None = None,
+    use_r_cache: bool = True,
+    deg_assays: set[str] | None = None,
+) -> None:
+    """Compute the combined-p-value meta-analysis into a standalone meta DB.
+
+    Reads the already-built dataset DB at `main_db` (ATTACHed read-only as
+    `src`), computes the combined p-values restricted to `deg_assays`, and
+    atomically swaps the result onto `meta_db`. Never touches `main_db`.
+
+    The dataset DB must already exist — this is the second of the two
+    independent command chains in issue #176 (`load-db` then `meta-analysis`)."""
+    logger = logging.getLogger(__name__)
+    if not main_db.exists():
+        raise ValueError(
+            f"Dataset DB not found at {main_db}; run `sspsygene load-db` first."
+        )
+    meta_db.parent.mkdir(parents=True, exist_ok=True)
+    staging = _staging_path(meta_db)
+
+    with NewSqlite3(staging, logger) as new_sqlite3:
+        conn = new_sqlite3.conn
+        # ATTACH the dataset DB read-only so the meta build can read its tables
+        # without ever locking or mutating the file the web app serves. URI
+        # attach is honored because NewSqlite3 opens the connection with uri=True.
+        conn.execute(f"ATTACH DATABASE 'file:{main_db}?mode=ro' AS src")
+        compute_combined_pvalues(
+            conn,
+            hgnc_path=hgnc_path,
+            no_index=no_index,
+            nimh_csv_path=nimh_csv_path,
+            tf_list_path=tf_list_path,
+            use_r_cache=use_r_cache,
+            src_schema="src",
+            deg_assays=deg_assays,
+        )
+        _write_meta_analysis_info(conn, main_db, deg_assays)
+        # Detach before the context manager's PRAGMA optimize / commit so those
+        # never reach across into the read-only source DB.
+        conn.execute("DETACH DATABASE src")
+
+    _checkpoint_and_swap(staging, meta_db)
+    click.echo(
+        click.style(
+            f"Wrote meta-analysis to {meta_db}", fg="green", bold=True
+        )
+    )

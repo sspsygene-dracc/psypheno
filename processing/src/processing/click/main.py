@@ -74,15 +74,16 @@ def cli(
     "--skip-meta-analysis",
     is_flag=True,
     default=False,
-    help="Skip computing combined p-values (meta-analysis). Speeds up loading for test purposes.",
+    help="DEPRECATED no-op. As of issue #176, load-db never computes the "
+    "meta-analysis; it is a separate command (`sspsygene meta-analysis`). "
+    "Accepted for backwards compatibility with existing scripts.",
 )
 @click.option(
     "--no-r-cache",
     is_flag=True,
     default=False,
-    help="Bypass the R meta-analysis result cache (processing/r-cache/). "
-    "Forces every R job to re-run; useful when iterating on the R script "
-    "before its bytes change.",
+    help="DEPRECATED no-op on load-db (meta-analysis moved to its own "
+    "command). Use `sspsygene meta-analysis --no-r-cache`.",
 )
 @click.option(
     "--export-only",
@@ -113,6 +114,12 @@ def load_db(
     test_mode: bool,
 ) -> None:
     """Load the database"""
+    if skip_meta_analysis or no_r_cache:
+        click.echo(
+            "Note: --skip-meta-analysis / --no-r-cache are no-ops on load-db "
+            "as of #176 — meta-analysis is now `sspsygene meta-analysis`.",
+            err=True,
+        )
     try:
         from processing.sq_load import load_db
 
@@ -156,15 +163,65 @@ def load_db(
             condition_types=config.global_config.get("conditionTypes", {}),
             organism_types=config.global_config.get("organismTypes", {}),
             skip_missing=skip_missing_datasets,
-            hgnc_path=config.gene_map_config.hgnc_file,
             no_index=no_index,
             data_dir=config.base_dir,
             skip_gene_descriptions=skip_gene_descriptions,
+            test_central_gene_ids=test_central_gene_ids,
+        )
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command(name="meta-analysis")
+@click.option(
+    "--no-index",
+    is_flag=True,
+    default=False,
+    help="Skip creating SQLite indexes on the per-group combined-pvalue "
+    "tables. Speeds up the build for test purposes.",
+)
+@click.option(
+    "--no-r-cache",
+    is_flag=True,
+    default=False,
+    help="Bypass the R meta-analysis result cache (processing/r-cache/). "
+    "Forces every R job to re-run; useful when iterating on the R script "
+    "before its bytes change.",
+)
+def meta_analysis(no_index: bool, no_r_cache: bool) -> None:
+    """Compute the combined-p-value meta-analysis into sspsygene-meta.db.
+
+    Reads the already-built dataset DB (sspsygene.db) and writes a separate
+    meta DB on its own cadence (issue #176). The combination is restricted to
+    the assay types listed under `metaAnalysisAssays` in globals.yaml — the
+    differential-expression assays whose p-values are comparable (issue #187).
+    Run `sspsygene load-db` first if the dataset DB doesn't exist yet."""
+    from processing.sq_load import run_meta_analysis
+
+    try:
+        config = get_sspsygene_config()
+        meta_assays = config.global_config.get("metaAnalysisAssays")
+        deg_assays = set(meta_assays) if meta_assays else None
+        if deg_assays:
+            click.echo(
+                f"Meta-analysis assays (from globals.yaml): {sorted(deg_assays)}"
+            )
+        else:
+            click.echo(
+                "No metaAnalysisAssays configured — combining ALL p-value "
+                "tables (legacy behavior).",
+                err=True,
+            )
+        run_meta_analysis(
+            config.out_db,
+            config.meta_db,
+            hgnc_path=config.gene_map_config.hgnc_file,
+            no_index=no_index,
             nimh_csv_path=config.gene_map_config.nimh_gene_list_file,
             tf_list_path=config.gene_map_config.tf_list_file,
-            skip_meta_analysis=skip_meta_analysis,
-            test_central_gene_ids=test_central_gene_ids,
             use_r_cache=not no_r_cache,
+            deg_assays=deg_assays,
         )
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
@@ -306,6 +363,15 @@ def run_llm_search(
     "deployed code. Includes slow tests (data-correspondence) and playwright "
     "e2e against the deployed URL. Hard-aborts on first failure.",
 )
+@click.option(
+    "--include-meta-analysis",
+    is_flag=True,
+    default=False,
+    help="Also refresh the separate meta DB (sspsygene-meta.db) on each "
+    "selected site after load-db (issue #176). Off by default: the dataset "
+    "deploy and the meta-analysis are on independent cadences. Equivalent to "
+    "running `sspsygene deploy-meta-analysis` on the same instances afterward.",
+)
 def deploy(
     load_db: bool,
     no_push: bool,
@@ -314,6 +380,7 @@ def deploy(
     restart: bool | None,
     preprocess: bool,
     run_tests: bool,
+    include_meta_analysis: bool,
 ) -> None:
     """Deploy to production, dev, and internal sites on psygene."""
     from processing.deploy import run_deploy
@@ -326,6 +393,49 @@ def deploy(
         restart=restart,
         preprocess=preprocess,
         run_tests=run_tests,
+        include_meta_analysis=include_meta_analysis,
+    )
+
+
+@cli.command(name="deploy-meta-analysis")
+@click.option(
+    "--no-push",
+    is_flag=True,
+    default=False,
+    help="Skip the local git push step.",
+)
+@click.option(
+    "--instances",
+    type=str,
+    default=None,
+    help="Comma-separated subset of {dev, int, prod} to refresh meta on. "
+    "Default: all three. The three sites are independent — this refreshes "
+    "each site's sspsygene-meta.db from that site's own sspsygene.db.",
+)
+@click.option(
+    "--no-r-cache",
+    is_flag=True,
+    default=False,
+    help="Bypass the R meta-analysis result cache on the server, forcing "
+    "every R job to re-run.",
+)
+def deploy_meta_analysis(
+    no_push: bool,
+    instances: str | None,
+    no_r_cache: bool,
+) -> None:
+    """Refresh sspsygene-meta.db on psygene sites (separate from `deploy`).
+
+    Pushes + pulls code, then runs `sspsygene meta-analysis` on each selected
+    site against that site's existing sspsygene.db. Does not rebuild datasets,
+    build the web app, or restart services. Invoke on your own cadence when you
+    want the combined-p-value rankings refreshed (issue #176)."""
+    from processing.deploy import run_deploy_meta_analysis
+
+    run_deploy_meta_analysis(
+        no_push=no_push,
+        instances=instances,
+        no_r_cache=no_r_cache,
     )
 
 

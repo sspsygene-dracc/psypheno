@@ -71,6 +71,16 @@ def db_path() -> Path:
     return payload_data_dir() / "db" / "sspsygene.db"
 
 
+def meta_db_path() -> Path:
+    """Resolve the live meta-analysis DB path (#176), honoring
+    SSPSYGENE_META_DB, else the `-meta` sibling of the main DB."""
+    override = os.environ.get("SSPSYGENE_META_DB")
+    if override:
+        return Path(override)
+    main = db_path()
+    return main.with_name(f"{main.stem}-meta{main.suffix}")
+
+
 def open_db_readonly() -> sqlite3.Connection:
     """Open the live SQLite read-only. Raises if the file is missing."""
     p = db_path()

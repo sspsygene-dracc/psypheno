@@ -28,6 +28,8 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
     # The session fixture pre-creates db/ but no DB file should exist yet.
     assert not out_db.exists()
 
+    # As of #176, load_db never computes the meta-analysis (it's a separate
+    # command), so there are no hgnc_path / skip_meta_analysis params anymore.
     load_db(
         out_db,
         config.tables_config.tables,
@@ -35,11 +37,9 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
         condition_types=config.global_config.get("conditionTypes", {}),
         organism_types=config.global_config.get("organismTypes", {}),
         skip_missing=False,
-        hgnc_path=config.gene_map_config.hgnc_file,
         no_index=True,
         data_dir=config.base_dir,
         skip_gene_descriptions=True,
-        skip_meta_analysis=True,
     )
 
     assert out_db.exists()

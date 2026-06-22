@@ -73,6 +73,8 @@ class MetaAnalysisRun:
         nimh_csv_path: Path | None = None,
         tf_list_path: Path | None = None,
         use_r_cache: bool = True,
+        src_schema: str = "main",
+        deg_assays: set[str] | None = None,
     ):
         self.conn = conn
         self.hgnc_path = hgnc_path
@@ -80,6 +82,15 @@ class MetaAnalysisRun:
         self.nimh_csv_path = nimh_csv_path
         self.tf_list_path = tf_list_path
         self.use_r_cache = use_r_cache
+        # `src_schema` is the SQLite schema holding the dataset tables read from
+        # ("main" in-process, or an ATTACH alias when writing to a separate meta
+        # DB — issue #176). `deg_assays`, when set, restricts the meta-analysis
+        # to source tables whose assay is one of these keys — keeping the
+        # combined ranking interpretable across comparable (differential-
+        # expression) assays only (issue #187). None means "combine every
+        # p-value table", the legacy behavior the test suite exercises.
+        self.src_schema = src_schema
+        self.deg_assays = deg_assays
 
     # -- top-level pipeline --------------------------------------------------
 
@@ -116,11 +127,28 @@ class MetaAnalysisRun:
     # -- stages --------------------------------------------------------------
 
     def _load_source_tables(self) -> list[SourceTableRow]:
-        return self.conn.execute(
+        rows = self.conn.execute(
             "SELECT table_name, pvalue_column, link_tables, assay, condition, "
-            "organism_key, effect_column FROM data_tables "
+            f"organism_key, effect_column FROM {self.src_schema}.data_tables "
             "WHERE pvalue_column IS NOT NULL"
         ).fetchall()
+        if self.deg_assays is None:
+            return rows
+        # Keep only tables whose (comma-separated) assay set intersects the
+        # configured meta-analysis assays. Done in Python so the multi-valued
+        # assay column doesn't need to be unpacked in SQL.
+        kept = [
+            r for r in rows
+            if self.deg_assays
+            & {k.strip() for k in (r[3] or "").split(",") if k.strip()}
+        ]
+        dropped = len(rows) - len(kept)
+        click.echo(
+            f"  Restricting meta-analysis to assays "
+            f"{sorted(self.deg_assays)}: kept {len(kept)} of {len(rows)} "
+            f"p-value table(s) ({dropped} excluded)."
+        )
+        return kept
 
     def _load_gene_flagger(self) -> GeneFlagger:
         return GeneFlagger.from_db(
@@ -128,6 +156,7 @@ class MetaAnalysisRun:
             hgnc_path=self.hgnc_path,
             nimh_csv_path=self.nimh_csv_path,
             tf_list_path=self.tf_list_path,
+            src_schema=self.src_schema,
         )
 
     def _build_compute_groups(
@@ -158,6 +187,7 @@ class MetaAnalysisRun:
                     f"[direction={direction}{rlbl}] ",
                     direction=direction,
                     regulation=regulation,
+                    src_schema=self.src_schema,
                 )
         return masters
 
@@ -400,9 +430,16 @@ def compute_combined_pvalues(
     nimh_csv_path: Path | None = None,
     tf_list_path: Path | None = None,
     use_r_cache: bool = True,
+    src_schema: str = "main",
+    deg_assays: set[str] | None = None,
 ) -> None:
-    """Compute and store combined p-values per gene across all datasets,
-    then separately per assay / condition / organism (and their combinations)."""
+    """Compute and store combined p-values per gene across the meta-analysis
+    datasets, then separately per assay / condition / organism (and their
+    combinations).
+
+    `src_schema` selects where the dataset tables are read from ("main", or an
+    ATTACH alias when writing to a separate meta DB). `deg_assays`, when set,
+    restricts the combination to those assay keys (see `MetaAnalysisRun`)."""
     MetaAnalysisRun(
         conn,
         hgnc_path=hgnc_path,
@@ -410,4 +447,6 @@ def compute_combined_pvalues(
         nimh_csv_path=nimh_csv_path,
         tf_list_path=tf_list_path,
         use_r_cache=use_r_cache,
+        src_schema=src_schema,
+        deg_assays=deg_assays,
     ).run()

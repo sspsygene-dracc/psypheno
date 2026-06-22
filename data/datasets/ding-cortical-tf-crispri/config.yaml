@@ -41,7 +41,7 @@ tables:
     separator: "\t"
     organism: "Homo sapiens (primary fetal cortical RG culture)"
     organism_key: human
-    assay: perturbation
+    assay: perturbation_deg
     condition:
       - autism
       - ndc
@@ -101,7 +101,7 @@ tables:
     separator: "\t"
     organism: "Homo sapiens (primary fetal cortical RG culture)"
     organism_key: human
-    assay: perturbation
+    assay: perturbation_deg
     condition:
       - ndc
     categories:

@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getDb } from "@/lib/db";
+import { getDb, getMetaStatus } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 
 export default async function handler(
@@ -84,7 +84,7 @@ export default async function handler(
     }> = [];
     try {
       const rawGroups = db
-        .prepare("SELECT assay_filter, condition_filter, organism_filter, direction, regulation, table_name, num_source_tables FROM combined_pvalue_groups")
+        .prepare("SELECT assay_filter, condition_filter, organism_filter, direction, regulation, table_name, num_source_tables FROM meta.combined_pvalue_groups")
         .all() as Array<{
           assay_filter: string | null;
           condition_filter: string | null;
@@ -125,6 +125,10 @@ export default async function handler(
       conditionTypeLabels,
       organismTypeLabels,
       combinedPvalueGroups,
+      // Meta-analysis DB availability + freshness (#176), so /most-significant
+      // can show a "not yet computed" / "last refreshed; datasets changed
+      // since" banner without an extra round-trip.
+      meta: getMetaStatus(),
     });
   } catch (err) {
     console.error("dataset-tables-with-pvalues handler error", err);

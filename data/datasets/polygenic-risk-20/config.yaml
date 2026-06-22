@@ -54,7 +54,7 @@ tables:
       - iPSC-derived neurons
       - NGN2 induction
       - CRISPRa and RNAi knockout
-    assay: perturbation
+    assay: perturbation_deg
     condition: ["scz", "ndc"]
     pvalue_column: P.Value
     fdr_column: adj.P.Val
@@ -121,7 +121,7 @@ tables:
       - iPSC-derived neurons
       - NGN2 induction
       - CRISPRa and RNAi knockout
-    assay: perturbation
+    assay: perturbation_deg
     condition: ["scz", "ndc"]
     pvalue_column: pval
     fdr_column: padj

@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
-import { getDb } from "@/lib/db";
+import { getDb, getMetaStatus } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 
 const VALID_METHODS = ["fisher", "cauchy", "hmp"] as const;
@@ -54,11 +54,21 @@ const bodySchema = z.object({
   regulation: z.enum(["any", "up", "down"]).default("any"),
 });
 
-/** Check whether a table exists in the database. */
+/** Check whether a table exists in the main database. */
 function tableExists(db: ReturnType<typeof getDb>, name: string): boolean {
   const row = db
     .prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
+    )
+    .get(name) as { name: string } | undefined;
+  return !!row;
+}
+
+/** Check whether a table exists in the ATTACHed meta database (issue #176). */
+function metaTableExists(db: ReturnType<typeof getDb>, name: string): boolean {
+  const row = db
+    .prepare(
+      "SELECT name FROM meta.sqlite_master WHERE type='table' AND name=?"
     )
     .get(name) as { name: string } | undefined;
   return !!row;
@@ -83,6 +93,26 @@ export default async function handler(
 
   try {
     const db = getDb();
+
+    // Combined-p-value tables live in the separate, ATTACHed meta DB (#176).
+    // If it isn't present (instance hasn't run `sspsygene meta-analysis` yet),
+    // there's nothing to rank — return a clear "not computed" signal rather
+    // than 500ing on a missing table.
+    if (!getMetaStatus().attached) {
+      setReadCacheHeaders(res);
+      return res.status(200).json({
+        rows: [],
+        totalRows: 0,
+        page,
+        pageSize,
+        method,
+        metaUnavailable: true,
+        message:
+          "The cross-study meta-analysis has not been computed for this " +
+          "instance yet.",
+      });
+    }
+
     const offset = (page - 1) * pageSize;
     const hasLlm = tableExists(db, "llm_gene_results");
     const hasDesc = tableExists(db, "gene_descriptions");
@@ -90,17 +120,19 @@ export default async function handler(
     // Determine which combined p-values table to query. Every group is
     // direction-aware ("target" or "perturbed") and regulation-aware
     // ("any" / "up" / "down"); filter combinations look up the matching
-    // table via combined_pvalue_groups.
+    // table via meta.combined_pvalue_groups. Table names from the meta DB are
+    // always qualified with the `meta.` schema so they never collide with a
+    // stale same-named table in the main DB during a transitional deploy.
     const regSuffix = regulation === "any" ? "" : `_${regulation}`;
-    let cpTable = `gene_combined_pvalues_${direction}${regSuffix}`;
+    let cpTable = `meta.gene_combined_pvalues_${direction}${regSuffix}`;
     let noTable = false;
     let numSourceTables = 0;
     if (assayFilter || conditionFilter || organismFilter) {
-      const hasGroups = tableExists(db, "combined_pvalue_groups");
+      const hasGroups = metaTableExists(db, "combined_pvalue_groups");
       if (hasGroups) {
         const group = db
           .prepare(
-            `SELECT table_name, num_source_tables FROM combined_pvalue_groups
+            `SELECT table_name, num_source_tables FROM meta.combined_pvalue_groups
              WHERE assay_filter IS ? AND condition_filter IS ? AND organism_filter IS ?
              AND direction = ? AND regulation = ?`
           )
@@ -114,7 +146,7 @@ export default async function handler(
           | { table_name: string | null; num_source_tables: number }
           | undefined;
         if (group && group.table_name) {
-          cpTable = group.table_name;
+          cpTable = `meta.${group.table_name}`;
           numSourceTables = group.num_source_tables;
         } else if (group) {
           // Group exists but no table (< 2 source tables)

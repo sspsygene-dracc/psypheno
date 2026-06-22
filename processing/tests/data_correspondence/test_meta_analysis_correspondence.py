@@ -29,7 +29,28 @@ from processing.combined_pvalues.collection import collect_pvalues_for_tables
 from processing.combined_pvalues.data import CollectedPvalues
 from processing.combined_pvalues import r_runner
 
+from .helpers import meta_db_path
+
 pytestmark = pytest.mark.slow
+
+
+def _attach_meta(db: sqlite3.Connection) -> set[str]:
+    """ATTACH the meta DB (#176) as `meta`, skipping if it's missing, and
+    return the assay set the meta-analysis was built from (so the recompute
+    here mirrors the same DEG restriction). Empty set means "no restriction"."""
+    mp = meta_db_path()
+    if not mp.exists():
+        pytest.skip(f"meta DB not present at {mp} — run `sspsygene meta-analysis`")
+    db.execute(f"ATTACH DATABASE 'file:{mp}?mode=ro' AS meta")
+    try:
+        rows = db.execute(
+            "SELECT value FROM meta.meta_analysis_info WHERE key = 'meta_assays'"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return set()
+    if rows and rows[0][0]:
+        return {a.strip() for a in rows[0][0].split(",") if a.strip()}
+    return set()
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +89,7 @@ SEED = 20260505
 def _sample_gene_ids(db: sqlite3.Connection) -> list[int]:
     """Pick SAMPLE_SIZE genes that contributed to the global `target` table."""
     rows = db.execute(
-        "SELECT central_gene_id FROM gene_combined_pvalues_target "
+        "SELECT central_gene_id FROM meta.gene_combined_pvalues_target "
         "WHERE num_tables >= 2 AND fisher_pvalue IS NOT NULL"
     ).fetchall()
     ids = [r["central_gene_id"] for r in rows]
@@ -77,16 +98,26 @@ def _sample_gene_ids(db: sqlite3.Connection) -> list[int]:
     return ids[:SAMPLE_SIZE]
 
 
-def _global_target_quads(db: sqlite3.Connection):
+def _global_target_quads(db: sqlite3.Connection, deg_assays: set[str]):
     """Mirror MetaAnalysisRun._load_source_tables filtered to the 4-tuple shape
     that `collect_pvalues_for_tables` consumes.
+
+    Applies the same DEG-assay restriction the meta-analysis used (#187), so
+    the recompute draws on exactly the same source tables as the stored values.
     """
     rows = db.execute(
-        "SELECT table_name, pvalue_column, link_tables, effect_column "
+        "SELECT table_name, pvalue_column, link_tables, effect_column, assay "
         "FROM data_tables WHERE pvalue_column IS NOT NULL "
         "ORDER BY id ASC"
     ).fetchall()
-    return [(r[0], r[1], r[2], r[3]) for r in rows]
+    out = []
+    for r in rows:
+        if deg_assays:
+            assays = {a.strip() for a in (r[4] or "").split(",") if a.strip()}
+            if not (deg_assays & assays):
+                continue
+        out.append((r[0], r[1], r[2], r[3]))
+    return out
 
 
 def _restrict_to_genes(
@@ -106,6 +137,7 @@ def _restrict_to_genes(
 @requires_r
 def test_combined_pvalues_match_db(db: sqlite3.Connection) -> None:
     """End-to-end: per-table p-values + R script → DB combined p-values."""
+    deg_assays = _attach_meta(db)
     sampled_ids = _sample_gene_ids(db)
     if len(sampled_ids) < 5:
         pytest.skip(
@@ -113,7 +145,7 @@ def test_combined_pvalues_match_db(db: sqlite3.Connection) -> None:
             "gene_combined_pvalues_target — need ≥5 for a meaningful sample"
         )
 
-    quads = _global_target_quads(db)
+    quads = _global_target_quads(db, deg_assays)
     master = collect_pvalues_for_tables(db, quads, direction="target", regulation="any")
     subset = _restrict_to_genes(master, set(sampled_ids))
 
@@ -131,7 +163,7 @@ def test_combined_pvalues_match_db(db: sqlite3.Connection) -> None:
     placeholders = ",".join("?" * len(sampled_ids))
     stored_rows = db.execute(
         f"SELECT central_gene_id, fisher_pvalue, cauchy_pvalue, hmp_pvalue "
-        f"FROM gene_combined_pvalues_target "
+        f"FROM meta.gene_combined_pvalues_target "
         f"WHERE central_gene_id IN ({placeholders})",
         list(sampled_ids),
     ).fetchall()

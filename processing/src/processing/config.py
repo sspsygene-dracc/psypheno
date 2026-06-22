@@ -151,6 +151,17 @@ class Config:
             os.environ["SSPSYGENE_DATA_DIR"]
         )  # e.g., /absolute/path/to/data
         self.out_db: Path = self.base_dir / config["out_db"]
+        # Combined-p-value meta-analysis lives in a separate SQLite file built
+        # on its own cadence by `sspsygene meta-analysis` (issue #176). Defaults
+        # to a `-meta` sibling of out_db so side configs (e.g. out_db pointed at
+        # sspsygene-claude.db) get a matching sspsygene-claude-meta.db without
+        # extra plumbing; an explicit `meta_db` key in config.json overrides.
+        if "meta_db" in config:
+            self.meta_db: Path = self.base_dir / config["meta_db"]
+        else:
+            self.meta_db = self.out_db.with_name(
+                f"{self.out_db.stem}-meta{self.out_db.suffix}"
+            )
         self.gene_map_config = GeneMapConfig(self.base_dir, config["gene_map_files"])
 
         # Load global config (field labels, assay types) if specified

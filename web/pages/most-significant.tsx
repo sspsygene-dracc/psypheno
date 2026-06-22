@@ -290,6 +290,12 @@ export default function MostSignificantPage() {
     numSourceTables: number;
   };
   const [cpGroups, setCpGroups] = useState<CpGroup[]>([]);
+  // Meta-analysis DB availability + freshness (#176). null until first fetch.
+  const [metaStatus, setMetaStatus] = useState<{
+    attached: boolean;
+    stale: boolean;
+    builtAt: string | null;
+  } | null>(null);
   type DatasetTableMeta = {
     tableName: string;
     shortLabel: string | null;
@@ -425,6 +431,7 @@ export default function MostSignificantPage() {
         setOrganismTypeLabels(data.organismTypeLabels ?? {});
         setCpGroups(data.combinedPvalueGroups ?? []);
         setDatasetTables(data.tables ?? []);
+        setMetaStatus(data.meta ?? null);
       })
       .catch(() => {});
   }, []);
@@ -540,7 +547,8 @@ export default function MostSignificantPage() {
         }}
       >
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-          Gene Ranking by Cross-Study Significance Across All Datasets
+          Gene Ranking by Cross-Study Significance Across
+          Differential-Expression Studies
         </h1>
         <p
           style={{
@@ -550,8 +558,14 @@ export default function MostSignificantPage() {
           }}
         >
           This page ranks genes by their aggregate cross-study significance
-          across all assays in SSPsyGene. It identifies genes with the strongest
-          cumulative p-values across multiple experiments,
+          across the <strong>differential-expression (DEG) studies</strong> in
+          SSPsyGene — RNA-seq differential expression and perturbation
+          differential-expression assays (Perturb-seq / ECCITE-seq / bulk-RNA).
+          The combination is deliberately restricted to these comparable
+          assays, so the ranking stays interpretable and doesn&apos;t reshuffle
+          when datasets of other assay types (regulatory-network edges,
+          cell-proportion shifts, curated lists) are added. It identifies genes
+          with the strongest cumulative p-values across multiple experiments,
           highlighting candidates for follow-up analysis, cross-study
           validation, or pathway enrichment. Use the method selector below to
           compare how rankings change depending on the statistical combination
@@ -580,6 +594,62 @@ export default function MostSignificantPage() {
           </Link>{" "}
           for the exact pipeline.
         </p>
+        {/* Meta-analysis availability / freshness banner (#176). The combined
+            p-values live in a separate DB rebuilt on its own cadence, so it can
+            be missing (not yet computed for this instance) or stale (datasets
+            rebuilt since the last meta run). */}
+        {metaStatus && !metaStatus.attached && (
+          <div
+            style={{
+              marginBottom: 20,
+              padding: "12px 14px",
+              borderRadius: 8,
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#991b1b",
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+          >
+            <strong>Cross-study meta-analysis not yet computed.</strong> The
+            combined p-value rankings are unavailable for this instance until
+            the meta-analysis has been run.
+          </div>
+        )}
+        {metaStatus && metaStatus.attached && metaStatus.stale && (
+          <div
+            style={{
+              marginBottom: 20,
+              padding: "12px 14px",
+              borderRadius: 8,
+              background: "#fffbeb",
+              border: "1px solid #fde68a",
+              color: "#92400e",
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+          >
+            <strong>Rankings may be out of date.</strong> The meta-analysis was
+            last refreshed
+            {metaStatus.builtAt
+              ? ` on ${metaStatus.builtAt.slice(0, 10)}`
+              : ""}
+            , but the underlying datasets have been rebuilt since. The numbers
+            below remain usable; they&apos;ll update when the meta-analysis is
+            re-run.
+          </div>
+        )}
+        {metaStatus &&
+          metaStatus.attached &&
+          !metaStatus.stale &&
+          metaStatus.builtAt && (
+            <p
+              style={{ color: "#6b7280", fontSize: 13, marginBottom: 20 }}
+            >
+              Meta-analysis last refreshed on{" "}
+              {metaStatus.builtAt.slice(0, 10)}.
+            </p>
+          )}
         <p style={{ marginBottom: 20 }}>
           <Link
             href="/significant-rows"

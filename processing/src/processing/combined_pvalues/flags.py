@@ -165,8 +165,15 @@ class GeneFlagger:
         hgnc_path: Path | None = None,
         nimh_csv_path: Path | None = None,
         tf_list_path: Path | None = None,
+        src_schema: str = "main",
     ) -> "GeneFlagger":
-        """Load all reference data and the central_gene lookup tables."""
+        """Load all reference data and the central_gene lookup tables.
+
+        `src_schema` is the SQLite schema holding central_gene — "main" for the
+        in-process build, or the ATTACH alias (e.g. "src") when the meta-analysis
+        reads the dataset DB attached to a separate output file. See
+        `collect_pvalues_for_tables` for the full rationale.
+        """
         tf_symbols: set[str] | None = None
         if tf_list_path and tf_list_path.exists():
             tf_symbols = _load_tf_list(tf_list_path)
@@ -187,7 +194,7 @@ class GeneFlagger:
         symbol_lookup: dict[int, str] = {}
         hgnc_id_lookup: dict[int, str | None] = {}
         rows = conn.execute(
-            "SELECT id, human_symbol, hgnc_id FROM central_gene "
+            f"SELECT id, human_symbol, hgnc_id FROM {src_schema}.central_gene "
             "WHERE human_symbol IS NOT NULL"
         ).fetchall()
         for row in rows:

@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -200,29 +201,52 @@ export default function MethodsPage() {
             and produce a single aggregate p-value.
           </p>
           <p>
-            <strong>Are p-values from different assays comparable?</strong>{" "}
-            Yes. P-values have no &ldquo;unit&rdquo;. Regardless of the
-            assay (RNA-seq, behavioral testing, GWAS, etc.), a p-value is
-            always a number between 0 and 1 with the same statistical meaning.
-            Under the null hypothesis, every p-value is uniformly distributed
-            on [0,&thinsp;1], no matter where it came from. This makes them
-            inherently comparable and valid to combine across assay types.
-            Because all of our datasets fall within the broad domain of
-            neuropsychiatric research, the combined rankings answer the
-            question: <em>which genes show consistent evidence of association
-            across a range of neuropsychiatric conditions and assay
-            types?</em> Reassuringly, the top-ranked genes are well-known
-            players in brain development, many of which already cause known
-            Mendelian neurodevelopmental conditions, giving us confidence
-            that the method is working as intended.
+            <strong>What is combined?</strong> The cross-study ranking on the{" "}
+            <Link
+              href="/most-significant"
+              style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}
+            >
+              Most Significant Genes
+            </Link>{" "}
+            page combines p-values only from{" "}
+            <strong>differential-expression (DEG) studies</strong>: RNA-seq
+            differential expression (assay{" "}
+            <span style={codeStyle}>expression</span>) and
+            perturbation-based differential expression such as Perturb-seq,
+            ECCITE-seq, and bulk RNA-seq after CRISPRi/a (assay{" "}
+            <span style={codeStyle}>perturbation_deg</span>). Assays that report
+            a different kind of statistic — regulatory-network edge weights,
+            cell-type proportion shifts, behavioral readouts, or curated
+            database memberships — are <em>excluded</em> from the combination.
+          </p>
+          <p>
+            <strong>Why restrict to DEG studies?</strong> P-values are unitless
+            — under the null hypothesis every p-value is uniformly distributed
+            on [0,&thinsp;1], so they are mathematically combinable regardless
+            of origin. But a DEG p-value and, say, a regulatory-network edge
+            p-value are testing different null hypotheses, so combining them
+            doesn&apos;t have a clean interpretation, and because every
+            combined value depends on every input, adding datasets of a new
+            assay type would reshuffle the whole ranking. Restricting the
+            combination to differential-expression assays — where each p-value
+            answers the same question (&ldquo;is this gene&apos;s expression
+            changed?&rdquo;) — keeps the ranking interpretable and stable as the
+            database grows. The set of DEG assays is configured in{" "}
+            <span style={codeStyle}>globals.yaml</span> under{" "}
+            <span style={codeStyle}>metaAnalysisAssays</span>. Reassuringly, the
+            top-ranked genes are well-known players in brain development, many
+            of which already cause Mendelian neurodevelopmental conditions,
+            giving us confidence that the method is working as intended.
           </p>
           <p>The pipeline for each gene proceeds as follows:</p>
           <ol>
             <li>
-              <strong>Collect raw p-values</strong> from every dataset table
-              that declares a <span style={codeStyle}>pvalue_column</span>. A
-              single gene may contribute multiple p-values per table and across
-              many tables.
+              <strong>Collect raw p-values</strong> from every
+              differential-expression dataset table that declares a{" "}
+              <span style={codeStyle}>pvalue_column</span> (i.e. whose assay is
+              one of the configured{" "}
+              <span style={codeStyle}>metaAnalysisAssays</span>). A single gene
+              may contribute multiple p-values per table and across many tables.
               <p style={{ marginTop: 8, marginBottom: 0, fontStyle: "italic", color: "#4b5563" }}>
                 Note: this step uses the <strong>nominal (unadjusted)</strong>{" "}
                 p-value column declared by each dataset, not the per-dataset

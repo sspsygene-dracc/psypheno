@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
-import { getDb } from "@/lib/db";
+import { getDb, getMetaStatus } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 import {
   sanitizeIdentifier,
@@ -18,7 +18,9 @@ function combinedTableFor(
   regulation: "any" | "up" | "down",
 ): string {
   const suffix = regulation === "any" ? "" : `_${regulation}`;
-  return `gene_combined_pvalues_${direction}${suffix}`;
+  // Combined-p-value tables live in the ATTACHed meta DB (#176), qualified so
+  // they never resolve to a stale same-named table in the main DB.
+  return `meta.gene_combined_pvalues_${direction}${suffix}`;
 }
 
 export default async function handler(
@@ -42,24 +44,37 @@ export default async function handler(
   try {
     const db = getDb();
 
-    // Fetch pre-computed combined p-values for this direction.
-    const combined = db
-      .prepare(
-        `SELECT fisher_pvalue, fisher_fdr,
-                cauchy_pvalue, cauchy_fdr, hmp_pvalue, hmp_fdr,
-                num_tables, num_pvalues
-         FROM ${combinedTable} WHERE central_gene_id = ?`
-      )
-      .get(centralGeneId) as {
-        fisher_pvalue: number | null;
-        fisher_fdr: number | null;
-        cauchy_pvalue: number | null;
-        cauchy_fdr: number | null;
-        hmp_pvalue: number | null;
-        hmp_fdr: number | null;
-        num_tables: number;
-        num_pvalues: number;
-      } | undefined;
+    // Fetch pre-computed combined p-values for this direction from the meta DB.
+    // When meta isn't computed for this instance (or this specific
+    // direction/regulation group wasn't built), leave it null — the
+    // contributing per-dataset rows below still render.
+    type CombinedRow = {
+      fisher_pvalue: number | null;
+      fisher_fdr: number | null;
+      cauchy_pvalue: number | null;
+      cauchy_fdr: number | null;
+      hmp_pvalue: number | null;
+      hmp_fdr: number | null;
+      num_tables: number;
+      num_pvalues: number;
+    };
+    let combined: CombinedRow | undefined;
+    if (getMetaStatus().attached) {
+      try {
+        combined = db
+          .prepare(
+            `SELECT fisher_pvalue, fisher_fdr,
+                    cauchy_pvalue, cauchy_fdr, hmp_pvalue, hmp_fdr,
+                    num_tables, num_pvalues
+             FROM ${combinedTable} WHERE central_gene_id = ?`
+          )
+          .get(centralGeneId) as CombinedRow | undefined;
+      } catch {
+        // This direction/regulation group's table may not exist (e.g. fewer
+        // than the minimum contributing tables). Treat as no combined value.
+        combined = undefined;
+      }
+    }
 
     // Fetch all tables that have pvalue/fdr columns
     const tablesWithPvalues = db
