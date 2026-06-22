@@ -287,6 +287,11 @@ export default function PublicationsPage() {
             style={{
               position: "sticky",
               top: 16,
+              maxHeight: "calc(100vh - 48px)",
+              overflowY: "auto",
+              // Without this, wheel events that hit the sidebar's scroll limit
+              // chain up to the document and scroll the whole page.
+              overscrollBehavior: "contain",
               border: "1px solid #e5e7eb",
               borderRadius: 8,
               padding: 16,
