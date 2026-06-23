@@ -112,6 +112,22 @@ gh issue list --repo sspsygene-dracc/psypheno --limit 5
 
 If you get a permissions error, ping me and I'll add you to the repo.
 
+Finally, tell git who you are, so the commits you make on Tuesday are
+attributed to you and not to "unknown" or whoever set up the machine:
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
+
+Use the same email that's on your GitHub account so GitHub links the
+commits to your profile. Check it took:
+
+```bash
+git config --global user.name
+git config --global user.email
+```
+
 ---
 
 ## 5. Install Python via miniconda
@@ -187,6 +203,27 @@ and our config schema all at once. The setting persists across sessions
 
 Then type `/exit` to close. We'll come back to this together on Tuesday.
 
+### A note on permission modes
+
+By default, Claude asks for your approval before each action that touches
+your machine — running a command, editing a file, and so on. You can
+change how much it asks by **pressing `Shift+Tab` to cycle through the
+permission modes**:
+
+- **Normal** — Claude asks before every command or file edit. The safest
+  default; use it when you're not sure what Claude is about to do, or when
+  it's about to touch something outside the repo.
+- **Auto-accept ("auto") mode** — Claude runs commands and applies edits
+  without stopping to ask. Much faster for a long stretch of routine work
+  (e.g. wrangling a dataset through many small steps), but you're trusting
+  it to act unsupervised, so only use it once you've seen what it's doing
+  and you're comfortable letting it run. You can drop back to Normal at any
+  time with `Shift+Tab`.
+
+The current mode is shown at the bottom of the Claude pane. We'll practice
+switching between them on Tuesday — for now it's enough to know `Shift+Tab`
+is the toggle.
+
 ---
 
 ## 8. Install the Claude Code VSCode extension
@@ -207,12 +244,9 @@ You'll see a Claude icon appear in the left sidebar.
 
 ---
 
-TODO: This is not optional
+## 9. Set up the Python venv for the processing pipeline
 
-## 9. (Optional but very nice) Set up the Python venv for the processing pipeline
-
-This isn't strictly required for Tuesday, but doing it now will save us 10
-minutes during the session:
+Doing this now will save us 10 minutes during the session:
 
 ```bash
 cd ~/code/psypheno
@@ -245,14 +279,44 @@ conda install -y -c conda-forge r-base r-poolr r-harmonicmeanp
 GitHub automatically the first time you run `sspsygene load-db` — you
 don't need to do anything for that one.)
 
+### Export the `SSPSYGENE_*` environment variables
+
+The processing pipeline reads three environment variables to find the
+data directory, the config file, and the database it builds. Rather than
+prefixing every command with them, set them once in your shell's startup
+file so every new terminal has them. Run the block below — it appends the
+exports to whichever startup file your shell uses (`~/.zshrc` for the
+default macOS zsh, `~/.bashrc` for bash):
+
+```bash
+REPO=~/code/psypheno
+RC="$HOME/.zshrc"; [ -n "$BASH_VERSION" ] && RC="$HOME/.bashrc"
+cat >> "$RC" <<EOF
+
+# SSPsyGene processing pipeline
+export SSPSYGENE_DATA_DIR="$REPO/data"
+export SSPSYGENE_CONFIG_JSON="$REPO/processing/src/processing/config.json"
+export SSPSYGENE_DATA_DB="$REPO/data/db/sspsygene.db"
+EOF
+```
+
+(If you cloned somewhere other than `~/code/psypheno`, change `REPO`
+first.) Then open a fresh terminal — or `source "$RC"` in the current one —
+and confirm all three are set:
+
+```bash
+echo "$SSPSYGENE_DATA_DIR"
+echo "$SSPSYGENE_CONFIG_JSON"
+echo "$SSPSYGENE_DATA_DB"
+```
+
 ---
 
 ## 10. Configure SSH for the deploy
 
-> Not optional if you'll be deploying. This is also what makes the
-> deploy's server-side `git pull` authenticate — see 10c below, which
-> resolves the earlier "git pull fails silently / asks for a password"
-> problem.
+> This is also what makes the deploy's server-side `git pull`
+> authenticate — see 10c below, which resolves the earlier "git pull
+> fails silently / asks for a password" problem.
 
 
 To deploy datasets to the dev/int/prod servers from your laptop, your
@@ -272,10 +336,8 @@ hgwdev for you — so this one block is all you need.
 
 Test:
 
-TODO: this prints hgwdev, not hgwdev.gi.ucsc.edu
-
 ```bash
-ssh hgwdev "hostname"   # should print "hgwdev.gi.ucsc.edu"
+ssh hgwdev "hostname"   # should print "hgwdev" (the short name)
 ```
 
 You'll be prompted for your UCSC password the first time (or your SSH
