@@ -620,40 +620,6 @@ export default function MostSignificantPage() {
             the meta-analysis has been run.
           </div>
         )}
-        {metaStatus && metaStatus.attached && metaStatus.stale && (
-          <div
-            style={{
-              marginBottom: 20,
-              padding: "12px 14px",
-              borderRadius: 8,
-              background: "#fffbeb",
-              border: "1px solid #fde68a",
-              color: "#92400e",
-              fontSize: 14,
-              lineHeight: 1.6,
-            }}
-          >
-            <strong>Rankings may be out of date.</strong> The meta-analysis was
-            last refreshed
-            {metaStatus.builtAt
-              ? ` on ${metaStatus.builtAt.slice(0, 10)}`
-              : ""}
-            , but the underlying datasets have been rebuilt since. The numbers
-            below remain usable; they&apos;ll update when the meta-analysis is
-            re-run.
-          </div>
-        )}
-        {metaStatus &&
-          metaStatus.attached &&
-          !metaStatus.stale &&
-          metaStatus.builtAt && (
-            <p
-              style={{ color: "#6b7280", fontSize: 13, marginBottom: 20 }}
-            >
-              Meta-analysis last refreshed on{" "}
-              {metaStatus.builtAt.slice(0, 10)}.
-            </p>
-          )}
         <p style={{ marginBottom: 20 }}>
           <Link
             href="/significant-rows"
