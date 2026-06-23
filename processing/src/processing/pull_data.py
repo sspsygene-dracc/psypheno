@@ -55,7 +55,14 @@ def _ssh_prefix(host: str) -> list[str]:
 
 # rsync filters: editor/OS cruft that occasionally litters the server tree but
 # is never real dataset data. Keeps a fresh local checkout clean.
-EXCLUDES = ("*~", "*.swp", "*.orig", ".DS_Store")
+#
+# `expected_drops.yaml*` is excluded on purpose: the committed manifest
+# (`expected_drops.yaml`) travels through git, and the `.proposed` sidecar is a
+# transient artifact the data-correspondence test writes into a working tree for
+# the wrangler to review and merge by hand. Neither should be rsynced down —
+# pulling the `.proposed` files just littered every checkout with untracked
+# files (they're not gitignored, so they show up in `git status`).
+EXCLUDES = ("*~", "*.swp", "*.orig", ".DS_Store", "expected_drops.yaml*")
 
 
 def _rsync_transport(host: str) -> tuple[str, str]:

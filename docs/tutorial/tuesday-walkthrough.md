@@ -153,8 +153,7 @@ guessing.
 
 ## How I work on a dataset ticket
 
-- Tickets are on `sspsygene-dracc/psypheno`. I read, assign, and comment
-  on them in the **GitHub website**, not the terminal.
+- Tickets are on `sspsygene-dracc/psypheno`.
 - I work on a **branch** named `dataset-NN-<short-name>`. Never directly
   on `main`.
 - **First propose a plan** — don't write any files until I've reviewed
@@ -234,8 +233,8 @@ before deploy.
 
 ## Issue tracker workflow
 
-- I assign tickets, read them, and comment on them in the **GitHub
-  website**. You don't need to run `gh` for that — but you *may* draft a
+- I assign tickets, read them, and comment on them in the GitHub
+  website. You don't need to run `gh` for that — but you *may* draft a
   ticket comment for me to paste, or post one yourself if I ask.
 - Reference the ticket in commit messages: `Add Smith 2026 dataset
   (#142)`. **The `(#NN)` in the commit title is required.**
