@@ -338,24 +338,49 @@ def _step_pull_all(instances: list[str]) -> None:
     deployer. The repo's `.githooks/post-merge` already does this for
     `git pull`, but we belt-and-suspenders it here so a deploy that hits
     a checkout missing the hook config still self-heals.
+
+    The pull and the chmod sweep are run as **two separate SSH steps** with
+    their own heartbeats, rather than one compound command. Previously they
+    were fused under a single `git pull (...)` heartbeat, which made a slow
+    chmod look like a slow pull — confusing, because the pull is near-instant
+    and it was the *sweep* eating the wall time. Keeping them separate also
+    lets the pull fail the deploy (check=True) while the sweep stays
+    best-effort (check=False).
+
+    The sweep is scoped to source + data and **prunes the npm dependency /
+    build trees** (`node_modules`, `.next`) plus `.git`. Those are gitignored,
+    don't need to be group-writable for the next deployer, and — at tens of
+    thousands of files — were the entire reason the sweep took ~a minute. The
+    cost was never `chmod` itself (it's batched via `-exec … +`); it was the
+    `find` tree-walk + per-file `stat` over `node_modules`. A plain
+    `chmod -R g+w` would have been just as slow for the same reason. Pruning
+    those dirs cuts the file count ~99% and the sweep drops to a few seconds.
+    Everything left — `data/` and its (gitignored) payloads, and all tracked
+    source — is what actually needs to stay group-writable.
     """
     click.secho("\n[2/5] Pulling latest code on psygene", bold=True)
     for inst in instances:
         path = INSTANCE_PATHS[inst]
+        # Step one: the pull itself. check=True (the default) so a failed pull
+        # fails the deploy — we must not build/load-db on stale code.
         _run_ssh(
             PSYGENE,
-            # Run the pull, then the best-effort group-write chmod, but preserve
-            # the PULL's exit code so a failed pull fails the deploy. The old
-            # form `pull && chmod … || true` let the trailing `|| true` (there
-            # for the chmod) swallow a non-zero pull, so the deploy reported
-            # success on a pull that never happened. Capture rc right after the
-            # pull and re-exit with it.
-            f"cd {path} && git -c safe.directory='*' pull; rc=$?; "
-            f"find . -user \"$(id -un)\" ! -perm -g+w "
-            f"\\( -type d -exec chmod g+ws {{}} + "
-            f"-o -type f -exec chmod g+w {{}} + \\) 2>/dev/null || true; "
-            f"exit $rc",
+            f"cd {path} && git -c safe.directory='*' pull",
             desc=f"git pull ({path})",
+        )
+        # Step two: best-effort group-write backstop, scoped to source + data
+        # and pruning the npm dep/build trees (the slow, unimportant part).
+        # check=False so a chmod hiccup (files owned by another wrangler, etc.)
+        # never fails the deploy.
+        _run_ssh(
+            PSYGENE,
+            f"cd {path} && "
+            f"find . \\( -name node_modules -o -name .next -o -name .git \\) "
+            f"-prune -o -user \"$(id -un)\" ! -perm -g+w "
+            f"\\( -type d -exec chmod g+ws {{}} + "
+            f"-o -type f -exec chmod g+w {{}} + \\) 2>/dev/null; true",
+            desc=f"group-write backstop ({path})",
+            check=False,
         )
 
 
