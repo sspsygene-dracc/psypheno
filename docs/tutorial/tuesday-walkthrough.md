@@ -12,17 +12,6 @@
 
 ## Goals
 
-TODO: git config --global user.name stuff etc
-
-TODO: Claude modes --- shift tab --- auto mode
-
-TODO: sspsygene conda env should install a bunch of useful python packages by default
-
-TODO: decide on whether to work locally on remotely in a separate checkout
-
-TODO: set appropriate environment variables in ~/.bashrc somewhere, we need
-those before running. Just set them all, incl database file
-
 By the end of the session, you should be able to — *from your own laptop* —
 do this end-to-end, without help:
 
