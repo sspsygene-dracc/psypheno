@@ -56,9 +56,18 @@ def hive(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
     }
 
 
-def test_resolve_local_off_hive_raises() -> None:
-    # On the test host the real /hive paths are absent, so auto-detect is SSH
-    # (local=False) and an explicit --local must fail.
+def test_resolve_local_off_hive_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Simulate an off-/hive host (e.g. a laptop) by pointing DEV_PATH/PROD_PATH
+    # at absent dirs. This must be done explicitly rather than relying on the
+    # host: the server-side `deploy --run-tests` suite runs ON psygene, where
+    # the REAL /hive trees exist, so without these monkeypatches auto-detect
+    # would (correctly) return local=True and this test would spuriously fail.
+    monkeypatch.setattr(deploy, "DEV_PATH", str(tmp_path / "absent_dev"))
+    monkeypatch.setattr(deploy, "PROD_PATH", str(tmp_path / "absent_prod"))
+    # With the /hive paths absent, auto-detect is SSH (local=False) and an
+    # explicit --local must fail.
     assert _resolve_promote_local(None) is False
     with pytest.raises(DeployError, match="can't see the /hive trees"):
         _resolve_promote_local(True)

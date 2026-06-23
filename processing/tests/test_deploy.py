@@ -7,8 +7,12 @@ Network-free guards for the two deploy fixes that are easy to regress:
    psygene* using the deployer's forwarded laptop agent. Drop `-A` and every
    wrangler without a personal GitHub key on psygene gets
    `Permission denied (publickey)`.
-2. The `git pull` step preserves the pull's exit code, so a failed pull fails
-   the deploy instead of being swallowed by the chmod backstop's `|| true`.
+2. The pull and the group-write chmod backstop run as two SEPARATE SSH steps.
+   The pull is its own command with default check=True, so a failed pull fails
+   the deploy. The backstop is best-effort (check=False) and prunes the heavy
+   node_modules/.next/.git trees so it doesn't walk them — fusing the two (the
+   old design) both mislabeled the slow chmod as "git pull" and let the chmod's
+   `|| true` mask a failed pull.
 """
 
 from __future__ import annotations
@@ -50,28 +54,46 @@ def test_ssh_command_other_host_is_plain() -> None:
     assert "-J" not in argv
 
 
-def test_pull_command_preserves_pull_exit_code(
+def test_pull_and_backstop_are_separate_steps(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The pull step's shell command must re-exit with the *pull's* status, not
-    let the trailing chmod `|| true` mask a failed pull."""
-    captured: dict[str, str] = {}
+    """Pull and the group-write chmod backstop must run as two separate SSH
+    steps, not one fused command.
+
+    Two invariants matter:
+    * The pull is its own command (no fused chmod, no trailing `|| true`) and
+      uses the default check=True, so a failed pull fails the deploy instead of
+      being masked by the chmod backstop's `|| true`.
+    * The backstop is a separate best-effort step (check=False) that PRUNES the
+      heavy node_modules/.next/.git trees — walking those was what made the old
+      fused step take ~a minute while mislabeled as "git pull".
+    """
+    calls: list[tuple[str, str, dict[str, object]]] = []
 
     def fake_run_ssh(host: str, remote_cmd: str, **kwargs: object) -> None:
-        captured["host"] = host
-        captured["cmd"] = remote_cmd
+        calls.append((host, remote_cmd, kwargs))
 
     monkeypatch.setattr(deploy, "_run_ssh", fake_run_ssh)
     deploy._step_pull_all(["dev"])
 
-    assert captured["host"] == PSYGENE
-    cmd = captured["cmd"]
-    # The pull runs, its exit code is captured, then re-raised after the chmod.
-    assert "git -c safe.directory='*' pull; rc=$?;" in cmd
-    assert cmd.rstrip().endswith("exit $rc")
-    # The chmod backstop's `|| true` must NOT be the last thing the shell sees
-    # (that's the bug — it would mask a failed pull as success).
-    assert not cmd.rstrip().endswith("|| true")
+    assert len(calls) == 2, "expected a pull step and a separate backstop step"
+    (pull_host, pull_cmd, pull_kwargs), (bk_host, bk_cmd, bk_kwargs) = calls
+    assert pull_host == PSYGENE and bk_host == PSYGENE
+
+    # 1. The pull is its own command: the pull, nothing fused after it.
+    assert "git -c safe.directory='*' pull" in pull_cmd
+    assert "chmod" not in pull_cmd
+    assert "|| true" not in pull_cmd
+    # A failed pull must fail the deploy → default check (NOT check=False).
+    assert pull_kwargs.get("check", True) is True
+
+    # 2. The backstop is best-effort and prunes the heavy build/dep trees.
+    assert "chmod g+w" in bk_cmd
+    assert "-name node_modules" in bk_cmd
+    assert "-name .next" in bk_cmd
+    assert "-prune" in bk_cmd
+    # Best-effort: a chmod hiccup must never fail the deploy.
+    assert bk_kwargs.get("check") is False
 
 
 def _completed(returncode: int) -> "subprocess.CompletedProcess[str]":
