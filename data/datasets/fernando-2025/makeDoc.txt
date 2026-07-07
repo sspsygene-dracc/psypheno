@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+# Provenance for the fernando-2025 dataset.
+#
+# Paper:    Fernando et al., "Phenotypic complexities of rare
+#           heterozygous neurexin-1 deletions", Nature 2025,
+#           PMID 40205044, DOI 10.1038/s41586-025-08864-9.
+#           First author: Michael B. Fernando. Senior/corresponding
+#           author: Kristen J. Brennand (Yale). SSPsyGene grant
+#           RM1MH132648 acknowledged.
+# Cadence:  Fixed publication-supplement; updates only on a Nature
+#           erratum.
+# Issue:    https://github.com/sspsygene-dracc/psypheno/issues/173
+#
+# Files were downloaded manually from the Nature article's
+# "Supplementary information" section (springer static-content CDN,
+# no institutional auth required for these files even though the main
+# article PDF is paywalled). MOESM numbers below marked "confirmed"
+# are the exact URLs used to download the files now sitting in this
+# directory; numbers marked "inferred" follow the same
+# 41586_2025_8864_MOESMn_ESM.<ext> sequential pattern (n=4..10 for
+# Supplementary Tables 1-7) but were not individually re-verified —
+# double check against the article page before relying on them.
+#
+# Main article PDF (Paper_Fernando_2025.pdf): paywalled, no direct
+# curl. Download manually via https://doi.org/10.1038/s41586-025-08864-9
+# (or an institutional proxy).
+#
+# Also fetched during a verification pass (not part of the original
+# download, no local curl needed to reproduce -- these are read-only
+# reference sources, not preprocess.py inputs):
+#   - github.com/mbfernando/NRXN1 -- the paper's own analysis code
+#     (raw.githubusercontent.com/mbfernando/NRXN1/main/differential_splicing/
+#     7_analayse_differential_splicing.ipynb and *.sh scripts). Used to
+#     confirm the Table 2 vs. Table 3 relationship described below.
+#   - GEO accessions GSE288880, GSE288881, GSE288964 (from the Reporting
+#     Summary's data-availability statement) -- checked for a more
+#     complete processed splicing file; none exists, only raw counts/
+#     FASTQ-adjacent files.
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+BASE="https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-025-08864-9/MediaObjects"
+
+# --- Supplementary Information / Reporting Summary / Peer Review File --
+# confirmed: MOESM1_ESM.docx is the "SI Guide" (table of contents +
+# one Supplementary Note on organoid characterization) -- confirms
+# Table 2 is "Leafcutter results of differential splicing at neurexin
+# loci" and Table 3 is "Leafcutter results of genome-wide differential
+# splicing", and confirms Tables 4-7's contents (see "NOT ingested"
+# below). Does NOT define or mention a "tsg_genes" column anywhere.
+curl -fLO "$BASE/41586_2025_8864_MOESM1_ESM.docx" -o supInfo_MOESM1.docx
+
+# confirmed: MOESM2_ESM.pdf -- content matches sup1.pdf/sup2.pdf
+# locally (Nature Portfolio "Reporting Summary" form). sup1.pdf and
+# sup2.pdf are byte-identical (verified via md5) -- looks like this
+# was downloaded twice under two names; only one copy is needed.
+curl -fLO "$BASE/41586_2025_8864_MOESM2_ESM.pdf" -o sup1.pdf
+
+# inferred (not in the link list given for this ticket): the "Peer
+# Review File" (33pp, matches sup3.pdf content) is very likely
+# MOESM3_ESM.pdf given the sequential numbering below, but this
+# specific URL was not confirmed against the article page.
+curl -fLO "$BASE/41586_2025_8864_MOESM3_ESM.pdf" -o sup3.pdf
+
+# --- Supplementary Tables 1-7 (supTabl1.xlsx .. supTabl7.xlsx) --------
+# confirmed: MOESM4 (Table 1) and MOESM10 (Table 7) were in the link
+# list given for this ticket; MOESM5-9 (Tables 2-6) are inferred from
+# the sequential pattern between those two confirmed endpoints.
+curl -fLO "$BASE/41586_2025_8864_MOESM4_ESM.xlsx"  -o supTabl1.xlsx  # confirmed
+curl -fLO "$BASE/41586_2025_8864_MOESM5_ESM.xlsx"  -o supTabl2.xlsx  # inferred
+curl -fLO "$BASE/41586_2025_8864_MOESM6_ESM.xlsx"  -o supTabl3.xlsx  # inferred -- main dataset used below
+curl -fLO "$BASE/41586_2025_8864_MOESM7_ESM.xlsx"  -o supTabl4.xlsx  # inferred
+curl -fLO "$BASE/41586_2025_8864_MOESM8_ESM.xlsx"  -o supTabl5.xlsx  # inferred
+curl -fLO "$BASE/41586_2025_8864_MOESM9_ESM.xlsx"  -o supTabl6.xlsx  # inferred
+curl -fLO "$BASE/41586_2025_8864_MOESM10_ESM.xlsx" -o supTabl7.xlsx  # confirmed
+
+# --- What preprocess.py actually reads ---------------------------------
+#
+#   - supTabl3.xlsx (Supplementary Table 3): "genome-wide" LeafCutter
+#     differential-splicing results per the SI Guide (MOESM1), 10
+#     sheets = 10 experimental comparisons. Genome-wide except for one
+#     confirmed gap -- see "IMPORTANT" note below.
+#   - supTabl2.xlsx (Supplementary Table 2): "Leafcutter results of
+#     differential splicing at neurexin loci" per the SI Guide -- the
+#     authors' own NRXN1/NRXN2/NRXN3 candidate-locus highlight table,
+#     4 sheets. Added during a verification pass to patch a real gap
+#     in supTabl3 -- see "IMPORTANT" below.
+#
+# IMPORTANT -- supTabl3 is missing NRXN1's own splicing result for
+# every comparison except the two 3'-Del ones, even though NRXN1
+# splicing is the paper's headline finding. Verified three ways:
+#   1. Grepped supTabl3.xlsx directly for "NRXN1" and for the specific
+#      cluster IDs supTabl2 reports as significant (clu_17084,
+#      clu_17085, clu_12333) -- zero matches in the 5'-Del, shRNA, or
+#      ASO/estradiol sheets of supTabl3.
+#   2. Read the authors' own analysis notebook on GitHub
+#      (github.com/mbfernando/NRXN1/differential_splicing/
+#      7_analayse_differential_splicing.ipynb): its get_sig1()/
+#      get_sig23() functions read the SAME per-experiment
+#      leafcutter_ds_cluster_significance.txt file that supTabl3 was
+#      presumably exported from, filter to genes containing "NRXN1"/
+#      "NRXN2"/"NRXN3", and recompute Bonferroni p.adjust *within that
+#      filtered subset*. So supTabl2's NRXN rows are real data from the
+#      same underlying analysis, just missing from supTabl3's export --
+#      not a different/incompatible analysis. (This also means
+#      supTabl2's p.adjust is NOT on the same scale as supTabl3's for
+#      the same cluster: e.g. iGLUT 3'-Del clu_17084_- is 1.09e-19 in
+#      supTabl2 vs. 3.97e-16 in supTabl3 -- different correction scope.)
+#   3. Checked all 3 GEO accessions from the Reporting Summary
+#      (GSE288880, GSE288881, GSE288964) for a more complete processed
+#      splicing file to substitute -- none exists; only raw counts/
+#      FASTQ-adjacent files are deposited. The true complete
+#      per-cluster files live only on the authors' private HPC path
+#      (per the notebook, /gpfs/commons/home/atokolyi/...), so
+#      supTabl2 is the best public source for the missing rows.
+#
+# Sheets ingested (grouped into 3 output tables -- see preprocess.py).
+# Originally 5 tables (iGLUT/iGABA split, shRNA/therapeutic split);
+# consolidated to 3 after a table-count review found the split wasn't
+# earning its keep -- cell_type and manipulation are just columns now,
+# same treatment as every other grouping dimension in this dataset:
+#
+#   - iglut_ctrl_5del, iglut_ctrl_3del, igaba_ctrl_5del, igaba_ctrl_3del
+#     -> patient_splicing.tsv (914 rows) Patient NRXN1+/- (5'-Del or
+#     3'-Del) vs. control, iGLUT + iGABA (cell_type + genotype columns).
+#   - shRNA-WT-KD-iGLUT, shRNA-WT-KD-iGABA, shRNA-MT-KD-iGLUT,
+#     shRNA-MT-KD-iGABA, Therapy-ASO-iGLUT, Beta-estradiol ->
+#     isogenic_splicing.tsv (243 rows) Isogenic shRNA knockdown of
+#     wildtype (LOF mimic) or mutant (GOF rescue) NRXN1 splice
+#     isoforms, plus ASO and beta-estradiol treatment (cell_type +
+#     manipulation columns).
+#   - iGLUT_LC_PatientvControl, iGABA_LC_PatientvControl,
+#     shRNA-LC_Results, Theraputics-LC_Results (all of supTabl2) ->
+#     nrxn_locus_splicing.tsv (29 rows) NRXN1/NRXN2/NRXN3 results for
+#     all 10 comparisons above, patching the supTabl3 gap.
+#
+# Files/sheets intentionally NOT ingested:
+#
+#   - supTabl1.xlsx (Table 1) "Available Clinical Information" /
+#     "Cell lines per experiment" -- patient/donor-level metadata
+#     (sex, diagnosis, CNV coordinates, PRS), no gene column. Not
+#     gene-level, doesn't fit this pipeline's schema.
+#   - supTabl4.xlsx (Table 4) "*_SynGO" sheets -- gene lists matched
+#     against SynGO ontology terms, but no per-row statistic (just
+#     hgnc_id/symbol/name/synonyms columns). Gene annotation, not
+#     gene-level data.
+#   - supTabl5.xlsx (Table 5) "SynGO (Bonferroni)" / "Standard GO
+#     (FDR)" -- pathway/GO-term-level enrichment rows (one row per GO
+#     term, with a slash-joined gene list per row), not per-gene rows.
+#     Wrong shape for this pipeline.
+#   - supTabl6.xlsx (Table 6) -- primer/antibody reagent list (key
+#     resources table). Not biological data.
+#   - supTabl7.xlsx (Table 7) -- per-figure-panel statistical test
+#     summary (F-stats, p-values by figure), no gene column.
+#   - sup1.pdf/sup2.pdf (Reporting Summary) and sup3.pdf (Peer Review
+#     File) -- narrative/administrative documents, not data tables.
+#   - supInfo_MOESM1.docx (SI Guide) -- table of contents + one
+#     Supplementary Note (organoid single-cell characterization, not
+#     splicing), no data table. Used only for verification (see above).
+#
+# Still open: the exact provenance/definition of the `tsg_genes` column
+# used in the 4 supTabl3-derived tables. It's neither defined nor
+# referenced anywhere in supInfo_MOESM1.docx or the public GitHub repo
+# -- was likely added by hand at table-export time. Its fieldLabel is
+# inferred from data behavior only (see preprocess.py docstring).

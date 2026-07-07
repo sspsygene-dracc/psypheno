@@ -1,0 +1,332 @@
+# Design notes / provenance - kept for context on non-obvious decisions
+#
+# 1. `assay: perturbation` (not `perturbation_deg`) was chosen deliberately
+#    so this dataset is excluded from the cross-study /most-significant
+#    meta-analysis (see data/datasets/globals.yaml `metaAnalysisAssays`).
+#    A LeafCutter cluster p-value can be duplicated across up to 7 genes
+#    in `target_gene`, and it's a splicing-usage test, not a per-gene DEG
+#    test -- pooling it with DEG p-values from other studies seemed
+#    misleading. Revisit if the site's stats folks disagree.
+# 2. `condition: [scz, bipolar]` -- patients' diagnoses (Supplementary
+#    Table 1, not loaded here) are COS/schizoaffective (3'-Del) and
+#    BD+psychosis/COBD+psychosis (5'-Del). Re-verified directly against
+#    Supplementary Table 1's "Cell lines per experiment" sheet: the
+#    postmortem Autism donor (1541) is NOT among the 4 patient lines
+#    checked for "Case/Control RNASeq", so it isn't part of any table
+#    loaded here and doesn't argue for adding an autism condition tag.
+# 3. `fdr_column: p_adjust` is Bonferroni-adjusted, not BH/FDR (in the
+#    2 supTabl3-derived tables) -- the paper's Methods are explicit
+#    ("corrected for multiple comparisons when necessary via Bonferroni
+#    adjustment"). The `nrxn_locus_splicing` table (from supTabl2) is
+#    ALSO Bonferroni, but corrected across a much smaller, differently
+#    scoped set of tests -- see item 6.
+# 4. `target_gene` resolution in the 2 supTabl3-derived tables: genes
+#    column primary, tsg_genes column as fallback only when genes is NA
+#    -- see preprocess.py docstring for why. `tsg_genes`'s exact
+#    provenance is RESOLVED AS FAR AS IT CAN BE, and still undocumented:
+#    exhaustively checked the actual Supplementary Information document
+#    (MOESM1, supInfo_MOESM1.docx), the paper's own analysis code
+#    (github.com/mbfernando/NRXN1, full read of every script in
+#    differential_splicing/), AND ran a GitHub code search (`gh search
+#    code`) for "tsg_genes"/"tsg" across both that repo and the official
+#    LeafCutter tool repo (davidaknowles/leafcutter -- David Knowles is
+#    a co-author on this paper). Zero genuine hits anywhere (one
+#    "tsg"-substring false positive inside "segmentsGrob" in leafcutter's
+#    server.R, unrelated). This column is not produced by any
+#    documented step in either the paper's pipeline or the tool it's
+#    built on -- it was almost certainly added by hand at table-export
+#    time and its exact construction is unrecoverable from public
+#    sources. Treating this as final; fieldLabel description stays
+#    behavioral (populated whenever `genes` is NA, same comma-separated
+#    cluster-overlap semantics), not source-confirmed.
+#
+#    Separately: load-db's per-token gene resolver (GeneMapping.
+#    resolve_to_central_gene_table) does a symbol/alias lookup only --
+#    no ENSG-to-symbol mapping, unlike `clean_gene`. Raw `ENSG...`
+#    tokens in `target_gene` (from `tsg_genes` values that leaked
+#    through the genes-NA fallback) would otherwise silently spawn
+#    disconnected stub `central_gene` entries. preprocess.py now
+#    resolves these via the same EnsemblToSymbolMapper `clean_gene`
+#    uses, per-token, before the `multi_gene_separator` split, and
+#    preserves the pre-resolution value in a new `target_gene_raw`
+#    column. Measured directly against the live HGNC/Alliance reference
+#    (GeneSymbolNormalizer + EnsemblToSymbolMapper, same data source
+#    load-db itself will use): of 1521 total gene tokens across the 2
+#    supTabl3-derived tables, 1262 (83.0%) resolve directly; of 105 raw
+#    ENSG tokens, only 4 have a current mapping (fixed -- e.g.
+#    ENSG00000289047 -> LINC03219); the other 101 ENSG tokens plus 154
+#    non-ENSG tokens (mostly legacy GENCODE v92-era clone-style lncRNA
+#    names like RP1-283E3.8, plus a couple of true non-gene entries like
+#    Metazoa_SRP) have no mapping in the current reference at all. That
+#    remaining ~16.7% is a genuine limitation of the source annotation's
+#    vintage (GENCODE v92, ~2019) -- not fixable without a full
+#    GENCODE-version cross-reference, which is out of scope here. Those
+#    tokens still get a harmless per-dataset gene stub at load-db time
+#    (not an error, not a dropped row), they just won't link to an
+#    existing canonical gene page.
+# 5. Table split: supTabl3's 10 sheets are grouped into 2 output tables
+#    by experiment type -- patient (4 sheets, iGLUT+iGABA x 5'-Del/
+#    3'-Del) and isogenic manipulation (6 sheets, shRNA WT-KD/MT-KD +
+#    ASO + beta-estradiol, iGLUT+iGABA). Originally these were 4 tables
+#    (iGLUT and iGABA split out, shRNA and therapeutic split out), on
+#    the reasoning that iGLUT-vs-iGABA was the paper's central
+#    comparison and shRNA/therapeutic were conceptually different
+#    experiment types (recreating vs. rescuing the phenotype). A
+#    table-count review found that reasoning wasn't earning its keep:
+#    cell_type and manipulation are no different from any other grouping
+#    column (genotype, knockdown_type, treatment) already used
+#    elsewhere in this dataset, so they were folded in as columns
+#    instead of table splits, for consistency and fewer, bigger tables.
+#    One-table-per-sheet (10 separate 1:1 tables) was also considered
+#    and rejected the same way, earlier -- see issue #173 thread.
+# 6. Added a 3rd table, `fernando_2025_nrxn_locus_splicing`, sourced from
+#    supTabl2.xlsx. This was NOT part of the original plan -- it exists
+#    because a verification pass found that supTabl3 ("genome-wide" per
+#    the SI Guide's own table of contents) is missing the NRXN1 cluster
+#    for every comparison except the two 3'-Del ones, even though NRXN1
+#    splicing is the paper's headline result. Confirmed via three
+#    independent checks: (a) grepping supTabl3.xlsx directly for
+#    NRXN1/clu_17084/clu_17085/clu_12333 found nothing in the 5'-Del,
+#    shRNA, or ASO sheets; (b) the authors' own analysis notebook
+#    (github.com/mbfernando/NRXN1/differential_splicing/
+#    7_analayse_differential_splicing.ipynb) shows Table 2's NRXN1 rows
+#    are pulled from the SAME per-experiment
+#    leafcutter_ds_cluster_significance.txt file Table 3 was presumably
+#    exported from, just Bonferroni-corrected within the NRXN-filtered
+#    subset instead of genome-wide -- so it's real data missing from the
+#    published Table 3, not a different analysis; (c) none of the 3 GEO
+#    accessions in the Reporting Summary (GSE288880/288881/288964) host
+#    processed splicing files that could substitute. The underlying full
+#    files live only on the authors' private HPC path -- Table 2 is the
+#    best public source for these rows. Because of the different
+#    Bonferroni scope (note 3 above), this table's `p_adjust` is NOT
+#    comparable to the other 2 tables' `p_adjust` for the same cluster
+#    (e.g. iGLUT 3'-Del clu_17084_-: 1.09e-19 here vs. 3.97e-16 in
+#    fernando_2025_patient_splicing) -- flagged in both tables'
+#    fieldLabels.
+
+publication:
+  authors:
+    - Fernando, Michael B.
+    - Fan, Yu
+    - Zhang, Yanchun
+    - Tokolyi, Alex
+    - Murphy, Aleta N.
+    - Kammourh, Sarah
+    - Deans, P. J. Michael
+    - Ghorbani, Sadaf
+    - Onatzevitch, Ryan
+    - Pero, Adriana
+    - Padilla, Christopher
+    - Williams, Sarah E.
+    - Flaherty, Erin K.
+    - Prytkova, Iya A.
+    - Cao, Lei
+    - Knowles, David A.
+    - Fang, Gang
+    - Slesinger, Paul A.
+    - Brennand, Kristen J.
+  year: 2025
+  journal: "Nature"
+  doi: "10.1038/s41586-025-08864-9"
+  pmid: "40205044"
+  sspsygene_grants:
+    - "RM1MH132648"
+
+maintainers:
+  - name: Brian Lee
+    email: brianlee@ucsc.edu
+    date: "2026-07-07"
+    comment: Initial table creation
+
+tables:
+  - table: fernando_2025_patient_splicing
+    shortLabel: fernando_2025_patient_splicing
+    mediumLabel: "Fernando 2025 - LeafCutter Differential Splicing in iPSC Neurons"
+    longLabel: "Differential splicing (LeafCutter) between NRXN1+/- patient and control iPSC-derived glutamatergic and GABAergic neurons (Fernando et al. 2025)"
+    description: >
+      Genome-wide LeafCutter differential intron-usage results comparing
+      iGLUT and iGABA neurons from patients carrying a heterozygous
+      5'-NRXN1 deletion (loss-of-function) or a 3'-NRXN1 deletion
+      (gain-of-function) against healthy control neurons of the same
+      cell type. NRXN1 itself is under-represented here -- the source
+      table is missing NRXN1's own cluster for the 5'-Del comparisons in
+      both cell types (present only for 3'-Del); see
+      fernando_2025_nrxn_locus_splicing for the complete NRXN1/2/3
+      picture across all comparisons.
+    source: "Supplementary Table 3, sheets iglut_ctrl_5del + iglut_ctrl_3del + igaba_ctrl_5del + igaba_ctrl_3del"
+    in_path: patient_splicing.tsv
+    separator: "\t"
+    organism: "Homo sapiens (iPSC-derived neurons)"
+    organism_key: human
+    assay: perturbation
+    condition: ["scz", "bipolar"]
+    categories:
+      - differential splicing
+      - LeafCutter
+      - bulk RNA-seq
+      - iPSC-derived neurons
+    links:
+      - url: https://doi.org/10.1038/s41586-025-08864-9
+        label: Nature — Fernando et al. 2025
+    pvalue_column: p
+    fdr_column: p_adjust
+    gene_mappings:
+      - column_name: target_gene
+        link_table_name: Target_Gene
+        species: human
+        perturbed_or_target: target
+        multi_gene_separator: ","
+        ignore_empty: true  # ~1% of clusters have no gene annotation in either source column
+      - column_name: perturbed_gene
+        link_table_name: Perturbed_Gene
+        species: human
+        perturbed_or_target: perturbed
+    fieldLabels:
+      cluster: "Genomic coordinates and strand of the LeafCutter intron-excision cluster (Fernando et al. 2025)."
+      target_gene: "Gene(s) overlapping the cluster's spliced exon junctions, from LeafCutter's GTF annotation, with any raw Ensembl IDs resolved to their approved symbol (Fernando et al. 2025)."
+      target_gene_raw: "target_gene before Ensembl-ID-to-symbol resolution, preserved for provenance (Fernando et al. 2025)."
+      tsg_genes: "Extended gene-overlap annotation for the cluster, used to fill target_gene when the primary annotation is missing (Fernando et al. 2025)."
+      perturbed_gene: "Gene subject to the heterozygous deletion in this comparison (Fernando et al. 2025)."
+      cell_type: "iPSC-derived neuron subtype: glutamatergic (iGLUT) or GABAergic (iGABA) (Fernando et al. 2025)."
+      genotype: "Patient NRXN1 deletion compared to control: 5' deletion (loss-of-function) or 3' deletion (gain-of-function) (Fernando et al. 2025)."
+      loglr: "Log-likelihood ratio statistic from LeafCutter's Dirichlet-multinomial test of differential intron usage (Fernando et al. 2025)."
+      df: "Degrees of freedom for the LeafCutter likelihood-ratio test (Fernando et al. 2025)."
+      p: "Nominal p-value from LeafCutter's differential splicing test (Fernando et al. 2025)."
+      p_adjust: "Bonferroni-adjusted p-value for differential intron usage across all clusters tested genome-wide in this comparison (Fernando et al. 2025); not comparable to the p_adjust in fernando_2025_nrxn_locus_splicing, which is Bonferroni-adjusted within a much smaller NRXN1/2/3-only test set."
+    changelog:
+      - date: "2026-07-07"
+        message: "Initial data load"
+      - date: "2026-07-07"
+        message: "Verification pass found NRXN1 missing from this table for most comparisons; added fernando_2025_nrxn_locus_splicing as a companion table and cross-referenced it here."
+      - date: "2026-07-07"
+        message: "Merged the separate iGLUT and iGABA tables into this one (cell_type column) after a table-count review -- see DRAFT note 5."
+
+  - table: fernando_2025_isogenic_splicing
+    shortLabel: fernando_2025_isogenic_splicing
+    mediumLabel: "Fernando 2025 - Isogenic Perturbation LeafCutter Differential Splicing in iPSC Neurons"
+    longLabel: "Differential splicing (LeafCutter) after isogenic shRNA knockdown, antisense oligonucleotide, or beta-estradiol manipulation of NRXN1 splicing in iPSC-derived neurons (Fernando et al. 2025)"
+    description: >
+      Genome-wide LeafCutter differential intron-usage results from
+      isogenic manipulation experiments, all vs. their respective
+      vehicle/non-targeting control: shRNA knockdown of wildtype NRXN1
+      splice isoforms (WT-KD, recreates the 5'-Del loss-of-function
+      phenotype) or of the mutant splice isoform (MT-KD, recreates a
+      gain-of-function rescue), in both iGLUT and iGABA neurons; an
+      antisense oligonucleotide (ASO) targeting the 3'-Del mutant splice
+      junction (gain-of-function rescue) in iGLUT neurons; and
+      beta-estradiol treatment of 5'-Del patients to raise wildtype
+      NRXN1-alpha expression (loss-of-function rescue) in iGLUT neurons.
+      NRXN1 itself is entirely absent from this source table for all six
+      comparisons; see fernando_2025_nrxn_locus_splicing for the
+      NRXN1/2/3 results of these same experiments.
+    source: "Supplementary Table 3, sheets shRNA-WT-KD-iGLUT + shRNA-WT-KD-iGABA + shRNA-MT-KD-iGLUT + shRNA-MT-KD-iGABA + Therapy-ASO-iGLUT + Beta-estradiol"
+    in_path: isogenic_splicing.tsv
+    separator: "\t"
+    organism: "Homo sapiens (iPSC-derived neurons)"
+    organism_key: human
+    assay: perturbation
+    condition: ["scz", "bipolar"]
+    categories:
+      - differential splicing
+      - LeafCutter
+      - bulk RNA-seq
+      - iPSC-derived neurons
+      - shRNA knockdown
+      - antisense oligonucleotide
+      - hormone treatment
+    links:
+      - url: https://doi.org/10.1038/s41586-025-08864-9
+        label: Nature — Fernando et al. 2025
+    pvalue_column: p
+    fdr_column: p_adjust
+    gene_mappings:
+      - column_name: target_gene
+        link_table_name: Target_Gene
+        species: human
+        perturbed_or_target: target
+        multi_gene_separator: ","
+        ignore_empty: true  # ~1% of clusters have no gene annotation in either source column
+      - column_name: perturbed_gene
+        link_table_name: Perturbed_Gene
+        species: human
+        perturbed_or_target: perturbed
+    fieldLabels:
+      cluster: "Genomic coordinates and strand of the LeafCutter intron-excision cluster (Fernando et al. 2025)."
+      target_gene: "Gene(s) overlapping the cluster's spliced exon junctions, from LeafCutter's GTF annotation, with any raw Ensembl IDs resolved to their approved symbol (Fernando et al. 2025)."
+      target_gene_raw: "target_gene before Ensembl-ID-to-symbol resolution, preserved for provenance (Fernando et al. 2025)."
+      tsg_genes: "Extended gene-overlap annotation for the cluster, used to fill target_gene when the primary annotation is missing (Fernando et al. 2025)."
+      perturbed_gene: "Gene knocked down or treated in this comparison (Fernando et al. 2025)."
+      cell_type: "iPSC-derived neuron subtype: glutamatergic (iGLUT) or GABAergic (iGABA) (Fernando et al. 2025)."
+      manipulation: "Isogenic splicing manipulation: shRNA knockdown of wildtype (WT-KD shRNA, mimics loss-of-function) or mutant (MT-KD shRNA, a gain-of-function rescue) NRXN1 splice isoforms; antisense oligonucleotide (ASO, targets the 3'-Del mutant splice junction); or beta-estradiol (raises wildtype NRXN1-alpha expression) (Fernando et al. 2025)."
+      loglr: "Log-likelihood ratio statistic from LeafCutter's Dirichlet-multinomial test of differential intron usage (Fernando et al. 2025)."
+      df: "Degrees of freedom for the LeafCutter likelihood-ratio test (Fernando et al. 2025)."
+      p: "Nominal p-value from LeafCutter's differential splicing test (Fernando et al. 2025)."
+      p_adjust: "Bonferroni-adjusted p-value for differential intron usage across all clusters tested genome-wide in this comparison (Fernando et al. 2025); not comparable to the p_adjust in fernando_2025_nrxn_locus_splicing, which is Bonferroni-adjusted within a much smaller NRXN1/2/3-only test set."
+    changelog:
+      - date: "2026-07-07"
+        message: "Initial data load (as separate shrna_splicing and therapeutic_splicing tables)"
+      - date: "2026-07-07"
+        message: "Verification pass found NRXN1 missing from these tables for all comparisons; added fernando_2025_nrxn_locus_splicing as a companion table and cross-referenced it here."
+      - date: "2026-07-07"
+        message: "Merged the separate shRNA and therapeutic tables into this one (manipulation column) after a table-count review -- see DRAFT note 5."
+
+  - table: fernando_2025_nrxn_locus_splicing
+    shortLabel: fernando_2025_nrxn_locus_splicing
+    mediumLabel: "Fernando 2025 - LeafCutter NRXN1/2/3 Candidate-Locus Differential Splicing in iPSC Neurons"
+    longLabel: "Differential splicing (LeafCutter) at the NRXN1, NRXN2, and NRXN3 loci across all patient, shRNA, and therapeutic comparisons (Fernando et al. 2025)"
+    description: >
+      The authors' own NRXN1/NRXN2/NRXN3 candidate-locus highlight table
+      (Supplementary Table 2), covering all 10 comparisons in this dataset:
+      patient 5'-Del/3'-Del vs. control (iGLUT + iGABA), isogenic shRNA
+      knockdown (WT-KD/MT-KD, iGLUT + iGABA), ASO treatment, and
+      beta-estradiol treatment. Added as a companion to the other 2
+      fernando_2025 tables (sourced from the "genome-wide" Supplementary
+      Table 3) because that genome-wide table is missing NRXN1's own
+      cluster for every comparison except the two 3'-Del ones, even though
+      NRXN1 splicing is the paper's headline result. p_adjust here is
+      Bonferroni-corrected within just the NRXN1/2/3 clusters tested in
+      each comparison (not genome-wide), so it is NOT directly comparable
+      to p_adjust in the other 2 tables -- see fieldLabel.
+    source: "Supplementary Table 2 (all 4 sheets: iGLUT_LC_PatientvControl, iGABA_LC_PatientvControl, shRNA-LC_Results, Theraputics-LC_Results)"
+    in_path: nrxn_locus_splicing.tsv
+    separator: "\t"
+    organism: "Homo sapiens (iPSC-derived neurons)"
+    organism_key: human
+    assay: perturbation
+    condition: ["scz", "bipolar"]
+    categories:
+      - differential splicing
+      - LeafCutter
+      - bulk RNA-seq
+      - iPSC-derived neurons
+      - candidate gene
+    links:
+      - url: https://doi.org/10.1038/s41586-025-08864-9
+        label: Nature — Fernando et al. 2025
+    pvalue_column: p
+    fdr_column: p_adjust
+    gene_mappings:
+      - column_name: target_gene
+        link_table_name: Target_Gene
+        species: human
+        perturbed_or_target: target
+        multi_gene_separator: ","
+      - column_name: perturbed_gene
+        link_table_name: Perturbed_Gene
+        species: human
+        perturbed_or_target: perturbed
+    fieldLabels:
+      cluster: "Genomic coordinates and strand of the LeafCutter intron-excision cluster (Fernando et al. 2025)."
+      target_gene: "NRXN1, NRXN2, or NRXN3 -- the gene this candidate-locus cluster belongs to (Fernando et al. 2025)."
+      perturbed_gene: "Gene subject to the heterozygous deletion, knockdown, or treatment in this comparison (Fernando et al. 2025)."
+      cell_type: "iPSC-derived neuron subtype: glutamatergic (iGLUT) or GABAergic (iGABA) (Fernando et al. 2025)."
+      comparison: "Experimental comparison this row belongs to (patient genotype, shRNA knockdown, or therapeutic treatment vs. its control) (Fernando et al. 2025)."
+      loglr: "Log-likelihood ratio statistic from LeafCutter's Dirichlet-multinomial test of differential intron usage (Fernando et al. 2025)."
+      df: "Degrees of freedom for the LeafCutter likelihood-ratio test (Fernando et al. 2025)."
+      p: "Nominal p-value from LeafCutter's differential splicing test (Fernando et al. 2025)."
+      p_adjust: "Bonferroni-adjusted p-value, corrected only across the NRXN1/NRXN2/NRXN3 clusters tested in this comparison -- not genome-wide, and not comparable to p_adjust in the other Fernando 2025 tables (Fernando et al. 2025)."
+      sig_bonf: "Whether p_adjust passed the paper's own Bonferroni significance threshold (p_adjust < 0.05) within this candidate-locus test set (Fernando et al. 2025)."
+    changelog:
+      - date: "2026-07-07"
+        message: "Added to close the NRXN1 gap found in the genome-wide tables during a verification pass (see DRAFT note 6)."
