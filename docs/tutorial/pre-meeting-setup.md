@@ -1,26 +1,3 @@
-# Pre-meeting setup for Tuesday's Claude + Git session
-
-On Tuesday we're going to spend the meeting working through how to use **Claude
-Code** as a "dataset-wrangler assistant" on your laptop, and how to use **git
-branches** so we can stop stepping on each other while we add datasets. The
-goal: by the end of the session, each of you should be able to pick up a
-ticket, do the work locally with Claude's help, and merge it cleanly onto
-`main` without breaking anyone else's work.
-
-To make the meeting useful (rather than spending all of it on installs), please
-run through the checklist below **before Tuesday**. Most of it is one-liners.
-**If anything fails, just reply to this email** with the exact error message
-and which step failed — I'd much rather fix it on Monday afternoon than spend
-Tuesday's time on it.
-
-Estimated time: **30–45 minutes** if everything goes smoothly.
-
-The agenda for Tuesday is in `docs/tutorial/tuesday-walkthrough.md` once you've
-cloned the repo. I'll also send it in a follow-up email right now. You don't
-need to read it beforehand, but you're welcome to.
-
----
-
 ## Prerequisites you probably already have
 
 - A Mac running macOS.
@@ -282,13 +259,15 @@ don't need to do anything for that one.)
 ### Export the `SSPSYGENE_*` environment variables
 
 The processing pipeline reads three environment variables to find the
-data directory, the config file, and the database it builds. Rather than
-prefixing every command with them, set them once in your shell's startup
-file so every new terminal has them. Run the block below — it appends the
-exports to whichever startup file your shell uses (`~/.zshrc` for the
-default macOS zsh, `~/.bashrc` for bash):
+data directory, the config file, and the database it builds. The most
+important one is **`SSPSYGENE_DATA_DB`**: it is the single path that
+`load-db` writes *and* the web server reads, so setting it once keeps the
+two in lockstep — there is no default and no second path to remember.
+Rather than prefixing every command with them, set them once in your
+shell's startup file so every new terminal has them.
 
-Add this to your bashrc or zshrc or zprofile:
+Add this to whichever startup file your shell uses (`~/.zshrc` for the
+default macOS zsh, `~/.bashrc` for bash, or `~/.zprofile`):
 
 ```bash
 REPO=~/code/psypheno
@@ -299,8 +278,11 @@ export SSPSYGENE_DATA_DB="$REPO/data/db/sspsygene.db"
 ```
 
 (If you cloned somewhere other than `~/code/psypheno`, change `REPO`
-first.) Then open a fresh terminal — or `source "$RC"` in the current one —
-and confirm all three are set:
+first.) A fourth variable, `SSPSYGENE_META_DB`, is optional — leave it
+unset and the meta-analysis DB defaults to the `-meta` sibling of
+`SSPSYGENE_DATA_DB` (i.e. `…/db/sspsygene-meta.db`). Then open a fresh
+terminal — or re-`source` your startup file in the current one — and
+confirm all three are set:
 
 ```bash
 echo "$SSPSYGENE_DATA_DIR"
@@ -326,13 +308,22 @@ to `~/.ssh/config` (create the file if it doesn't exist), replacing
 Host hgwdev
   HostName hgwdev.gi.ucsc.edu
   User YOUR-UCSC-USERNAME
+
+Host psygene
+  HostName psygene
+  ProxyJump hgwdev
+  ForwardAgent yes
+  User YOUR-UCSC-USERNAME
 ```
 
-TODO: need to add psygene entry here as well
-
 The `psygene` host (where the web servers run) isn't reachable directly
-from off-campus, but `sspsygene deploy` will automatically proxy through
-hgwdev for you — so this one block is all you need.
+from off-campus. `sspsygene deploy` already proxies through hgwdev on its
+own, so the deploy works with just the `hgwdev` block — but the `psygene`
+block above lets *you* run the one-time setup checks below (umask,
+miniconda) with a plain `ssh psygene` instead of spelling out
+`ssh -J hgwdev psygene` every time. (`ForwardAgent yes` forwards your
+GitHub SSH key to psygene, which is what lets the deploy's server-side
+`git pull` authenticate — see 10c.)
 
 Test:
 
@@ -345,8 +336,6 @@ key if you have one configured).
 
 While you're SSH'd in, two more one-time checks on the psygene side.
 
-TODO add installation of miniconda on psygene
-
 **a) miniconda location.** `sspsygene deploy` runs `load-db` and
 `preprocess.py` inside a conda env on psygene, and it looks for your
 miniconda install at one of these paths (in order):
@@ -356,8 +345,25 @@ miniconda install at one of these paths (in order):
 3. `$HOME/anaconda3/`
 4. `/opt/conda/`
 
-If yours is in one of those, you're set. If not, the easiest fix is a
-symlink, e.g.:
+Check whether you already have one — the shared `/opt/conda/` may be
+enough, or you may have installed your own previously:
+
+```bash
+ssh psygene "ls -d ~/miniconda3 ~/anaconda3 ~/opt_rocky9/miniconda3 /opt/conda 2>/dev/null"
+```
+
+If that prints one of the paths, you're set (skip to **b**). If it prints
+nothing, install miniconda into `~/miniconda3` (psygene is Linux x86-64):
+
+```bash
+ssh psygene
+curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh
+bash /tmp/miniconda.sh -b -p "$HOME/miniconda3"    # -b = non-interactive, into ~/miniconda3
+rm /tmp/miniconda.sh
+```
+
+If your conda lives somewhere else already, don't reinstall — just symlink
+it into one of the searched paths:
 
 ```bash
 ssh psygene

@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import sys
 import shutil
 from pathlib import Path
@@ -42,6 +43,39 @@ def cli(
         logging.basicConfig(filename=log_file, level=log_level, format=fmt)
     else:
         logging.basicConfig(level=log_level, stream=sys.stdout, format=fmt)
+
+
+def _echo_sspsygene_env(label: str) -> None:
+    """Print the SSPSYGENE_* environment variables that steer DB reads/writes,
+    so operators always know exactly which paths a command is working with.
+    Called at the start and end of every DB-touching command. Never raises —
+    an unset variable is shown as "(unset)" (the command itself errors later
+    with a clear message if the variable is actually required)."""
+    names = (
+        "SSPSYGENE_DATA_DIR",
+        "SSPSYGENE_CONFIG_JSON",
+        "SSPSYGENE_DATA_DB",
+        "SSPSYGENE_META_DB",
+    )
+    click.secho(f"── SSPSYGENE environment ({label}) ──", fg="cyan")
+    for name in names:
+        value = os.environ.get(name)
+        if value:
+            click.secho(f"  {name}={value}", fg="cyan")
+        elif name == "SSPSYGENE_META_DB":
+            # No override — the meta DB defaults to the -meta sibling of the
+            # dataset DB; show that so the resolved path isn't a mystery.
+            data_db = os.environ.get("SSPSYGENE_DATA_DB")
+            if data_db:
+                sibling = Path(data_db)
+                sibling = sibling.with_name(
+                    f"{sibling.stem}-meta{sibling.suffix}"
+                )
+                click.secho(f"  {name}=(unset → {sibling})", fg="cyan")
+            else:
+                click.secho(f"  {name}=(unset)", fg="cyan")
+        else:
+            click.secho(f"  {name}=(unset)", fg="yellow")
 
 
 @cli.command()
@@ -97,6 +131,7 @@ def load_db(
     test_mode: bool,
 ) -> None:
     """Load the database"""
+    _echo_sspsygene_env("start")
     try:
         from processing.sq_load import load_db
 
@@ -120,6 +155,7 @@ def load_db(
                     bold=True,
                 )
             )
+            _echo_sspsygene_env("end")
             return
         test_central_gene_ids: set[int] | None = None
         if test_mode:
@@ -145,6 +181,7 @@ def load_db(
             skip_gene_descriptions=skip_gene_descriptions,
             test_central_gene_ids=test_central_gene_ids,
         )
+        _echo_sspsygene_env("end")
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -176,6 +213,7 @@ def meta_analysis(no_index: bool, no_r_cache: bool) -> None:
     Run `sspsygene load-db` first if the dataset DB doesn't exist yet."""
     from processing.sq_load import run_meta_analysis
 
+    _echo_sspsygene_env("start")
     try:
         config = get_sspsygene_config()
         meta_assays = config.global_config.get("metaAnalysisAssays")
@@ -200,6 +238,7 @@ def meta_analysis(no_index: bool, no_r_cache: bool) -> None:
             use_r_cache=not no_r_cache,
             deg_assays=deg_assays,
         )
+        _echo_sspsygene_env("end")
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -267,6 +306,7 @@ def run_llm_search(
             f"Invalid model '{model}'. Valid models: {valid_models}"
         )
 
+    _echo_sspsygene_env("start")
     rc = run_pipeline(
         yaml_file=yaml_file,
         model=model,
@@ -275,6 +315,7 @@ def run_llm_search(
         timeout=timeout,
         dry_run=dry_run,
     )
+    _echo_sspsygene_env("end")
     if rc != 0:
         raise click.exceptions.Exit(rc)
 

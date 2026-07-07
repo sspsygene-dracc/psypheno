@@ -11,6 +11,20 @@ if TYPE_CHECKING:
     from processing.types.table_to_process_config import TableToProcessConfig
 
 
+def _require_env(name: str) -> str:
+    """Read a required SSPSYGENE_* environment variable, raising a clear,
+    user-facing error (not a raw KeyError) when it's unset. Callers in the
+    Click layer catch ValueError and print it cleanly."""
+    value = os.environ.get(name)
+    if not value:
+        raise ValueError(
+            f"{name} is not set. Export it to the absolute path it names "
+            f"(see the pre-meeting-setup tutorial). Every database read/write "
+            f"resolves through SSPSYGENE_DATA_DB — there is no default."
+        )
+    return value
+
+
 class GeneMapConfig:
     def __init__(self, super_base_dir: Path, gene_map_config: dict[str, str]):
         self.super_base_dir = super_base_dir
@@ -148,16 +162,22 @@ class Config:
 
         # Use environment variable for data directory to improve portability
         self.base_dir: Path = Path(
-            os.environ["SSPSYGENE_DATA_DIR"]
+            _require_env("SSPSYGENE_DATA_DIR")
         )  # e.g., /absolute/path/to/data
-        self.out_db: Path = self.base_dir / config["out_db"]
+        # SSPSYGENE_DATA_DB is the single source of truth for the dataset DB
+        # path — the same variable the web app reads (web/lib/db.ts). load-db
+        # writes it, the web app reads it; there is no config.json fallback and
+        # no default, so the two sides can never diverge.
+        self.out_db: Path = Path(_require_env("SSPSYGENE_DATA_DB"))
         # Combined-p-value meta-analysis lives in a separate SQLite file built
-        # on its own cadence by `sspsygene meta-analysis` (issue #176). Defaults
-        # to a `-meta` sibling of out_db so side configs (e.g. out_db pointed at
-        # sspsygene-claude.db) get a matching sspsygene-claude-meta.db without
-        # extra plumbing; an explicit `meta_db` key in config.json overrides.
-        if "meta_db" in config:
-            self.meta_db: Path = self.base_dir / config["meta_db"]
+        # on its own cadence by `sspsygene meta-analysis` (issue #176). Honors
+        # SSPSYGENE_META_DB (same override the web app uses); otherwise defaults
+        # to a `-meta` sibling of out_db, so pointing SSPSYGENE_DATA_DB at a
+        # scratch file (e.g. sspsygene-claude.db) yields a matching
+        # sspsygene-claude-meta.db without extra plumbing.
+        meta_override = os.environ.get("SSPSYGENE_META_DB")
+        if meta_override:
+            self.meta_db: Path = Path(meta_override)
         else:
             self.meta_db = self.out_db.with_name(
                 f"{self.out_db.stem}-meta{self.out_db.suffix}"

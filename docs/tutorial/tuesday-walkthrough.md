@@ -135,11 +135,14 @@ To check my changes load without rebuilding the entire database:
 ```bash
 cd ~/code/psypheno
 conda activate sspsygene
-SSPSYGENE_DATA_DIR=$(pwd)/data \
-SSPSYGENE_CONFIG_JSON=processing/src/processing/config.json \
-SSPSYGENE_DATA_DB=$(pwd)/data/db/sspsygene-claude.db \
 sspsygene load-db --dataset NAME --no-index
 ```
+
+This writes to whatever `SSPSYGENE_DATA_DB` points at — the one you
+exported in the pre-meeting setup. There's no separate scratch path to
+remember: `load-db` writes it, the web server reads it, and the command
+prints the resolved `SSPSYGENE_*` paths at the start and end so you can
+see exactly which DB you're building.
 
 `--no-index` skips the slow index-creation step; useful for "does my
 YAML even parse" checks. The full build (without that flag) is needed
@@ -149,9 +152,10 @@ before deploy.
 
 - Don't push to `origin` — I'll do that.
 - Don't run `sspsygene deploy` — that's a server-touching action.
-- Don't rebuild against the default `data/db/sspsygene.db` path — use
-  the `sspsygene-claude.db` side path above so we don't fight whatever
-  else is running.
+- Don't point `SSPSYGENE_DATA_DB` at a shared or server DB path — build
+  against your own local `SSPSYGENE_DATA_DB` (the one from the pre-meeting
+  setup). Every `load-db` prints the path it's writing, so glance at that
+  line to confirm you're building your local DB and not something shared.
 - Don't close the GitHub issue when work lands. Dataset tickets stay
   open until I've deployed; I'll close manually.
 
@@ -440,18 +444,18 @@ and the live `config.yaml` floating in history.)
 Then run the fast-iteration form:
 
 ```bash
-SSPSYGENE_DATA_DIR=$(pwd)/data \
-SSPSYGENE_CONFIG_JSON=processing/src/processing/config.json \
-SSPSYGENE_DATA_DB=$(pwd)/data/db/sspsygene-claude.db \
 sspsygene load-db --dataset <your-dataset> --no-index
 ```
 
-> **Why the `sspsygene-claude.db` path?** If you wrote to the default
-> `sspsygene.db`, you'd fight any other rebuild that's running on the
-> same machine. The `sspsygene-claude.db` path is a safe scratch file.
+> **Which DB does this write?** The one your `SSPSYGENE_DATA_DB`
+> environment variable names (exported once in the pre-meeting setup).
+> That's the *only* DB path there is — `load-db` writes it and the web
+> server reads it, so they can't drift apart. The command prints the
+> resolved `SSPSYGENE_*` paths at the start and end; if `SSPSYGENE_DATA_DB`
+> is unset, it stops with a clear error instead of guessing a default.
 
-> **Why `--no-index`?** This just makes the command run marginally faster 
-> (it omits index creation in the sqlite3 database)
+> **Why `--no-index`?** This just makes the command run marginally faster
+> (it omits index creation in the sqlite3 database).
 
 If it fails, read the error message; common ones:
 
@@ -744,8 +748,6 @@ preview.
 
 **Step 2 — deploy and rebuild the dev DB from your laptop.**
 
-TODO: ERROR THE GENERATED DB IS NOT GROUP WRITABLE
-
 ```bash
 sspsygene deploy --instances dev --load-db
 ```
@@ -827,6 +829,15 @@ DB already contains everything):
 sspsygene promote-dev-to-prod                            # copy dev DB → prod
 ```
 
+> **What travels with the copy?** Everything the site serves. The
+> per-table download files and metadata (the tooltips, the field
+> descriptions, the downloadable tables) are stored *inside* the SQLite
+> file as BLOBs, so copying `sspsygene.db` carries them along — there's no
+> separate metadata directory to promote. `promote-dev-to-prod` also makes
+> prod's copy group-writable, so the next wrangler to promote can overwrite
+> it. (The raw `data/datasets/` inputs are deliberately *not* copied: prod
+> serves the pre-built DB and never rebuilds, so it doesn't need them.)
+
 > If you run `sspsygene deploy --instances prod --load-db` instead, the deploy
 > warns and asks for confirmation — rebuilding on prod is exactly what
 > `promote-dev-to-prod` is meant to replace. Use the promote command.
@@ -901,26 +912,27 @@ Once your dataset has loaded into a local DB, you can also **see it on
 the website** locally — gene pages, dataset table view, full-dataset
 filtering — before anything ships to the dev server.
 
-You'll need a recent local DB. If you don't have one, the easiest path
-is to copy the dev DB from the server:
+You'll need a recent local DB. If you just ran `load-db`, you already have
+one — at `$SSPSYGENE_DATA_DB`. If you don't have one, the easiest path is
+to copy the dev DB from the server into that same path:
 
 ```bash
 rsync -av hgwdev:/hive/groups/SSPsyGene/sspsygene_website_dev/data/db/sspsygene.db \
-    ~/code/psypheno/data/db/sspsygene.db
+    "$SSPSYGENE_DATA_DB"
 ```
 
-Then start the web server (in a new terminal):
-
-TODO: why did load-db load to a different path than the npm run dev uses --- recurrent error
+Then start the web server (in a new terminal). The web app reads the DB
+from `SSPSYGENE_DATA_DB` — the **same** variable `load-db` writes to — so
+there's no second path to line up. Confirm it's set, then run:
 
 ```bash
 cd ~/code/psypheno/web
 npm install                # one-time
-SSPSYGENE_DATA_DB=YOUR LOADED DATA DB TODO
+echo "$SSPSYGENE_DATA_DB"   # sanity-check: this is the DB the site will serve
 npm run dev
 ```
 
-Open http://localhost:3000 in your browser. As you rebuild the local DB
+Open http://localhost:3000 in your browser. As you rebuild that same DB
 with `sspsygene load-db --dataset <your-dataset> ...`, the running web
 server **auto-detects the new DB file** (inode/mtime check in
 `web/lib/db.ts`) and re-opens its connection on the next request — no

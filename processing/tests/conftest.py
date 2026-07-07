@@ -167,6 +167,12 @@ def mini_fixture(
     monkeypatch.setenv(
         "SSPSYGENE_CONFIG_JSON", str(mini_data_root / "side-config.json")
     )
+    # The dataset DB path is resolved solely from SSPSYGENE_DATA_DB (there is
+    # no config.json fallback anymore); the meta DB defaults to its -meta
+    # sibling. Point them at the fixture's db/ dir.
+    monkeypatch.setenv(
+        "SSPSYGENE_DATA_DB", str(mini_data_root / "db" / "mini.db")
+    )
 
     # The session-scoped mini_data_root is reused across tests — wipe any
     # built DBs from prior tests so each invocation starts from an empty db/.

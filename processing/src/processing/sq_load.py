@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import os
 from pathlib import Path
 import sqlite3
 import sys
@@ -657,6 +658,15 @@ def _checkpoint_and_swap(staging: Path, db_name: Path) -> None:
         staging.with_name(staging.name + "-shm"),
     ):
         leftover.unlink(missing_ok=True)
+
+    # Make the final DB group-writable (0664) BEFORE the swap so the mode bits
+    # travel with the inode through the atomic rename. Without this, sqlite
+    # creates the staging file under the process umask (0644 on a umask-022
+    # host), and every rebuild would silently replace a group-writable DB with
+    # a group-read-only one — breaking overwrites for other members of the
+    # `protein` group on the shared psygene/hgwdev checkouts. os.chmod is
+    # deterministic regardless of umask (mirrors combined_pvalues/r_cache.py).
+    os.chmod(staging, 0o664)
 
     # Atomically replace the live DB. POSIX rename is atomic on the same
     # filesystem, which the data/db directory always is.

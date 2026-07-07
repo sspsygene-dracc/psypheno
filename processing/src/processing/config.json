@@ -1,5 +1,4 @@
 {
-  "out_db": "db/sspsygene.db",
   "gene_map_files": {
     "mgi": "homology/MGI_EntrezGene.rpt",
     "zfin": "homology/human_orthos.txt",
