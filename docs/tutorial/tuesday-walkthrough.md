@@ -1,81 +1,5 @@
 # Tuesday session — Claude Code + git for dataset wranglers
 
-> This document is the **agenda** for our Tuesday session **and** a **reference**
-> you can re-read afterwards. It's written so Johannes (the facilitator) can
-> use it as live demo notes — what to type, what to say, what to point at —
-> and so you (the wrangler) can come back to it later, copy-paste the exact
-> commands, and not have to remember every step from the meeting.
->
-> Estimated time: **~90 minutes**.
-
----
-
-## Goals
-
-By the end of the session, you should be able to — *from your own laptop* —
-do this end-to-end, without help:
-
-1. Pick up a dataset ticket from
-   [the GitHub issue tracker](https://github.com/sspsygene-dracc/psypheno/issues)
-   in your **browser**, and assign it to yourself there.
-2. Create the dataset directory and **download the paper + supplementary
-   files into it first**, then have Claude Code do most of the wrangling
-   work for you (read the paper, draft `preprocess.py` and `config.yaml`,
-   write `makeDoc.txt`).
-3. Let Claude run `preprocess.py`, fix the errors it hits, and sanity-check
-   the output; then have Claude re-read its own draft against the paper as a
-   verification pass.
-4. Run a single-dataset local rebuild to test that your config actually
-   loads.
-5. Commit your work (Claude can draft the commit for you) on a **branch
-   named after the ticket**, pushed to GitHub at creation time.
-6. Rebase onto the latest `main`, fast-forward `main` to your branch, push.
-7. Comment on the ticket (in the browser, or ask Claude) with what landed,
-   what was skipped, and why.
-8. Push the dataset out to the live servers: push the data files with
-   `sspsygene push-data`, rebuild the dev DB with `sspsygene deploy`,
-   **inspect it on the dev site**, then — for a **public** dataset — promote
-   the verified dev build to prod with `sspsygene promote-dev-to-prod`
-   (copies dev's DB straight over; don't rebuild on prod). For an
-   **embargoed** dataset, deploy to int instead (int holds the things we
-   can't or don't yet want to publish; prod is the public site). Close the
-   ticket once it's live where it should be.
-
----
-
-## 1. Verify everyone's setup (10 min)
-
-Ask each person to run, in their own terminal:
-
-```bash
-git --version
-gh --version
-node --version
-conda --version          # or python --version if they skipped miniconda
-ls ~/code/psypheno
-```
-
-If any of these fails, **fix it now** — don't push through. The rest of
-the session depends on these working.
-
-Then have each person launch Claude within their repo (`cd ~/code/psypheno` and then type `claude`)
-Once claude is running type:
-
-```
-/effort xhigh
-```
-
-This sets the thinking effort to maximum. Dataset wrangling involves reading
-a paper, parsing a spreadsheet, and reasoning about our config schema all at
-once — that's a workload where deeper reasoning visibly pays off, and we
-want everyone on the same setting so the demo behaves consistently. The
-setting persists in `~/.claude/settings.json`, so they only set it once.
-
-(Verify by typing `/effort` with no argument; Claude should report `xhigh`.)
-Then `/exit` to drop back to the shell.
-
----
-
 ## 2. Tour of the repo (5 min)
 
 > *Live, in VSCode with `~/code/psypheno` open.*
@@ -526,10 +450,8 @@ sspsygene load-db --dataset <your-dataset> --no-index
 > `sspsygene.db`, you'd fight any other rebuild that's running on the
 > same machine. The `sspsygene-claude.db` path is a safe scratch file.
 
-> **Why `--no-index`?** It skips the slowest stage (SQLite index
-> creation), so the test cycle is seconds rather than minutes. We're
-> just checking *does my YAML parse and does the loader accept my
-> data*, not building a production DB.
+> **Why `--no-index`?** This just makes the command run marginally faster 
+> (it omits index creation in the sqlite3 database)
 
 If it fails, read the error message; common ones:
 
@@ -822,6 +744,8 @@ preview.
 
 **Step 2 — deploy and rebuild the dev DB from your laptop.**
 
+TODO: ERROR THE GENERATED DB IS NOT GROUP WRITABLE
+
 ```bash
 sspsygene deploy --instances dev --load-db
 ```
@@ -987,11 +911,13 @@ rsync -av hgwdev:/hive/groups/SSPsyGene/sspsygene_website_dev/data/db/sspsygene.
 
 Then start the web server (in a new terminal):
 
+TODO: why did load-db load to a different path than the npm run dev uses --- recurrent error
+
 ```bash
 cd ~/code/psypheno/web
 npm install                # one-time
-SSPSYGENE_DATA_DB=$(cd .. && pwd)/data/db/sspsygene.db \
-    npm run dev
+SSPSYGENE_DATA_DB=YOUR LOADED DATA DB TODO
+npm run dev
 ```
 
 Open http://localhost:3000 in your browser. As you rebuild the local DB

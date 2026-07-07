@@ -288,16 +288,14 @@ file so every new terminal has them. Run the block below — it appends the
 exports to whichever startup file your shell uses (`~/.zshrc` for the
 default macOS zsh, `~/.bashrc` for bash):
 
+Add this to your bashrc or zshrc or zprofile:
+
 ```bash
 REPO=~/code/psypheno
-RC="$HOME/.zshrc"; [ -n "$BASH_VERSION" ] && RC="$HOME/.bashrc"
-cat >> "$RC" <<EOF
-
 # SSPsyGene processing pipeline
 export SSPSYGENE_DATA_DIR="$REPO/data"
 export SSPSYGENE_CONFIG_JSON="$REPO/processing/src/processing/config.json"
 export SSPSYGENE_DATA_DB="$REPO/data/db/sspsygene.db"
-EOF
 ```
 
 (If you cloned somewhere other than `~/code/psypheno`, change `REPO`
@@ -330,6 +328,8 @@ Host hgwdev
   User YOUR-UCSC-USERNAME
 ```
 
+TODO: need to add psygene entry here as well
+
 The `psygene` host (where the web servers run) isn't reachable directly
 from off-campus, but `sspsygene deploy` will automatically proxy through
 hgwdev for you — so this one block is all you need.
@@ -344,6 +344,8 @@ You'll be prompted for your UCSC password the first time (or your SSH
 key if you have one configured).
 
 While you're SSH'd in, two more one-time checks on the psygene side.
+
+TODO add installation of miniconda on psygene
 
 **a) miniconda location.** `sspsygene deploy` runs `load-db` and
 `preprocess.py` inside a conda env on psygene, and it looks for your
@@ -443,38 +445,3 @@ Once either option prints `Hi <username>!`, the deploy's `git pull` on
 psygene will authenticate as you. (The key/agent identifies *you* to
 GitHub; the shared checkout is pulled with whichever wrangler's
 credentials run the deploy.)
-
----
-
-## What to do if something fails
-
-**Reply to this email** with:
-
-1. Which step number failed.
-2. The exact error message — please copy-paste from your terminal rather than
-   paraphrasing or screenshotting.
-3. The output of `uname -m` (tells me Apple Silicon vs. Intel) and
-   `sw_vers` (your macOS version).
-
-I'd much rather fix it Monday afternoon than spend Tuesday morning on it.
-
----
-
-## What we'll do on Tuesday (preview)
-
-- A short tour of the repo, focused on the dataset-wrangling parts.
-- Set up a starter `CLAUDE.md` so Claude understands our conventions.
-- Pick a real ticket from the issue tracker, assign it to ourselves, and walk
-  it through end-to-end: branch → Claude does the wrangling → review → test
-  locally → commit → rebase → merge → comment on the ticket → rsync data to
-  the dev server → rebuild the dev DB → verify on the dev site → deploy to
-  int and/or prod (int holds embargoed/internal-only data, prod is the public
-  site) → close the ticket.
-- Optional add-ons (covered if there's time): how to start the web server
-  locally to look at your dataset before pushing, and how the meta-analysis
-  step fits in.
-
-See you Tuesday — and please ping me if anything in the setup is unclear or
-breaks.
-
-— Johannes
