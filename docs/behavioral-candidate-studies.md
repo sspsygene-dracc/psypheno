@@ -3,251 +3,363 @@
 A follow-up to [`candidate-studies.md`](candidate-studies.md), which was geared
 toward high-throughput molecular data (RNA-seq, scRNA-seq, CRISPR screens,
 GWAS/exome per-gene tables). This memo deliberately **de-emphasizes omics** and
-surfaces **behavioral** readouts — mouse phenotyping batteries, ultrasonic
-vocalization, machine-vision behavior, home-cage monitoring, and human
-behavioral instruments — in neurodevelopmental / autism / neuropsychiatric
-contexts.
+surfaces **behavioral** and **in-vivo neurophysiological** readouts — mouse
+phenotyping batteries, decision-making / computational-psychiatry assays,
+ultrasonic vocalization, machine-vision behavior, and human behavioral
+instruments — in neurodevelopmental / autism / neuropsychiatric contexts.
 
-**Crucial filter:** only datasets where machine-readable per-gene /
-per-strain / per-genotype behavioral data is genuinely **downloadable**
-(supplementary tables, public repository deposits, or database bulk exports).
-Studies that publish behavioral results only as figures are flagged but ranked
-below. Candidates are ordered by (1) data actually downloadable + machine-
-readable, (2) per-gene / per-strain mappability, (3) neurodev/autism relevance.
+Two ingest models are represented here, and they have **different** data
+requirements:
 
-Provenance: reconstructed from a deep-research literature sweep (20 fetched
-primary sources, adversarially verified claims). Every "downloadable"
-assertion below traces to a verified source; per-paper caveats note where
-downloadability is *unconfirmed* and needs a supplement check before ingestion.
+1. **Gene → phenotype linkage (studies below).** A curated association between a
+   named risk gene (and its mouse/rat model) and a described behavioral, neural,
+   or computational phenotype. The quantitative values are often buried in a
+   paper's text/figures rather than a supplement — **that is fine**; the
+   linkage is the ingestible unit. This is the model behind studies like Noel
+   et al. 2025 (*Nat Neurosci*, the exemplar the wrangler team flagged).
+2. **Bulk / downloadable behavioral tables (databases at the end).** Consortium
+   or curated databases (IMPC, AutDB/SFARI, MPD, MGI) that expose behavioral
+   readouts already keyed to genes or strains in machine-readable bulk exports.
 
----
-
-## Headline findings
-
-- The strongest behavioral fits are **database resources**, not one-off papers
-  — because they publish machine-readable per-gene/per-strain tables, whereas
-  most behavioral papers ship figures only.
-- The two labs called out for investigation split cleanly:
-  - **Vivek Kumar (JAX) — strong yield.** Three deposited machine-vision
-    behavioral-genetics datasets, several including ASD/NDD mutant lines and
-    QTL→gene mapping, all downloadable (Mouse Phenome Database, Zenodo, Harvard
-    Dataverse).
-  - **Joseph Dougherty (WashU) — little currently ingestible.** No recent
-    publication with a cleanly downloadable per-gene behavioral table was found;
-    the nearest handle is ultrasonic-vocalization methods work. Revisit later.
+Provenance: reconstructed from two deep-research literature sweeps (fetched
+primary sources, adversarially verified claims). Items marked **[verified]**
+were fetch-checked and passed adversarial verification; items marked
+**[snippet]** come from search results and are reliable on the *phenotype* but
+their **citation details (DOI / PMID / year) should be confirmed before
+ticketing**. Preprints are marked **[preprint]** — per project guidance we lean
+toward journal-published work, so treat those as watch-items.
 
 ---
 
-## Tier B1 — Database resources with downloadable per-gene / per-strain behavioral data
+# PART A — Studies (gene → phenotype linkage)
 
-The highest-value targets: consortium/curated databases that expose behavioral
-readouts already keyed to genes or strains, in bulk machine-readable form.
+## A1. Cross-genotype convergence studies
 
-### B1. IMPC — International Mouse Phenotyping Consortium *(single best fit)*
-- Groza et al. 2023, *Nucleic Acids Research* **51**, D1038. PMID 36305833 /
-  doi:10.1093/nar/gkac972. Portal architecture: Koscielny et al. 2014,
-  *NAR* **42**, D802 (PMID 24194600).
-- **Behavioral phenotypes:** standardized behavioral/neurological pipeline —
-  open field (anxiety / exploration / activity), acoustic startle & PPI, grip
-  strength (neuromuscular), SHIRPA.
-- **Model:** mouse single-gene knockouts. **Data Release 24 (Mar 2026):
-  9,605 knockout genes, 10,341 phenotyped lines, 138M+ data points, 111,664
-  statistically significant per-gene phenotype calls.** Behavioral is among the
-  leading phenotype categories examined.
-- **Downloadable:** yes — REST/Solr **API**, bulk **FTP** dumps (parquet/CSV)
-  captured per data release, and a **batch-query** tool at mousephenotype.org.
-  Data is consortium-generated (not literature-aggregated) and **already
-  gene-mapped with statistical calls** — the cleanest per-gene behavioral source
-  available.
-- **Why:** every readout is per-gene keyed with a stat call; huge ASD/NDD gene
-  overlap (most ASD genes have KO lines). Mouse.
+The design the wrangler team most wants: multiple ASD/NDD-gene mouse lines run
+through the *same* assay to find a convergent phenotype.
 
-### B2. AutDB / SFARI Gene Animal Model module — Das et al. 2019
-- *Molecular Autism* **10**, 11 (2019). doi:10.1186/s13229-019-0263-7 /
-  PMC6417187.
-- **Behavioral phenotypes:** curated phenoterm/phenovalue annotations
-  (Increased / Decreased / Abnormal / No Change) across **450+ experimental
-  paradigms** — core ASD domains (social interaction, ultrasonic vocalization,
-  repetitive behavior) plus anxiety, seizures, motor, learning/memory. Top
-  annotated measures: general locomotor activity, anxiety, social interaction.
-- **Model:** rodent ASD models — **258 ASD-linked genes, 6 CNV regions, 72
-  environmental inducers, 9 inbred strains, curated from 787 publications**
-  (compared with ~60 ASD genes in MGI as of Aug 2018). The Shank3 case study
-  alone annotates 27 loss-of-function models separately (15 KO + 10 KI mouse,
-  2 KO rat), showing construct/strain-level resolution.
-- **Downloadable:** yes — **supplementary tables S1–S9 (.xlsx / .docx)** with
-  construct and phenotype data; the full dataset lives in AutDB
-  (autism.mindspec.org/autdb, mirrored at gene.sfari.org/autdb). This is a
-  genuine per-gene behavioral **annotation** database — direct fit for our
-  per-gene schema.
-- **Caveat:** the SFARI Gene animal-models *landing-page* CSV export
-  (`download-csv.php?api-endpoint=animal-genes`, ~269 models) contains **only
-  summary fields** (model counts, synteny status, human gene scores,
-  syndromic/rescue class) — **not** the detailed behavioral readouts. Those live
-  in the Das et al. S1–S9 supplement and on individual gene pages. Ingest from
-  the supplement / AutDB, not the landing CSV.
+### Noel et al. 2025 — common computational/neural anomaly across ASD models *(the exemplar)* [verified]
+- *Nature Neuroscience* **28**, 1519–1532 (2025). PMID 38766250 /
+  doi:10.1038/s41593-025-01965-8.
+- **Genes/models:** *Fmr1*, *Cntnap2*, *Shank3B* mutant mice. **Cross-genotype.**
+- **Assay/phenotype:** rodent psychophysics + behavioral modeling + brain-wide
+  single-cell (Neuropixels) recordings → all three show a **blunted / inflexible
+  update of priors during perceptual decision-making**, with a shared neural
+  signature: **prior encoding shifts from sensory to frontal cortex**, and
+  frontal units over-represent deviations from the animal's long-run prior.
+  Mouse.
 
-### B3. Mouse Phenome Database (MPD)
-- Bogue et al. 2020, *NAR* **48**, D716. PMID 31696236. phenome.jax.org (JAX).
-- **Behavioral phenotypes:** curated strain-survey behavior — open-field
-  thigmotaxis / anxiety, activity, sociability, behavioral despair, grooming.
-  "Behavior tests" is a first-class browsable category.
-- **Model:** 2,000+ mouse strains/populations (inbred, Collaborative Cross,
-  Diversity Outbred, transgenic). Per-**strain** (maps to genetic background),
-  not per-gene-KO.
-- **Downloadable:** yes — bulk **CSV / CSV.GZ** at phenome.jax.org/downloads
-  (`strainmeans.csv.gz` = strain averages + stats; `animaldatapoints.csv.gz` =
-  one row per animal; `measurements.csv`, `straininfo.csv` for metadata) plus a
-  JSON/CSV **API**. Canonical deposit target for JAX behavioral surveys —
-  **hosts the Kumar lab datasets below (projects Kumar3, Kumar4).** Mouse.
+### Hsu et al. 2025 — whole-brain connectivity + sensory deficits across ASD models [verified]
+- *Molecular Psychiatry* (2025). doi:10.1038/s41380-025-03340-2 / PMID 41266875.
+- **Genes/models:** *Tbr1*⁺ᐟ⁻, *Nf1*⁺ᐟ⁻, *Vcp*⁺ᐟᴿ⁹⁵ᴳ (reviews Cntnap2, En2,
+  Fmr1, Gabrb3, Mecp2, Shank2, Shank3, Syngap1). **Cross-genotype.**
+- **Assay/phenotype:** AI whole-brain mapping (BM-auto, Thy1-YFP) + olfactory
+  discrimination + social behavior → **piriform cortex is the only region
+  consistently impaired across all three lines**; all three share an
+  **olfactory-discrimination deficit** (divergent somatosensory signatures).
+  Mouse. *Vcp⁺ᐟᴿ⁹⁵ᴳ is a knock-in point mutant, not a null.*
 
-### B4. MGI Mammalian Phenotype Ontology gene→phenotype reports
-- Mouse Genome Informatics, informatics.jax.org. Ongoing resource (no single
-  paper).
-- **Behavioral phenotypes:** Mammalian Phenotype (MP) ontology categorical
-  annotations under the "abnormal behavior" / "nervous system phenotype"
-  branches.
-- **Model:** mouse genes/alleles. **The most directly per-gene-mappable**
-  resource in this list.
-- **Downloadable:** yes — flat **TSV** report files (`MGI_GenePheno.rpt`,
-  `MGI_PhenoGenoMP.rpt`) linking genes/alleles → MP behavioral terms; also
-  MouseMine programmatic access. Categorical (annotation), **not** quantitative
-  readouts — weigh accordingly. Mouse.
+### Kloth et al. 2015 — cerebellar associative sensory learning defects in five ASD models [snippet]
+- "Cerebellar associative sensory learning defects in five mouse autism models"
+  (*eLife*, ~2015). PMC4512177.
+- **Cross-genotype** (five ASD lines) on one eyeblink-conditioning assay →
+  **shared cerebellar learning-timing deficit**. Predates the 2018+ window but
+  is a canonical convergence design. Mouse.
 
----
+### Cortical development dynamics across ASD mouse models — Nature 2026 [snippet]
+- doi:10.1038/s41586-026-10679-1 (2026).
+- **Cross-genotype** developmental transcriptomic-electrophysiological pipeline
+  → **convergent stage-bound programs** (delayed radial-glia progression, early
+  postnatal ion-channel / synaptic downregulation) with genotype-specific
+  signatures intensifying with maturation. Neural-heavy; behavioral component
+  thinner than Noel. Mouse. **Confirm citation before ticketing.**
 
-## Tier B2 — Vivek Kumar lab: machine-vision behavioral genetics
+## A2. Computational-psychiatry: decision-making, prior/belief updating, reinforcement learning
 
-Per-**strain**, machine-readable, and several include ASD/NDD mutant lines with
-QTL→gene mapping. This is the Kumar deliverable. Central download hub:
-**kumarlab.org/resources**.
+The closest single-gene analogues to Noel 2025 — Bayesian belief-updating,
+prior-weighting, evidence-accumulation, or reinforcement-learning constructs
+paired with in-vivo physiology.
 
-### B5. Geuther et al. 2021 — automated grooming (repetitive behavior)
+### Scn2a⁺ᐟ⁻ — flexible decision-making + in-vivo dendritic imaging *(strongest single-gene match)* [verified]
+- Bender lab (UCSF). *PNAS* **122** (2025). doi:10.1073/pnas.2508836122 /
+  PMID 41264237 / PMC12646510.
+- **Gene/model:** *Scn2a* haploinsufficiency (high-confidence ASD gene).
+  Single-gene.
+- **Assay/phenotype:** matching-pennies competitive task → **inflexible under
+  changing competitive pressure**; 2-photon Ca²⁺ imaging of apical/proximal
+  dendrites in medial frontal cortex pyramidal cells shows **diminished
+  apical-proximal coupling** and altered tuft encoding of reward/strategy.
+  Mouse.
+
+### Grin2a Y700X — Bayesian belief-updating + mediodorsal thalamus [verified]
+- *Nature Neuroscience* (2026). doi:10.1038/s41593-026-02237-9 (bioRxiv
+  2024.01.08.574745).
+- **Gene/model:** *Grin2a* patient-derived knock-in (Y700X⁺ᐟ⁻). Single-gene.
+  **Framed as schizophrenia-risk** (GRIN2A / SCHEMA) — also a recognized NDD
+  gene, but not classically autism.
+- **Assay/phenotype:** dynamic foraging + explicit Bayesian model → **slower
+  belief-update rate, over-weights prior, unstable behavioral states**;
+  functional ultrasound flags **mediodorsal thalamus hypofunction**; MD
+  optogenetic inhibition phenocopies, enhancement rescues. Mouse.
+
+### Nrxn1α KO — IBL prior-weighting task + widefield imaging *(tightest topical match)* [verified] [preprint]
+- Davatolhagh, Couto, Melin, Oesch, Findling et al. (Churchland lab / IBL).
+  bioRxiv 2025.09.12.675910.
+- **Gene/model:** *Nrxn1α* (Neurexin-1α) KO. Single-gene.
+- **Assay/phenotype:** the exact IBL two-choice prior-weighting task +
+  cortex-wide widefield Ca²⁺ → **underuses priors, slow to update on feedback,
+  over-relies on sensory input; cortex-wide activity elevated + more
+  correlated.** Explicitly frames itself as convergent with Noel's
+  Fmr1/Cntnap2/Shank3B. Mouse. *Nrxn1α isoform KO, not full null; widefield,
+  not Neuropixels.*
+
+### Tsc2 + Shank3B — reinforcement-learning modeling, cross-genotype [snippet] [preprint]
+- bioRxiv 2025.01.15.633099 / PMC11760717.
+- **Genes/models:** *Tsc2*⁺ᐟ⁻ and *Shank3B*⁺ᐟ⁻. **Cross-genotype.**
+- **Assay/phenotype:** odor-based 2AFC fit with an RL model → both converge on
+  an **enhanced positive learning rate, male-only, early adolescence.** Mouse.
+
+### Tsc1 (cerebellar Purkinje) — sensory evidence-accumulation task [snippet] [preprint]
+- bioRxiv 2021.12.23.474034.
+- **Gene/model:** *Tsc1*, L7-Cre Purkinje-specific. Single-gene.
+- **Assay/phenotype:** sensory **evidence-accumulation** task + in-vivo
+  Purkinje-cell recording → **accelerated learning + enhanced sensory
+  salience.** Mouse.
+
+### 16p11.2 hemideletion — reward learning (Grissom 2018) [snippet]
+- Grissom et al. *Molecular Psychiatry* (2018). PMID 29038598.
+- **Model:** 16p11.2 CNV deletion. **Assay/phenotype:** operant reward-directed
+  learning → **male-specific reward-learning impairment + reduced motivation**,
+  tied to striatal dysfunction. Mouse. (See also A5 for other 16p11.2 papers.)
+
+## A3. Cognitive flexibility & reversal learning (single-gene)
+
+Reversal-learning / flexibility deficits — the "inflexible updating" construct
+Noel 2025 formalizes — cleanly attributed to canonical genes.
+
+### Cntnap2⁻ᐟ⁻ — striatal hyperexcitability + reversal inflexibility [verified]
+- *eLife* (2024), art. 100162. PMID 38766169 / doi:10.7554/eLife.100162.
+- **Gene/model:** *Cntnap2* KO (canonical ASD gene). Single-gene.
+- **Assay/phenotype:** four-choice odor reversal-learning task → **reversal
+  deficit with perseverative errors**; whole-cell patch clamp shows
+  direct-pathway striatal projection neurons with **increased intrinsic
+  excitability** via altered Kv1.2 (Caspr2 organizes Kv1.2 clustering). Mouse.
+
+### Fmr1 KO — probabilistic reversal learning, cross-species [snippet]
+- PMID 36688132 / PMC9849779.
+- **Gene/model:** *Fmr1* KO paired with human Fragile-X data. **Assay/phenotype:**
+  probabilistic (stochastic-reward) reversal → **male KO impaired on initial
+  probabilistic learning + reversal; females selectively impaired on
+  reversal.** Mouse + human. Amenable to RL / belief-updating decomposition.
+
+### Fmr1 KO — reversal-learning flexibility deficit [snippet]
+- *F1000Research* (2018). PMID 30057755 / PMC6051189.
+- **Gene/model:** *Fmr1* KO. **Assay/phenotype:** males acquire the initial rule
+  normally but are **selectively impaired at the reversed contingency**,
+  isolating a flexibility/updating deficit. Mouse.
+
+### Grin2a — cognitive flexibility via LC→mPFC modulation [snippet] [preprint]
+- bioRxiv 2025.02.01.636062.
+- **Gene/model:** *Grin2a*. **Assay/phenotype:** **cognitive-flexibility /
+  reversal deficit** via disrupted locus-coeruleus modulation of prefrontal
+  circuits (prefrontal gamma coordination). Mouse.
+
+### Shank2 KO — valence-dependent reversal deficit [snippet]
+- *Molecular Autism* (2022). PMC9531513.
+- **Gene/model:** *Shank2* KO. **Assay/phenotype:** males show **impaired
+  reversal only under aversive (air-puff) outcomes** plus heightened
+  anticipatory aversive responses; intact under reward-only. Mouse.
+
+## A4. Single-gene in-vivo circuit physiology & neural coding
+
+Named-gene → circuit/coding phenotypes with in-vivo electrophysiology, calcium
+imaging, or functional ultrasound (less computational-psychiatry framing than
+A2, but rich physiology).
+
+### Cntnap2 — reticular thalamic hyperexcitability drives ASD behaviors [snippet]
+- *Science Advances*. doi:10.1126/sciadv.adw4682.
+- **Gene/model:** *Cntnap2* KO. **Phenotype:** **reticular-thalamic
+  hyperexcitability** drives ASD-like behaviors (gene → circuit → behavior).
+  Mouse.
+
+### Cntnap2 — impaired emotion recognition + PFC hyper-synchrony [snippet]
+- *Molecular Psychiatry* (2024). doi:10.1038/s41380-024-02754-8.
+- **Gene/model:** *Cntnap2*-deficient. **Phenotype:** social/emotion-recognition
+  deficit associated with **hyper-synchronous prefrontal cortex activity**
+  (in-vivo PFC recordings; frontal angle parallels Noel). Mouse.
+
+### Cntnap2 — degraded tactile cortical coding [snippet]
+- PMC10557772 (2023).
+- **Gene/model:** *Cntnap2*. **Phenotype:** in-vivo somatosensory cortex
+  recordings → **degraded / less-reliable tactile stimulus representations**
+  (sensory-prior relevance). Mouse.
+
+### Scn2a⁺ᐟ⁻ — cortico-collicular feedback failure / context processing [snippet]
+- PMC12484672 (2025).
+- **Gene/model:** *Scn2a*. **Phenotype:** in-vivo recordings show
+  **cortico-collicular feedback failure** degrading context-dependent sensory
+  processing (predictive-coding angle; complements the PNAS Scn2a decision
+  paper in A2). Mouse.
+
+### Tsc1 (Purkinje-specific) — sex-specific behavior + Purkinje physiology [snippet]
+- *Frontiers in Behavioral Neuroscience* (2024).
+- **Gene/model:** *Tsc1*, Purkinje-specific deletion. **Phenotype:** autism
+  behavior battery (social, repetitive, vocalization) + reduced simple/complex
+  Purkinje-spike firing in awake animals; **sex-by-genotype interaction.**
+  Mouse.
+
+## A5. Copy-number-variant models (16p11.2, 22q11.2)
+
+### 16p11.2 deletion — basal-ganglia circuit + reward learning [snippet]
+- Portmann et al. *Cell Reports* (2014).
+- **Phenotype:** reward-learning deficits, hyperactivity, movement-control
+  problems tied to **excess Drd2⁺ striatal MSNs** + slice-ephys synaptic
+  defects. Mouse.
+
+### 16p11.2 deletion — PFC NMDAR deficits, chemogenetically rescued [snippet]
+- *J. Neurosci.* (2018). PMC6021990.
+- **Phenotype:** **39–52% reduced NMDAR-EPSCs in mPFC** + behavioral deficits,
+  both rescued by chemogenetic PFC activation (causal frontal-circuit link).
+  Mouse.
+
+### 16p11.2 deletion — fronto-temporal connectivity + attention [snippet]
+- PMC10209099.
+- **Phenotype:** **paradoxically enhanced attentional ability** with
+  fronto-temporal functional-connectivity + GABAergic dysfunction. Mouse.
+
+### 22q11.2 deletion (Df(16)A⁺ᐟ⁻) — impaired hippocampal place-cell dynamics [snippet]
+- PMC5763006.
+- **Phenotype:** reduced spatial-map stability + absence of goal-directed
+  place-cell reorganization during learning (circuit-level cognitive-flexibility
+  readout). Mouse.
+
+## A6. Machine-vision behavioral genetics (Vivek Kumar lab, JAX)
+
+Per-**strain** machine-vision behavior; several include named ASD/NDD mutant
+lines and QTL→gene mapping. Structured data is additionally downloadable (Mouse
+Phenome Database, Zenodo, Harvard Dataverse) — hub: kumarlab.org/resources.
+
+### Geuther et al. 2021 — automated grooming (repetitive behavior) [snippet]
 - *eLife* **10**, e63207 (2021). doi:10.7554/eLife.63207.
-- **Behavioral:** neural-network-scored grooming quantity + patterning, plus
-  open-field anxiety/activity. Grooming is an ASD-relevant repetitive behavior.
-- **Model / scale:** 2,457 mice across 62 strains (43 classical laboratory,
-  8 wild-derived, 11 F1 hybrid). GWAS → **130 QTL** mapping to neurodev genes
-  including **Sox5, FoxP1, Ctnnb1, Grin2b**.
-- **Downloadable:** behavioral data in **MPD project Kumar3**
-  (phenome.jax.org/projects/Kumar3); **Supplementary file 2** = pathway / gene
-  table; Zenodo 10.5281/zenodo.4646088; code/models on GitHub (KumarLabJax).
-  Mouse — per-strain, plus per-QTL-gene associations.
+- **Assay/phenotype:** NN-scored grooming quantity + patterning + open-field
+  anxiety/activity across 2,457 mice, 62 strains; GWAS → **130 QTL** mapping to
+  neurodev genes incl. **Sox5, FoxP1, Ctnnb1, Grin2b.** Data in MPD project
+  Kumar3; Suppl. file 2 = gene table; Zenodo 10.5281/zenodo.4646088. Mouse.
 
-### B6. Sheppard et al. 2022 — stride-level gait *(best single-paper fit)*
+### Sheppard et al. 2022 — stride-level gait [snippet]
 - *Cell Reports* **38**, 110231 (2022). doi:10.1016/j.celrep.2021.110231 /
   PMID 35021077.
-- **Behavioral:** 14 stride-level gait + open-field posture metrics (stride
-  speed / length, step length / width, limb duty factor, temporal symmetry,
-  lateral displacement, angular velocity) via deep-learning pose estimation
-  (12 keypoints per frame).
-- **Model / scale:** 62 strains, 1,898 animals — **plus explicit ASD/NDD mutant
-  models: Mecp2 (Rett), Fmr1, Shank3, Cntnap2, Del4Aam (ASD)** alongside
-  SOD1-G93A (ALS) and Ts65Dn (Down). Directly per-gene mappable for the mutant
-  lines.
-- **Downloadable:** **MPD project Kumar4**; training/validation data + network
-  weights on Zenodo 10.5281/zenodo.5708437; code on GitHub (KumarLabJax:
-  deep-hrnet-mouse, gaitanalysis). Mouse.
+- **Assay/phenotype:** 14 gait/posture metrics via deep-learning pose
+  estimation across 62 strains — **plus ASD/NDD mutants Mecp2, Fmr1, Shank3,
+  Cntnap2, Del4Aam** (+ SOD1-G93A, Ts65Dn). Data in MPD project Kumar4; Zenodo
+  10.5281/zenodo.5708437; GitHub KumarLabJax. Mouse.
 
-### B7. JABS — JAX Animal Behavior System (Kumar lab)
-- *eLife* **14**, e107259 (2025) — peer-reviewed successor to the 2022 bioRxiv
-  preprint.
-- **Behavioral:** grooming, posture, gait, left/right turning, rearing
-  (supported/unsupported), scratching, escape attempts, plus higher-order
-  constructs (biological age, pain, seizure intensity). Heritability, genetic
-  correlations, and GWAS across ~168 genetically diverse strains.
-- **Downloadable:** curated datasets **JABS600 (598 videos, 60 strains),
-  JABS1200 (1,139 videos, 60 strains), JABS-BxD (1,083 videos, 108 BxD
-  strains)** on Harvard Dataverse (doi:10.7910/DVN/SAPNJG,
-  doi:10.7910/DVN/RQYI04) — video recordings + keypoint files. Full software /
-  hardware stack open-source on GitHub (KumarLabJax/JABS-data-pipeline,
-  mouse-tracking-runtime). Mouse.
-- **Caveat:** deposits are video + keypoint, not a tidy per-gene summary CSV;
-  per-gene mapping is via the strain-level GWAS, not a KO panel. More work to
-  reduce to an ingestible table than B5/B6.
+### JABS — JAX Animal Behavior System (2025) [snippet]
+- *eLife* **14**, e107259 (2025) (successor to a 2022 bioRxiv preprint).
+- **Assay/phenotype:** grooming, posture, gait, turning, rearing, scratching,
+  escape + higher-order constructs (biological age, pain, seizure) across ~168
+  strains, with heritability + GWAS. Datasets JABS600 / JABS1200 / JABS-BxD on
+  Harvard Dataverse (doi:10.7910/DVN/SAPNJG, 10.7910/DVN/RQYI04). Mouse. *Video
+  + keypoint deposits, not a tidy per-gene CSV — needs table-reduction.*
 
----
+## A7. Ultrasonic vocalization gene models
 
-## Tier B3 — Ultrasonic vocalization (per-gene autism models, downloadability weak)
+Per-genotype USV phenotyping of named genes. Under the gene→phenotype ingest
+model these are viable even though the quantitative values sit in the paper's
+figures/tables rather than a supplement — confirm the phenotype direction before
+ticketing.
 
-The right modality for the Dougherty vocalization axis, but **none currently
-ships a confirmed machine-readable per-gene USV table.** Treat as watch-items
-pending a supplement/deposit check, not ingest-ready.
+### Crmp4 / Dpysl3 KO — male-predominant USV phenotype [snippet]
+- PMC9139187.
+- **Gene/model:** *Crmp4/Dpysl3* KO vs WT littermates. **Phenotype:**
+  isolation-induced calls in 10 call types, **per-genotype × per-sex counts**;
+  male-predominant. Mouse.
 
-- **Crmp4 / Dpysl3 KO USV** — PMC9139187. Isolation-induced calls classified
-  into 10 call types with per-genotype × per-sex counts; highly per-gene
-  mappable. **Readouts in figures/in-paper tables only; no confirmed
-  supplementary spreadsheet or deposit.** Mouse.
-- **NS-Pten (neuron-subset Pten) KO USV** — PMC5698873. PTEN is an ASD gene;
-  per-genotype call counts, duration, peak amplitude at PND8/PND11. Strong
-  relevance. **In-paper only; verify for a supplement before ingestion.** Mouse.
-- **G-Node USV deposit** — doi:10.12751/g-node.w7lzc3 (Han/Jung/Choi 2025). A
-  real open deposit of isolation-induced pup USVs, **but wild-type C57BL/6 only
-  (no genotype dimension)** and shipped as a single ~14 GiB ZIP of raw
-  250–300 kHz audio — no per-gene summary table. Not per-gene-ingestible.
-- **VocalMat** — Fonseca et al. 2021, *eLife* **10**, e59161.
-  doi:10.7554/eLife.59161. A MATLAB computer-vision tool that classifies USVs
-  into 11 types; OSF deposit (osf.io/bk2uj) holds 12,954 labeled **training
-  images**, not per-gene tables. Method/tool, not a gene-mapped dataset — useful
-  as the analysis layer for a future USV dataset.
-- **Dougherty-adjacent USV methods** — mountable miniature microphones for
-  per-animal USV assignment (*Cell Reports Methods* 2025). A method paper;
-  no ingestible per-gene table.
+### NS-Pten KO — sex- and age-specific USV differences [snippet]
+- PMC5698873.
+- **Gene/model:** neuron-subset *Pten* KO (PTEN is an ASD gene). **Phenotype:**
+  PND8/PND11 isolation USVs → **per-genotype call counts, duration, peak
+  amplitude with sex and age effects.** Mouse.
+
+## A8. Human behavioral cohorts (deeply phenotyped, access-gated)
+
+Human per-individual / per-gene-condition behavioral phenotyping. Rich but
+**gated behind a SFARI Base data-use agreement**, not open downloads.
+
+### Simons Simplex Collection (SSC) + SPARK [verified]
+- SFARI resources, via SFARI Base (base.sfari.org).
+- **Phenotypes:** SCQ-Lifetime, Repetitive Behavior Scale-Revised, CBCL 6-18,
+  ADOS/ADI-R, IQ; per-individual, per-gene-condition. Human. **Access-gated.**
+
+### Litman et al. 2025 — decomposition of ASD phenotypic heterogeneity [verified]
+- PMC12283356 (2025).
+- **Cohorts:** SPARK (n=5,392) + SSC (n=861), 239 behavioral features across 7
+  categories. Raw phenotype data gated; **Supplementary Data 1 CSV is
+  ASD-relevant gene *sets*** (not per-gene behavioral readouts). Code:
+  github.com/FunctionLab/asd-pheno-classes; Zenodo 10.5281/zenodo.15324658.
+  Human.
 
 ---
 
-## Tier B4 — Human behavioral phenotypes (deeply phenotyped but access-gated)
+# PART B — Database resources (downloadable per-gene / per-strain behavioral data)
 
-- **Simons Simplex Collection (SSC) + SPARK, via SFARI Base** — deep human
-  phenotyping (SCQ-Lifetime, Repetitive Behavior Scale-Revised, CBCL 6-18,
-  ADOS/ADI-R, IQ). Per-individual, per-gene-condition. **Gated behind a SFARI
-  Base data-use agreement, not an open journal supplement** — human, per-gene
-  mappable, but not openly ingestible.
-- **Litman et al. 2025** — PMC12283356, "Decomposition of phenotypic
-  heterogeneity in autism." SPARK (n=5,392) + SSC (n=861) across 239 behavioral
-  features in 7 categories (limited social communication, restricted/repetitive
-  behavior, attention deficit, disruptive behavior, anxiety/mood, developmental
-  delay, self-injury). Raw phenotype data gated; **Supplementary Data 1 CSV
-  (421 KB) is ASD-relevant gene *sets*** (a gene-level artifact, not per-gene
-  behavioral readouts). Code: github.com/FunctionLab/asd-pheno-classes; Zenodo
-  10.5281/zenodo.15324658. Human.
+Consortium/curated databases that expose behavioral readouts already keyed to
+genes or strains in machine-readable bulk exports. These are the ingest targets
+when you want quantitative per-gene/per-strain tables rather than a single
+paper's gene→phenotype claim.
 
----
+## B1. IMPC — International Mouse Phenotyping Consortium [verified]
+- Groza et al. 2023, *Nucleic Acids Research* **51**, D1038. PMID 36305833 /
+  doi:10.1093/nar/gkac972. Portal: Koscielny et al. 2014, *NAR* **42**, D802
+  (PMID 24194600).
+- **Behavioral phenotypes:** standardized behavioral/neurological pipeline —
+  open field (anxiety/exploration/activity), acoustic startle & PPI, grip
+  strength, SHIRPA.
+- **Model / scale:** mouse single-gene knockouts. **DR24 (Mar 2026): 9,605 KO
+  genes, 10,341 lines, 138M+ data points, 111,664 statistically significant
+  per-gene phenotype calls.**
+- **Downloadable:** REST/Solr API, bulk FTP dumps (parquet/CSV) per release, and
+  a batch-query tool at mousephenotype.org. Consortium-generated,
+  **already gene-mapped with statistical calls** — the cleanest per-gene
+  behavioral source. Mouse.
 
-## Not ingestible (reviews / methods / protocols — provenance value only)
+## B2. AutDB / SFARI Gene Animal Model module — Das et al. 2019 [verified]
+- *Molecular Autism* **10**, 11 (2019). doi:10.1186/s13229-019-0263-7 /
+  PMC6417187.
+- **Behavioral phenotypes:** phenoterm/phenovalue annotations (Increased /
+  Decreased / Abnormal / No Change) across **450+ paradigms** — social
+  interaction, ultrasonic vocalization, repetitive behavior, anxiety, seizures,
+  motor, learning/memory.
+- **Model / scale:** **258 ASD-linked genes, 6 CNV regions, 72 environmental
+  inducers, 9 inbred strains, curated from 787 publications.** Shank3 case study
+  annotates 27 loss-of-function models separately (15 KO + 10 KI mouse, 2 KO
+  rat).
+- **Downloadable:** supplementary tables S1–S9 (.xlsx/.docx); full dataset in
+  AutDB (autism.mindspec.org/autdb, mirrored at gene.sfari.org/autdb). Mouse
+  (+ rat).
+- **Caveat:** the SFARI Gene animal-models *landing-page* CSV
+  (`download-csv.php?api-endpoint=animal-genes`, ~269 models) has **only summary
+  fields**, not the behavioral readouts — ingest from the Das supplement / AutDB
+  / gene pages, not the landing CSV.
 
-- **Kazdoba, Leach & Crawley 2016** — *behavioral phenotypes of genetic mouse
-  models of autism* review (PMID 26403076). Defines the phenotype vocabulary
-  (social, USV, repetitive grooming, anxiety, hyperactivity, cognitive
-  flexibility, sensory reactivity) across 100+ single-gene models, but is a
-  narrative review with no downloadable per-genotype file.
-- **Moy et al. 2007** — 10-inbred-strain autism-relevant behavioral survey
-  (identified BTBR as the low-sociability model). Pre-2017, but the underlying
-  data is live and downloadable **in MPD** — reach it via B3.
-- **PMC9327140** — protocol for a systematic review / network meta-analysis of
-  rodent ASD behavioral phenotypes. Targets Ube3a, Pten, Nlgn3, Shank3, Mecp2,
-  Fmr1, but its supplements are methodology only (search syntax, phenoterms),
-  no per-gene data. Watch for the completed meta-analysis, which may release an
-  extraction table.
-- **Keypoint-MoSeq** — Weinreb et al. 2024, *Nature Methods*. Unsupervised
-  behavioral-syllable method (MoSeq4all.org); code + demo data only, no per-gene
-  panel. A method to mine for specific NDD-gene MoSeq studies later.
+## B3. Mouse Phenome Database (MPD) [verified]
+- Bogue et al. 2020, *NAR* **48**, D716. PMID 31696236. phenome.jax.org (JAX).
+- **Behavioral phenotypes:** curated strain-survey behavior — open-field
+  thigmotaxis/anxiety, activity, sociability, behavioral despair, grooming
+  ("Behavior tests" is a first-class category).
+- **Model / scale:** 2,000+ mouse strains/populations (inbred, CC, DO,
+  transgenic). Per-**strain** (maps to genetic background), not per-gene-KO.
+- **Downloadable:** bulk CSV/CSV.GZ at phenome.jax.org/downloads
+  (`strainmeans.csv.gz`, `animaldatapoints.csv.gz` = one row/animal,
+  `measurements.csv`, `straininfo.csv`) + JSON/CSV API. **Hosts the Kumar lab
+  datasets (projects Kumar3, Kumar4) from A6.** Mouse.
 
----
-
-## Suggested prioritization
-
-1. **IMPC (B1) + AutDB / Das 2019 (B2)** — the two per-gene behavioral
-   databases; together they give quantitative KO phenotypes (IMPC) and curated
-   ASD-gene behavioral annotations (AutDB). Highest expected value.
-2. **Kumar Sheppard 2022 (B6)** — named ASD mutants (Mecp2 / Fmr1 / Shank3 /
-   Cntnap2) *and* a clean MPD deposit; best single-paper behavioral fit.
-3. **MPD (B3) + MGI reports (B4)** — the plumbing under much of the above;
-   ingest once, reuse for many strain/gene lookups.
-
-Lower expected value but worth filing so the wrangler team can pick them up:
-
-- Kumar grooming (B5) and JABS (B7) — per-strain machine-vision behavior;
-  B7 needs table-reduction work first.
-- USV models (Tier B3) — only after a supplement/deposit check confirms a
-  machine-readable per-gene table exists.
+## B4. MGI Mammalian Phenotype Ontology gene→phenotype reports [verified]
+- Mouse Genome Informatics, informatics.jax.org. Ongoing resource.
+- **Behavioral phenotypes:** MP-ontology categorical annotations under the
+  "abnormal behavior" / "nervous system phenotype" branches.
+- **Model:** mouse genes/alleles. **The most directly per-gene-mappable**
+  resource here.
+- **Downloadable:** flat TSV report files (`MGI_GenePheno.rpt`,
+  `MGI_PhenoGenoMP.rpt`) linking genes/alleles → MP behavioral terms; MouseMine
+  programmatic access. Categorical (annotation), not quantitative. Mouse.
