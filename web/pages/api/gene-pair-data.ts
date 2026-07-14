@@ -62,7 +62,7 @@ export default async function handler(
     const db = getDb();
     const tables = db
       .prepare(
-        `SELECT table_name, short_label, medium_label, long_label, description, source, assay, condition, organism, organism_key, field_labels, gene_columns, display_columns, scalar_columns, link_tables, pvalue_column, fdr_column, effect_column FROM data_tables ORDER BY id ASC`
+        `SELECT table_name, short_label, medium_label, long_label, description, source, assay, condition, organism, organism_key, field_labels, column_labels, gene_columns, display_columns, scalar_columns, link_tables, pvalue_column, fdr_column, effect_column FROM data_tables ORDER BY id ASC`
       )
       .all() as Array<{
         table_name: string;
@@ -76,6 +76,7 @@ export default async function handler(
         organism: string | null;
         organism_key: string | null;
         field_labels: string | null;
+        column_labels: string | null;
         display_columns: string;
         scalar_columns: string | null;
         link_tables: string | null;
@@ -95,6 +96,7 @@ export default async function handler(
       assay: string[];
       organism: string | null;
       fieldLabels: Record<string, string> | null;
+      columnLabels: Record<string, string> | null;
       displayColumns: string[];
       scalarColumns: string[];
       geneColumns: string[];
@@ -157,6 +159,14 @@ export default async function handler(
             fieldLabels = null;
           }
         }
+        let columnLabels: Record<string, string> | null = null;
+        if (t.column_labels) {
+          try {
+            columnLabels = JSON.parse(t.column_labels);
+          } catch {
+            columnLabels = null;
+          }
+        }
         const splitCsv = (v: string | null) =>
           (v || "")
             .split(",")
@@ -177,6 +187,7 @@ export default async function handler(
             assay,
             organism: t.organism ?? null,
             fieldLabels,
+            columnLabels,
             displayColumns: displayCols,
             scalarColumns: splitCsv(t.scalar_columns),
             geneColumns: splitCsv(t.gene_columns),

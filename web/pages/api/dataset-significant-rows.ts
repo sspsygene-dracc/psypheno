@@ -40,7 +40,7 @@ export default async function handler(
     const tableMeta = db
       .prepare(
         `SELECT table_name, short_label, medium_label, long_label, pvalue_column, fdr_column,
-                effect_column, field_labels, display_columns, scalar_columns
+                effect_column, field_labels, column_labels, display_columns, scalar_columns
          FROM data_tables
          WHERE table_name = ?
          AND (pvalue_column IS NOT NULL OR fdr_column IS NOT NULL)`
@@ -54,6 +54,7 @@ export default async function handler(
         fdr_column: string | null;
         effect_column: string | null;
         field_labels: string | null;
+        column_labels: string | null;
         display_columns: string;
         scalar_columns: string | null;
       } | undefined;
@@ -97,6 +98,7 @@ export default async function handler(
         pvalueColumn: tableMeta.pvalue_column,
         fdrColumn: tableMeta.fdr_column,
         fieldLabels: null,
+        columnLabels: null,
         displayColumns: displayCols,
         scalarColumns: (tableMeta.scalar_columns || "")
           .split(",")
@@ -158,6 +160,15 @@ export default async function handler(
       }
     }
 
+    let columnLabels: Record<string, string> | null = null;
+    if (tableMeta.column_labels) {
+      try {
+        columnLabels = JSON.parse(tableMeta.column_labels);
+      } catch {
+        columnLabels = null;
+      }
+    }
+
     // Get gene_columns and link_tables for linking. link_tables encodes
     // direction so DataTable can route perturbed-cell clicks to /?perturbed=
     // and target-cell clicks to /?target=.
@@ -182,6 +193,7 @@ export default async function handler(
       pvalueColumn: tableMeta.pvalue_column,
       fdrColumn: tableMeta.fdr_column,
       fieldLabels,
+      columnLabels,
       displayColumns: displayCols,
       scalarColumns: (tableMeta.scalar_columns || "")
         .split(",")

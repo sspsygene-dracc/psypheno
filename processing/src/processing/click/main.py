@@ -175,6 +175,7 @@ def load_db(
             assay_types=config.global_config.get("assayTypes", {}),
             condition_types=config.global_config.get("conditionTypes", {}),
             organism_types=config.global_config.get("organismTypes", {}),
+            column_header_tokens=config.global_config.get("columnHeaderTokens", {}),
             skip_missing=skip_missing_datasets,
             no_index=no_index,
             data_dir=config.base_dir,

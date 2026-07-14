@@ -21,6 +21,7 @@ type DatasetData = {
   categories: string[];
   assay: string[];
   fieldLabels: Record<string, string> | null;
+  columnLabels: Record<string, string> | null;
   publication: {
     firstAuthor: string | null;
     lastAuthor: string | null;
@@ -495,6 +496,7 @@ export default function FullDatasets() {
                         pvalueColumn={datasetData.pvalueColumn}
                         fdrColumn={datasetData.fdrColumn}
                         fieldLabels={datasetData.fieldLabels}
+                        columnLabels={datasetData.columnLabels}
                         showSummary={false}
                         sortColumn={sortBy}
                         sortMode={sortMode}

@@ -34,7 +34,7 @@ export default async function handler(
     const allTables = db
       .prepare(
         `SELECT table_name, short_label, pvalue_column, fdr_column,
-                link_tables, field_labels, display_columns, scalar_columns
+                link_tables, field_labels, column_labels, display_columns, scalar_columns
          FROM data_tables
          WHERE pvalue_column IS NOT NULL OR fdr_column IS NOT NULL
          ORDER BY id ASC`
@@ -46,6 +46,7 @@ export default async function handler(
         fdr_column: string | null;
         link_tables: string | null;
         field_labels: string | null;
+        column_labels: string | null;
         display_columns: string;
         scalar_columns: string | null;
       }>;
@@ -56,6 +57,7 @@ export default async function handler(
       pvalueColumn: string | null;
       fdrColumn: string | null;
       fieldLabels: Record<string, string> | null;
+      columnLabels: Record<string, string> | null;
       displayColumns: string[];
       scalarColumns: string[];
       rows: Record<string, unknown>[];
@@ -139,12 +141,22 @@ export default async function handler(
           }
         }
 
+        let columnLabels: Record<string, string> | null = null;
+        if (t.column_labels) {
+          try {
+            columnLabels = JSON.parse(t.column_labels);
+          } catch {
+            columnLabels = null;
+          }
+        }
+
         results.push({
           tableName: t.table_name,
           shortLabel: t.short_label,
           pvalueColumn: t.pvalue_column,
           fdrColumn: t.fdr_column,
           fieldLabels,
+          columnLabels,
           displayColumns: displayCols,
           scalarColumns: (t.scalar_columns || "")
             .split(",")

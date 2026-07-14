@@ -2,6 +2,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from collections.abc import Iterable
 from typing import Any, Literal, cast
 
 import pandas as pd
@@ -74,6 +75,7 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "organism",
         "organism_key",
         "fieldLabels",
+        "columnLabels",
         "categories",
         "links",
         "in_path",
@@ -103,20 +105,68 @@ def get_sql_friendly_columns(df: pd.DataFrame) -> list[str]:
     return [normalize_column_name(col) for col in df.columns]
 
 
-def normalize_field_labels(raw_labels: dict[str, str], context: str) -> dict[str, str]:
+def normalize_field_labels(
+    raw_labels: dict[str, str], context: str, label_kind: str = "fieldLabels"
+) -> dict[str, str]:
     normalized: dict[str, str] = {}
     seen_originals: dict[str, str] = {}  # normalized_key -> original_key
     for original_key, value in raw_labels.items():
         norm_key = normalize_column_name(original_key)
         if norm_key in seen_originals and seen_originals[norm_key] != original_key:
             raise ValueError(
-                f'Conflicting fieldLabels in {context}: keys "{seen_originals[norm_key]}" and '
+                f'Conflicting {label_kind} in {context}: keys "{seen_originals[norm_key]}" and '
                 f'"{original_key}" both normalize to "{norm_key}". '
-                f"fieldLabels keys are case-insensitive — please remove the duplicate."
+                f"{label_kind} keys are case-insensitive — please remove the duplicate."
             )
         seen_originals[norm_key] = original_key
         normalized[norm_key] = value
     return normalized
+
+
+def _title_case_token(token: str) -> str:
+    """Uppercase the first character of a token, matching the frontend's
+    naive `formatColumnHeader` title-casing (`\\b\\w` -> upper)."""
+    return token[:1].upper() + token[1:] if token else token
+
+
+def resolve_column_headers(
+    display_columns: Iterable[str],
+    column_labels: dict[str, str],
+    token_map: dict[str, str],
+) -> dict[str, str]:
+    """Resolve display headers for column names (psypheno #210).
+
+    For each column:
+      - a per-table `column_labels` (whole-column) override wins outright;
+      - otherwise the column is split on "_" and each token is replaced via
+        `token_map` (the global `columnHeaderTokens` acronym map), with
+        unmapped tokens title-cased.
+
+    Only *non-trivial* entries are returned — i.e. columns with a per-table
+    override or at least one token replaced by the map. Columns that would
+    title-case identically to the frontend fallback are omitted, keeping the
+    stored map compact and letting `formatColumnHeader()` handle the common
+    case on the client.
+    """
+    resolved: dict[str, str] = {}
+    for col in display_columns:
+        override = column_labels.get(col)
+        if override is not None:
+            resolved[col] = override
+            continue
+        tokens = col.split("_")
+        mapped_any = False
+        parts: list[str] = []
+        for token in tokens:
+            replacement = token_map.get(token)
+            if replacement is not None:
+                parts.append(replacement)
+                mapped_any = True
+            else:
+                parts.append(_title_case_token(token))
+        if mapped_any:
+            resolved[col] = " ".join(parts)
+    return resolved
 
 
 _PER_GROUP_ROW_CAP = 200
@@ -196,6 +246,10 @@ class TableToProcessConfig:
     assay: list[str] = field(default_factory=list)
     condition: list[str] = field(default_factory=list)
     field_labels: dict[str, str] = field(default_factory=dict)
+    # Per-table whole-column header overrides (#210): normalized column name ->
+    # display header. Distinct from field_labels (the "?" tooltip). No global
+    # base merge — the global acronym map is per-token, applied at load time.
+    column_labels: dict[str, str] = field(default_factory=dict)
     organism: str | None = None
     organism_key: list[str] = field(default_factory=list)
     pvalue_column: str | None = None
@@ -333,6 +387,16 @@ class TableToProcessConfig:
             )
         )
 
+        # Column labels: per-table whole-column header overrides (#210). Keys
+        # are normalized to match SQL column names. Unlike field labels there is
+        # no global base to merge — the global acronym handling is per-token
+        # (columnHeaderTokens), applied later at load time.
+        column_labels = normalize_field_labels(
+            json_data.get("columnLabels", {}),
+            context=f"table {table_name}",
+            label_kind="columnLabels",
+        )
+
         # P-value and FDR column names: normalize to match SQL column names.
         # Accepts a single string or a list of strings in config YAML.
         # Stored as comma-separated string internally.
@@ -390,6 +454,7 @@ class TableToProcessConfig:
             assay=assay,
             condition=condition,
             field_labels=merged_field_labels,
+            column_labels=column_labels,
             organism=json_data.get("organism"),
             organism_key=organism_key,
             pvalue_column=pvalue_column,

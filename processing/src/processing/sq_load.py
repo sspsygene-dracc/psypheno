@@ -17,7 +17,10 @@ from processing.gene_descriptions import copy_gene_descriptions
 from processing.my_logger import get_sspsygene_logger
 from processing.new_sqlite3 import NewSqlite3
 from processing.sql_utils import sanitize_identifier
-from processing.types.table_to_process_config import TableToProcessConfig
+from processing.types.table_to_process_config import (
+    TableToProcessConfig,
+    resolve_column_headers,
+)
 
 
 def create_indexes(
@@ -240,6 +243,7 @@ def load_data_tables(
     *,
     no_index: bool = False,
     test_central_gene_ids: set[int] | None = None,
+    column_header_tokens: dict[str, str] | None = None,
 ) -> None:
     cur = conn.cursor()
     cur.execute(
@@ -261,6 +265,7 @@ def load_data_tables(
         assay TEXT,
         condition TEXT,
         field_labels TEXT,
+        column_labels TEXT,
         organism TEXT,
         organism_key TEXT,
         publication_first_author TEXT,
@@ -346,18 +351,27 @@ def load_data_tables(
                 if base in display_col_set:
                     filtered_field_labels[col] = _RESOLUTION_COLUMN_DEFAULT_TOOLTIP
 
+        # Resolve display headers for the actual columns (#210): per-table
+        # columnLabels overrides win, else the global per-token acronym map is
+        # applied; only non-trivial entries are stored (see resolve_column_headers).
+        filtered_column_labels = resolve_column_headers(
+            display_col_set,
+            table_config.column_labels,
+            column_header_tokens or {},
+        )
+
         preprocessing_dict = _load_preprocessing_for_table(table_config.in_path)
         cur.execute(
             """INSERT INTO data_tables (
             table_name, short_label, medium_label, long_label, description, gene_columns,
             gene_species, display_columns,
             scalar_columns, link_tables,
-            links, categories, source, assay, condition, field_labels, organism, organism_key,
+            links, categories, source, assay, condition, field_labels, column_labels, organism, organism_key,
             publication_first_author, publication_last_author, publication_author_count, publication_authors, publication_year,
             publication_journal, publication_doi, publication_pmid, publication_sspsygene_grants,
             pvalue_column, fdr_column, effect_column,
             include_in_meta_analysis, why_excluded_from_meta_analysis, preprocessing)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 table_config.table,
                 table_config.short_label,
@@ -380,6 +394,7 @@ def load_data_tables(
                 ",".join(table_config.assay) if table_config.assay else None,
                 ",".join(table_config.condition) if table_config.condition else None,
                 json.dumps(filtered_field_labels) if filtered_field_labels else None,
+                json.dumps(filtered_column_labels) if filtered_column_labels else None,
                 table_config.organism,
                 ",".join(table_config.organism_key) if table_config.organism_key else None,
                 table_config.publication_first_author,
@@ -577,6 +592,7 @@ def load_db(
     assay_types: dict[str, str] | None = None,
     condition_types: dict[str, str] | None = None,
     organism_types: dict[str, str] | None = None,
+    column_header_tokens: dict[str, str] | None = None,
     skip_missing: bool = False,
     no_index: bool = False,
     data_dir: Path | None = None,
@@ -605,6 +621,7 @@ def load_db(
             skip_missing=skip_missing,
             no_index=no_index,
             test_central_gene_ids=test_central_gene_ids,
+            column_header_tokens=column_header_tokens,
         )
         load_gene_tables(conn, no_index=no_index)
         compute_ensembl_to_symbol(conn, no_index=no_index)

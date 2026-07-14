@@ -34,6 +34,7 @@ type DatasetSigResult = {
   pvalueColumn: string | null;
   fdrColumn: string | null;
   fieldLabels: Record<string, string> | null;
+  columnLabels: Record<string, string> | null;
   page: number;
 };
 
@@ -205,6 +206,7 @@ function DatasetSection({
           pvalueColumn: data.pvalueColumn ?? null,
           fdrColumn: data.fdrColumn ?? null,
           fieldLabels: data.fieldLabels,
+          columnLabels: data.columnLabels ?? null,
           page: data.page,
         });
         setLoading(false);
@@ -266,6 +268,7 @@ function DatasetSection({
             fdrColumn={result.fdrColumn}
             highlightSignificantRows={false}
             fieldLabels={result.fieldLabels ?? undefined}
+            columnLabels={result.columnLabels ?? undefined}
             showSummary={false}
           />
           {totalPages > 1 && (

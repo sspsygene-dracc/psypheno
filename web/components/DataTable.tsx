@@ -85,6 +85,7 @@ export default function DataTable({
   showSummary = true,
   scalarColumns,
   fieldLabels,
+  columnLabels,
   geneColumns,
   perturbedGeneColumns,
   pvalueColumn,
@@ -105,6 +106,10 @@ export default function DataTable({
   showSummary?: boolean;
   scalarColumns?: string[];
   fieldLabels?: Record<string, string> | null;
+  // Per-column display header overrides (#210). Falls back to
+  // formatColumnHeader(col) when a column isn't present. Distinct from
+  // fieldLabels, which drives the "?" tooltip.
+  columnLabels?: Record<string, string> | null;
   geneColumns?: string[];
   // Subset of geneColumns whose role is "perturbed" (gRNA target) rather
   // than the measured "target" gene. Cells in these columns link with
@@ -131,6 +136,11 @@ export default function DataTable({
   // (download buttons are rendered by callers — see full-datasets.tsx and
   // GeneResults.tsx — this component only owns the table itself.)
   const isControlled = onSort !== undefined;
+
+  // Display header for a column: a config-driven override (#210) if present,
+  // else the naive snake_case -> Title Case fallback.
+  const headerText = (col: string) =>
+    columnLabels?.[col] ?? formatColumnHeader(col);
 
   const [internalSortColumn, setInternalSortColumn] = useState<string | null>(null);
   const [internalSortMode, setInternalSortMode] = useState<SortMode>("none");
@@ -269,7 +279,7 @@ export default function DataTable({
                     userSelect: "none",
                   }}
                 >
-                  {formatColumnHeader(col)}
+                  {headerText(col)}
                   {fieldLabels?.[col] && (
                     <InfoTooltip text={fieldLabels[col]} size={13} />
                   )}
@@ -304,7 +314,7 @@ export default function DataTable({
                       onColumnFilterChange!(col, e.target.value)
                     }
                     placeholder={filterPlaceholder(col)}
-                    aria-label={`Filter ${formatColumnHeader(col)}`}
+                    aria-label={`Filter ${headerText(col)}`}
                     style={{
                       width: "100%",
                       minWidth: 80,

@@ -60,7 +60,7 @@ export default async function handler(
     const metadata = db
       .prepare(
         `SELECT display_columns, scalar_columns, description, short_label, medium_label, long_label,
-                links, categories, source, assay, field_labels, organism,
+                links, categories, source, assay, field_labels, column_labels, organism,
                 gene_columns, link_tables, pvalue_column, fdr_column,
                 publication_first_author, publication_last_author, publication_year,
                 publication_journal, publication_doi, publication_pmid
@@ -78,6 +78,7 @@ export default async function handler(
         source: string | null;
         assay: string | null;
         field_labels: string | null;
+        column_labels: string | null;
         organism: string | null;
         gene_columns: string | null;
         link_tables: string | null;
@@ -175,6 +176,15 @@ export default async function handler(
       }
     }
 
+    let columnLabels: Record<string, string> | null = null;
+    if (metadata.column_labels) {
+      try {
+        columnLabels = JSON.parse(metadata.column_labels);
+      } catch {
+        columnLabels = null;
+      }
+    }
+
     setReadCacheHeaders(res);
     return res.status(200).json({
       tableName,
@@ -190,6 +200,7 @@ export default async function handler(
       categories,
       assay,
       fieldLabels,
+      columnLabels,
       publication: {
         firstAuthor: metadata.publication_first_author,
         lastAuthor: metadata.publication_last_author,

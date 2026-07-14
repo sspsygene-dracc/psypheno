@@ -8,6 +8,9 @@ export interface TableResult {
   assay?: string[] | null;
   organism?: string | null;
   fieldLabels?: Record<string, string> | null;
+  // Per-column display header overrides (#210). Distinct from fieldLabels
+  // (which are the "?" tooltip text).
+  columnLabels?: Record<string, string> | null;
   displayColumns: string[];
   scalarColumns?: string[];
   geneColumns?: string[];

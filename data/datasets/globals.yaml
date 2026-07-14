@@ -13,6 +13,66 @@ fieldLabels:
   stat: "Wald test statistic (DESeq2)"
   cell_type: "Brain cell type"
 
+# Per-token acronym map for column *headers* (psypheno #210). Distinct from
+# fieldLabels above (which are the long "?" tooltip sentences): these are short
+# per-token replacements applied when rendering a column's header. At load time
+# each column name is split on "_" and every token is replaced by its entry here
+# (case-insensitive); tokens with no entry fall back to plain title-casing. So
+# `asd_fdr` -> "ASD FDR", `tdt_statistic` -> "TDT Statistic". A per-table
+# `columnLabels:` entry (in a dataset's config.yaml) overrides the whole header
+# for context-specific cases this token map can't produce.
+#
+# Curated to unambiguous tokens only. Deliberately EXCLUDED because they collide
+# with real English / gene names / vary by dataset: stat, or, de, on, off, high,
+# age, exp, sd, df, wt, hc. Spell those out per-dataset via `columnLabels:`.
+columnHeaderTokens:
+  # Tier 1 — plain initialisms (uppercase)
+  asd: ASD
+  fdr: FDR
+  ptv: PTV
+  ndd: NDD
+  ci: CI
+  scz: SCZ
+  bd: BD
+  hpo: HPO
+  mgi: MGI
+  ddid: DDID
+  pmid: PMID
+  ntc: NTC
+  sfari: SFARI
+  # Tier 2 — special mixed-case (title-case and all-caps both wrong)
+  logfc: logFC
+  log2fc: log2FC
+  lfc: logFC
+  pval: p-value
+  pvalue: p-value
+  padj: p-adj.
+  qval: q-value
+  zscore: z-score
+  lof: LoF
+  gnomad: gnomAD
+  refseq: RefSeq
+  dup15q: dup15q
+  # Not in current columns but certain to appear — seeded now
+  snv: SNV
+  cnv: CNV
+  deg: DEG
+  eqtl: eQTL
+  gwas: GWAS
+  tf: TF
+  grn: GRN
+  ipsc: iPSC
+  npc: NPC
+  esc: ESC
+  hgnc: HGNC
+  ensg: ENSG
+  zfin: ZFIN
+  tpm: TPM
+  cpm: CPM
+  auc: AUC
+  usv: USV
+  mpc: MPC
+
 assayTypes:
   expression: "Gene Expression (RNA-seq)"
   spatial: "Spatial Transcriptomics"

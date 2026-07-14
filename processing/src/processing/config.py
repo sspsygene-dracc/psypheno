@@ -46,6 +46,10 @@ class GeneMapConfig:
 
 class GlobalConfig(TypedDict, total=False):
     fieldLabels: dict[str, str]
+    # Global per-token acronym map for column headers (#210): token -> display
+    # text (e.g. asd -> ASD, logfc -> logFC). Applied token-by-token to every
+    # column name at load time so a small map fixes acronym casing site-wide.
+    columnHeaderTokens: dict[str, str]
     assayTypes: dict[str, str]
     conditionTypes: dict[str, str]
     organismTypes: dict[str, str]
