@@ -1,0 +1,28 @@
+# Zhou et al. 2022, Nature Genetics 54:1305-1319
+# PMID: 35982159   DOI: 10.1038/s41588-022-01148-2
+#
+# Source: Supplementary Table S9 ("Meta-analysis of selected autosomal
+# genes in combined stage 1 and 2 cohort") from the paper's supplementary
+# tables workbook, downloaded from the paper's page on nature.com.
+#
+# Direct access:
+#   https://www.nature.com/articles/s41588-022-01148-2
+#   -> Supplementary information -> "Supplementary Tables 1-19" (xlsx)
+#      and "Supplementary Information" (pdf, has table/figure legends and
+#      the raw-variant-table column glossary referenced in preprocess.py)
+#
+# Files received:
+#   zhou-2022.pdf                       - main article
+#   zhou-2022-supplementary-info.pdf    - supplementary figure/table legends
+#   zhou-2022-supplementary-tables.xlsx - Tables S1-S19, sheet "Table S9" used here
+#
+# Refresh cadence: static (single paper, no live data source).
+
+curl -L -o zhou-2022-supplementary-tables.xlsx \
+  "https://static-content.springer.com/esm/art%3A10.1038%2Fs41588-022-01148-2/MediaObjects/41588_2022_1148_MOESM3_ESM.xlsx"
+curl -L -o zhou-2022-supplementary-info.pdf \
+  "https://static-content.springer.com/esm/art%3A10.1038%2Fs41588-022-01148-2/MediaObjects/41588_2022_1148_MOESM1_ESM.pdf"
+
+# NOTE: the MOESM index numbers above were not verified against the live
+# page for this draft (files were downloaded manually via the browser).
+# Confirm/fix the MOESM numbers before relying on this curl form to refresh.

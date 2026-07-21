@@ -1,0 +1,245 @@
+publication:
+  authors:
+    - Zhou, Xueya
+    - Feliciano, Pamela
+    - Shu, Chang
+    - Wang, Tianyun
+    - Astrovskaya, Irina
+    - Hall, Jacob B.
+    - Obiajulu, Joseph U.
+    - Wright, Jessica R.
+    - Murali, Shwetha C.
+    - Xu, Simon Xuming
+    - Brueggeman, Leo
+    - Thomas, Taylor R.
+    - Marchenko, Olena
+    - Fleisch, Christopher
+    - Barns, Sarah D.
+    - Green Snyder, LeeAnne
+    - Han, Bing
+    - Chang, Timothy S.
+    - Turner, Tychele N.
+    - Harvey, William T.
+    - Nishida, Andrew
+    - O'Roak, Brian J.
+    - Geschwind, Daniel H.
+    - Michaelson, Jacob J.
+    - Volfovsky, Natalia
+    - Eichler, Evan E.
+    - Shen, Yufeng
+    - Chung, Wendy K.
+  year: 2022
+  journal: "Nature Genetics"
+  doi: "10.1038/s41588-022-01148-2"
+  pmid: "35982159"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-07-07"
+    comment: Initial draft from Supplementary Table S9.
+
+tables:
+  - table: zhou_2022_gene_meta
+    changelog:
+      - date: "2026-07-07"
+        message: "Initial data load"
+    shortLabel: zhou_2022_gene_meta
+    mediumLabel: "Zhou 2022 - Moderate-Risk ASD Gene Meta-Analysis"
+    longLabel: "Per-gene meta-analysis of de novo, inherited, and case-control burden evidence for autism risk (Zhou et al. 2022)"
+    description: >
+      Gene-based meta-analysis from a two-stage study of 42,607 ASD cases
+      (SPARK + previously published cohorts), combining de novo variant
+      enrichment, transmission disequilibrium of rare inherited
+      loss-of-function (LoF) variants, and case-vs-population-control LoF
+      burden. Covers 391 autosomal genes selected for replication (159
+      de novo-enriched, 260 TDT-prioritized, 15 in both). 72 genes reach
+      study-wide significance (P<8.69e-6), including 5 novel moderate-risk
+      genes not previously implicated in ASD/NDD: NAV3, ITSN1, MARK2, SCAF1,
+      and HNRNPUL2 (Zhou et al. 2022, Table 1; Supplementary Table S9).
+    source: "Supplementary Table S9"
+    assay: curated
+    condition:
+      - autism
+      - ndc
+    categories:
+      - exome sequencing
+      - autism genetics
+      - de novo variants
+      - inherited variants
+      - transmission disequilibrium test
+    organism: "Homo sapiens"
+    organism_key: human
+    links:
+      - url: https://doi.org/10.1038/s41588-022-01148-2
+        label: "Zhou et al. 2022 (Nature Genetics)"
+    in_path: results.tsv
+    separator: "\t"
+    pvalue_column: p_max_combined
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        perturbed_or_target: perturbed
+    # Whole-column header overrides (psypheno #210) for tokens the global
+    # columnHeaderTokens map in globals.yaml doesn't cover — either
+    # deliberately excluded (hc, tdt, stat: ambiguous/collision-prone) or not
+    # yet seeded there (exac, loeuf, forecasd, ddd, topmed, spark, dnv, dmis).
+    columnLabels:
+      exac_pli: "ExAC pLI"
+      loeuf_decile: "LOEUF Decile"
+      forecasd_score: "forecASD Score"
+      asd_denovo_signif: "ASD De Novo Signif."
+      ddd_category: "DDD Category"
+      ddd_allelic_requirement: "DDD Allelic Requirement"
+      ddd_mutation_consequence: "DDD Mutation Consequence"
+      ddd_organ_specificity: "DDD Organ Specificity"
+      dn_dmis_case_count: "De Novo D-mis Case"
+      dmis_mutation_rate: "D-mis Mutation Rate"
+      p_dnv_lof_enrichment_meta: "De Novo LoF Enrichment P-value"
+      p_dnv_missense_enrichment_meta: "De Novo Missense Enrichment P-value"
+      hc_lof_filter: "HC LoF Filter"
+      tdt_informative_parent_count: "TDT Informative Parent"
+      tdt_transmitted_count: "TDT Transmitted"
+      tdt_nontransmitted_count: "TDT Nontransmitted"
+      tdt_transmitted_unaffected_count: "TDT Transmitted (Unaffected Offspring)"
+      tdt_nontransmitted_unaffected_count: "TDT Nontransmitted (Unaffected Offspring)"
+      tdt_statistic: "TDT Statistic"
+      p_tdt: "TDT P-value"
+      unrelated_case_hc_lof_count: "Unrelated Case HC LoF"
+      unrelated_case_hc_lof_rate: "Unrelated Case HC LoF Rate"
+      unrelated_case_hc_lof_count_european: "Unrelated Case HC LoF (European)"
+      unrelated_case_hc_lof_rate_european: "Unrelated Case HC LoF Rate (European)"
+      hc_lof_case_count_vs_gnomad: "HC LoF Case vs. gnomAD"
+      hc_lof_case_rate_vs_gnomad: "HC LoF Case Rate vs. gnomAD"
+      p_case_control_vs_gnomad: "Case-Control P-value vs. gnomAD"
+      p_tdt_case_control_vs_gnomad: "TDT + Case-Control P-value vs. gnomAD"
+      p_tdt_case_control_dnv_vs_gnomad: "TDT + Case-Control + DNV P-value vs. gnomAD"
+      hc_lof_case_count_vs_topmed: "HC LoF Case vs. TopMed"
+      hc_lof_case_rate_vs_topmed: "HC LoF Case Rate vs. TopMed"
+      p_case_control_vs_topmed: "Case-Control P-value vs. TopMed"
+      p_tdt_case_control_vs_topmed: "TDT + Case-Control P-value vs. TopMed"
+      p_tdt_case_control_dnv_vs_topmed: "TDT + Case-Control + DNV P-value vs. TopMed"
+      coverage_gnomad_exome_over15x: "Coverage: gnomAD Exome (>=15x)"
+      coverage_spark_over15x: "Coverage: SPARK (>=15x)"
+      coverage_gnomad_genome_over15x: "Coverage: gnomAD Genome (>=15x)"
+      coverage_topmed_over15x: "Coverage: TopMed (>=15x)"
+      p_max_tdt_case_control: "Max TDT + Case-Control P-value"
+      p_max_combined: "Max Combined P-value"
+    fieldLabels:
+      gene: "Resolved HGNC gene symbol (source column: HGNC, per HGNC nomenclature as of 2018-07-22)"
+      gene_raw: "Gene symbol before HGNC resolution (HGNC column value from Table S9)"
+      known_asd_ndd_gene: "'Yes' if this gene was already an established ('known') dominant ASD or NDD risk gene prior to this study; 'No' if novel"
+      ascertainment: "How the gene was selected for stage-2 replication meta-analysis: 'Denovo' (de novo enrichment in stage 1 DeNovoWEST scan), 'TDT' (transmission disequilibrium of inherited LoFs in stage 1), or 'Denovo,TDT' (both)."
+      ensembl_gene_id: "Ensembl gene identifier (GENCODE V19 Basic Set, Ensembl release 75)"
+      entrez_id: "NCBI Entrez Gene ID"
+      cytoband: "Cytogenetic band location"
+      exac_pli: "ExAC probability of loss-of-function intolerance (pLI); values near 1 indicate strong depletion of LoF variants in the population"
+      loeuf_decile: "gnomAD LOEUF (loss-of-function observed/expected upper-bound fraction) decile, 0-9; lower deciles indicate stronger constraint against LoF variation"
+      a_risk_score: "A-risk machine-learning gene-level ASD risk prediction score (see Zhou et al. 2022 references)"
+      forecasd_score: "forecASD machine-learning gene-level ASD risk prediction score (Brueggeman et al. 2020)"
+      asd_denovo_signif: "'Yes' if the gene reached nominal de novo enrichment significance in this study's DeNovoWEST scan (used as a gene-set-enrichment criterion in the paper's downstream analyses)."
+      sfari_category: "SFARI Gene category/categories for this gene (e.g. 'Rare Single Gene Mutation', 'Syndromic', 'Genetic Association', 'Functional'); blank if not in SFARI Gene"
+      sfari_score: "SFARI Gene score (1 = high confidence, 2 = strong candidate, 3 = suggestive evidence, 'S' = syndromic); blank if not in SFARI Gene"
+      ddd_category: "DDD (Deciphering Developmental Disorders) gene panel confidence category: confirmed, probable, or possible; blank if not a DDD gene"
+      ddd_allelic_requirement: "DDD panel allelic requirement for pathogenicity (e.g. monoallelic, biallelic, mosaic); blank if not a DDD gene"
+      ddd_mutation_consequence: "DDD panel mutation consequence (e.g. loss of function, dominant negative, gain of function); blank if not a DDD gene"
+      ddd_organ_specificity: "DDD panel affected organ system(s) associated with this gene (e.g. Brain/Cognition, Skeleton); blank if not a DDD gene or not specified"
+      dn_lof_case_count: "Number of de novo loss-of-function variants observed in ASD cases (stage 1 discovery cohort)"
+      dn_lof_megaanalysis_case_count: "Number of de novo loss-of-function variants observed in ASD cases across the combined stage 1 + stage 2 mega-analysis cohort"
+      lof_mutation_rate: "Per-gene expected loss-of-function mutation rate (mutations per birth) used as the null model for de novo enrichment testing"
+      dn_dmis_case_count: "Number of de novo damaging missense (D-mis, REVEL>=0.5) variants observed in ASD cases"
+      dmis_mutation_rate: "Per-gene expected damaging-missense mutation rate (mutations per birth) used as the null model for de novo enrichment testing"
+      dn_lof_control_count: "Number of de novo loss-of-function variants observed in unaffected control trios"
+      dn_dmis_control_count: "Number of de novo damaging missense variants observed in unaffected control trios"
+      p_dnv_lof_enrichment_meta: "Meta-analyzed P-value for de novo LoF variant enrichment in ASD cases vs. the mutation-rate null model"
+      p_dnv_missense_enrichment_meta: "Meta-analyzed P-value for de novo damaging-missense variant enrichment in ASD cases vs. the mutation-rate null model"
+      hc_lof_filter: "Filter combination used to call high-confidence (HC) LoF variants for this gene: 'URLoF' (ultra-rare LoF) plus the gene-specific pExt (proportion expressed across transcripts) threshold applied (0.1, 0.5, or 0.9)"
+      tdt_informative_parent_count: "Number of unaffected parents carrying a qualifying rare inherited HC LoF variant, informative for the transmission disequilibrium test"
+      tdt_transmitted_count: "Number of qualifying rare HC LoF variants transmitted from an unaffected parent to an affected offspring"
+      tdt_nontransmitted_count: "Number of qualifying rare HC LoF variants not transmitted from an unaffected parent to an affected offspring"
+      tdt_transmitted_unaffected_count: "Number of qualifying rare HC LoF variants transmitted from an unaffected parent to an unaffected offspring"
+      tdt_nontransmitted_unaffected_count: "Number of qualifying rare HC LoF variants not transmitted from an unaffected parent to an unaffected offspring"
+      tdt_statistic: "Transmission disequilibrium test statistic for this gene's rare inherited HC LoF variants"
+      p_tdt: "P-value from the transmission disequilibrium test (TDT) of rare inherited HC LoF variants"
+      unrelated_case_hc_lof_count: "Number of unrelated ASD cases (not used in TDT or de novo analyses) carrying a qualifying HC LoF variant in this gene, across all ancestries"
+      unrelated_case_hc_lof_rate: "Rate (per case, as a percentage) of qualifying HC LoF variant carriers among unrelated ASD cases, all ancestries"
+      unrelated_case_hc_lof_count_european: "Number of unrelated ASD cases of European ancestry carrying a qualifying HC LoF variant in this gene"
+      unrelated_case_hc_lof_rate_european: "Rate (per case, as a percentage) of qualifying HC LoF variant carriers among unrelated ASD cases of European ancestry"
+      hc_lof_case_count_vs_gnomad: "Number of HC LoF variant carriers among unrelated ASD cases, in the comparison against gnomAD exome (non-neuro subset) population controls"
+      hc_lof_case_rate_vs_gnomad: "HC LoF carrier rate (%) among unrelated ASD cases, in the comparison against gnomAD exome (non-neuro subset) population controls"
+      p_case_control_vs_gnomad: "One-sided binomial test P-value comparing HC LoF rate between unrelated ASD cases and gnomAD exome (non-neuro subset) population controls"
+      p_tdt_case_control_vs_gnomad: "Combined P-value from TDT and the case-vs-gnomAD-control burden test for this gene"
+      p_tdt_case_control_dnv_vs_gnomad: "Combined P-value from TDT, the case-vs-gnomAD-control burden test, and de novo variant enrichment for this gene"
+      hc_lof_case_count_vs_topmed: "Number of HC LoF variant carriers among unrelated ASD cases, in the comparison against TopMed (Freeze 8) population controls"
+      hc_lof_case_rate_vs_topmed: "HC LoF carrier rate (%) among unrelated ASD cases, in the comparison against TopMed (Freeze 8) population controls"
+      p_case_control_vs_topmed: "One-sided binomial test P-value comparing HC LoF rate between unrelated ASD cases and TopMed (Freeze 8) population controls"
+      p_tdt_case_control_vs_topmed: "Combined P-value from TDT and the case-vs-TopMed-control burden test for this gene"
+      p_tdt_case_control_dnv_vs_topmed: "Combined P-value from TDT, the case-vs-TopMed-control burden test, and de novo variant enrichment for this gene"
+      coverage_gnomad_exome_over15x: "Fraction of this gene's coding sequence with >=15x read depth in gnomAD exomes (sequencing coverage QC metric)"
+      coverage_spark_over15x: "Fraction of this gene's coding sequence with >=15x read depth in the SPARK cohort (sequencing coverage QC metric)"
+      coverage_gnomad_genome_over15x: "Fraction of this gene's coding sequence with >=15x read depth in gnomAD genomes (sequencing coverage QC metric)"
+      coverage_topmed_over15x: "Fraction of this gene's coding sequence with >=15x read depth in TopMed (sequencing coverage QC metric)"
+      p_max_tdt_case_control: "The larger (more conservative) of the two combined TDT + case-control P-values (vs. gnomAD and vs. TopMed controls)"
+      p_max_combined: "The larger (more conservative) of the two combined TDT + case-control + de novo-enrichment P-values (vs. gnomAD and vs. TopMed controls). This is the paper's primary gene-level significance metric, and directly determines study_wide_significant."
+      study_wide_significant: "'Yes' if p_max_combined < 8.69e-6, the study-wide significance threshold accounting for 5,754 constrained genes tested (72 of 391 genes reach this threshold, including all 5 novel moderate-risk genes: NAV3, ITSN1, MARK2, SCAF1, HNRNPUL2)"
+
+  - table: zhou_2022_phenotypes
+    changelog:
+      - date: "2026-07-14"
+        message: "Initial data load"
+    shortLabel: zhou_2022_phenotypes
+    mediumLabel: "Zhou 2022 - Comorbidities in Novel Moderate-Risk Gene Carriers (10 Genes)"
+    longLabel: "Per-patient comorbidity flags for individuals with high-confidence LoF variants in the 5 novel moderate-risk genes and 5 established comparison ASD risk genes (Zhou et al. 2022)"
+    description: >
+      Patient-level phenotype data (238 individuals) for carriers of
+      high-confidence LoF variants in the study's 5 novel moderate-risk ASD
+      genes (NAV3, ITSN1, MARK2, SCAF1, HNRNPUL2) and 5 established
+      comparison genes (CHD8, SCN2A, SHANK3, ADNP, FOXP1) selected by the
+      authors for a phenotype-severity comparison. Each row is one patient's
+      variant, with flags for cognitive impairment, epilepsy, Tourette
+      syndrome, ADHD, and schizophrenia. Only these 10 genes are covered;
+      this is not a comprehensive phenotype survey across all 391 genes in
+      the main meta-analysis table. Source: Supplementary Table S12.
+    source: "Supplementary Table S12 (10 selected genes only, not all 391)"
+    assay: curated
+    condition:
+      - autism
+      - ndc
+    categories:
+      - exome sequencing
+      - autism genetics
+      - phenotype
+      - comorbidity
+    organism: "Homo sapiens"
+    organism_key: human
+    links:
+      - url: https://doi.org/10.1038/s41588-022-01148-2
+        label: "Zhou et al. 2022 (Nature Genetics)"
+    in_path: results_phenotypes.tsv
+    separator: "\t"
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: human
+        perturbed_or_target: perturbed
+    columnLabels:
+      variant_id_hg38: "Variant ID (hg38)"
+      hgvsc: "HGVSc"
+      hgvsp: "HGVSp"
+      adhd: "ADHD"
+    fieldLabels:
+      gene: "Resolved HGNC gene symbol (source column: gene_symbol). The same gene appears on multiple rows, one per patient carrying a qualifying variant in it."
+      gene_raw: "Gene symbol before HGNC resolution (gene_symbol column value from Table S12, whitespace-stripped)"
+      sample_id: "SPARK sample/participant ID (spid column)"
+      inheritance: "How this variant arose: De novo (new mutation, not in either parent), Maternal/Paternal (inherited from that parent), Inherited (inherited, parent-of-origin not determined), Non-maternal/Non-paternal (inherited, confirmed not from that parent), or Unknown"
+      variant_id_hg38: "Variant identifier in chrom_position_ref_alt format (GRCh38)"
+      hgvsc: "HGVS coding-sequence variant notation (e.g. c.4138delC)"
+      hgvsp: "HGVS protein-level variant notation (e.g. p.Leu1380fs)"
+      sex: "Sex assigned at birth (normalized from mixed 'Female'/'F' and 'Male'/'M' source values)"
+      cognitive_impairment: "'Yes'/'No' if this patient has evidence of cognitive impairment ('Calculated cognitive impairment' column); blank if not known"
+      epilepsy: "'Yes'/'No' if this patient has epilepsy; blank if not known"
+      tourette_syndrome: "'Yes'/'No' if this patient has Tourette syndrome; blank if not known"
+      adhd: "'Yes'/'No' if this patient has ADHD; blank if not known"
+      schizophrenia: "'Yes'/'No' if this patient has schizophrenia; blank if not known"
