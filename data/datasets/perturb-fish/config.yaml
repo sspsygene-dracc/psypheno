@@ -27,6 +27,7 @@ maintainers:
     comment: Standardized table title, added paper-tailored column tooltips, declared effect_column on perturb_fish_astro, and migrated off drop_values to the new patient_list filter.
 tables:
   - table: perturb_fish_astro
+    overview_matrix: true  # #212 overview matrix source
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"

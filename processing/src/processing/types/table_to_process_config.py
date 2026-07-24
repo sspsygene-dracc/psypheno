@@ -86,6 +86,7 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "effect_column",
         "meta_analysis",
         "why_excluded_from_meta_analysis",
+        "overview_matrix",
         "changelog",
         # Internal: dataset-level publication block, merged in by TablesConfig.
         "_publication",
@@ -201,6 +202,10 @@ def _filter_to_test_genes(
     keep_mask = pd.Series(True, index=data.index)
     group_cols: list[str] = []
     for gm in gene_mappings:
+        # Constant (implicit) mappings have no source column and apply to every
+        # row, so they never constrain the test-fixture filter.
+        if gm.column_name is None:
+            continue
         species_map = central_table.get_species_map(species=gm.species)
         allowed_strs = {
             key
@@ -263,6 +268,17 @@ class TableToProcessConfig:
     # the reason in `why_excluded_from_meta_analysis` so it's self-documenting.
     meta_analysis: bool = True
     why_excluded_from_meta_analysis: str | None = None
+    # Whether this table is a source for the collated cross-modality overview
+    # matrix (psypheno #212, "red table"). Opt-in: default False. Set
+    # `overview_matrix: true` in the YAML on tables that are genuine consortium
+    # perturbation experiments — a known gene was experimentally perturbed and a
+    # modality readout exists (CRISPR(i) screens, Perturb-seq/-FISH, behavioral
+    # assays, ASD-mutation organoid DE, …). Left False for curated/phenotype
+    # annotation DBs (ClinVar/SFARI/MGI), GRN-inference networks (inferred, not
+    # perturbed), and observational postmortem cohorts (no molecular diagnosis).
+    # The /api/collated-matrix rows come only from labeled tables, so this is the
+    # single, self-documenting allowlist — no name/category heuristics.
+    overview_matrix: bool = False
     publication_first_author: str | None = None
     publication_last_author: str | None = None
     publication_author_count: int | None = None
@@ -433,6 +449,9 @@ class TableToProcessConfig:
                 f"string; got {type(why_excluded).__name__}"
             )
 
+        # Overview-matrix inclusion flag (#212). Opt-in; defaults to False.
+        overview_matrix = bool(json_data.get("overview_matrix", False))
+
         return cls(
             table=json_data["table"],
             description=json_data["description"],
@@ -462,6 +481,7 @@ class TableToProcessConfig:
             effect_column=effect_column,
             meta_analysis=meta_analysis,
             why_excluded_from_meta_analysis=why_excluded,
+            overview_matrix=overview_matrix,
             publication_first_author=first_author,
             publication_last_author=last_author,
             publication_author_count=author_count,
@@ -486,7 +506,9 @@ class TableToProcessConfig:
             "convert_floating": False,
         }
         gene_column_dtypes: Any = {
-            gene_mapping.column_name: "object" for gene_mapping in self.gene_mappings
+            gene_mapping.column_name: "object"
+            for gene_mapping in self.gene_mappings
+            if gene_mapping.column_name is not None
         }
         data = pd.read_csv(
             self.in_path, sep=self.separator, dtype=gene_column_dtypes
@@ -506,7 +528,8 @@ class TableToProcessConfig:
         used_entrez_ids: set[EntrezGene] = set()
         link_tables: list[LinkTable] = []
         for conversion in self.gene_mappings:
-            if not conversion.multi_gene_separator:
+            # Constant (implicit) mappings contribute no display gene column.
+            if not conversion.multi_gene_separator and conversion.column_name is not None:
                 gene_columns.append(normalize_column_name(conversion.column_name))
             species_list.append(conversion.species)
             link_table = conversion.resolve_to_central_gene_table(

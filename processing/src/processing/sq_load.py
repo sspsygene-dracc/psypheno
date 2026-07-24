@@ -283,6 +283,7 @@ def load_data_tables(
         effect_column TEXT,
         include_in_meta_analysis INTEGER NOT NULL DEFAULT 1,
         why_excluded_from_meta_analysis TEXT,
+        include_in_overview_matrix INTEGER NOT NULL DEFAULT 0,
         preprocessing TEXT)"""
     )
     log = get_sspsygene_logger()
@@ -362,62 +363,76 @@ def load_data_tables(
         )
 
         preprocessing_dict = _load_preprocessing_for_table(table_config.in_path)
-        cur.execute(
-            """INSERT INTO data_tables (
-            table_name, short_label, medium_label, long_label, description, gene_columns,
-            gene_species, display_columns,
-            scalar_columns, link_tables,
-            links, categories, source, assay, condition, field_labels, column_labels, organism, organism_key,
-            publication_first_author, publication_last_author, publication_author_count, publication_authors, publication_year,
-            publication_journal, publication_doi, publication_pmid, publication_sspsygene_grants,
-            pvalue_column, fdr_column, effect_column,
-            include_in_meta_analysis, why_excluded_from_meta_analysis, preprocessing)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                table_config.table,
-                table_config.short_label,
-                table_config.medium_label,
-                table_config.long_label,
-                table_config.description,
-                ",".join(data_and_meta.gene_columns),
-                data_and_meta.gene_species,
-                ",".join(data_and_meta.display_columns),
-                ",".join(data_and_meta.scalar_columns),
-                ",".join(
-                    link_table.get_meta_entry()
-                    for link_table in data_and_meta.link_tables
-                ),
-                json.dumps([link.to_json_dict() for link in table_config.links])
-                if table_config.links
-                else None,
-                ",".join(table_config.categories) if table_config.categories else None,
-                table_config.source,
-                ",".join(table_config.assay) if table_config.assay else None,
-                ",".join(table_config.condition) if table_config.condition else None,
-                json.dumps(filtered_field_labels) if filtered_field_labels else None,
-                json.dumps(filtered_column_labels) if filtered_column_labels else None,
-                table_config.organism,
-                ",".join(table_config.organism_key) if table_config.organism_key else None,
-                table_config.publication_first_author,
-                table_config.publication_last_author,
-                table_config.publication_author_count,
-                json.dumps(table_config.publication_authors)
-                if table_config.publication_authors
-                else None,
-                table_config.publication_year,
-                table_config.publication_journal,
-                table_config.publication_doi,
-                table_config.publication_pmid,
-                json.dumps(table_config.publication_sspsygene_grants)
-                if table_config.publication_sspsygene_grants
-                else None,
-                table_config.pvalue_column,
-                table_config.fdr_column,
-                table_config.effect_column,
-                1 if table_config.meta_analysis else 0,
-                table_config.why_excluded_from_meta_analysis,
-                json.dumps(preprocessing_dict) if preprocessing_dict else None,
+        # Column -> value, paired by name. Named placeholders (`:col`) are
+        # generated from the keys below, so adding/removing a column is a
+        # one-line dict edit — no counting a long row of positional `?`.
+        row = {
+            "table_name": table_config.table,
+            "short_label": table_config.short_label,
+            "medium_label": table_config.medium_label,
+            "long_label": table_config.long_label,
+            "description": table_config.description,
+            "gene_columns": ",".join(data_and_meta.gene_columns),
+            "gene_species": data_and_meta.gene_species,
+            "display_columns": ",".join(data_and_meta.display_columns),
+            "scalar_columns": ",".join(data_and_meta.scalar_columns),
+            "link_tables": ",".join(
+                link_table.get_meta_entry()
+                for link_table in data_and_meta.link_tables
             ),
+            "links": json.dumps(
+                [link.to_json_dict() for link in table_config.links]
+            )
+            if table_config.links
+            else None,
+            "categories": ",".join(table_config.categories)
+            if table_config.categories
+            else None,
+            "source": table_config.source,
+            "assay": ",".join(table_config.assay) if table_config.assay else None,
+            "condition": ",".join(table_config.condition)
+            if table_config.condition
+            else None,
+            "field_labels": json.dumps(filtered_field_labels)
+            if filtered_field_labels
+            else None,
+            "column_labels": json.dumps(filtered_column_labels)
+            if filtered_column_labels
+            else None,
+            "organism": table_config.organism,
+            "organism_key": ",".join(table_config.organism_key)
+            if table_config.organism_key
+            else None,
+            "publication_first_author": table_config.publication_first_author,
+            "publication_last_author": table_config.publication_last_author,
+            "publication_author_count": table_config.publication_author_count,
+            "publication_authors": json.dumps(table_config.publication_authors)
+            if table_config.publication_authors
+            else None,
+            "publication_year": table_config.publication_year,
+            "publication_journal": table_config.publication_journal,
+            "publication_doi": table_config.publication_doi,
+            "publication_pmid": table_config.publication_pmid,
+            "publication_sspsygene_grants": json.dumps(
+                table_config.publication_sspsygene_grants
+            )
+            if table_config.publication_sspsygene_grants
+            else None,
+            "pvalue_column": table_config.pvalue_column,
+            "fdr_column": table_config.fdr_column,
+            "effect_column": table_config.effect_column,
+            "include_in_meta_analysis": 1 if table_config.meta_analysis else 0,
+            "why_excluded_from_meta_analysis": table_config.why_excluded_from_meta_analysis,
+            "include_in_overview_matrix": 1 if table_config.overview_matrix else 0,
+            "preprocessing": json.dumps(preprocessing_dict)
+            if preprocessing_dict
+            else None,
+        }
+        columns = ", ".join(row.keys())
+        placeholders = ", ".join(f":{col}" for col in row.keys())
+        cur.execute(
+            f"INSERT INTO data_tables ({columns}) VALUES ({placeholders})",
+            row,
         )
     # Create changelog_entries table
     cur.execute(

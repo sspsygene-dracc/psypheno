@@ -147,6 +147,40 @@ def test_gene_mapping_rejects_legacy_perturbed_field() -> None:
 
 
 # ---------------------------------------------------------------------------
+# constant_value — implicit whole-table perturbed gene (#212)
+# ---------------------------------------------------------------------------
+
+
+def _constant_mapping() -> dict[str, Any]:
+    return {
+        "constant_value": "BRCA1",
+        "species": "human",
+        "link_table_name": "perturbed_gene",
+        "perturbed_or_target": "perturbed",
+    }
+
+
+def test_gene_mapping_constant_value_from_json() -> None:
+    gm = GeneMapping.from_json(_constant_mapping())
+    assert gm.column_name is None
+    assert gm.constant_value == "BRCA1"
+
+
+def test_gene_mapping_rejects_both_column_and_constant() -> None:
+    cfg = _constant_mapping()
+    cfg["column_name"] = "gene"
+    with pytest.raises(ValueError, match="exactly one"):
+        GeneMapping.from_json(cfg)
+
+
+def test_gene_mapping_rejects_neither_column_nor_constant() -> None:
+    cfg = _base_mapping()
+    del cfg["column_name"]
+    with pytest.raises(ValueError, match="exactly one"):
+        GeneMapping.from_json(cfg)
+
+
+# ---------------------------------------------------------------------------
 # resolve_to_central_gene_table — dispatch order, link-table asymmetry fix
 # ---------------------------------------------------------------------------
 
@@ -204,6 +238,26 @@ def test_link_table_asymmetry_first_encounter_is_linked(
     assert len(set(weirdgene_links)) == 1
     # Only one stub created (not duplicated).
     assert len(central_gene_stub.entries) == 2  # BRCA1 + WEIRDGENE
+
+
+def test_constant_value_links_every_row(
+    central_gene_stub: CentralGeneTable,
+) -> None:
+    # An implicit whole-table perturbation (#212): every row links to the
+    # single declared gene, and no source column is read (the DataFrame here
+    # has none). BRCA1 is pre-seeded, so no stub is created.
+    gm = GeneMapping.from_json(_constant_mapping())
+    df = pd.DataFrame({"id": [10, 20, 30]})
+    link = gm.resolve_to_central_gene_table("t", df, Path("/dev/null"))
+    row_ids = sorted(rid for rid, _ in link.central_gene_table_links)
+    assert row_ids == [10, 20, 30]
+    # All three rows resolve to the same (BRCA1) central gene, none None.
+    cg_ids = {cg for _, cg in link.central_gene_table_links}
+    assert None not in cg_ids
+    assert len(cg_ids) == 1
+    assert len(central_gene_stub.entries) == 1  # no new stub — BRCA1 reused
+    # Meta entry uses a constant(...) source label, not a column name.
+    assert link.get_meta_entry() == "constant(BRCA1):t__perturbed_gene:perturbed"
 
 
 def test_dispatch_control_values_creates_kind_control_stub(

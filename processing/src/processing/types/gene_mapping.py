@@ -131,13 +131,21 @@ class NonResolving:
 
 @dataclass
 class GeneMapping:
-    column_name: str
+    # Exactly one of `column_name` / `constant_value` is set. `column_name`
+    # reads the gene per row from that column (the usual case). `constant_value`
+    # (#212) declares an *implicit* gene that applies to every row of the table
+    # — for experiments where the perturbed gene is a property of the whole table
+    # rather than a per-row value (e.g. a single-gene-KO RNA-seq). Every row then
+    # links to that constant gene, so the whole readout is attributed to it. Set
+    # `multi_gene_separator` to declare a fixed panel (e.g. "GENEA,GENEB").
+    column_name: str | None
     species: Literal["human", "mouse"]
     link_table_name: str
     perturbed_or_target: PerturbedOrTarget
     ignore_empty: bool = False
     multi_gene_separator: str | None = None
     non_resolving: NonResolving = field(default_factory=NonResolving)
+    constant_value: str | None = None
 
     def __post_init__(self):
         if self.species not in ["human", "mouse"]:
@@ -146,6 +154,14 @@ class GeneMapping:
             raise ValueError(
                 f"Invalid perturbed_or_target: {self.perturbed_or_target!r} "
                 f"(must be 'perturbed' or 'target')"
+            )
+        has_column = self.column_name is not None
+        has_constant = self.constant_value is not None
+        if has_column == has_constant:
+            raise ValueError(
+                "Gene mapping must set exactly one of 'column_name' or "
+                f"'constant_value' (got column_name={self.column_name!r}, "
+                f"constant_value={self.constant_value!r})"
             )
 
     @classmethod
@@ -163,7 +179,14 @@ class GeneMapping:
                 "'perturbed' or 'target')."
             )
 
-        column_name = json_data["column_name"]
+        column_name = json_data.get("column_name")
+        constant_value = json_data.get("constant_value")
+        if (column_name is None) == (constant_value is None):
+            raise ValueError(
+                f"Gene mapping for link_table {json_data.get('link_table_name')!r}: "
+                "set exactly one of 'column_name' (per-row gene column) or "
+                "'constant_value' (implicit whole-table perturbed gene, #212)."
+            )
 
         retired = _RETIRED_GENE_MAPPING_KEYS & json_data.keys()
         if retired:
@@ -190,6 +213,7 @@ class GeneMapping:
             ignore_empty=bool(json_data.get("ignore_empty", False)),
             multi_gene_separator=json_data.get("multi_gene_separator"),
             non_resolving=non_resolving,
+            constant_value=constant_value,
         )
 
     def resolve_to_central_gene_table(
@@ -199,11 +223,16 @@ class GeneMapping:
         in_path: Path,
     ) -> LinkTable:
         assert "id" in data.columns, "id column not found in data"
-        assert (
-            self.column_name in data.columns
-        ), f"table {primary_table_name}, column {self.column_name} not found in data columns {data.columns.tolist()}"
         id_column: list[int] = data["id"].tolist()
-        in_column: list[str] = data[self.column_name].tolist()
+        if self.constant_value is not None:
+            # Implicit whole-table perturbation (#212): every row links to the
+            # same declared gene(s). No source column is read.
+            in_column: list[str] = [self.constant_value] * len(id_column)
+        else:
+            assert (
+                self.column_name in data.columns
+            ), f"table {primary_table_name}, column {self.column_name} not found in data columns {data.columns.tolist()}"
+            in_column = data[self.column_name].tolist()
         total_rows = len(id_column)
         data_id_to_central_gene_id: list[tuple[int, int | None]] = []
         species_map = get_central_gene_table().get_species_map(
@@ -301,10 +330,17 @@ class GeneMapping:
         link_table_full_name = primary_table_name + "__" + self.link_table_name
         return LinkTable(
             central_gene_table_links=data_id_to_central_gene_id,
-            gene_column_name=self.column_name,
+            gene_column_name=self._source_label(),
             link_table_name=link_table_full_name,
             perturbed_or_target=self.perturbed_or_target,
         )
+
+    def _source_label(self) -> str:
+        """Human/meta label for the gene source: the column name, or a
+        `constant(<value>)` token for implicit whole-table perturbations."""
+        if self.column_name is not None:
+            return self.column_name
+        return f"constant({self.constant_value})"
 
     def _log_resolution_summary(
         self,
@@ -339,7 +375,7 @@ class GeneMapping:
         get_sspsygene_logger().info(
             "  %s.%s [%s]: %d row(s) — %s",
             primary_table_name,
-            self.column_name,
+            self._source_label(),
             self.species,
             total_rows,
             " / ".join(parts),
@@ -361,7 +397,7 @@ class GeneMapping:
         n_distinct = len(unresolvable_counts)
         more = "" if n_distinct <= 10 else f" (+{n_distinct - 10} more)"
         msg = (
-            f"{primary_table_name}.{self.column_name} ({in_path.name}): "
+            f"{primary_table_name}.{self._source_label()} ({in_path.name}): "
             f"{n_affected}/{total_rows} rows ({pct:.1f}%) had unresolvable "
             f"{self.species} gene values; stubs added. "
             f"Top values: {sample}{more}. "

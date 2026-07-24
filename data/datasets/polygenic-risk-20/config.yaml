@@ -38,6 +38,7 @@ maintainers:
     comment: Standardized table titles, resolved GENCODE clone IDs and AC-shaped accessions to HGNC symbols / ENSGs at preprocess time, added column tooltips, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: SCZ_Risk_Arrayed_RNAseq_supp_1
+    overview_matrix: true  # #212 overview matrix source
     changelog:
       - date: "2026-05-05"
         message: "Standardized title and added column tooltips. Resolved GENCODE clone IDs and AC-shaped accessions to HGNC symbols / ENSGs at preprocess time."
@@ -106,6 +107,7 @@ tables:
       adj_p_val: "Benjamini–Hochberg FDR-adjusted p-value"
       b: "Log-odds that the gene is differentially expressed"
   - table: SCZ_Risk_Pooled_ECCITEseq_supp_2
+    overview_matrix: true  # #212 overview matrix source
     changelog:
       - date: "2026-05-05"
         message: "Standardized title (dropped /shRNA from pooled label), added column tooltips. Resolved GENCODE clone IDs and AC-shaped accessions to HGNC symbols / ENSGs at preprocess time."

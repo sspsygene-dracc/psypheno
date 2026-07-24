@@ -23,6 +23,7 @@ maintainers:
 
 tables:
   - table: ding_2026_deg_human
+    overview_matrix: true  # #212 overview matrix source
     shortLabel: ding_2026_deg_human
     mediumLabel: "Ding 2026 - 44-TF CRISPRi DEGs in Human Cortical Organoid RG Lineage"
     longLabel: "Differentially expressed genes from a single-cell CRISPRi screen of 44 transcription factors in primary human cortical radial-glia cultures (Ding et al. 2026)"
@@ -83,6 +84,7 @@ tables:
         message: "Initial data load from Nature Supplementary Information (Table S5)."
 
   - table: ding_2026_deg_arx_in_lmo1ric3
+    overview_matrix: true  # #212 overview matrix source
     shortLabel: ding_2026_arx_in_lmo1ric3
     mediumLabel: "Ding 2026 - ARX-KD DEGs in IN_LMO1/RIC3 Ectopic Cluster (Cortical Organoid)"
     longLabel: "Differentially expressed genes in the IN_LMO1/RIC3 ectopic interneuron cluster induced by ARX CRISPRi knockdown (Ding et al. 2026)"

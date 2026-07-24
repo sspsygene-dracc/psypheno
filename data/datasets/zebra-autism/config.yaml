@@ -48,6 +48,7 @@ maintainers:
     comment: Standardized table titles, used the full surname Weinschutz Mendes, corrected the organism description to stable mutants, added column header tooltips, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: zebra_asd
+    overview_matrix: true  # #212 overview matrix source
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
@@ -93,6 +94,7 @@ tables:
         species: human
         perturbed_or_target: perturbed
   - table: RestWake_VisStart_byGene
+    overview_matrix: true  # #212 overview matrix source
     changelog:
       - date: "2026-02-23"
         message: "Initial data load"

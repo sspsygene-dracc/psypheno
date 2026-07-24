@@ -114,6 +114,7 @@ tables:
     pvalue_column: P-value
     effect_column: Zscore
   - table: Perturbed_Baseline_behavior_pvalues
+    overview_matrix: true  # #212 overview matrix source
     changelog:
       - date: "2026-02-17"
         message: "Initial data load"

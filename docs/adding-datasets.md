@@ -534,6 +534,54 @@ gene that was perturbed and one for the gene whose expression was measured:
         perturbed_or_target: perturbed
 ```
 
+#### Include the table in the cross-modality overview matrix (`overview_matrix`)
+
+The **collated cross-modality overview matrix** (the "red table" at
+`/overview`) shows one row per experimentally-perturbed gene and one column per
+experimental modality. Its rows come **only** from tables that explicitly opt
+in with the table-level flag:
+
+```yaml
+  - table: my_crispr_screen_degs
+    overview_matrix: true           # include this table as a matrix source
+    assay: perturbation_deg
+    # ...
+```
+
+Set `overview_matrix: true` on tables that are **genuine consortium
+perturbation experiments** — a known gene was experimentally perturbed
+(CRISPR(i)/KD/KO, mutation model, Perturb-seq/-FISH, behavioral assay) and a
+modality readout exists. Leave it **off** (the default) for curated/phenotype
+annotation databases, computationally *inferred* networks (e.g. GRN inference),
+and observational cohorts with no molecular diagnosis (e.g. postmortem
+disease-vs-control RNA-seq) — those have no experimentally-perturbed gene and
+must not become matrix rows. The column shown for a table is derived from its
+`assay` via the modality taxonomy in `data/datasets/globals.yaml`.
+
+#### Implicit (whole-table) perturbed gene (`constant_value`)
+
+Sometimes the perturbed gene isn't a per-row column — the *entire table* is one
+perturbation (e.g. a single-gene-KO RNA-seq: every row is a gene measured in an
+`ARID1B`-knockout background). Declare that implicit gene with `constant_value`
+in place of `column_name`; every row is then linked to it:
+
+```yaml
+    gene_mappings:
+      - column_name: gene_symbol      # per-row measured (target) gene
+        link_table_name: gene
+        species: human
+        perturbed_or_target: target
+      - constant_value: ARID1B        # implicit — the whole table is ARID1B-perturbed
+        link_table_name: perturbed_gene
+        species: human
+        perturbed_or_target: perturbed
+```
+
+Set exactly one of `column_name` or `constant_value` per mapping. For a fixed
+panel of implicit perturbed genes, combine `constant_value` with
+`multi_gene_separator` (e.g. `constant_value: "GENEA,GENEB"` +
+`multi_gene_separator: ","`).
+
 ### Mouse or zebrafish data
 
 If your gene symbols are from mouse or zebrafish, change the `species` field:

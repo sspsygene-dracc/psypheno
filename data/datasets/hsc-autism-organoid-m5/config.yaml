@@ -32,6 +32,7 @@ maintainers:
     comment: Standardized table titles, added column tooltips, merged the geschwind_2026_cnv data into DE_results with HGNC/chromosome/biotype columns, and migrated preprocessing to the Pipeline framework.
 tables:
   - table: hsc_asd_organoid_m5_DE_targets_M5_TFs
+    overview_matrix: true  # #212 overview matrix source
     changelog:
       - date: "2026-05-05"
         message: "Standardized title to first-author/year/assay/medium format and added column tooltips."
@@ -115,6 +116,7 @@ tables:
       de_type: "edgeR test variant (always 'QLF' = quasi-likelihood F-test)"
       log2fc: "log2 fold change: target-gRNA cells vs non-targeting-control cells (same effect as Avg_logFC, on log2 scale)"
   - table: hsc_asd_organoid_m5_DE_results
+    overview_matrix: true  # #212 overview matrix source
     changelog:
       - date: "2026-04-28"
         message: "Converted ENSG IDs to HGNC gene symbols. Added chromosome_name, band, gene_biotype columns."

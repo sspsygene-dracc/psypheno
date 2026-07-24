@@ -8,16 +8,18 @@ import { sanitizeIdentifier, parseLinkTablesForDirection } from "@/lib/gene-quer
  * overview table ("red table", psypheno #212, epic #220).
  *
  * Returns, for **every experimentally-perturbed gene** (a central gene in a
- * `perturbed`-direction link table of a real KO/KD/i or mutation screen), a
- * per-modality cell status plus a count and the contributing table names for
- * drill-down (#214). Modalities come from the taxonomy shipped in #211 (the
- * `modalities` table / GET /api/modalities).
+ * `perturbed`-direction link table of a labeled dataset), a per-modality cell
+ * status plus a count and the contributing table names for drill-down (#214).
+ * Modalities come from the taxonomy shipped in #211 (the `modalities` table /
+ * GET /api/modalities).
  *
- * "Experimentally perturbed" is narrower than "in any perturbed-direction link
- * table": curated/phenotype annotation DBs (ClinVar/SFARI/MGI), GRN-inference
- * networks, and RNA-expression readout tables also carry perturbed links but
- * are NOT experimental perturbations — they're filtered out (see the exclusion
- * block below). The response's `excludedSources` lists what was dropped.
+ * Source tables are an explicit **opt-in allowlist**: only `data_tables` rows
+ * with `include_in_overview_matrix = 1` (config `overview_matrix: true`)
+ * contribute. That single flag — set on the consortium perturbation experiments
+ * where a known gene was perturbed and a modality readout exists — replaces any
+ * name/category/assay heuristics. Curated/phenotype annotation DBs
+ * (ClinVar/SFARI/MGI), GRN-inference networks, and observational postmortem
+ * cohorts simply aren't labeled, so they never appear as rows.
  *
  * Cell status (per gene × modality), aggregated across all perturbation tables
  * whose `assay` maps to that modality. Over the gene's joined rows:
@@ -118,16 +120,18 @@ export default async function handler(
       }
     }
 
-    // 2. All data tables that expose a perturbed-direction link table.
+    // 2. Opt-in source tables: only those labeled `overview_matrix: true`
+    //    (include_in_overview_matrix = 1). This is the single allowlist — no
+    //    name/category/assay heuristics.
     const tables = db
       .prepare(
-        `SELECT table_name, assay, categories, pvalue_column, fdr_column, link_tables
-           FROM data_tables`
+        `SELECT table_name, assay, pvalue_column, fdr_column, link_tables
+           FROM data_tables
+          WHERE include_in_overview_matrix = 1`
       )
       .all() as Array<{
       table_name: string;
       assay: string | null;
-      categories: string | null;
       pvalue_column: string | null;
       fdr_column: string | null;
       link_tables: string | null;
@@ -135,11 +139,8 @@ export default async function handler(
 
     // gene_id → modality key → accumulator
     const geneAccum = new Map<number, Map<string, Accum>>();
-    // gene universe: every gene experimentally perturbed in ≥1 dataset.
+    // gene universe: every gene experimentally perturbed in ≥1 labeled dataset.
     const geneUniverse = new Set<number>();
-    // Perturbed-direction sources dropped from the row universe, for transparency
-    // (surfaced in the response so #213 / reviewers can see what was excluded).
-    const excludedSources: Array<{ tableName: string; reason: string }> = [];
 
     for (const t of tables) {
       const linkTables = parseLinkTablesForDirection(
@@ -148,10 +149,9 @@ export default async function handler(
       );
       if (linkTables.length === 0) continue;
 
-      // Assay → modality keys this table contributes to. Tables whose assay
-      // maps to no modality (curated / phenotype annotation DBs — deliberately
-      // excluded from the taxonomy, e.g. ClinVar / SFARI / MGI, which also carry
-      // perturbed-direction links) contribute neither rows nor cells: skip them.
+      // Assay → modality keys this table contributes to. A labeled table should
+      // map to ≥1 modality via its assay; if a misconfiguration leaves it
+      // unmapped, skip it rather than emit orphan cells.
       const assayKeys = (t.assay || "")
         .split(",")
         .map((a) => a.trim())
@@ -161,33 +161,6 @@ export default async function handler(
         for (const k of assayToModalities.get(a) ?? []) modalityKeys.add(k);
       }
       if (modalityKeys.size === 0) continue;
-
-      // Rows must be *experimentally* perturbed genes (psypheno #212, "experimental
-      // only" — confirmed with Johannes). Two data-driven signals distinguish real
-      // KO/KD/i screens from tables whose `perturbed` link is inference or a
-      // readout gene-list, which otherwise flood the matrix with non-perturbed
-      // genes (~914 → ~199 rows):
-      //   - GRN-inference tables (categories include "GRN inference"): the
-      //     `perturbed` direction is *inferred* TF→target regulatory edges, not a
-      //     physically perturbed gene (e.g. Fleck 2023 — 720 inferred TFs).
-      //   - Pure RNA-expression readout tables (assay = expression): a perturbed
-      //     link there is an incidental region/condition gene list, not a screened
-      //     panel (e.g. hsc DE_results `region_genes` = whole CNV-region gene
-      //     lists, ~115 genes). Consequence: with no experimental perturbed-
-      //     direction expression data, the RNA-expression modality carries zero
-      //     rows and auto-hides — see the note in the response's `modalities`.
-      const categories = (t.categories || "").toLowerCase();
-      if (categories.includes("grn inference")) {
-        excludedSources.push({ tableName: t.table_name, reason: "grn_inference" });
-        continue;
-      }
-      if (assayKeys.includes("expression")) {
-        excludedSources.push({
-          tableName: t.table_name,
-          reason: "expression_readout",
-        });
-        continue;
-      }
 
       // p-value + FDR columns (each may be comma-separated). Invalid identifiers
       // are skipped rather than aborting the whole request.
@@ -327,9 +300,7 @@ export default async function handler(
     }));
 
     setReadCacheHeaders(res);
-    return res
-      .status(200)
-      .json({ modalities: modalityColumns, genes, excludedSources });
+    return res.status(200).json({ modalities: modalityColumns, genes });
   } catch (err) {
     console.error("collated-matrix handler error", err);
     return res.status(500).json({ error: "Internal server error" });

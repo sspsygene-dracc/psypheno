@@ -141,6 +141,7 @@ maintainers:
 
 tables:
   - table: fernando_2025_patient_splicing
+    overview_matrix: true  # #212 overview matrix source
     shortLabel: fernando_2025_patient_splicing
     mediumLabel: "Fernando 2025 - LeafCutter Differential Splicing in iPSC Neurons"
     longLabel: "Differential splicing (LeafCutter) between NRXN1+/- patient and control iPSC-derived glutamatergic and GABAergic neurons (Fernando et al. 2025)"
@@ -203,6 +204,7 @@ tables:
         message: "Merged the separate iGLUT and iGABA tables into this one (cell_type column) after a table-count review -- see DRAFT note 5."
 
   - table: fernando_2025_isogenic_splicing
+    overview_matrix: true  # #212 overview matrix source
     shortLabel: fernando_2025_isogenic_splicing
     mediumLabel: "Fernando 2025 - Isogenic Perturbation LeafCutter Differential Splicing in iPSC Neurons"
     longLabel: "Differential splicing (LeafCutter) after isogenic shRNA knockdown, antisense oligonucleotide, or beta-estradiol manipulation of NRXN1 splicing in iPSC-derived neurons (Fernando et al. 2025)"
@@ -272,6 +274,7 @@ tables:
         message: "Merged the separate shRNA and therapeutic tables into this one (manipulation column) after a table-count review -- see DRAFT note 5."
 
   - table: fernando_2025_nrxn_locus_splicing
+    overview_matrix: true  # #212 overview matrix source
     shortLabel: fernando_2025_nrxn_locus_splicing
     mediumLabel: "Fernando 2025 - LeafCutter NRXN1/2/3 Candidate-Locus Differential Splicing in iPSC Neurons"
     longLabel: "Differential splicing (LeafCutter) at the NRXN1, NRXN2, and NRXN3 loci across all patient, shRNA, and therapeutic comparisons (Fernando et al. 2025)"
