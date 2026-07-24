@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import sqlite3
 import sys
+from typing import Any
 
 import click
 import yaml
@@ -528,6 +529,41 @@ def load_organism_types(
     conn.commit()
 
 
+def load_modalities(
+    conn: sqlite3.Connection, modalities: list[dict[str, Any]]
+) -> None:
+    """Write the modality taxonomy for the overview matrix (#211).
+
+    Modalities are the user-facing columns of the perturbed-gene × modality
+    overview table (epic #220). Unlike the flat assay/condition/organism label
+    maps, each modality carries a list of assay-type keys it maps to plus an
+    `always_show` flag, so the table stores that richer shape. `sort_order`
+    preserves the display order from globals.yaml (the list index)."""
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE modalities (
+        key TEXT PRIMARY KEY,
+        label TEXT,
+        assay_types TEXT,
+        always_show INTEGER NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL)"""
+    )
+    for sort_order, entry in enumerate(modalities):
+        cur.execute(
+            "INSERT INTO modalities "
+            "(key, label, assay_types, always_show, sort_order) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (
+                entry["key"],
+                entry["label"],
+                json.dumps(entry.get("assayTypes", [])),
+                int(entry.get("alwaysShow", False)),
+                sort_order,
+            ),
+        )
+    conn.commit()
+
+
 def load_llm_search_results(
     conn: sqlite3.Connection,
     data_dir: Path,
@@ -592,6 +628,7 @@ def load_db(
     assay_types: dict[str, str] | None = None,
     condition_types: dict[str, str] | None = None,
     organism_types: dict[str, str] | None = None,
+    modalities: list[dict[str, Any]] | None = None,
     column_header_tokens: dict[str, str] | None = None,
     skip_missing: bool = False,
     no_index: bool = False,
@@ -628,6 +665,7 @@ def load_db(
         load_assay_types(conn, assay_types or {})
         load_condition_types(conn, condition_types or {})
         load_organism_types(conn, organism_types or {})
+        load_modalities(conn, modalities or [])
         if data_dir and not skip_gene_descriptions:
             copy_gene_descriptions(conn, data_dir, no_index=no_index)
         if data_dir:

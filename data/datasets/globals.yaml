@@ -104,3 +104,56 @@ organismTypes:
   human: "Human"
   mouse: "Mouse"
   zebrafish: "Zebrafish"
+
+# Modality taxonomy for the collated cross-modality overview table (psypheno
+# epic #220; this block is leaf #211). The overview matrix is perturbed-gene ×
+# modality; these are its user-facing *columns*, in display order. See
+# docs/consortium-overview.md for the consortium background and the table's
+# intent.
+#
+# The modality axis is a SUPERSET of `assayTypes` above: each modality maps to
+# one or more assay-type keys (`assayTypes:` list), renamed to a user-facing
+# `label`. `alwaysShow: true` marks the expensive, low-output modalities that
+# must render as a column even when they have zero data (a not-yet-run assay is
+# itself informative). Morphology and electrophysiology have no assay type and
+# no data yet — they are empty always-show placeholders.
+#
+# Deviations from the whiteboard's 7 columns (confirmed with Johannes):
+#   - No standalone FISH column. The matrix is perturbation-centric (rows =
+#     perturbed genes); pure FISH is `spatial` with only target-direction links
+#     and yields no rows, so only perturb-FISH survives. FISH returns if
+#     non-perturbation spatial data ever lands.
+#   - `curated` / `phenotype` are excluded — those datasets (ClinVar, SFARI,
+#     GeneTrek, Satterstrom, MGI phenotypes) are external annotation databases,
+#     not SSPsyGene consortium experiments.
+#   - Generic `perturbation` (GRN edges, cell-proportion shifts, splicing —
+#     non-DEG, non-spatial) folds into Perturb-seq, so every perturbation table
+#     shows somewhere. Net: `spatial` -> perturb-FISH, every other perturbation
+#     assay -> perturb-seq.
+modalities:
+  - key: expression
+    label: "RNA expression"
+    assayTypes:
+      - expression
+  - key: behavior
+    label: "Behavioral"
+    assayTypes:
+      - behavior
+    alwaysShow: true
+  - key: morphology
+    label: "Morphology"
+    assayTypes: []
+    alwaysShow: true
+  - key: electrophysiology
+    label: "Electrophysiology"
+    assayTypes: []
+    alwaysShow: true
+  - key: perturb_seq
+    label: "Perturb-seq"
+    assayTypes:
+      - perturbation_deg
+      - perturbation
+  - key: perturb_fish
+    label: "Perturb-FISH"
+    assayTypes:
+      - spatial

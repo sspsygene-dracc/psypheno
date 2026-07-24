@@ -53,6 +53,10 @@ class GlobalConfig(TypedDict, total=False):
     assayTypes: dict[str, str]
     conditionTypes: dict[str, str]
     organismTypes: dict[str, str]
+    # Modality taxonomy for the overview matrix (#211): ordered list of
+    # user-facing columns, each {key, label, assayTypes: [...], alwaysShow?}.
+    # A superset of assayTypes — see data/datasets/globals.yaml.
+    modalities: list[dict[str, Any]]
 
 
 class YamlTablesFile(TypedDict, total=False):
