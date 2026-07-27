@@ -137,7 +137,19 @@ export default function MatrixPage() {
             </div>
           )}
 
-          {!loading && !error && genes.length > 0 && (
+          {/* #222 replaced the API's `modalities` array with `sections` +
+              `columns` so RNA expression can fan out into a per-target-gene
+              heatmap. This view still speaks the old shape; the rework that
+              consumes the new contract is tracked separately. Until then, say
+              so rather than rendering a table with no columns. */}
+          {!loading && !error && genes.length > 0 && modalities.length === 0 && (
+            <div style={{ color: "#6b7280", marginTop: 16 }}>
+              This view is being rebuilt against the expanded matrix API
+              (#222) and is temporarily unavailable.
+            </div>
+          )}
+
+          {!loading && !error && genes.length > 0 && modalities.length > 0 && (
             <CollatedMatrix modalities={modalities} genes={genes} />
           )}
         </main>

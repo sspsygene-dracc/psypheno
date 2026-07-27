@@ -132,6 +132,33 @@ export function getDb(): Database.Database {
 }
 
 /**
+ * Whether a table exists in the main database.
+ *
+ * The DB schema moves with the Python pipeline, so a web process can be
+ * serving a DB built before a table was introduced. Routes that read
+ * pipeline-optional tables (LLM results, gene descriptions, the materialized
+ * overview matrix) use this to degrade deliberately instead of 500ing on a
+ * "no such table" error.
+ */
+export function tableExists(
+  db: Database.Database,
+  name: string,
+  schema: "main" | "meta" = "main"
+): boolean {
+  try {
+    const row = db
+      .prepare(
+        `SELECT name FROM ${schema}.sqlite_master WHERE type='table' AND name=?`
+      )
+      .get(name) as { name: string } | undefined;
+    return !!row;
+  } catch {
+    // No such schema — e.g. `meta` was never ATTACHed.
+    return false;
+  }
+}
+
+/**
  * Freshness/availability of the meta-analysis DB for the current connection.
  * Call `getDb()` first (it refreshes this). Used by the combined-p-value API
  * routes to fall back gracefully when meta isn't computed, and by

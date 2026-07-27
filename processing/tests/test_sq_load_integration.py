@@ -14,9 +14,12 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import sqlite3
 import zipfile
 from pathlib import Path
+
+import pytest
 
 from processing.config import get_sspsygene_config
 from processing.sq_load import load_db
@@ -36,6 +39,7 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
         assay_types=config.global_config.get("assayTypes", {}),
         condition_types=config.global_config.get("conditionTypes", {}),
         organism_types=config.global_config.get("organismTypes", {}),
+        modalities=config.global_config.get("modalities", []),
         skip_missing=False,
         no_index=True,
         data_dir=config.base_dir,
@@ -58,6 +62,7 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
         _assert_ensembl_to_symbol(conn)
         _assert_lookup_tables(conn)
         _assert_changelog(conn)
+        _assert_overview_matrix(conn)
         _assert_export_files(conn)
     finally:
         conn.close()
@@ -226,6 +231,79 @@ def _assert_changelog(conn: sqlite3.Connection) -> None:
         ("mini_perturb_deg",),
     ).fetchall()
     assert {r["date"] for r in rows} == {"2025-10-01", "2026-01-15"}
+
+
+def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
+    """The overview matrix is materialized during load_db (#222).
+
+    The fixture table is labeled `overview_matrix` + `overview_matrix_expand`
+    with assay `perturbation`, which the fixture taxonomy maps to `perturb_seq`.
+    Foxg1/Tbr1/Tcf4 are the perturbed genes; NonTarget1 is a control and must
+    not appear.
+    """
+    statuses = {
+        (row["human_symbol"], row["modality_key"]): (row["status"], row["count"])
+        for row in conn.execute(
+            "SELECT cg.human_symbol, c.modality_key, c.status, c.count "
+            "FROM overview_matrix_status_cells c "
+            "JOIN central_gene cg ON cg.id = c.central_gene_id"
+        )
+    }
+    # Foxg1 perturbs 4 rows, 3 of them significant (padj or pvalue < 0.05);
+    # Tbr1 2 rows, both significant; Tcf4 1 significant row.
+    assert statuses[("FOXG1", "perturb_seq")] == ("significant", 4)
+    assert statuses[("TBR1", "perturb_seq")] == ("significant", 2)
+    assert statuses[("TCF4", "perturb_seq")] == ("significant", 1)
+    assert not any(symbol == "NONTARGET1" for symbol, _ in statuses)
+
+    perturbed = {
+        row["human_symbol"]
+        for row in conn.execute(
+            "SELECT cg.human_symbol FROM overview_matrix_genes g "
+            "JOIN central_gene cg ON cg.id = g.central_gene_id"
+        )
+    }
+    assert perturbed == {"FOXG1", "TBR1", "TCF4"}
+
+    # Expanded sub-columns are the *measured* gene column's values (mouse
+    # symbols here), strongest first: Tcf4 is significant under two
+    # perturbations, the rest under one.
+    columns = [
+        (row["column_value"], row["n_sig_regions"])
+        for row in conn.execute(
+            "SELECT column_value, n_sig_regions FROM overview_matrix_expanded_columns "
+            "ORDER BY sort_rank"
+        )
+    ]
+    assert columns == [("Tcf4", 2), ("Selenoo", 1), ("Mtap", 1), ("Gm99999", 1)]
+    # Trp53's p-values never clear FDR 0.05, so it is not a column at all.
+    assert not any(value == "Trp53" for value, _ in columns)
+
+    cells = {
+        (row["human_symbol"], row["column_value"]): row["neg_log_p"]
+        for row in conn.execute(
+            "SELECT cg.human_symbol, c.column_value, c.neg_log_p "
+            "FROM overview_matrix_expanded_cells c "
+            "JOIN central_gene cg ON cg.id = c.central_gene_id"
+        )
+    }
+    # -log10 of the most significant raw p for that (perturbed, measured) pair.
+    assert cells[("TCF4", "Tcf4")] == round(-math.log10(7.1e-06), 3)
+    assert cells[("TBR1", "Tcf4")] == round(-math.log10(0.00043), 3)
+    # Selenoo's other row is under the NonTarget1 control, which is excluded.
+    assert set(cells) == {
+        ("FOXG1", "Selenoo"),
+        ("FOXG1", "Mtap"),
+        ("FOXG1", "Gm99999"),
+        ("TBR1", "Tcf4"),
+        ("TCF4", "Tcf4"),
+    }
+
+    info = dict(
+        (row["key"], row["value"])
+        for row in conn.execute("SELECT key, value FROM overview_matrix_info")
+    )
+    assert info["min_groups_floor"] == "1"
 
 
 def _assert_export_files(conn: sqlite3.Connection) -> None:

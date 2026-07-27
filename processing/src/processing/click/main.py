@@ -113,6 +113,18 @@ def _echo_sspsygene_env(label: str) -> None:
     "iterating on the export step.",
 )
 @click.option(
+    "--expression-min-regions",
+    type=int,
+    default=1,
+    show_default=True,
+    help="Materialization floor for the overview matrix's expanded columns "
+    "(#222): a target gene becomes a sub-column when it is FDR-significant "
+    "across at least this many distinct perturbed-column values (CNV regions, "
+    "for the ASD organoid table). Deliberately low — /api/collated-matrix "
+    "picks its own, higher threshold per request, and can only go as low as "
+    "this floor without a rebuild.",
+)
+@click.option(
     "--test",
     "test_mode",
     is_flag=True,
@@ -128,6 +140,7 @@ def load_db(
     no_index: bool,
     skip_gene_descriptions: bool,
     export_only: bool,
+    expression_min_regions: int,
     test_mode: bool,
 ) -> None:
     """Load the database"""
@@ -182,6 +195,7 @@ def load_db(
             data_dir=config.base_dir,
             skip_gene_descriptions=skip_gene_descriptions,
             test_central_gene_ids=test_central_gene_ids,
+            expression_min_regions=expression_min_regions,
         )
         _echo_sspsygene_env("end")
     except ValueError as e:

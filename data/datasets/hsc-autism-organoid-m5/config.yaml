@@ -117,6 +117,7 @@ tables:
       log2fc: "log2 fold change: target-gRNA cells vs non-targeting-control cells (same effect as Avg_logFC, on log2 scale)"
   - table: hsc_asd_organoid_m5_DE_results
     overview_matrix: true  # #212 overview matrix source
+    overview_matrix_expand: true  # #222 RNA-expression sub-columns (target genes)
     changelog:
       - date: "2026-04-28"
         message: "Converted ENSG IDs to HGNC gene symbols. Added chromosome_name, band, gene_biotype columns."

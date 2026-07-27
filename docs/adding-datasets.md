@@ -558,6 +558,46 @@ disease-vs-control RNA-seq) — those have no experimentally-perturbed gene and
 must not become matrix rows. The column shown for a table is derived from its
 `assay` via the modality taxonomy in `data/datasets/globals.yaml`.
 
+#### Expand a modality into per-target sub-columns (`overview_matrix_expand`)
+
+By default a modality is **one** column whose cell is a status glyph. A table can
+instead *expand* its modality into one sub-column per **measured (target) gene**,
+turning that section into a p-value heatmap:
+
+```yaml
+  - table: my_de_results
+    overview_matrix: true
+    overview_matrix_expand: true    # one sub-column per significant target gene
+    pvalue_column: P-Value
+    fdr_column: Adjusted_P-Value
+    gene_mappings:
+      - column_name: target_gene    # -> the sub-column axis
+        link_table_name: gene
+        perturbed_or_target: target
+        species: human
+      - column_name: region_genes   # -> the matrix rows + the significance groups
+        link_table_name: region_gene
+        perturbed_or_target: perturbed
+        species: human
+```
+
+Requires `overview_matrix: true`, both a `perturbed` and a `target` gene mapping,
+and both `pvalue_column` and `fdr_column` — the loader raises if any is missing.
+
+A target gene becomes a sub-column when it is FDR-significant (`< 0.05`) across at
+least *N* **distinct perturbed-side values** of the perturbed gene column — for the
+ASD organoid table that is the number of distinct CNV regions, which is the honest
+unit because every member gene of a region shares the same DE rows. Values that
+resolve to no perturbed gene don't count (that table's idiopathic-ASD cohort has no
+molecular diagnosis, so it contributes no matrix cells either). *N* is the
+`--expression-min-regions` build floor (see below); the API picks its own,
+higher threshold per request. Each cell holds `-log10` of the most significant
+**raw** p-value for that (perturbed gene, target gene) pair, clamped to `[1, 20]`.
+
+Expanding a table is not free: the materialization stores one row per
+(perturbed gene, qualifying target) pair. Only expand tables whose target axis is a
+genuinely interesting readout.
+
 #### Implicit (whole-table) perturbed gene (`constant_value`)
 
 Sometimes the perturbed gene isn't a per-row column — the *entire table* is one

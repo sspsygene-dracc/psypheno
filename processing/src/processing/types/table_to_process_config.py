@@ -87,6 +87,7 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "meta_analysis",
         "why_excluded_from_meta_analysis",
         "overview_matrix",
+        "overview_matrix_expand",
         "changelog",
         # Internal: dataset-level publication block, merged in by TablesConfig.
         "_publication",
@@ -279,6 +280,15 @@ class TableToProcessConfig:
     # The /api/collated-matrix rows come only from labeled tables, so this is the
     # single, self-documenting allowlist — no name/category heuristics.
     overview_matrix: bool = False
+    # Whether this table's modality column *expands* into one sub-column per
+    # measured (target) gene in the overview matrix (psypheno #222). Opt-in on
+    # top of `overview_matrix`. The sub-column axis is the table's target gene
+    # column; a target qualifies when it is FDR-significant across at least N
+    # distinct perturbed-side groups (for the ASD organoid table, N distinct CNV
+    # regions), and each cell carries -log10 of the most significant raw p-value
+    # for that (perturbed gene, target gene) pair. Requires both a perturbed and
+    # a target gene mapping plus pvalue_column and fdr_column.
+    overview_matrix_expand: bool = False
     publication_first_author: str | None = None
     publication_last_author: str | None = None
     publication_author_count: int | None = None
@@ -327,6 +337,27 @@ class TableToProcessConfig:
                 f"meta_analysis is still true — set `meta_analysis: false` to "
                 f"actually exclude it, or drop the reason."
             )
+        # An expanded modality column is built from the table's target-gene axis
+        # (the sub-columns), its perturbed-gene axis (the matrix rows and the
+        # significance groups), and both stat columns. Without all four the
+        # materializer would silently emit nothing, so fail loudly at config load.
+        if self.overview_matrix_expand:
+            missing: list[str] = []
+            if not self.overview_matrix:
+                missing.append("overview_matrix: true")
+            if num_perturbed == 0:
+                missing.append("a perturbed gene_mapping")
+            if num_target == 0:
+                missing.append("a target gene_mapping")
+            if not self.pvalue_column:
+                missing.append("pvalue_column")
+            if not self.fdr_column:
+                missing.append("fdr_column")
+            if missing:
+                raise ValueError(
+                    f"table {self.table}: overview_matrix_expand requires "
+                    f"{', '.join(missing)}."
+                )
 
     @classmethod
     def from_json(
@@ -451,6 +482,8 @@ class TableToProcessConfig:
 
         # Overview-matrix inclusion flag (#212). Opt-in; defaults to False.
         overview_matrix = bool(json_data.get("overview_matrix", False))
+        # Expanded-modality flag (#222). Opt-in on top of overview_matrix.
+        overview_matrix_expand = bool(json_data.get("overview_matrix_expand", False))
 
         return cls(
             table=json_data["table"],
@@ -482,6 +515,7 @@ class TableToProcessConfig:
             meta_analysis=meta_analysis,
             why_excluded_from_meta_analysis=why_excluded,
             overview_matrix=overview_matrix,
+            overview_matrix_expand=overview_matrix_expand,
             publication_first_author=first_author,
             publication_last_author=last_author,
             publication_author_count=author_count,

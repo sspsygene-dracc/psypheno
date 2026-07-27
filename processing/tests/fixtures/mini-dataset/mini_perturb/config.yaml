@@ -23,6 +23,8 @@ tables:
       values, and record_values stubs).
     source: "Test fixture"
     assay: perturbation
+    overview_matrix: true  # #212 overview matrix source
+    overview_matrix_expand: true  # #222 expanded sub-columns
     fieldLabels:
       gene: "Mouse target gene whose expression was measured"
       perturbation_gene: "Gene targeted by the gRNA in this row"

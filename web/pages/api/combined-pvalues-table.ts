@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
-import { getDb, getMetaStatus } from "@/lib/db";
+import { getDb, getMetaStatus, tableExists } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 
 const VALID_METHODS = ["fisher", "cauchy", "hmp"] as const;
@@ -53,26 +53,6 @@ const bodySchema = z.object({
   direction: z.enum(["target", "perturbed"]).default("target"),
   regulation: z.enum(["any", "up", "down"]).default("any"),
 });
-
-/** Check whether a table exists in the main database. */
-function tableExists(db: ReturnType<typeof getDb>, name: string): boolean {
-  const row = db
-    .prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
-    )
-    .get(name) as { name: string } | undefined;
-  return !!row;
-}
-
-/** Check whether a table exists in the ATTACHed meta database (issue #176). */
-function metaTableExists(db: ReturnType<typeof getDb>, name: string): boolean {
-  const row = db
-    .prepare(
-      "SELECT name FROM meta.sqlite_master WHERE type='table' AND name=?"
-    )
-    .get(name) as { name: string } | undefined;
-  return !!row;
-}
 
 export default async function handler(
   req: NextApiRequest,
@@ -128,7 +108,7 @@ export default async function handler(
     let noTable = false;
     let numSourceTables = 0;
     if (assayFilter || conditionFilter || organismFilter) {
-      const hasGroups = metaTableExists(db, "combined_pvalue_groups");
+      const hasGroups = tableExists(db, "combined_pvalue_groups", "meta");
       if (hasGroups) {
         const group = db
           .prepare(

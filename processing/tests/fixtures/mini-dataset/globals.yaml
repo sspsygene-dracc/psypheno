@@ -13,3 +13,11 @@ conditionTypes:
 organismTypes:
   mouse: "Mouse"
   human: "Human"
+
+# Modality taxonomy for the collated overview matrix (#211/#222). One modality
+# so the materialization has something to write in the integration test.
+modalities:
+  - key: perturb_seq
+    label: "Perturb-seq"
+    assayTypes:
+      - perturbation

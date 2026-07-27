@@ -17,6 +17,7 @@ from processing.exports import write_exports
 from processing.gene_descriptions import copy_gene_descriptions
 from processing.my_logger import get_sspsygene_logger
 from processing.new_sqlite3 import NewSqlite3
+from processing.overview_matrix import materialize_overview_matrix
 from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import (
     TableToProcessConfig,
@@ -284,6 +285,7 @@ def load_data_tables(
         include_in_meta_analysis INTEGER NOT NULL DEFAULT 1,
         why_excluded_from_meta_analysis TEXT,
         include_in_overview_matrix INTEGER NOT NULL DEFAULT 0,
+        expand_in_overview_matrix INTEGER NOT NULL DEFAULT 0,
         preprocessing TEXT)"""
     )
     log = get_sspsygene_logger()
@@ -424,6 +426,9 @@ def load_data_tables(
             "include_in_meta_analysis": 1 if table_config.meta_analysis else 0,
             "why_excluded_from_meta_analysis": table_config.why_excluded_from_meta_analysis,
             "include_in_overview_matrix": 1 if table_config.overview_matrix else 0,
+            "expand_in_overview_matrix": 1
+            if table_config.overview_matrix_expand
+            else 0,
             "preprocessing": json.dumps(preprocessing_dict)
             if preprocessing_dict
             else None,
@@ -650,6 +655,7 @@ def load_db(
     data_dir: Path | None = None,
     skip_gene_descriptions: bool = False,
     test_central_gene_ids: set[int] | None = None,
+    expression_min_regions: int = 1,
 ) -> None:
     """Build the dataset SQLite DB (sspsygene.db) and atomically swap it in.
 
@@ -681,6 +687,13 @@ def load_db(
         load_condition_types(conn, condition_types or {})
         load_organism_types(conn, organism_types or {})
         load_modalities(conn, modalities or [])
+        # Every dataset table, link table, `data_tables`, `central_gene` and
+        # `modalities` exist by now, which is everything the overview matrix is
+        # derived from (#222). Inside the staging connection, so the result
+        # rides the same atomic swap (and the same group-writable chmod).
+        materialize_overview_matrix(
+            conn, no_index=no_index, min_groups=expression_min_regions
+        )
         if data_dir and not skip_gene_descriptions:
             copy_gene_descriptions(conn, data_dir, no_index=no_index)
         if data_dir:
