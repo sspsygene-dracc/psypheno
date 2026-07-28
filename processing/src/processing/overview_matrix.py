@@ -131,10 +131,12 @@ def _create_schema(conn: sqlite3.Connection) -> None:
     )
 
 
-def _load_modalities(conn: sqlite3.Connection) -> tuple[list[str], dict[str, list[str]]]:
+def _load_modalities(
+    conn: sqlite3.Connection, src_schema: str
+) -> tuple[list[str], dict[str, list[str]]]:
     """Return (ordered modality keys, assay-type key → modality keys)."""
     rows = conn.execute(
-        "SELECT key, assay_types FROM modalities ORDER BY sort_order ASC"
+        f"SELECT key, assay_types FROM {src_schema}.modalities ORDER BY sort_order ASC"
     ).fetchall()
     keys = [row[0] for row in rows]
     assay_to_modalities: dict[str, list[str]] = defaultdict(list)
@@ -180,14 +182,15 @@ def _modality_keys_for(
     return keys
 
 
-def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
-    return {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+def _table_columns(conn: sqlite3.Connection, table: str, src_schema: str) -> set[str]:
+    return {row[1] for row in conn.execute(f"PRAGMA {src_schema}.table_info({table})")}
 
 
 def _materialize_status_cells(
     conn: sqlite3.Connection,
     source_rows: list[tuple[Any, ...]],
     assay_to_modalities: dict[str, list[str]],
+    src_schema: str,
 ) -> None:
     """Write `overview_matrix_status_cells` for every labeled source table."""
     log = get_sspsygene_logger()
@@ -238,9 +241,9 @@ def _materialize_status_cells(
                            COUNT(*),
                            SUM(CASE WHEN ({data_predicate}) THEN 1 ELSE 0 END),
                            SUM(CASE WHEN ({sig_predicate}) THEN 1 ELSE 0 END)
-                      FROM {base_table} t
-                      JOIN {link_table} lt ON t.id = lt.id
-                      JOIN central_gene cg ON cg.id = lt.central_gene_id
+                      FROM {src_schema}.{base_table} t
+                      JOIN {src_schema}.{link_table} lt ON t.id = lt.id
+                      JOIN {src_schema}.central_gene cg ON cg.id = lt.central_gene_id
                      WHERE cg.kind != 'control'
                      GROUP BY lt.central_gene_id"""
             ).fetchall()
@@ -291,7 +294,11 @@ def _materialize_status_cells(
 
 
 def _group_to_genes(
-    conn: sqlite3.Connection, base_table: str, link_table: str, group_expr: str
+    conn: sqlite3.Connection,
+    base_table: str,
+    link_table: str,
+    group_expr: str,
+    src_schema: str,
 ) -> dict[Any, list[int]]:
     """Map each distinct perturbed-column value to its central gene ids.
 
@@ -305,10 +312,13 @@ def _group_to_genes(
     log = get_sspsygene_logger()
     controls = {
         row[0]
-        for row in conn.execute("SELECT id FROM central_gene WHERE kind = 'control'")
+        for row in conn.execute(
+            f"SELECT id FROM {src_schema}.central_gene WHERE kind = 'control'"
+        )
     }
     reps = conn.execute(
-        f"SELECT {group_expr}, MIN(id), COUNT(*) FROM {base_table} GROUP BY {group_expr}"
+        f"SELECT {group_expr}, MIN(id), COUNT(*) "
+        f"FROM {src_schema}.{base_table} GROUP BY {group_expr}"
     ).fetchall()
     rep_id_to_group = {rep_id: group for group, rep_id, _ in reps}
     rows_per_group = {group: n_rows for group, _, n_rows in reps}
@@ -319,7 +329,7 @@ def _group_to_genes(
     full_mapping: dict[Any, list[int]] = {group: [] for group in rows_per_group}
     if rep_id_to_group:
         for row_id, gene_id in conn.execute(
-            f"""SELECT id, central_gene_id FROM {link_table}
+            f"""SELECT id, central_gene_id FROM {src_schema}.{link_table}
                  WHERE id IN ({placeholders})""",
             list(rep_id_to_group),
         ):
@@ -328,7 +338,9 @@ def _group_to_genes(
     expected = sum(
         rows_per_group[group] * len(gene_ids) for group, gene_ids in full_mapping.items()
     )
-    (actual,) = conn.execute(f"SELECT COUNT(*) FROM {link_table}").fetchone()
+    (actual,) = conn.execute(
+        f"SELECT COUNT(*) FROM {src_schema}.{link_table}"
+    ).fetchone()
     if expected == actual:
         return {
             group: [gene_id for gene_id in gene_ids if gene_id not in controls]
@@ -346,9 +358,9 @@ def _group_to_genes(
     mapping: dict[Any, list[int]] = {group: [] for group in rows_per_group}
     for group, gene_id in conn.execute(
         f"""SELECT DISTINCT {group_expr}, lt.central_gene_id
-              FROM {base_table} t
-              JOIN {link_table} lt ON lt.id = t.id
-              JOIN central_gene cg ON cg.id = lt.central_gene_id
+              FROM {src_schema}.{base_table} t
+              JOIN {src_schema}.{link_table} lt ON lt.id = t.id
+              JOIN {src_schema}.central_gene cg ON cg.id = lt.central_gene_id
              WHERE cg.kind != 'control'"""
     ):
         mapping.setdefault(group, []).append(gene_id)
@@ -364,6 +376,7 @@ def _materialize_expansion(
     fdr_column: str | None,
     link_tables_raw: str | None,
     min_groups: int,
+    src_schema: str,
 ) -> int:
     """Materialize one expanded modality. Returns the column count."""
     log = get_sspsygene_logger()
@@ -381,7 +394,7 @@ def _materialize_expansion(
     # The sub-column axis and the significance-group axis are the *source
     # columns* of the target / perturbed link entries, normalized the same way
     # the loader normalizes column names.
-    columns = _table_columns(conn, base_table)
+    columns = _table_columns(conn, base_table, src_schema)
     source_columns: dict[str, str | None] = {"target": None, "perturbed": None}
     for entry in (link_tables_raw or "").split(","):
         parts = entry.strip().split(":")
@@ -412,13 +425,13 @@ def _materialize_expansion(
         return 0
     p_col, fdr_col = pvalue_cols[0], fdr_cols[0]
 
-    group_genes = _group_to_genes(conn, base_table, link_table, group_expr)
+    group_genes = _group_to_genes(conn, base_table, link_table, group_expr, src_schema)
 
     # Per (group, target): the most significant raw p and the most significant
     # FDR. MIN(fdr) < 0.05 is exactly "at least one significant row here".
     per_group = conn.execute(
         f"""SELECT {group_expr}, {target_column}, MIN({p_col}), MIN({fdr_col})
-              FROM {base_table}
+              FROM {src_schema}.{base_table}
              WHERE {target_column} IS NOT NULL AND {target_column} != ''
              GROUP BY 1, 2"""
     ).fetchall()
@@ -508,8 +521,16 @@ def materialize_overview_matrix(
     *,
     no_index: bool = False,
     min_groups: int = 1,
+    src_schema: str = "main",
 ) -> None:
-    """Precompute the overview matrix into the dataset DB (#222).
+    """Precompute the overview matrix (#222).
+
+    Writes the `overview_matrix_*` tables into `conn`'s main schema, reading the
+    dataset tables (`modalities`, `data_tables`, `central_gene`, and each
+    labeled source/link table) from `src_schema`. `run_overview_matrix` passes
+    ``src_schema="src"`` with the dataset DB ATTACHed read-only, so the matrix
+    lands in its own file; the in-process path (tests) leaves it ``"main"`` and
+    everything is one DB.
 
     `min_groups` is the *materialization floor*: a target gene becomes an
     expanded sub-column when it is FDR-significant across at least this many
@@ -519,7 +540,7 @@ def materialize_overview_matrix(
     min_groups = max(1, min_groups)
     _create_schema(conn)
 
-    modality_keys, assay_to_modalities = _load_modalities(conn)
+    modality_keys, assay_to_modalities = _load_modalities(conn, src_schema)
     if not modality_keys:
         # No taxonomy (older globals.yaml) — leave the tables empty rather than
         # failing the build; the API degrades to an empty matrix.
@@ -528,20 +549,21 @@ def materialize_overview_matrix(
         return
 
     source_rows = conn.execute(
-        """SELECT table_name, assay, pvalue_column, fdr_column, link_tables,
-                  expand_in_overview_matrix
-             FROM data_tables
+        f"""SELECT table_name, assay, pvalue_column, fdr_column, link_tables,
+                   expand_in_overview_matrix
+             FROM {src_schema}.data_tables
             WHERE include_in_overview_matrix = 1"""
     ).fetchall()
 
-    _materialize_status_cells(conn, source_rows, assay_to_modalities)
+    _materialize_status_cells(conn, source_rows, assay_to_modalities, src_schema)
     # Every joined row yields at least an "assayed_null" cell, so the status
-    # cells already carry the full perturbed-gene universe.
+    # cells already carry the full perturbed-gene universe. The status-cell
+    # table lives in the write DB (unqualified); central_gene is read from src.
     conn.execute(
-        """INSERT INTO overview_matrix_genes (central_gene_id, human_symbol)
+        f"""INSERT INTO overview_matrix_genes (central_gene_id, human_symbol)
            SELECT DISTINCT c.central_gene_id, cg.human_symbol
              FROM overview_matrix_status_cells c
-             JOIN central_gene cg ON cg.id = c.central_gene_id"""
+             JOIN {src_schema}.central_gene cg ON cg.id = c.central_gene_id"""
     )
 
     expanded_source_tables: list[str] = []
@@ -563,6 +585,7 @@ def materialize_overview_matrix(
             fdr_column=fdr_column,
             link_tables_raw=link_tables_raw,
             min_groups=min_groups,
+            src_schema=src_schema,
         )
         if n_columns == 0:
             continue

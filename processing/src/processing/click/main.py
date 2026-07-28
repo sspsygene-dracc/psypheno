@@ -56,20 +56,26 @@ def _echo_sspsygene_env(label: str) -> None:
         "SSPSYGENE_CONFIG_JSON",
         "SSPSYGENE_DATA_DB",
         "SSPSYGENE_META_DB",
+        "SSPSYGENE_OVERVIEW_DB",
     )
+    # Suffixes for the sibling-DB defaults shown when the override is unset.
+    sibling_suffixes = {
+        "SSPSYGENE_META_DB": "-meta",
+        "SSPSYGENE_OVERVIEW_DB": "-overview",
+    }
     click.secho(f"── SSPSYGENE environment ({label}) ──", fg="cyan")
     for name in names:
         value = os.environ.get(name)
         if value:
             click.secho(f"  {name}={value}", fg="cyan")
-        elif name == "SSPSYGENE_META_DB":
-            # No override — the meta DB defaults to the -meta sibling of the
-            # dataset DB; show that so the resolved path isn't a mystery.
+        elif name in sibling_suffixes:
+            # No override — this DB defaults to a sibling of the dataset DB;
+            # show the resolved path so it isn't a mystery.
             data_db = os.environ.get("SSPSYGENE_DATA_DB")
             if data_db:
                 sibling = Path(data_db)
                 sibling = sibling.with_name(
-                    f"{sibling.stem}-meta{sibling.suffix}"
+                    f"{sibling.stem}{sibling_suffixes[name]}{sibling.suffix}"
                 )
                 click.secho(f"  {name}=(unset → {sibling})", fg="cyan")
             else:
@@ -113,18 +119,6 @@ def _echo_sspsygene_env(label: str) -> None:
     "iterating on the export step.",
 )
 @click.option(
-    "--expression-min-regions",
-    type=int,
-    default=1,
-    show_default=True,
-    help="Materialization floor for the overview matrix's expanded columns "
-    "(#222): a target gene becomes a sub-column when it is FDR-significant "
-    "across at least this many distinct perturbed-column values (CNV regions, "
-    "for the ASD organoid table). Deliberately low — /api/collated-matrix "
-    "picks its own, higher threshold per request, and can only go as low as "
-    "this floor without a rebuild.",
-)
-@click.option(
     "--test",
     "test_mode",
     is_flag=True,
@@ -140,7 +134,6 @@ def load_db(
     no_index: bool,
     skip_gene_descriptions: bool,
     export_only: bool,
-    expression_min_regions: int,
     test_mode: bool,
 ) -> None:
     """Load the database"""
@@ -195,7 +188,6 @@ def load_db(
             data_dir=config.base_dir,
             skip_gene_descriptions=skip_gene_descriptions,
             test_central_gene_ids=test_central_gene_ids,
-            expression_min_regions=expression_min_regions,
         )
         _echo_sspsygene_env("end")
     except ValueError as e:
@@ -253,6 +245,51 @@ def meta_analysis(no_index: bool, no_r_cache: bool) -> None:
             tf_list_path=config.gene_map_config.tf_list_file,
             use_r_cache=not no_r_cache,
             deg_assays=deg_assays,
+        )
+        _echo_sspsygene_env("end")
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command(name="overview-matrix")
+@click.option(
+    "--no-index",
+    is_flag=True,
+    default=False,
+    help="Skip creating the SQLite index on the expanded-columns table. "
+    "Speeds up the build for test purposes.",
+)
+@click.option(
+    "--expression-min-regions",
+    type=int,
+    default=1,
+    show_default=True,
+    help="Materialization floor for the overview matrix's expanded columns "
+    "(#222): a target gene becomes a sub-column when it is FDR-significant "
+    "across at least this many distinct perturbed-column values (CNV regions, "
+    "for the ASD organoid table). Deliberately low — /api/collated-matrix "
+    "picks its own, higher threshold per request, and can only go as low as "
+    "this floor without a rebuild.",
+)
+def overview_matrix(no_index: bool, expression_min_regions: int) -> None:
+    """Materialize the collated overview matrix into sspsygene-overview.db.
+
+    Reads the already-built dataset DB (sspsygene.db) and writes a separate
+    overview DB on its own cadence — the same independent-file pattern as the
+    meta-analysis (#176). The web app ATTACHes it and serves /api/collated-matrix
+    as a cheap read. Run `sspsygene load-db` first if the dataset DB doesn't
+    exist yet."""
+    from processing.sq_load import run_overview_matrix
+
+    _echo_sspsygene_env("start")
+    try:
+        config = get_sspsygene_config()
+        run_overview_matrix(
+            config.out_db,
+            config.overview_db,
+            no_index=no_index,
+            min_groups=expression_min_regions,
         )
         _echo_sspsygene_env("end")
     except ValueError as e:
@@ -470,6 +507,50 @@ def deploy_meta_analysis(
         no_push=no_push,
         instances=instances,
         no_r_cache=no_r_cache,
+    )
+
+
+@cli.command(name="deploy-overview")
+@click.option(
+    "--no-push",
+    is_flag=True,
+    default=False,
+    help="Skip the local git push step.",
+)
+@click.option(
+    "--instances",
+    type=str,
+    default=None,
+    help="Comma-separated subset of {dev, int, prod} to refresh the overview "
+    "matrix on. Default: all three. The three sites are independent — this "
+    "rebuilds each site's sspsygene-overview.db from that site's own "
+    "sspsygene.db.",
+)
+@click.option(
+    "--expression-min-regions",
+    type=int,
+    default=1,
+    show_default=True,
+    help="Materialization floor for the expanded columns (see `overview-matrix`).",
+)
+def deploy_overview(
+    no_push: bool,
+    instances: str | None,
+    expression_min_regions: int,
+) -> None:
+    """Refresh sspsygene-overview.db on psygene sites (separate from `deploy`).
+
+    Pushes + pulls code, then runs `sspsygene overview-matrix` on each selected
+    site against that site's existing sspsygene.db. Does not rebuild datasets,
+    build the web app, or restart services — the web process auto-detects the
+    new overview DB the same way it detects a rebuilt sspsygene.db. Multi-user
+    safe (no systemd/kill interaction), mirroring `deploy-meta-analysis` (#222)."""
+    from processing.deploy import run_deploy_overview
+
+    run_deploy_overview(
+        no_push=no_push,
+        instances=instances,
+        expression_min_regions=expression_min_regions,
     )
 
 

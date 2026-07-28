@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 from processing.config import get_sspsygene_config
-from processing.sq_load import load_db
+from processing.sq_load import load_db, run_overview_matrix
 
 
 def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
@@ -62,10 +62,24 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
         _assert_ensembl_to_symbol(conn)
         _assert_lookup_tables(conn)
         _assert_changelog(conn)
-        _assert_overview_matrix(conn)
         _assert_export_files(conn)
     finally:
         conn.close()
+
+    # The overview matrix (#222) is materialized into its own file by a separate
+    # command chain (`overview-matrix`), reading the dataset DB just built.
+    overview_db = config.overview_db
+    assert not overview_db.exists()
+    run_overview_matrix(out_db, overview_db, no_index=True)
+    assert overview_db.exists()
+    assert not overview_db.with_name(overview_db.name + ".new").exists()
+
+    overview_conn = sqlite3.connect(overview_db)
+    overview_conn.row_factory = sqlite3.Row
+    try:
+        _assert_overview_matrix(overview_conn)
+    finally:
+        overview_conn.close()
 
 
 def _assert_data_tables_row(conn: sqlite3.Connection) -> None:
@@ -234,7 +248,8 @@ def _assert_changelog(conn: sqlite3.Connection) -> None:
 
 
 def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
-    """The overview matrix is materialized during load_db (#222).
+    """The overview matrix is materialized into its own DB by the separate
+    `overview-matrix` command (#222); `conn` is that overview DB.
 
     The fixture table is labeled `overview_matrix` + `overview_matrix_expand`
     with assay `perturbation`, which the fixture taxonomy maps to `perturb_seq`.
@@ -244,9 +259,9 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
     statuses = {
         (row["human_symbol"], row["modality_key"]): (row["status"], row["count"])
         for row in conn.execute(
-            "SELECT cg.human_symbol, c.modality_key, c.status, c.count "
+            "SELECT g.human_symbol, c.modality_key, c.status, c.count "
             "FROM overview_matrix_status_cells c "
-            "JOIN central_gene cg ON cg.id = c.central_gene_id"
+            "JOIN overview_matrix_genes g ON g.central_gene_id = c.central_gene_id"
         )
     }
     # Foxg1 perturbs 4 rows, 3 of them significant (padj or pvalue < 0.05);
@@ -258,10 +273,7 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
 
     perturbed = {
         row["human_symbol"]
-        for row in conn.execute(
-            "SELECT cg.human_symbol FROM overview_matrix_genes g "
-            "JOIN central_gene cg ON cg.id = g.central_gene_id"
-        )
+        for row in conn.execute("SELECT human_symbol FROM overview_matrix_genes")
     }
     assert perturbed == {"FOXG1", "TBR1", "TCF4"}
 
@@ -282,9 +294,9 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
     cells = {
         (row["human_symbol"], row["column_value"]): row["neg_log_p"]
         for row in conn.execute(
-            "SELECT cg.human_symbol, c.column_value, c.neg_log_p "
+            "SELECT g.human_symbol, c.column_value, c.neg_log_p "
             "FROM overview_matrix_expanded_cells c "
-            "JOIN central_gene cg ON cg.id = c.central_gene_id"
+            "JOIN overview_matrix_genes g ON g.central_gene_id = c.central_gene_id"
         )
     }
     # -log10 of the most significant raw p for that (perturbed, measured) pair.

@@ -190,6 +190,19 @@ class Config:
             self.meta_db = self.out_db.with_name(
                 f"{self.out_db.stem}-meta{self.out_db.suffix}"
             )
+        # The collated overview matrix (#222) lives in its own SQLite file too,
+        # built on its own cadence by `sspsygene overview-matrix` — the same
+        # separate-file pattern as the meta-analysis, so the main dataset DB
+        # stays lean and the matrix can be rebuilt/deployed independently.
+        # Honors SSPSYGENE_OVERVIEW_DB (the same override the web app reads);
+        # otherwise a `-overview` sibling of out_db.
+        overview_override = os.environ.get("SSPSYGENE_OVERVIEW_DB")
+        if overview_override:
+            self.overview_db: Path = Path(overview_override)
+        else:
+            self.overview_db = self.out_db.with_name(
+                f"{self.out_db.stem}-overview{self.out_db.suffix}"
+            )
         self.gene_map_config = GeneMapConfig(self.base_dir, config["gene_map_files"])
 
         # Load global config (field labels, assay types) if specified

@@ -765,6 +765,78 @@ def run_deploy_meta_analysis(
     click.secho("\nMeta-analysis deployment complete!", fg="green", bold=True)
 
 
+def _step_overview_matrix_site(
+    path: str,
+    *,
+    label: str,
+    expression_min_regions: int = 1,
+    env_vars: dict[str, str] | None = None,
+) -> None:
+    """Run `sspsygene overview-matrix` on one psygene site.
+
+    Reads that site's already-built sspsygene.db and writes its sibling
+    sspsygene-overview.db via atomic swap (#222). No build / restart needed: the
+    web process auto-detects the new overview DB file the same way it detects a
+    rebuilt sspsygene.db (web/lib/db.ts re-stats it). Multi-user-safe — it only
+    creates/replaces the overview DB file under the deployer's account (no
+    systemd / kill interaction), so unlike the restart step it works the same
+    for any wrangler in the protein group. Mirrors _step_meta_analysis_site."""
+    click.echo(f"\n  --- overview-matrix: {label} ({path}) ---")
+    env_prefix = ""
+    if env_vars:
+        env_prefix = " ".join(f"{k}={v}" for k, v in env_vars.items()) + " "
+    cmd = (
+        f"cd {path} && "
+        f"{CONDA_INIT} && "
+        f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} "
+        f"sspsygene overview-matrix --expression-min-regions {expression_min_regions}"
+    )
+    _run_ssh(
+        PSYGENE,
+        cmd,
+        desc="sspsygene overview-matrix",
+        timeout=LOAD_DB_TIMEOUT,
+        stream=True,
+    )
+
+
+def run_deploy_overview(
+    *,
+    no_push: bool = False,
+    instances: str | None = None,
+    expression_min_regions: int = 1,
+) -> None:
+    """Refresh sspsygene-overview.db on the selected psygene sites (#222).
+
+    The overview chain is independent of the dataset/deploy chain, exactly like
+    the meta-analysis chain (#176): it pushes + pulls code (so the server runs
+    the current materializer), then runs `sspsygene overview-matrix` on each
+    selected site against that site's existing sspsygene.db. It does NOT rebuild
+    datasets, build the web app, or restart services. Invoke on your own cadence
+    when the matrix needs refreshing (e.g. after adding a perturbation dataset
+    or retuning the expansion threshold)."""
+    selected = _resolve_instances(instances)
+    _preflight_checks()
+
+    if no_push:
+        click.secho("\n[1/3] Skipping git push (--no-push)", bold=True)
+    else:
+        _step_push()
+
+    _step_pull_all(selected)
+
+    click.secho("\n[3/3] Running overview-matrix on selected sites", bold=True)
+    for inst in selected:
+        _step_overview_matrix_site(
+            INSTANCE_PATHS[inst],
+            label=INSTANCE_LABELS[inst],
+            expression_min_regions=expression_min_regions,
+            env_vars=INSTANCE_ENVS[inst],
+        )
+
+    click.secho("\nOverview-matrix deployment complete!", fg="green", bold=True)
+
+
 def _step_restart_psygene(instances: list[str]) -> None:
     """Restart Next.js processes on psygene for the given instances.
 

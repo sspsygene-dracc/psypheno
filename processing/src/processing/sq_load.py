@@ -655,13 +655,14 @@ def load_db(
     data_dir: Path | None = None,
     skip_gene_descriptions: bool = False,
     test_central_gene_ids: set[int] | None = None,
-    expression_min_regions: int = 1,
 ) -> None:
     """Build the dataset SQLite DB (sspsygene.db) and atomically swap it in.
 
-    As of issue #176 this does NOT compute the combined-p-value meta-analysis.
-    That is a separate, slower-cadence step (`sspsygene meta-analysis`) that
-    reads this DB and writes its own file (sspsygene-meta.db)."""
+    As of issue #176 this does NOT compute the combined-p-value meta-analysis,
+    and as of the #222 follow-up it does NOT materialize the overview matrix
+    either. Both are separate, independent-cadence steps that read this DB and
+    write their own files (`sspsygene meta-analysis` → sspsygene-meta.db;
+    `sspsygene overview-matrix` → sspsygene-overview.db)."""
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
 
@@ -687,13 +688,11 @@ def load_db(
         load_condition_types(conn, condition_types or {})
         load_organism_types(conn, organism_types or {})
         load_modalities(conn, modalities or [])
-        # Every dataset table, link table, `data_tables`, `central_gene` and
-        # `modalities` exist by now, which is everything the overview matrix is
-        # derived from (#222). Inside the staging connection, so the result
-        # rides the same atomic swap (and the same group-writable chmod).
-        materialize_overview_matrix(
-            conn, no_index=no_index, min_groups=expression_min_regions
-        )
+        # The overview matrix (#222) is derived purely from the tables built
+        # above, but it is materialized into its own file by `sspsygene
+        # overview-matrix` (see run_overview_matrix) rather than inline here, so
+        # the main dataset DB stays lean and the matrix rebuilds on its own
+        # cadence — the same separation as the meta-analysis (#176).
         if data_dir and not skip_gene_descriptions:
             copy_gene_descriptions(conn, data_dir, no_index=no_index)
         if data_dir:
@@ -855,5 +854,51 @@ def run_meta_analysis(
     click.echo(
         click.style(
             f"Wrote meta-analysis to {meta_db}", fg="green", bold=True
+        )
+    )
+
+
+def run_overview_matrix(
+    main_db: Path,
+    overview_db: Path,
+    *,
+    no_index: bool = False,
+    min_groups: int = 1,
+) -> None:
+    """Materialize the collated overview matrix into a standalone DB (#222).
+
+    Reads the already-built dataset DB at `main_db` (ATTACHed read-only as
+    `src`), materializes the `overview_matrix_*` tables, and atomically swaps
+    the result onto `overview_db`. Never touches `main_db`.
+
+    This is the overview-matrix analogue of `run_meta_analysis`: a second,
+    independent-cadence build over the dataset DB (`load-db` then
+    `overview-matrix`), so the main DB stays lean and the web app reads the
+    matrix from its own ATTACHed file."""
+    logger = logging.getLogger(__name__)
+    if not main_db.exists():
+        raise ValueError(
+            f"Dataset DB not found at {main_db}; run `sspsygene load-db` first."
+        )
+    overview_db.parent.mkdir(parents=True, exist_ok=True)
+    staging = _staging_path(overview_db)
+
+    with NewSqlite3(staging, logger) as new_sqlite3:
+        conn = new_sqlite3.conn
+        # ATTACH the dataset DB read-only so the build reads its tables without
+        # ever locking or mutating the file the web app serves. URI attach is
+        # honored because NewSqlite3 opens the connection with uri=True.
+        conn.execute(f"ATTACH DATABASE 'file:{main_db}?mode=ro' AS src")
+        materialize_overview_matrix(
+            conn, no_index=no_index, min_groups=min_groups, src_schema="src"
+        )
+        # Detach before the context manager's PRAGMA optimize / commit so those
+        # never reach across into the read-only source DB.
+        conn.execute("DETACH DATABASE src")
+
+    _checkpoint_and_swap(staging, overview_db)
+    click.echo(
+        click.style(
+            f"Wrote overview matrix to {overview_db}", fg="green", bold=True
         )
     )

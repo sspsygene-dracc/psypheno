@@ -54,6 +54,29 @@ The database is written to `$SSPSYGENE_DATA_DB`. The pipeline reads dataset
 configs from `data/datasets/*/config.yaml` and gene homology files from
 `data/homology/`.
 
+### Separate build DBs (meta-analysis, overview matrix)
+
+`load-db` builds only the dataset DB. Two derived artifacts are built by their
+own commands, each into its **own SQLite file** on an independent cadence, so the
+main DB stays lean and each can be rebuilt/deployed without a full `load-db`:
+
+```bash
+# Combined-p-value meta-analysis -> sspsygene-meta.db (issue #176)
+sspsygene meta-analysis
+
+# Collated overview matrix ("red table") -> sspsygene-overview.db (#222)
+sspsygene overview-matrix
+```
+
+Both read the already-built `$SSPSYGENE_DATA_DB` (ATTACHed read-only, never
+mutated) and atomically swap in their own file. The web app ATTACHes each
+(`meta.*`, `overview.*`) and degrades gracefully — a missing file just means that
+feature isn't materialized yet, never a 500. Their paths default to the `-meta` /
+`-overview` siblings of `$SSPSYGENE_DATA_DB`; override with `SSPSYGENE_META_DB` /
+`SSPSYGENE_OVERVIEW_DB` (the same variables the web app reads). Deploy them to the
+servers with `sspsygene deploy-meta-analysis` / `sspsygene deploy-overview`
+(push+pull code, then run the build on each site — no dataset rebuild or restart).
+
 ### Fast iteration with `--test`
 
 `sspsygene load-db --test` runs the **full** pipeline (every dataset, every

@@ -18,11 +18,12 @@ import {
  * GET /api/collated-matrix — the collated cross-modality overview table
  * ("red table", epic #220).
  *
- * Reads the materialization that `sspsygene load-db` writes (#222) rather than
+ * Reads the materialization that `sspsygene overview-matrix` writes into its own
+ * file (sspsygene-overview.db, ATTACHed as `overview` — #222) rather than
  * aggregating live: the live version took ~6.8 s for the status columns alone,
  * and the RNA-expression expansion would have added ~5.6 s on top. Everything
- * this endpoint returns is precomputed in `overview_matrix_*`; the work here is
- * assembly.
+ * this endpoint returns is precomputed in `overview.overview_matrix_*`; the work
+ * here is assembly.
  *
  * Rows are every experimentally perturbed gene (a central gene in a `perturbed`
  * link table of an `overview_matrix`-labeled dataset, controls excluded).
@@ -41,10 +42,11 @@ import {
  *     response; columns beyond the cap are dropped strongest-first and
  *     `meta.expressionColumnsTruncated` says so.
  *
- * Degradation: a DB built before #222 has no materialization, so the status
- * columns are computed live (the pre-#222 code path, kept below) and expanded
- * sections simply don't appear. `meta.materialized` distinguishes the two. A DB
- * with no modality taxonomy at all yields an empty matrix. Neither 500s.
+ * Degradation: when the overview DB isn't attached (never built, or a pre-#222
+ * instance), the status columns are computed live (the fallback kept below) and
+ * expanded sections simply don't appear. `meta.materialized` distinguishes the
+ * two. A DB with no modality taxonomy at all yields an empty matrix. Neither
+ * 500s.
  */
 
 export type { CellStatus };
@@ -292,7 +294,7 @@ function readMaterializedStatusMatrix(db: ReturnType<typeof getDb>): {
   const genes = (
     db
       .prepare(
-        "SELECT central_gene_id, human_symbol FROM overview_matrix_genes"
+        "SELECT central_gene_id, human_symbol FROM overview.overview_matrix_genes"
       )
       .all() as Array<{ central_gene_id: number; human_symbol: string | null }>
   ).map((r) => ({
@@ -305,7 +307,7 @@ function readMaterializedStatusMatrix(db: ReturnType<typeof getDb>): {
   for (const r of db
     .prepare(
       "SELECT central_gene_id, modality_key, status, count, table_names " +
-        "FROM overview_matrix_status_cells"
+        "FROM overview.overview_matrix_status_cells"
     )
     .all() as Array<{
     central_gene_id: number;
@@ -351,7 +353,9 @@ export default async function handler(
   try {
     const db = getDb();
     const modalities = loadModalities(db);
-    const materialized = tableExists(db, "overview_matrix_genes");
+    // #222 moved the materialization into its own file (sspsygene-overview.db),
+    // ATTACHed as `overview` by getDb(). Absent attach → live fallback below.
+    const materialized = tableExists(db, "overview_matrix_genes", "overview");
 
     const { genes, statusCells } = materialized
       ? readMaterializedStatusMatrix(db)
@@ -362,7 +366,7 @@ export default async function handler(
       ? new Map(
           (
             db
-              .prepare("SELECT key, value FROM overview_matrix_info")
+              .prepare("SELECT key, value FROM overview.overview_matrix_info")
               .all() as Array<{ key: string; value: string }>
           ).map((r) => [r.key, r.value])
         )
@@ -377,7 +381,7 @@ export default async function handler(
       ? (
           db
             .prepare(
-              "SELECT modality_key, column_prefix FROM overview_matrix_expansions"
+              "SELECT modality_key, column_prefix FROM overview.overview_matrix_expansions"
             )
             .all() as Array<{ modality_key: string; column_prefix: string }>
         ).reduce(
@@ -423,13 +427,13 @@ export default async function handler(
       // Expanded section: the qualifying target genes, strongest first.
       const available = db
         .prepare(
-          "SELECT COUNT(*) AS n FROM overview_matrix_expanded_columns " +
+          "SELECT COUNT(*) AS n FROM overview.overview_matrix_expanded_columns " +
             "WHERE modality_key = ? AND n_sig_regions >= ?"
         )
         .get(modality.key, minRegions) as { n: number };
       const columnRows = db
         .prepare(
-          "SELECT column_value, n_sig_regions FROM overview_matrix_expanded_columns " +
+          "SELECT column_value, n_sig_regions FROM overview.overview_matrix_expanded_columns " +
             "WHERE modality_key = ? AND n_sig_regions >= ? " +
             "ORDER BY sort_rank ASC LIMIT ?"
         )
@@ -463,10 +467,10 @@ export default async function handler(
             // probes the column list (~80 ms), instead of seeking the ~230
             // selected columns in the column-clustered cell table (~2 ms).
             `SELECT c.central_gene_id, c.column_value, c.neg_log_p
-               FROM (SELECT column_value FROM overview_matrix_expanded_columns
+               FROM (SELECT column_value FROM overview.overview_matrix_expanded_columns
                       WHERE modality_key = ? AND n_sig_regions >= ?
                       ORDER BY sort_rank ASC LIMIT ?) k
-               CROSS JOIN overview_matrix_expanded_cells c
+               CROSS JOIN overview.overview_matrix_expanded_cells c
                  ON c.modality_key = ? AND c.column_value = k.column_value`
           )
           .raw()

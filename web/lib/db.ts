@@ -35,6 +35,21 @@ function metaDbPathFor(mainDbPath: string): string {
 }
 
 /**
+ * Resolve the overview-matrix DB path (#222): explicit SSPSYGENE_OVERVIEW_DB
+ * override, else the `-overview` sibling of the main DB
+ * (sspsygene.db -> sspsygene-overview.db). Mirrors metaDbPathFor and the
+ * default derivation in processing/config.py.
+ */
+function overviewDbPathFor(mainDbPath: string): string {
+  const fromEnv = process.env.SSPSYGENE_OVERVIEW_DB;
+  if (fromEnv) return path.resolve(fromEnv);
+  const dir = path.dirname(mainDbPath);
+  const ext = path.extname(mainDbPath); // ".db"
+  const stem = path.basename(mainDbPath, ext); // "sspsygene"
+  return path.join(dir, `${stem}-overview${ext}`);
+}
+
+/**
  * Stat the meta DB, returning null if it doesn't exist. Used both for the
  * cache key (so a swapped-in meta DB triggers reconnection) and to gate the
  * ATTACH.
@@ -89,6 +104,23 @@ function attachMeta(db: Database.Database, metaPath: string, mainStat: fs.Stats)
   }
 }
 
+/**
+ * Attach the overview-matrix DB (#222) as `overview` if present. Unlike the
+ * meta DB there is no staleness signal to track — the collated-matrix API only
+ * needs to know whether the materialization is reachable, which
+ * `tableExists(db, ..., "overview")` answers directly. Never throws: a missing
+ * or unreadable file just leaves the schema unattached and the API degrades to
+ * its live fallback.
+ */
+function attachOverview(db: Database.Database, overviewPath: string): void {
+  if (!statOrNull(overviewPath)) return;
+  try {
+    db.prepare("ATTACH DATABASE ? AS overview").run(overviewPath);
+  } catch {
+    // leave detached; the API falls back to live status aggregation
+  }
+}
+
 export function getDb(): Database.Database {
   const dbPathFromEnv = process.env.SSPSYGENE_DATA_DB;
   if (!dbPathFromEnv) {
@@ -98,18 +130,24 @@ export function getDb(): Database.Database {
   }
   const dbPath = path.resolve(dbPathFromEnv);
   const metaPath = metaDbPathFor(dbPath);
+  const overviewPath = overviewDbPathFor(dbPath);
 
   // Cheap stat on every call so the process picks up a rebuilt DB (atomic
   // rename by the Python load-db pipeline changes inode + mtime) without a
   // systemd restart. Served from the dentry cache in the hot path. The meta
-  // DB is statted too (issue #176): rebuilding *either* file must reconnect so
-  // the ATTACH and staleness status stay current.
+  // and overview DBs are statted too (issues #176, #222): rebuilding *any* of
+  // the three files must reconnect so the ATTACHes and staleness status stay
+  // current.
   const st = fs.statSync(dbPath);
   const metaSt = statOrNull(metaPath);
   const metaKey = metaSt
     ? `${metaSt.ino}:${metaSt.mtimeMs}:${metaSt.size}`
     : "none";
-  const key = `${st.ino}:${st.mtimeMs}:${st.size}|${metaKey}`;
+  const overviewSt = statOrNull(overviewPath);
+  const overviewKey = overviewSt
+    ? `${overviewSt.ino}:${overviewSt.mtimeMs}:${overviewSt.size}`
+    : "none";
+  const key = `${st.ino}:${st.mtimeMs}:${st.size}|${metaKey}|${overviewKey}`;
 
   if (dbInstance && cachedPath === dbPath && cachedKey === key) {
     return dbInstance;
@@ -126,6 +164,7 @@ export function getDb(): Database.Database {
 
   dbInstance = new Database(dbPath, { readonly: true, fileMustExist: true });
   attachMeta(dbInstance, metaPath, st);
+  attachOverview(dbInstance, overviewPath);
   cachedKey = key;
   cachedPath = dbPath;
   return dbInstance;
@@ -143,7 +182,7 @@ export function getDb(): Database.Database {
 export function tableExists(
   db: Database.Database,
   name: string,
-  schema: "main" | "meta" = "main"
+  schema: "main" | "meta" | "overview" = "main"
 ): boolean {
   try {
     const row = db
