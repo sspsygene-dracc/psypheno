@@ -112,13 +112,18 @@ const METHODS_DEF: React.CSSProperties = {
 };
 
 /**
- * Expandable "methods" note (#216): explains exactly which rows and columns the
- * matrix shows, and how columns are selected. Numbers come from `data.meta` so
- * the copy tracks the live build instead of drifting from hardcoded values.
+ * Expandable "methods" note (#216): how the matrix data is loaded, collapsed,
+ * selected, and arranged — the processing behind the display, not a description
+ * of the display itself. `data.meta.minSigGroupsFloor` and the columns-per-dataset
+ * options are read live so the copy tracks the build instead of drifting.
  */
 function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
   const m = data.meta;
-  const metricList = m.metrics.map((mp) => scaleFor(mp.id).label).join(", ");
+  const opts = COLS_PER_DATASET_OPTIONS;
+  const optsText =
+    opts.length > 1
+      ? `${opts.slice(0, -1).join(", ")}, or ${opts[opts.length - 1]}`
+      : String(opts[0]);
   return (
     <details style={{ marginBottom: 18, maxWidth: 840 }}>
       <summary
@@ -130,7 +135,7 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
           width: "fit-content",
         }}
       >
-        How to read this matrix &mdash; what the rows and columns are
+        How to read this matrix &mdash; how the data is loaded and arranged
       </summary>
       <div
         style={{
@@ -145,58 +150,47 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
         }}
       >
         <dl style={{ margin: 0 }}>
-          <dt style={{ ...METHODS_TERM, marginTop: 0 }}>Rows &mdash; perturbed genes</dt>
+          <dt style={{ ...METHODS_TERM, marginTop: 0 }}>Data content</dt>
           <dd style={METHODS_DEF}>
-            Every experimentally perturbed SSPsyGene target gene, one row per gene,
-            pooled across all included datasets.
+            <strong>Rows:</strong> Perturbed genes. <strong>Columns:</strong> Measured readouts. E.g., gene expression, behavioral measurements.
           </dd>
 
-          <dt style={METHODS_TERM}>Columns &mdash; one per measured readout</dt>
+          <dt style={METHODS_TERM}>Collapsing repeated measurements</dt>
           <dd style={METHODS_DEF}>
-            Each dataset fans out into one sub-column per measurement: a{" "}
-            <strong>target gene</strong> (gene columns) or a{" "}
-            <strong>phenotype</strong> (behavioral parameter, brain region, cell
-            subcluster). Columns are grouped by dataset unless you cluster them.
+            A single perturbed-gene &times; readout pair is sometimes measured multiple
+            times within one dataset, e.g., across cell types. 
+            We collapse those to one cell, keeping the{" "}
+            <strong>most significant</strong>{" "}result (the smallest p-value). For
+            example, the mouse cortical perturb-seq differential expression is
+            measured separately in each cortical cell type; the matrix shows the
+            single strongest cell type&rsquo;s result, not a per-cell-type breakdown.
           </dd>
 
-          <dt style={METHODS_TERM}>Which datasets</dt>
+          <dt style={METHODS_TERM}>Choosing the top columns per dataset</dt>
           <dd style={METHODS_DEF}>
-            Only grant-verified <strong>SSPsyGene consortium</strong>{" "}
-            datasets appear &mdash; a dataset is included only when its paper
-            acknowledges an SSPsyGene consortium grant.
+            You choose how many top columns per dataset to show &mdash; {optsText}{" "}
+            &mdash; with the <em>Columns per dataset</em>{" "}control.
+            &ldquo;Top&rdquo; is by cross-perturbation <strong>convergence</strong>:
+            a target-gene column qualifies only when it is significant (FDR &lt; 0.05)
+            for at least {m.minSigGroupsFloor}{" "}distinct perturbed
+            genes, then qualifying columns are ranked by how many perturbed genes
+            they are significant in (most convergent first), ties broken by the
+            strongest p-value, and the top N per dataset are kept. Phenotype columns
+            aren&rsquo;t filtered this way &mdash; every distinct phenotype is shown.
           </dd>
 
-          <dt style={METHODS_TERM}>How columns are chosen</dt>
-          <dd style={METHODS_DEF}>
-            A target-gene column is shown only when it is significant across at
-            least <strong>{m.minSigGroupsFloor}</strong> distinct perturbed genes
-            (phenotype columns are always kept). At most{" "}
-            <strong>{m.colsPerDataset}</strong>{" "}
-            columns per dataset are shown &mdash; change this with the{" "}
-            <em>Columns per dataset</em> control (up to{" "}
-            {m.materializeTopM} are precomputed).
-            {m.expandedColumnsTruncated && (
-              <>
-                {" "}
-                Some datasets have more eligible columns than shown (
-                {m.expandedColumnsAvailable.toLocaleString()} available across all
-                datasets); only the most convergent are displayed.
-              </>
-            )}
-          </dd>
-
-          <dt style={METHODS_TERM}>Color</dt>
-          <dd style={METHODS_DEF}>
-            Each column is colored by its own metric
-            {metricList ? ` (${metricList})` : ""}; metrics are never mixed in one
-            scale &mdash; see the legends above.
-          </dd>
-
-          <dt style={METHODS_TERM}>Sparsity</dt>
+          <dt style={METHODS_TERM}>Clustering rows and columns</dt>
           <dd style={{ ...METHODS_DEF, marginBottom: 0 }}>
-            The matrix is intentionally sparse; an empty cell means there is no
-            measurement for that perturbed-gene &times; readout pair. Gaps are
-            expected and permanent.
+            By default rows are alphabetical and columns are grouped by dataset. The{" "}
+            <em>Cluster</em>{" "}toggles reorder rows and/or columns so similar profiles
+            sit together, computed in your browser over the currently visible
+            datasets. Each column is first min&ndash;max normalized to a common
+            0&ndash;1 scale (so &minus;log10(p), signed effects, and ratios become
+            comparable); the distance between two rows (or columns) is the mean
+            absolute difference over only the cells they <em>both</em>{" "}have, so the
+            matrix&rsquo;s many gaps don&rsquo;t dominate; the order comes from
+            average-linkage hierarchical clustering, with a fast nearest-neighbor
+            fallback for very large axes.
           </dd>
         </dl>
       </div>
