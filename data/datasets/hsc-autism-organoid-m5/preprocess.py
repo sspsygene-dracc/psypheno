@@ -100,6 +100,26 @@ def build_region_genes_map() -> dict[str, str]:
     return region_genes_map
 
 
+def build_driver_gene_map() -> dict[str, str]:
+    """One representative perturbed gene per genotype (#226).
+
+    `region_genes` lists every gene in the CNV interval — provenance about
+    *where* the variant is, not a claim that each of those genes was
+    perturbed. Mapping all of them as perturbed put ~115 passenger genes
+    into the perturbed link table, which polluted the perturbed-direction
+    meta-analysis and made `/?perturbed=<passenger>` assert a perturbation
+    that never happened.
+
+    The nomination — and, where the call is contested, why — lives beside
+    the ClinGen/OMIM/GeneReviews citations in `cnv_gene_lists.json`.
+    IdiopathicASD has `driver: null` (no engineered perturbation) and maps
+    to "", which the config's `ignore_empty: true` skips.
+    """
+    with open(CNV_GENE_LISTS) as f:
+        gene_lists = json.load(f)
+    return {key: entry.get("driver") or "" for key, entry in gene_lists.items()}
+
+
 def _non_empty_hgnc(d: pd.DataFrame) -> pd.Series:
     return d["hgnc_symbol"].astype(str).str.strip() != ""
 
@@ -109,6 +129,7 @@ def process_supp3(
     normalizer: GeneSymbolNormalizer,
 ) -> None:
     region_genes_map = build_region_genes_map()
+    driver_gene_map = build_driver_gene_map()
 
     all_sheets = pd.read_excel(
         SUPP3_EXCEL, sheet_name=None, engine="openpyxl", dtype=str
@@ -171,7 +192,10 @@ def process_supp3(
             )
             .insert_column("perturbation", deletion_type, position=0)
             .insert_column(
-                "organoid_age_(days)", get_organoid_age(sheet_name), position=1
+                "perturbed_gene", driver_gene_map.get(deletion_type, ""), position=1
+            )
+            .insert_column(
+                "organoid_age_(days)", get_organoid_age(sheet_name), position=2
             )
             .insert_column(
                 "region_genes", region_genes_map.get(deletion_type, "")

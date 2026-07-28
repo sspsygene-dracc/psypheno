@@ -205,6 +205,46 @@ def test_gene_cells_take_min_p_across_groups(conn: sqlite3.Connection) -> None:
     assert not any(gene_id == 9 for gene_id, _ in cells)
 
 
+def test_group_column_merges_rows_that_perturb_the_same_gene(
+    conn: sqlite3.Connection,
+) -> None:
+    """Rows naming the same perturbed gene are ONE group, not two (#226).
+
+    Gordon 2026 models SHANK3 loss twice — a 22q13.33 deletion and a point
+    mutation — as two separate genotypes. Once the perturbed column holds the
+    representative driver gene rather than the CNV's whole interval, both
+    collapse to the same group value, so a target significant in only those
+    two stays *below* the convergence floor instead of looking like it
+    replicated across two independent perturbations.
+    """
+    conn.execute(
+        "CREATE TABLE drv (id INTEGER, perturbed_gene TEXT, target_gene TEXT, "
+        "p_value REAL, adj_p REAL)"
+    )
+    conn.executemany(
+        "INSERT INTO drv VALUES (?, ?, ?, ?, ?)",
+        [
+            (1, "AAA", "T1", 0.001, 0.01),  # "deletion"       -> AAA
+            (2, "AAA", "T1", 0.002, 0.01),  # "point mutation" -> AAA, same group
+            (3, "BBB", "T1", 0.9, 0.9),     # the other gene: not significant
+            (4, "AAA", "T2", 0.001, 0.01),
+            (5, "BBB", "T2", 0.002, 0.01),  # T2 does converge across two genes
+        ],
+    )
+    _add_link(conn, "drv__perturbed", [(1, 1), (1, 2), (1, 4), (2, 3), (2, 5)])
+    _register(
+        conn,
+        "drv",
+        "spatial",
+        "perturbed_gene:drv__perturbed:perturbed,target_gene:drv__gene:target",
+        pvalue_column="p_value",
+        fdr_column="adj_p",
+    )
+    materialize_overview_matrix(conn, min_groups=2)
+    # T1 is significant in both AAA rows, but they are one group -> below floor.
+    assert _columns(conn, "drv") == [("T2", 2, "neglog_p", 1)]
+
+
 # --- FDR-only gene axis -> neglog_q ---------------------------------------
 
 def test_fdr_only_table_uses_neglog_q(conn: sqlite3.Connection) -> None:

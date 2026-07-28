@@ -575,21 +575,33 @@ turning that section into a p-value heatmap:
         link_table_name: gene
         perturbed_or_target: target
         species: human
-      - column_name: region_genes   # -> the matrix rows + the significance groups
-        link_table_name: region_gene
+      - column_name: perturbed_gene # -> the matrix rows + the significance groups
+        link_table_name: perturbed_gene
         perturbed_or_target: perturbed
         species: human
 ```
+
+> **The perturbed column must name the gene you actually perturbed — one per row.**
+> It is tempting to point it at a column listing every gene at the affected locus
+> (a CNV interval, a deleted region). Don't: every passenger gene in that interval
+> then becomes a matrix row, a perturbed-direction meta-analysis entry, and a
+> `/?perturbed=<gene>` hit asserting a perturbation nobody performed. Give each row
+> a single representative gene — the mutated gene, or the interval's established
+> driver — and keep the full list as a plain display column for provenance.
+> `data/datasets/hsc-autism-organoid-m5/` (`perturbed_gene` vs `region_genes`) is
+> the worked example; it was fixed this way in
+> [#226](https://github.com/sspsygene-dracc/psypheno/issues/226).
 
 Requires `overview_matrix: true`, both a `perturbed` and a `target` gene mapping,
 and both `pvalue_column` and `fdr_column` — the loader raises if any is missing.
 
 A target gene becomes a sub-column when it is FDR-significant (`< 0.05`) across at
-least *N* **distinct perturbed-side values** of the perturbed gene column — for the
-ASD organoid table that is the number of distinct CNV regions, which is the honest
-unit because every member gene of a region shares the same DE rows. Values that
-resolve to no perturbed gene don't count (that table's idiopathic-ASD cohort has no
-molecular diagnosis, so it contributes no matrix cells either). *N* is the
+least *N* **distinct perturbed-side values** of the perturbed gene column — i.e. the
+number of distinct perturbed *genes*, which is the honest unit of convergence. Two
+genotypes that perturb the same gene (the ASD organoid table models SHANK3 loss both
+as a 22q13.33 deletion and as a point mutation) therefore count once, not twice.
+Values that resolve to no perturbed gene don't count (that table's idiopathic-ASD
+cohort has no molecular diagnosis, so it contributes no matrix cells either). *N* is the
 `--expression-min-regions` build floor (see below); the API picks its own,
 higher threshold per request. Each cell holds `-log10` of the most significant
 **raw** p-value for that (perturbed gene, target gene) pair, clamped to `[1, 20]`.

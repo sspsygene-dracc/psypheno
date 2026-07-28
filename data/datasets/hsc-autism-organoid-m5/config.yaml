@@ -124,6 +124,8 @@ tables:
         message: "Converted ENSG IDs to HGNC gene symbols. Added chromosome_name, band, gene_biotype columns."
       - date: "2026-05-05"
         message: "Standardized title and added column tooltips."
+      - date: "2026-07-28"
+        message: "Added perturbed_gene (one representative driver per genotype) and made it the perturbed gene mapping. region_genes is now provenance only - it previously marked all ~115 genes in each CNV interval as perturbed."
     shortLabel: asd_organoid_de_results
     mediumLabel: Gordon 2026 - Autism Genetic-Form DEGs in iPSC Cortical Organoids
     longLabel: Differential expression results across Autism genetic perturbations and developmental timepoints
@@ -137,6 +139,7 @@ tables:
     condition: ["autism", "ndc"]
     fieldLabels:
       perturbation: "ASD-associated CNV or point-mutation modeled in the organoid"
+      perturbed_gene: "The single gene this genotype is treated as perturbing: the mutated gene for single-gene models (PCDH19, SHANK3, CACNA1C for Timothy syndrome), or the established driver of the CNV interval (SHANK3 for 22q13del; CHRNA7, KCTD13 and TBX1 for 15q13, 16p11 and 22q11, where no single driver is settled - see cnv_gene_lists.json). Empty for IdiopathicASD, which has no engineered perturbation. See region_genes for the full interval."
       organoid_age_(days): "Organoid age in days post-differentiation. 'all timepoints' = meta-analysis combined across all timepoints."
       target_gene: "Gene whose expression was measured (HGNC symbol)"
       Ensembl_Gene_Id: "Ensembl gene ID"
@@ -152,7 +155,7 @@ tables:
       start_position: "Gene start coordinate (Ensembl, GRCh38)"
       end_position: "Gene end coordinate (Ensembl, GRCh38)"
       gene_biotype: "Gene biotype"
-      region_genes: "Genes in the affected CNV region or the perturbed gene for single-gene mutations"
+      region_genes: "Every gene lying in the affected CNV interval (or the mutated gene, for single-gene models). Provenance for which locus was hit - these are NOT all perturbed genes; the interval's passenger genes were not targeted. See perturbed_gene for the gene this genotype is attributed to."
     links:
       - url: https://www.nature.com/articles/s41586-025-10047-5#data-availability
         label: Nature — data availability
@@ -171,12 +174,16 @@ tables:
         species: human
         perturbed_or_target: target
         ignore_empty: true
-      - column_name: region_genes
-        link_table_name: region_gene
+      # #226: this used to be `region_genes` with multi_gene_separator ",",
+      # which marked every gene in the CNV interval as perturbed (~115 genes,
+      # 11.4M link rows) and so claimed a perturbation for passengers nobody
+      # targeted. One representative driver per genotype instead; region_genes
+      # stays as a display column for provenance.
+      - column_name: perturbed_gene
+        link_table_name: perturbed_gene
         species: human
         perturbed_or_target: perturbed
-        ignore_empty: true
-        multi_gene_separator: ","
+        ignore_empty: true  # IdiopathicASD has no perturbed gene
     pvalue_column: P-Value
     fdr_column: Adjusted_P-Value
     effect_column: logFC
