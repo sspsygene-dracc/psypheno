@@ -40,6 +40,7 @@ from pathlib import Path
 
 import click
 
+from processing.build_info import read_build_uuid
 from processing.combined_pvalues.collection import parse_link_tables_for_direction
 from processing.my_logger import get_sspsygene_logger
 from processing.sql_utils import sanitize_identifier
@@ -722,7 +723,7 @@ def materialize_overview_matrix(
 
     modality_keys, assay_to_modalities = _load_modalities(conn, src_schema)
     if not modality_keys:
-        _write_info(conn, min_groups, [], panel_gene_ids)
+        _write_info(conn, min_groups, [], panel_gene_ids, src_schema)
         conn.commit()
         return
 
@@ -821,7 +822,9 @@ def materialize_overview_matrix(
             "(modality_key, source_table, sort_rank)"
         )
 
-    _write_info(conn, min_groups, expanded_source_tables, panel_gene_ids)
+    _write_info(
+        conn, min_groups, expanded_source_tables, panel_gene_ids, src_schema
+    )
     conn.commit()
 
 
@@ -830,21 +833,29 @@ def _write_info(
     min_groups: int,
     expanded_source_tables: list[str],
     panel_gene_ids: set[int] | None = None,
+    src_schema: str = "main",
 ) -> None:
+    rows = [
+        ("schema_version", SCHEMA_VERSION),
+        ("built_at", datetime.now(timezone.utc).isoformat()),
+        ("min_groups_floor", str(min_groups)),
+        ("materialize_top_m", str(MATERIALIZE_TOP_M)),
+        ("expanded_source_tables", json.dumps(expanded_source_tables)),
+        # Whether the row axis was restricted to the consortium panel (#228),
+        # so a reader can tell an unfiltered build from a filtered one.
+        ("sspsygene_panel_filtered", "1" if panel_gene_ids is not None else "0"),
+        (
+            "sspsygene_panel_gene_count",
+            str(len(panel_gene_ids)) if panel_gene_ids is not None else "",
+        ),
+    ]
+    # Identity of the main DB this matrix was computed from (#225), so the web
+    # app can tell a stale overview DB from a current one — and so a *copied*
+    # overview DB still matches, which a file (mtime, size) fingerprint could
+    # not. Absent for source DBs predating #225.
+    source_uuid = read_build_uuid(conn, src_schema)
+    if source_uuid is not None:
+        rows.append(("source_build_uuid", source_uuid))
     conn.executemany(
-        "INSERT INTO overview_matrix_info (key, value) VALUES (?, ?)",
-        [
-            ("schema_version", SCHEMA_VERSION),
-            ("built_at", datetime.now(timezone.utc).isoformat()),
-            ("min_groups_floor", str(min_groups)),
-            ("materialize_top_m", str(MATERIALIZE_TOP_M)),
-            ("expanded_source_tables", json.dumps(expanded_source_tables)),
-            # Whether the row axis was restricted to the consortium panel (#228),
-            # so a reader can tell an unfiltered build from a filtered one.
-            ("sspsygene_panel_filtered", "1" if panel_gene_ids is not None else "0"),
-            (
-                "sspsygene_panel_gene_count",
-                str(len(panel_gene_ids)) if panel_gene_ids is not None else "",
-            ),
-        ],
+        "INSERT INTO overview_matrix_info (key, value) VALUES (?, ?)", rows
     )

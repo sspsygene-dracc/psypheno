@@ -6,19 +6,34 @@ let dbInstance: Database.Database | null = null;
 let cachedKey: string | null = null;
 let cachedPath: string | null = null;
 
-// Status of the ATTACHed meta-analysis DB (sspsygene-meta.db, issue #176),
-// recomputed whenever the connection is (re)opened. `attached` is false when
-// the meta DB file is missing (initial rollout / instance hasn't run
-// `sspsygene meta-analysis` yet). `stale` is true when the meta DB was built
-// against an older dataset DB than the one currently served (any `load-db`
-// rebuild mints a new mtime/size, so this flips on until meta is re-run).
+// Status of an ATTACHed derived DB — the meta-analysis DB (sspsygene-meta.db,
+// #176) or the overview-matrix DB (sspsygene-overview.db, #222) — recomputed
+// whenever the connection is (re)opened. `attached` is false when the file is
+// missing (initial rollout / that instance hasn't built it yet). `stale` is
+// true when it was computed from a different main-DB build than the one
+// currently served.
+//
+// Staleness compares build UUIDs (#225), not the main DB file's (mtime, size)
+// as #176 originally did. That fingerprint was a property of a *file*, and
+// since promotion copies files between instances, `cp` gave the target's main
+// DB a fresh mtime and a correctly-promoted meta DB read as permanently stale.
+// The UUID is written into the main DB by `load-db`, recorded by whatever
+// derives from it, and deliberately preserved by `subset-db` — so it survives
+// both the copy and the subset.
 export interface MetaStatus {
   attached: boolean;
   stale: boolean;
   builtAt: string | null;
 }
 
-let metaStatus: MetaStatus = { attached: false, stale: false, builtAt: null };
+const UNKNOWN_STATUS: MetaStatus = {
+  attached: false,
+  stale: false,
+  builtAt: null,
+};
+
+let metaStatus: MetaStatus = { ...UNKNOWN_STATUS };
+let overviewStatus: MetaStatus = { ...UNKNOWN_STATUS };
 
 /**
  * Resolve the meta DB path: explicit SSPSYGENE_META_DB env override, else the
@@ -63,62 +78,64 @@ function statOrNull(p: string): fs.Stats | null {
 }
 
 /**
- * Attach the meta DB (if present) and refresh `metaStatus`. Staleness compares
- * the dataset-DB fingerprint recorded at meta-build time against the live main
- * DB stat: a size mismatch, or a whole-second mtime mismatch, means the
- * datasets have been rebuilt since the meta-analysis last ran. Advisory only —
- * never throws on a malformed/old meta DB.
+ * The main DB's build UUID (#225), or null for a DB built before build_info
+ * existed. Never throws — an absent table just means "unknown".
  */
-function attachMeta(db: Database.Database, metaPath: string, mainStat: fs.Stats): void {
-  metaStatus = { attached: false, stale: false, builtAt: null };
-  if (!statOrNull(metaPath)) return;
+function mainBuildUuid(db: Database.Database): string | null {
   try {
-    db.prepare("ATTACH DATABASE ? AS meta").run(metaPath);
+    const row = db
+      .prepare("SELECT value FROM main.build_info WHERE key = 'build_uuid'")
+      .get() as { value: string } | undefined;
+    return row?.value ?? null;
   } catch {
-    return; // leave detached; callers fall back to "meta not computed"
-  }
-  metaStatus.attached = true;
-
-  try {
-    const rows = db
-      .prepare("SELECT key, value FROM meta.meta_analysis_info")
-      .all() as { key: string; value: string }[];
-    const info: Record<string, string> = {};
-    for (const r of rows) info[r.key] = r.value;
-    metaStatus.builtAt = info["built_at"] ?? null;
-
-    const recordedSize = info["source_db_size"];
-    const recordedMtime = info["source_db_mtime"];
-    const sizeMismatch =
-      recordedSize !== undefined && Number(recordedSize) !== mainStat.size;
-    const mtimeMismatch =
-      recordedMtime !== undefined &&
-      Math.floor(parseFloat(recordedMtime)) !==
-        Math.floor(mainStat.mtimeMs / 1000);
-    metaStatus.stale = sizeMismatch || mtimeMismatch;
-  } catch {
-    // Meta DB present but missing the info table (e.g. built by an older
-    // pipeline). Treat as attached-but-unknown-freshness: not stale, no date.
-    metaStatus.builtAt = null;
-    metaStatus.stale = false;
+    return null;
   }
 }
 
 /**
- * Attach the overview-matrix DB (#222) as `overview` if present. Unlike the
- * meta DB there is no staleness signal to track — the collated-matrix API only
- * needs to know whether the materialization is reachable, which
- * `tableExists(db, ..., "overview")` answers directly. Never throws: a missing
- * or unreadable file just leaves the schema unattached and the API degrades to
- * its live fallback.
+ * ATTACH a derived DB (if present) and compute its status against the main
+ * DB's build UUID.
+ *
+ * `infoTable` is that DB's own key/value provenance table, which records the
+ * `source_build_uuid` it was computed from. Staleness is only asserted when
+ * *both* sides are known and differ: a missing build_info or a derived DB
+ * predating #225 reads as attached-but-unknown-freshness, never as stale, so
+ * an older DB doesn't light up a scary banner. Advisory only — never throws.
  */
-function attachOverview(db: Database.Database, overviewPath: string): void {
-  if (!statOrNull(overviewPath)) return;
+function attachDerived(
+  db: Database.Database,
+  schema: "meta" | "overview",
+  dbPath: string,
+  infoTable: string,
+  mainUuid: string | null
+): MetaStatus {
+  const status: MetaStatus = { ...UNKNOWN_STATUS };
+  if (!statOrNull(dbPath)) return status;
   try {
-    db.prepare("ATTACH DATABASE ? AS overview").run(overviewPath);
+    db.prepare(`ATTACH DATABASE ? AS ${schema}`).run(dbPath);
   } catch {
-    // leave detached; the API falls back to live status aggregation
+    return status; // leave detached; callers fall back to "not computed"
   }
+  status.attached = true;
+
+  try {
+    const rows = db
+      .prepare(`SELECT key, value FROM ${schema}.${infoTable}`)
+      .all() as { key: string; value: string }[];
+    const info: Record<string, string> = {};
+    for (const r of rows) info[r.key] = r.value;
+    status.builtAt = info["built_at"] ?? null;
+
+    const sourceUuid = info["source_build_uuid"];
+    status.stale =
+      sourceUuid !== undefined && mainUuid !== null && sourceUuid !== mainUuid;
+  } catch {
+    // Present but missing the info table (e.g. built by an older pipeline).
+    // Attached-but-unknown-freshness: not stale, no date.
+    status.builtAt = null;
+    status.stale = false;
+  }
+  return status;
 }
 
 export function getDb(): Database.Database {
@@ -163,8 +180,21 @@ export function getDb(): Database.Database {
   }
 
   dbInstance = new Database(dbPath, { readonly: true, fileMustExist: true });
-  attachMeta(dbInstance, metaPath, st);
-  attachOverview(dbInstance, overviewPath);
+  const mainUuid = mainBuildUuid(dbInstance);
+  metaStatus = attachDerived(
+    dbInstance,
+    "meta",
+    metaPath,
+    "meta_analysis_info",
+    mainUuid
+  );
+  overviewStatus = attachDerived(
+    dbInstance,
+    "overview",
+    overviewPath,
+    "overview_matrix_info",
+    mainUuid
+  );
   cachedKey = key;
   cachedPath = dbPath;
   return dbInstance;
@@ -205,4 +235,14 @@ export function tableExists(
  */
 export function getMetaStatus(): MetaStatus {
   return metaStatus;
+}
+
+/**
+ * Freshness/availability of the overview-matrix DB (#222) for the current
+ * connection. Call `getDb()` first (it refreshes this). Before #225 the
+ * overview DB carried no staleness signal at all, so a prod instance whose
+ * overview DB had gone stale looked identical to a current one.
+ */
+export function getOverviewStatus(): MetaStatus {
+  return overviewStatus;
 }

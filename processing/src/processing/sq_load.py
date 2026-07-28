@@ -10,6 +10,7 @@ from typing import Any
 import click
 import yaml
 
+from processing.build_info import read_build_uuid, write_build_info
 from processing.central_gene_table import get_central_gene_table
 from processing.combined_pvalues.runner import compute_combined_pvalues
 from processing.ensembl_symbol_table import compute_ensembl_to_symbol
@@ -810,6 +811,9 @@ def load_db(
             copy_gene_descriptions(conn, data_dir, no_index=no_index)
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)
+        # Identity of this build, carried by the meta / overview DBs derived
+        # from it and preserved across promotion copies (#225).
+        write_build_info(conn)
 
     # Build the user-facing download artifacts as BLOBs in the staging DB
     # (per-table TSVs, metadata YAMLs, preprocessing YAMLs, manifest, README,
@@ -879,32 +883,40 @@ def _checkpoint_and_swap(staging: Path, db_name: Path) -> None:
 
 # Schema version of the meta DB layout. Bump if the combined_pvalue_groups /
 # per-group table shape changes in a way the web app must notice.
-META_SCHEMA_VERSION = "1"
+#
+# 2 (#225): the source-DB fingerprint is a build UUID read from the main DB's
+# `build_info` table rather than the main DB file's (mtime, size).
+META_SCHEMA_VERSION = "2"
+
+
 
 
 def _write_meta_analysis_info(
     conn: sqlite3.Connection,
-    main_db: Path,
     deg_assays: set[str] | None,
 ) -> None:
     """Record provenance + a fingerprint of the source dataset DB into the meta
     DB, so the web app can detect when the meta-analysis has drifted from the
     underlying datasets and show a stale-meta banner (issue #176).
 
-    The fingerprint is the source DB's (mtime, size) at meta-build time. The
-    dataset build's atomic swap mints a fresh inode + mtime on every `load-db`,
-    so any dataset rebuild bumps the fingerprint and marks the meta as stale
-    until `meta-analysis` is re-run. This is an advisory signal, not a hard
-    consistency guarantee — the banner never blocks rendering."""
-    st = main_db.stat()
+    The fingerprint is the source DB's `build_info.build_uuid` (#225). It used
+    to be the source file's (mtime, size), which was wrong the moment we
+    started *copying* built DBs between instances: `cp` gives the target's main
+    DB a fresh mtime, so a correctly-promoted meta DB read as permanently
+    stale. The UUID is a property of the build, not the file, so it survives
+    both the promotion copy and `subset-db`.
+
+    Advisory only — the banner never blocks rendering, and a source DB with no
+    build_info (predating #225) records no fingerprint rather than failing."""
     built_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
     info: dict[str, str] = {
         "schema_version": META_SCHEMA_VERSION,
         "built_at": built_at,
-        "source_db_mtime": repr(st.st_mtime),
-        "source_db_size": str(st.st_size),
         "meta_assays": ",".join(sorted(deg_assays)) if deg_assays else "",
     }
+    source_uuid = read_build_uuid(conn, "src")
+    if source_uuid is not None:
+        info["source_build_uuid"] = source_uuid
     conn.execute(
         "CREATE TABLE meta_analysis_info (key TEXT PRIMARY KEY, value TEXT)"
     )
@@ -958,7 +970,9 @@ def run_meta_analysis(
             src_schema="src",
             deg_assays=deg_assays,
         )
-        _write_meta_analysis_info(conn, main_db, deg_assays)
+        # Must run while `src` is still ATTACHed — it reads the source's
+        # build_info.build_uuid through it.
+        _write_meta_analysis_info(conn, deg_assays)
         # Detach before the context manager's PRAGMA optimize / commit so those
         # never reach across into the read-only source DB.
         conn.execute("DETACH DATABASE src")
