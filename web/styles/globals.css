@@ -19,6 +19,30 @@ body {
  * The cell field is drawn on a <canvas>; only the header/labels/legends are DOM.
  */
 
+/* The column-label strip scrolls vertically on its own when labels (folded
+   "modality · author · gene" labels in clustered mode) are taller than the strip.
+   Keep a slim, always-visible bar so that scrollability is discoverable. */
+.matrix-label-strip {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(100, 116, 139, 0.55) transparent;
+}
+.matrix-label-strip::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 9px;
+}
+.matrix-label-strip::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.55);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.matrix-label-strip::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(71, 85, 105, 0.7);
+}
+.matrix-label-strip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* Links inside the cross-modality matrix (/matrix): the app's usual link blue,
    underlined on hover so gene / dataset headers read clearly as links. */
 .matrix-link {

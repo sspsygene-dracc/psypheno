@@ -50,7 +50,14 @@ export type { MetricDomains };
 
 const LABEL_W = 120; // frozen gene-label column width, px
 const BAND_H = 34; // header band row — tall enough for a wrapped dataset heading
-const LABEL_STRIP_H = 150; // vertical column-label strip height
+// The column-label strip shows this fixed height; when the longest label needs
+// more (folded "modality · author · gene" labels in clustered mode run long),
+// the strip scrolls vertically on its own instead of making the header taller.
+const LABEL_STRIP_VISIBLE = 150;
+const LABEL_STRIP_MIN = 120;
+const LABEL_STRIP_MAX = 340;
+const LABEL_CHAR_PX = 7; // ~advance of one 12px bold char along the rotated label
+const LABEL_STRIP_PAD = 20; // padding above/below the rotated text
 const COL_OVERSCAN = 12; // extra columns rendered each side of the header window
 const ROW_OVERSCAN = 24; // extra gene labels rendered each side of the row window
 const DEFAULT_PANEL_H = "76vh"; // fixed panel height: both scrollbars live inside it
@@ -87,7 +94,12 @@ const VLABEL_STYLE = {
   whiteSpace: "nowrap",
 } as const;
 
-/** One column's vertical label; `datasetText` (when set) prefixes the dataset. */
+/**
+ * One column's vertical label. The gene / phenotype name is rendered first so
+ * that — with the `vertical-rl` + rotate orientation — it sits at the bottom of
+ * the strip, nearest the cells and visible by default; `datasetText` (folded /
+ * clustered mode) reads above it and scrolls into view.
+ */
 function ColumnLabel({
   column,
   datasetText,
@@ -97,17 +109,6 @@ function ColumnLabel({
 }) {
   return (
     <div style={VLABEL_STYLE}>
-      {datasetText && (
-        <>
-          <a
-            className="matrix-link"
-            href={`/full-datasets?open=${encodeURIComponent(column.sourceTable)}`}
-          >
-            {datasetText}
-          </a>
-          {" · "}
-        </>
-      )}
       {column.columnIsGene ? (
         <a
           className="matrix-link"
@@ -117,6 +118,17 @@ function ColumnLabel({
         </a>
       ) : (
         column.label
+      )}
+      {datasetText && (
+        <>
+          {" · "}
+          <a
+            className="matrix-link"
+            href={`/full-datasets?open=${encodeURIComponent(column.sourceTable)}`}
+          >
+            {datasetText}
+          </a>
+        </>
       )}
     </div>
   );
@@ -159,12 +171,36 @@ export default function CollatedMatrix({
 }) {
   const nRows = genes.length;
   const nCols = columns.length;
-  const HEADER_H = (bandsVisible ? BAND_H : 0) + LABEL_STRIP_H;
 
   const sectionLabel = useMemo(
     () => new Map(sections.map((s) => [s.key, s.label])),
     [sections]
   );
+
+  // Height needed to show the longest visible column label without clipping.
+  // In folded (clustered) mode the label carries the dataset prefix, so it's
+  // much longer than a plain gene/phenotype name in banded mode.
+  const labelStripH = useMemo(() => {
+    let maxLen = 0;
+    for (const c of columns) {
+      const len = bandsVisible
+        ? c.label.length
+        : (sectionLabel.get(c.section) ?? c.section).length +
+          3 +
+          c.sourceLabel.length +
+          3 +
+          c.label.length;
+      if (len > maxLen) maxLen = len;
+    }
+    return Math.min(
+      LABEL_STRIP_MAX,
+      Math.max(LABEL_STRIP_MIN, Math.round(maxLen * LABEL_CHAR_PX + LABEL_STRIP_PAD))
+    );
+  }, [columns, bandsVisible, sectionLabel]);
+  // The strip's on-screen height stays fixed; its scrollable content is as tall
+  // as the longest label needs (min the visible height so short labels fill it).
+  const stripContentH = Math.max(labelStripH, LABEL_STRIP_VISIBLE);
+  const HEADER_H = (bandsVisible ? BAND_H : 0) + LABEL_STRIP_VISIBLE;
 
   const bandLayout = useMemo<BandGroup[]>(() => {
     const groups: BandGroup[] = [];
@@ -200,7 +236,9 @@ export default function CollatedMatrix({
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const headerInnerRef = useRef<HTMLDivElement>(null);
+  const bandInnerRef = useRef<HTMLDivElement>(null);
+  const labelStripRef = useRef<HTMLDivElement>(null);
+  const labelInnerRef = useRef<HTMLDivElement>(null);
   const rowLabelsInnerRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const dprRef = useRef(1);
@@ -275,8 +313,10 @@ export default function CollatedMatrix({
       const st = el.scrollTop;
       const vw = el.clientWidth;
       const vh = el.clientHeight;
-      if (headerInnerRef.current)
-        headerInnerRef.current.style.transform = `translateX(${-sl}px)`;
+      if (bandInnerRef.current)
+        bandInnerRef.current.style.transform = `translateX(${-sl}px)`;
+      if (labelInnerRef.current)
+        labelInnerRef.current.style.transform = `translateX(${-sl}px)`;
       if (rowLabelsInnerRef.current)
         rowLabelsInnerRef.current.style.transform = `translateY(${-st}px)`;
       if (canvasRef.current)
@@ -345,6 +385,14 @@ export default function CollatedMatrix({
     positionRef.current(el.scrollLeft, el.scrollTop, el.clientWidth, el.clientHeight);
   }, [selected]);
 
+  // Default the label strip scrolled to its bottom, so each label's tail (the
+  // gene/phenotype name) sits next to the cells and the longer dataset prefix is
+  // what scrolls into view above.
+  useEffect(() => {
+    const strip = labelStripRef.current;
+    if (strip) strip.scrollTop = strip.scrollHeight;
+  }, [stripContentH, bandsVisible, nCols]);
+
   // Dismiss the popover on Escape or an outside mousedown.
   useEffect(() => {
     if (!selected) return;
@@ -397,8 +445,6 @@ export default function CollatedMatrix({
       : "No data"
     : "";
 
-  const labelStripTop = bandsVisible ? BAND_H : 0;
-
   return (
     <div
       ref={rootRef}
@@ -438,7 +484,10 @@ export default function CollatedMatrix({
         Perturbed gene ↓
       </div>
 
-      {/* Header (pinned top; slaved horizontally to the body scroll). */}
+      {/* Header (pinned top; slaved horizontally to the body scroll). A fixed
+          band row (grouped mode) sits above the column-label strip, which keeps
+          a fixed on-screen height and scrolls vertically on its own when the
+          labels are taller than it (folded labels in clustered mode). */}
       <div
         style={{
           gridColumn: 2,
@@ -446,109 +495,144 @@ export default function CollatedMatrix({
           overflow: "hidden",
           background: "#f9fafb",
           borderBottom: "1px solid #e5e7eb",
-          position: "relative",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <div
-          ref={headerInnerRef}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: nCols * COL_W,
-            height: HEADER_H,
-            willChange: "transform",
-          }}
-        >
-          {/* Dataset bands (grouped mode only). */}
-          {bandsVisible &&
-            bandLayout
-              .filter(
-                (g) => g.startCol < colWindow.end && g.startCol + g.span > colWindow.start
-              )
-              .map((g) => (
-                <div
-                  key={g.gkey}
-                  title={g.tooltip ?? undefined}
-                  style={{
-                    position: "absolute",
-                    left: g.startCol * COL_W,
-                    top: 0,
-                    width: g.span * COL_W,
-                    height: BAND_H,
-                    background: "#f3f4f6",
-                    borderLeft: "1px solid #e5e7eb",
-                    borderBottom: "1px solid #e5e7eb",
-                    boxSizing: "border-box",
-                    padding: "3px 4px",
-                    overflow: "hidden",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 2,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#374151",
-                  }}
-                >
-                  <a
-                    className="matrix-link"
-                    style={{ flex: 1, whiteSpace: "normal", lineHeight: 1.15 }}
-                    href={`/full-datasets?open=${encodeURIComponent(g.sourceTable)}`}
-                  >
-                    {g.bandLabel}
-                  </a>
-                  <button
-                    type="button"
-                    aria-label={`Hide ${g.bandLabel}`}
-                    title="Hide this dataset"
-                    onClick={() => onToggleHide(g.sourceTable)}
+        {/* Dataset bands (grouped mode only) — fixed, doesn't scroll. */}
+        {bandsVisible && (
+          <div
+            style={{
+              height: BAND_H,
+              flexShrink: 0,
+              overflow: "hidden",
+              position: "relative",
+            }}
+          >
+            <div
+              ref={bandInnerRef}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: nCols * COL_W,
+                height: BAND_H,
+                willChange: "transform",
+              }}
+            >
+              {bandLayout
+                .filter(
+                  (g) => g.startCol < colWindow.end && g.startCol + g.span > colWindow.start
+                )
+                .map((g) => (
+                  <div
+                    key={g.gkey}
+                    title={g.tooltip ?? undefined}
                     style={{
-                      flexShrink: 0,
-                      display: "inline-flex",
-                      padding: 1,
-                      border: "none",
-                      background: "transparent",
-                      color: "#9ca3af",
-                      cursor: "pointer",
+                      position: "absolute",
+                      left: g.startCol * COL_W,
+                      top: 0,
+                      width: g.span * COL_W,
+                      height: BAND_H,
+                      background: "#f3f4f6",
+                      borderLeft: "1px solid #e5e7eb",
+                      borderBottom: "1px solid #e5e7eb",
+                      boxSizing: "border-box",
+                      padding: "3px 4px",
+                      overflow: "hidden",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 2,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "#374151",
                     }}
                   >
-                    <EyeOff size={13} />
-                  </button>
-                </div>
-              ))}
+                    <a
+                      className="matrix-link"
+                      style={{ flex: 1, whiteSpace: "normal", lineHeight: 1.15 }}
+                      href={`/full-datasets?open=${encodeURIComponent(g.sourceTable)}`}
+                    >
+                      {g.bandLabel}
+                    </a>
+                    <button
+                      type="button"
+                      aria-label={`Hide ${g.bandLabel}`}
+                      title="Hide this dataset"
+                      onClick={() => onToggleHide(g.sourceTable)}
+                      style={{
+                        flexShrink: 0,
+                        display: "inline-flex",
+                        padding: 1,
+                        border: "none",
+                        background: "transparent",
+                        color: "#9ca3af",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <EyeOff size={13} />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
 
-          {/* Per-column vertical labels (dataset folded in when clustered). */}
-          {columns.slice(colWindow.start, colWindow.end).map((c, idx) => {
-            const j = colWindow.start + idx;
-            const modality = sectionLabel.get(c.section) ?? c.section;
-            const datasetText = bandsVisible ? null : `${modality} · ${c.sourceLabel}`;
-            return (
-              <div
-                key={c.key}
-                title={
-                  (bandsVisible ? "" : `${modality} · ${c.sourceLabel} — `) +
-                  (c.columnIsGene
-                    ? `${c.label} (significant in ${c.nSigGroups} perturbations)`
-                    : c.label)
-                }
-                style={{
-                  position: "absolute",
-                  left: j * COL_W,
-                  top: labelStripTop,
-                  width: COL_W,
-                  height: LABEL_STRIP_H,
-                  overflow: "hidden",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "flex-end",
-                  paddingBottom: 4,
-                  boxSizing: "border-box",
-                }}
-              >
-                <ColumnLabel column={c} datasetText={datasetText} />
-              </div>
-            );
-          })}
+        {/* Column-label strip — fixed on-screen height, scrolls vertically on
+            its own so long (folded) labels are reachable without a tall header. */}
+        <div
+          ref={labelStripRef}
+          className="matrix-label-strip"
+          style={{
+            flex: 1,
+            overflowX: "hidden",
+            overflowY: "auto",
+            position: "relative",
+          }}
+        >
+          <div
+            ref={labelInnerRef}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: nCols * COL_W,
+              height: stripContentH,
+              willChange: "transform",
+            }}
+          >
+            {columns.slice(colWindow.start, colWindow.end).map((c, idx) => {
+              const j = colWindow.start + idx;
+              const modality = sectionLabel.get(c.section) ?? c.section;
+              const datasetText = bandsVisible ? null : `${modality} · ${c.sourceLabel}`;
+              return (
+                <div
+                  key={c.key}
+                  title={
+                    (bandsVisible ? "" : `${modality} · ${c.sourceLabel} — `) +
+                    (c.columnIsGene
+                      ? `${c.label} (significant in ${c.nSigGroups} perturbations)`
+                      : c.label)
+                  }
+                  style={{
+                    position: "absolute",
+                    left: j * COL_W,
+                    top: 0,
+                    width: COL_W,
+                    height: stripContentH,
+                    overflow: "hidden",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "flex-end",
+                    paddingBottom: 4,
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <ColumnLabel column={c} datasetText={datasetText} />
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
