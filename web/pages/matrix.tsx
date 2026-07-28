@@ -194,7 +194,11 @@ export default function MatrixPage() {
         <Header />
         <main
           style={{
-            maxWidth: "1200px",
+            // Scale the content width with the viewport (like the panel's 76vh
+            // height scales with viewport height) so the matrix widens on wider
+            // screens instead of being capped at a fixed 1200px. Intro text keeps
+            // its own narrower max-width for readability.
+            maxWidth: "94vw",
             width: "100%",
             margin: "0 auto",
             padding: "32px 16px",
@@ -234,81 +238,59 @@ export default function MatrixPage() {
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
+              gap: 8,
               flexWrap: "wrap",
-              gap: 12,
               marginBottom: 10,
             }}
           >
-            <div style={{ fontSize: 13, color: "#6b7280" }}>
-              {orderedGenes.length.toLocaleString()} perturbed genes &times;{" "}
-              {orderedColumns.length.toLocaleString()} columns
-              {hidden.size > 0 && (
-                <span style={{ color: "#9ca3af" }}>
-                  {" "}
-                  &mdash; {hidden.size} dataset{hidden.size === 1 ? "" : "s"} hidden
-                </span>
-              )}
-              {meta?.expandedColumnsTruncated && (
-                <span style={{ color: "#9ca3af" }}>
-                  {" "}
-                  &mdash; top {meta.colsPerDataset} per dataset shown
-                </span>
-              )}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                flexWrap: "wrap",
-              }}
+            <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
+              Cluster:
+            </span>
+            <ToggleButton
+              active={clusterRows}
+              disabled={loading}
+              onClick={() => setClusterRows((v) => !v)}
             >
-              <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
-                Cluster:
-              </span>
+              Rows
+            </ToggleButton>
+            <ToggleButton
+              active={clusterCols}
+              disabled={loading}
+              onClick={() => setClusterCols((v) => !v)}
+            >
+              Columns
+            </ToggleButton>
+            <ToggleButton
+              active={false}
+              disabled={hidden.size === 0}
+              onClick={() => setHidden(new Set())}
+            >
+              Unhide all datasets
+            </ToggleButton>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+              marginBottom: 10,
+            }}
+          >
+            <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
+              Columns per dataset:
+            </span>
+            {COLS_PER_DATASET_OPTIONS.map((k) => (
               <ToggleButton
-                active={clusterRows}
+                key={k}
+                active={k === colsPerDataset}
                 disabled={loading}
-                onClick={() => setClusterRows((v) => !v)}
+                onClick={() => setColsPerDataset(k)}
               >
-                Rows
+                {k}
               </ToggleButton>
-              <ToggleButton
-                active={clusterCols}
-                disabled={loading}
-                onClick={() => setClusterCols((v) => !v)}
-              >
-                Columns
-              </ToggleButton>
-              <ToggleButton
-                active={false}
-                disabled={hidden.size === 0}
-                onClick={() => setHidden(new Set())}
-              >
-                Unhide all datasets
-              </ToggleButton>
-              <span
-                style={{
-                  fontSize: 13,
-                  color: "#374151",
-                  fontWeight: 600,
-                  marginLeft: 8,
-                }}
-              >
-                Columns per dataset:
-              </span>
-              {COLS_PER_DATASET_OPTIONS.map((k) => (
-                <ToggleButton
-                  key={k}
-                  active={k === colsPerDataset}
-                  disabled={loading}
-                  onClick={() => setColsPerDataset(k)}
-                >
-                  {k}
-                </ToggleButton>
-              ))}
-            </div>
+            ))}
           </div>
 
           {loading && !data && (
@@ -335,6 +317,26 @@ export default function MatrixPage() {
                 transition: "opacity 0.15s",
               }}
             >
+              <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 6 }}>
+                {orderedGenes.length.toLocaleString()} perturbed genes &times;{" "}
+                {orderedColumns.length.toLocaleString()} columns
+                {hidden.size > 0 && (
+                  <span style={{ color: "#9ca3af" }}>
+                    {" "}
+                    &mdash; {hidden.size} dataset{hidden.size === 1 ? "" : "s"} hidden
+                  </span>
+                )}
+                {meta?.expandedColumnsTruncated && (
+                  <span style={{ color: "#9ca3af" }}>
+                    {" "}
+                    &mdash; top {meta.colsPerDataset} per dataset shown
+                  </span>
+                )}
+                {" "}
+                <span style={{ color: "#111827", fontWeight: 700 }}>
+                  &mdash; click any cell for its value
+                </span>
+              </div>
               <CollatedMatrix
                 sections={sections}
                 columns={orderedColumns}

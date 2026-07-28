@@ -12,50 +12,12 @@ body {
 }
 
 /*
- * Cross-modality matrix (/matrix) scrolling (#213). The browser owns vertical
- * scrolling (the content box has no bounded height); horizontal scrolling is
- * driven by a slim proxy bar (.matrix-hscroll) pinned to the viewport bottom, so
- * the content box hides its own scrollbars and the proxy carries the always-on,
- * non-overlay (macOS) horizontal scrollbar.
+ * Cross-modality matrix (/matrix) (#213). The heatmap is a fixed-height internal
+ * scroll panel: the header (dataset bands + column labels) is pinned at the top
+ * and the gene column frozen at the left, both slaved to the body's scroll. The
+ * body owns both scrollbars natively — no proxy bar or scrollbar-hiding needed.
+ * The cell field is drawn on a <canvas>; only the header/labels/legends are DOM.
  */
-.matrix-scroll {
-  scrollbar-width: none; /* Firefox */
-}
-.matrix-scroll::-webkit-scrollbar {
-  display: none; /* Blink/WebKit */
-}
-
-.matrix-hscroll {
-  overflow-x: auto;
-  overflow-y: hidden;
-  z-index: 7;
-}
-.matrix-hscroll::-webkit-scrollbar {
-  /* -webkit-appearance:none forces a classic, always-visible bar on macOS
-     instead of the auto-hiding overlay. Do NOT set `scrollbar-width` here — Blink
-     ignores ::-webkit-scrollbar styling when it's set. */
-  -webkit-appearance: none;
-  height: 12px;
-}
-.matrix-hscroll::-webkit-scrollbar-thumb {
-  background-color: rgba(100, 116, 139, 0.6);
-  border-radius: 6px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-.matrix-hscroll::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(71, 85, 105, 0.75);
-}
-.matrix-hscroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-/* Firefox only: a thin always-visible bar on the proxy. */
-@supports (-moz-appearance: none) {
-  .matrix-hscroll {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(100, 116, 139, 0.6) transparent;
-  }
-}
 
 /* Links inside the cross-modality matrix (/matrix): the app's usual link blue,
    underlined on hover so gene / dataset headers read clearly as links. */

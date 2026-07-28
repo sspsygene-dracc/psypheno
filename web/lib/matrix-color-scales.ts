@@ -109,8 +109,8 @@ function lerp(a: number, b: number, t: number): number {
   return Math.round(a + (b - a) * t);
 }
 
-/** Map t ∈ [0,1] onto a stop list. */
-function rampColor(stops: Array<[number, RGB]>, t: number): string {
+/** Map t ∈ [0,1] onto a stop list, returning the interpolated `[r,g,b]`. */
+function rampRGB(stops: Array<[number, RGB]>, t: number): RGB {
   const clamped = Math.min(Math.max(t, 0), 1);
   let lo = stops[0];
   let hi = stops[stops.length - 1];
@@ -123,8 +123,7 @@ function rampColor(stops: Array<[number, RGB]>, t: number): string {
   }
   const span = hi[0] - lo[0] || 1;
   const local = (clamped - lo[0]) / span;
-  const [r, g, b] = [0, 1, 2].map((k) => lerp(lo[1][k], hi[1][k], local));
-  return `rgb(${r}, ${g}, ${b})`;
+  return [0, 1, 2].map((k) => lerp(lo[1][k], hi[1][k], local)) as unknown as RGB;
 }
 
 /** Value → [0,1] ramp coordinate; diverging scales pivot at `mid`. */
@@ -142,18 +141,28 @@ function normalize(
   return 0.5 + 0.5 * ((v - mid) / (hi - mid || 1));
 }
 
-export function scaleColor(
+/** A value's color as `[r,g,b]` (0–255) — the canvas path uses this directly. */
+export function scaleColorRGB(
   metric: string,
   value: number,
   domainOverride?: [number, number] | null
-): string {
+): RGB {
   const scale = scaleFor(metric);
   const domain = domainOverride ?? scale.domain;
   const mid =
     scale.kind === "diverging"
       ? scale.mid ?? (domain[0] + domain[1]) / 2
       : undefined;
-  return rampColor(scale.stops, normalize(value, domain, mid, scale.kind === "diverging"));
+  return rampRGB(scale.stops, normalize(value, domain, mid, scale.kind === "diverging"));
+}
+
+export function scaleColor(
+  metric: string,
+  value: number,
+  domainOverride?: [number, number] | null
+): string {
+  const [r, g, b] = scaleColorRGB(metric, value, domainOverride);
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 /** A `linear-gradient(...)` string for the legend bar of `metric`. */
