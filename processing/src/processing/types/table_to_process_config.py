@@ -349,10 +349,11 @@ class TableToProcessConfig:
                 missing.append("a perturbed gene_mapping")
             if num_target == 0:
                 missing.append("a target gene_mapping")
-            if not self.pvalue_column:
-                missing.append("pvalue_column")
-            if not self.fdr_column:
-                missing.append("fdr_column")
+            # At least one significance column is required. A table with only an
+            # FDR (perturb-FISH ships just a qval) is fine — the materializer
+            # uses that FDR as the p for both selection and colour.
+            if not self.pvalue_column and not self.fdr_column:
+                missing.append("a pvalue_column or fdr_column")
             if missing:
                 raise ValueError(
                     f"table {self.table}: overview_matrix_expand requires "

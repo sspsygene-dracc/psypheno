@@ -769,7 +769,7 @@ def _step_overview_matrix_site(
     path: str,
     *,
     label: str,
-    expression_min_regions: int = 1,
+    min_sig_groups: int = 2,
     env_vars: dict[str, str] | None = None,
 ) -> None:
     """Run `sspsygene overview-matrix` on one psygene site.
@@ -789,7 +789,7 @@ def _step_overview_matrix_site(
         f"cd {path} && "
         f"{CONDA_INIT} && "
         f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} "
-        f"sspsygene overview-matrix --expression-min-regions {expression_min_regions}"
+        f"sspsygene overview-matrix --min-sig-groups {min_sig_groups}"
     )
     _run_ssh(
         PSYGENE,
@@ -804,7 +804,7 @@ def run_deploy_overview(
     *,
     no_push: bool = False,
     instances: str | None = None,
-    expression_min_regions: int = 1,
+    min_sig_groups: int = 2,
 ) -> None:
     """Refresh sspsygene-overview.db on the selected psygene sites (#222).
 
@@ -830,7 +830,7 @@ def run_deploy_overview(
         _step_overview_matrix_site(
             INSTANCE_PATHS[inst],
             label=INSTANCE_LABELS[inst],
-            expression_min_regions=expression_min_regions,
+            min_sig_groups=min_sig_groups,
             env_vars=INSTANCE_ENVS[inst],
         )
 

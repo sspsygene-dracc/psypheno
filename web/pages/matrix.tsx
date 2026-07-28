@@ -18,13 +18,11 @@ const STATUS_LEGEND: [CellStatus, string][] = [
   ["none", "no data"],
 ];
 
-// A yellow→orange→red gradient bar matching the p-value tiles' ramp.
+const COLS_PER_DATASET_OPTIONS = [25, 50, 100, 200];
+
 function pvalueRampCss(): string {
   const stops = [1, 4.75, 9.5, 14.25, 20]
-    .map((v) => {
-      const t = ((v - 1) / 19) * 100;
-      return `${pColor(v)} ${t.toFixed(0)}%`;
-    })
+    .map((v) => `${pColor(v)} ${(((v - 1) / 19) * 100).toFixed(0)}%`)
     .join(", ");
   return `linear-gradient(to right, ${stops})`;
 }
@@ -39,7 +37,7 @@ function Legend() {
         alignItems: "center",
         fontSize: 13,
         color: "#4b5563",
-        marginBottom: 20,
+        marginBottom: 18,
       }}
     >
       <span style={{ fontWeight: 600, color: "#374151" }}>Status columns:</span>
@@ -60,7 +58,7 @@ function Legend() {
         }}
       >
         <span style={{ fontWeight: 600, color: "#374151" }}>
-          RNA expression:
+          Expanded columns:
         </span>
         <span>-log10(p)</span>
         <span style={{ color: "#9ca3af" }}>1</span>
@@ -76,36 +74,48 @@ function Legend() {
           }}
         />
         <span style={{ color: "#9ca3af" }}>20</span>
+        <span style={{ color: "#9ca3af" }}>(perturb-FISH: qval)</span>
       </span>
     </div>
   );
 }
 
 export default function MatrixPage() {
+  const [colsPerDataset, setColsPerDataset] = useState(25);
   const [data, setData] = useState<CollatedMatrixResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchMatrix = async () => {
-      try {
-        const res = await fetch("/api/collated-matrix");
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/collated-matrix?colsPerDataset=${colsPerDataset}`)
+      .then((res) => {
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
-        const json = (await res.json()) as CollatedMatrixResponse;
-        setData(json);
-      } catch (e: any) {
-        setError(e?.message || "Failed to load matrix");
-      } finally {
-        setLoading(false);
-      }
+        return res.json() as Promise<CollatedMatrixResponse>;
+      })
+      .then((json) => {
+        if (!cancelled) {
+          setData(json);
+          setError(null);
+        }
+      })
+      .catch((e: any) => {
+        if (!cancelled) setError(e?.message || "Failed to load matrix");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
     };
-    fetchMatrix();
-  }, []);
+  }, [colsPerDataset]);
 
   const genes = data?.genes ?? [];
   const sections = data?.sections ?? [];
   const columns = data?.columns ?? [];
   const meta = data?.meta;
+  const expanded = columns.filter((c) => c.kind === "pvalue").length;
 
   return (
     <>
@@ -145,21 +155,77 @@ export default function MatrixPage() {
               color: "#4b5563",
               marginBottom: 16,
               lineHeight: 1.5,
-              maxWidth: 820,
+              maxWidth: 840,
             }}
           >
             Every experimentally perturbed SSPsyGene target gene (rows) against
             each experimental modality (grouped columns). Most modalities are a
-            single <strong>color-coded status</strong> tile; RNA expression is{" "}
-            <strong>fanned out</strong> into one column per measured target gene
-            that responds across multiple perturbations, colored by{" "}
-            <strong>-log10(p)</strong> (red = most significant). The matrix is{" "}
-            <strong>intentionally sparse</strong> &mdash; gaps are expected.
+            single <strong>color-coded status</strong> tile; RNA expression,
+            perturb-seq, and perturb-FISH are <strong>fanned out</strong> into
+            one column per measured target gene (grouped by source dataset),
+            colored by <strong>-log10(p)</strong> (red = most significant). The
+            matrix is <strong>intentionally sparse</strong> &mdash; gaps are
+            expected.
           </p>
 
           <Legend />
 
-          {loading && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 12,
+              marginBottom: 10,
+            }}
+          >
+            <div style={{ fontSize: 13, color: "#6b7280" }}>
+              {genes.length.toLocaleString()} perturbed genes ×{" "}
+              {columns.length.toLocaleString()} columns
+              {expanded > 0 &&
+                ` (${expanded.toLocaleString()} expanded target-gene columns)`}
+              {meta?.expandedColumnsTruncated && (
+                <span style={{ color: "#9ca3af" }}>
+                  {" "}
+                  — top {meta.colsPerDataset} per dataset shown
+                </span>
+              )}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}
+              >
+                Columns per dataset:
+              </span>
+              {COLS_PER_DATASET_OPTIONS.map((k) => {
+                const active = k === colsPerDataset;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setColsPerDataset(k)}
+                    aria-pressed={active}
+                    disabled={loading}
+                    style={{
+                      padding: "4px 10px",
+                      background: active ? "#e5e7eb" : "#ffffff",
+                      border: "1px solid #d1d5db",
+                      color: "#1f2937",
+                      borderRadius: 6,
+                      cursor: active || loading ? "default" : "pointer",
+                      fontSize: 13,
+                      fontWeight: active ? 700 : 500,
+                    }}
+                  >
+                    {k}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {loading && !data && (
             <div style={{ color: "#6b7280", marginTop: 16 }}>
               Loading matrix&hellip;
             </div>
@@ -169,27 +235,26 @@ export default function MatrixPage() {
             <div style={{ color: "#dc2626", marginTop: 16 }}>{error}</div>
           )}
 
-          {!loading && !error && genes.length === 0 && (
+          {!error && data && genes.length === 0 && (
             <div style={{ color: "#6b7280", marginTop: 16 }}>
               No perturbed-gene data available yet.
             </div>
           )}
 
-          {!loading && !error && genes.length > 0 && (
-            <>
+          {!error && data && genes.length > 0 && (
+            <div
+              style={{
+                opacity: loading ? 0.55 : 1,
+                pointerEvents: loading ? "none" : "auto",
+                transition: "opacity 0.15s",
+              }}
+            >
               <CollatedMatrix
                 sections={sections}
                 columns={columns}
                 genes={genes}
               />
-              {meta?.expressionColumnsTruncated && (
-                <div style={{ color: "#9ca3af", fontSize: 12, marginTop: 8 }}>
-                  Showing the {meta.expressionColumnCount.toLocaleString()}{" "}
-                  strongest of {meta.expressionColumnsAvailable.toLocaleString()}{" "}
-                  qualifying RNA-expression columns.
-                </div>
-              )}
-            </>
+            </div>
           )}
         </main>
         <Footer />

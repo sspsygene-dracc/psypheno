@@ -41,6 +41,7 @@ maintainers:
 tables:
   - table: mouse_perturb_deg
     overview_matrix: true  # #212 overview matrix source
+    overview_matrix_expand: true  # #213 perturb-seq target-gene sub-columns
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"

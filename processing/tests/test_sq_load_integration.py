@@ -70,7 +70,9 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
     # command chain (`overview-matrix`), reading the dataset DB just built.
     overview_db = config.overview_db
     assert not overview_db.exists()
-    run_overview_matrix(out_db, overview_db, no_index=True)
+    # min_groups=1 so the fixture's single-perturbation columns still materialize
+    # (the default floor is 2; the fixture is too small to exercise it).
+    run_overview_matrix(out_db, overview_db, no_index=True, min_groups=1)
     assert overview_db.exists()
     assert not overview_db.with_name(overview_db.name + ".new").exists()
 
@@ -281,9 +283,9 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
     # symbols here), strongest first: Tcf4 is significant under two
     # perturbations, the rest under one.
     columns = [
-        (row["column_value"], row["n_sig_regions"])
+        (row["column_value"], row["n_sig_groups"])
         for row in conn.execute(
-            "SELECT column_value, n_sig_regions FROM overview_matrix_expanded_columns "
+            "SELECT column_value, n_sig_groups FROM overview_matrix_expanded_columns "
             "ORDER BY sort_rank"
         )
     ]

@@ -51,7 +51,7 @@ from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import normalize_column_name
 
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"
 
 # Cell-status precedence, strongest first.
 STATUS_SIGNIFICANT = "significant"
@@ -65,8 +65,24 @@ NEG_LOG_P_MIN = 1.0
 NEG_LOG_P_MAX = 20.0
 
 # Response-side key prefix for an expanded modality's sub-columns, e.g.
-# `expr:SHANK3`. Stored in the DB so the web API doesn't hardcode it.
-_COLUMN_PREFIXES = {"expression": "expr"}
+# `expr:<table>:SHANK3`. Stored in the DB so the web API doesn't hardcode it.
+_COLUMN_PREFIXES = {
+    "expression": "expr",
+    "perturb_seq": "ps",
+    "perturb_fish": "pf",
+}
+
+# A target gene is an expanded column only if it is FDR-significant across at
+# least this many distinct perturbed-side groups (CNV regions for the organoid
+# table, perturbed genes elsewhere). Fixed floor — the API/UI tunes *how many*
+# columns per dataset to show, not this eligibility bar.
+ELIGIBILITY_MIN_GROUPS = 2
+
+# Only the top-M most-convergent columns per (modality, source table) are
+# materialized. M is the largest "columns per dataset" the UI offers, so nothing
+# selectable is ever missing while the DB stays small even for the dense CRISPR
+# screens (SCZ arrayed alone has ~8.5k eligible columns).
+MATERIALIZE_TOP_M = 200
 
 _TABLES = (
     "overview_matrix_genes",
@@ -103,14 +119,19 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         source_tables TEXT NOT NULL,
         n_columns_total INTEGER NOT NULL)"""
     )
+    # An expanded modality can fan out several source datasets (perturb-seq has
+    # six); `source_table` keeps a target gene from different datasets in
+    # distinct columns and lets the API group + label them by dataset.
     conn.execute(
         """CREATE TABLE overview_matrix_expanded_columns (
         modality_key TEXT NOT NULL,
+        source_table TEXT NOT NULL,
+        source_label TEXT,
         column_value TEXT NOT NULL,
-        n_sig_regions INTEGER NOT NULL,
+        n_sig_groups INTEGER NOT NULL,
         min_p REAL NOT NULL,
         sort_rank INTEGER NOT NULL,
-        PRIMARY KEY (modality_key, column_value)) WITHOUT ROWID"""
+        PRIMARY KEY (modality_key, source_table, column_value)) WITHOUT ROWID"""
     )
     # Clustered by column, not by gene: the read path always selects a set of
     # qualifying columns and wants every gene's value for each, so a
@@ -119,10 +140,12 @@ def _create_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         """CREATE TABLE overview_matrix_expanded_cells (
         modality_key TEXT NOT NULL,
+        source_table TEXT NOT NULL,
         column_value TEXT NOT NULL,
         central_gene_id INTEGER NOT NULL,
         neg_log_p REAL NOT NULL,
-        PRIMARY KEY (modality_key, column_value, central_gene_id)) WITHOUT ROWID"""
+        PRIMARY KEY (modality_key, source_table, column_value, central_gene_id))
+        WITHOUT ROWID"""
     )
     conn.execute(
         """CREATE TABLE overview_matrix_info (
@@ -372,13 +395,22 @@ def _materialize_expansion(
     *,
     modality_key: str,
     table_name: str,
+    source_label: str | None,
     pvalue_column: str | None,
     fdr_column: str | None,
     link_tables_raw: str | None,
     min_groups: int,
     src_schema: str,
 ) -> int:
-    """Materialize one expanded modality. Returns the column count."""
+    """Materialize one expanded (modality, source table). Returns column count.
+
+    Columns are the measured *target* genes that are FDR-significant across at
+    least `min_groups` distinct perturbed-side groups; only the top
+    MATERIALIZE_TOP_M most-convergent are kept (the API serves the top K <= M per
+    dataset). Each cell holds -log10(most significant p) per (perturbed gene,
+    target). Rows are tagged with `table_name` so several datasets can share a
+    modality without their columns colliding.
+    """
     log = get_sspsygene_logger()
     base_table = sanitize_identifier(table_name)
     perturbed_links = parse_link_tables_for_direction(link_tables_raw or "", "perturbed")
@@ -417,13 +449,17 @@ def _materialize_expansion(
 
     pvalue_cols = _split_columns(pvalue_column)
     fdr_cols = _split_columns(fdr_column)
-    if not pvalue_cols or not fdr_cols:
+    # Colour by the raw p when present; a table with only an FDR (perturb-FISH
+    # ships just a qval) uses that FDR as the p. Significance selection uses the
+    # FDR when available, else the same single column.
+    p_col = pvalue_cols[0] if pvalue_cols else (fdr_cols[0] if fdr_cols else None)
+    fdr_col = fdr_cols[0] if fdr_cols else (pvalue_cols[0] if pvalue_cols else None)
+    if p_col is None or fdr_col is None:
         log.warning(
             "overview matrix: %s lacks a usable pvalue/fdr column, skipping expansion",
             table_name,
         )
         return 0
-    p_col, fdr_col = pvalue_cols[0], fdr_cols[0]
 
     group_genes = _group_to_genes(conn, base_table, link_table, group_expr, src_schema)
 
@@ -460,17 +496,27 @@ def _materialize_expansion(
     if not qualifying:
         return 0
 
-    # Strongest first. A total order over every materialized column, so any
-    # higher per-request threshold sees the same relative order.
+    # Most-convergent first (then strongest single p, then name), capped at the
+    # per-dataset materialization limit. `sort_rank` is 0-based within this
+    # (modality, source table), so the API's `LIMIT K` takes the top K.
     ordered = sorted(
         qualifying, key=lambda t: (-qualifying[t], min_p_by_target[t], t)
-    )
+    )[:MATERIALIZE_TOP_M]
+    kept = set(ordered)
     conn.executemany(
         "INSERT INTO overview_matrix_expanded_columns "
-        "(modality_key, column_value, n_sig_regions, min_p, sort_rank) "
-        "VALUES (?, ?, ?, ?, ?)",
+        "(modality_key, source_table, source_label, column_value, n_sig_groups, "
+        " min_p, sort_rank) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
-            (modality_key, target, qualifying[target], min_p_by_target[target], rank)
+            (
+                modality_key,
+                table_name,
+                source_label,
+                target,
+                qualifying[target],
+                min_p_by_target[target],
+                rank,
+            )
             for rank, target in enumerate(ordered)
         ],
     )
@@ -478,10 +524,11 @@ def _materialize_expansion(
     # Cells: expand each (group, target) across the group's central genes,
     # keeping the most significant p per (gene, target). A gene can sit in two
     # groups (SHANK3 is both its own perturbation and a member of the 22q13
-    # region), hence the min rather than an overwrite.
+    # region), hence the min rather than an overwrite. Only the kept (top-M)
+    # columns get cells.
     cells: dict[tuple[int, str], float] = {}
     for group, target, min_p, _min_fdr in per_group:
-        if min_p is None or target not in qualifying:
+        if min_p is None or target not in kept:
             continue
         for gene_id in group_genes.get(group, ()):
             key = (gene_id, target)
@@ -490,16 +537,17 @@ def _materialize_expansion(
                 cells[key] = min_p
     conn.executemany(
         "INSERT INTO overview_matrix_expanded_cells "
-        "(modality_key, column_value, central_gene_id, neg_log_p) VALUES (?, ?, ?, ?)",
+        "(modality_key, source_table, column_value, central_gene_id, neg_log_p) "
+        "VALUES (?, ?, ?, ?, ?)",
         [
-            (modality_key, target, gene_id, _neg_log_p(min_p))
+            (modality_key, table_name, target, gene_id, _neg_log_p(min_p))
             for (gene_id, target), min_p in cells.items()
         ],
     )
     click.echo(
-        f"  Overview matrix: modality '{modality_key}' expanded into "
-        f"{len(ordered)} columns / {len(cells)} cells from {table_name} "
-        f"(>= {min_groups} significant group(s))"
+        f"  Overview matrix: '{modality_key}' / {table_name} → "
+        f"{len(ordered)} columns / {len(cells)} cells "
+        f"(≥ {min_groups} sig group(s), top {MATERIALIZE_TOP_M})"
     )
     return len(ordered)
 
@@ -520,7 +568,7 @@ def materialize_overview_matrix(
     conn: sqlite3.Connection,
     *,
     no_index: bool = False,
-    min_groups: int = 1,
+    min_groups: int = ELIGIBILITY_MIN_GROUPS,
     src_schema: str = "main",
 ) -> None:
     """Precompute the overview matrix (#222).
@@ -532,10 +580,11 @@ def materialize_overview_matrix(
     lands in its own file; the in-process path (tests) leaves it ``"main"`` and
     everything is one DB.
 
-    `min_groups` is the *materialization floor*: a target gene becomes an
-    expanded sub-column when it is FDR-significant across at least this many
-    distinct perturbed-column values. It is deliberately low by default so the
-    API can raise the threshold per request without a rebuild.
+    `min_groups` is the *eligibility floor*: a target gene becomes an expanded
+    sub-column only when it is FDR-significant across at least this many distinct
+    perturbed groups (default 2). Independently, at most `MATERIALIZE_TOP_M` of
+    the most-convergent columns are kept per (modality, source table) — the API
+    then serves the top K <= M per dataset.
     """
     min_groups = max(1, min_groups)
     _create_schema(conn)
@@ -550,12 +599,18 @@ def materialize_overview_matrix(
 
     source_rows = conn.execute(
         f"""SELECT table_name, assay, pvalue_column, fdr_column, link_tables,
-                   expand_in_overview_matrix
+                   expand_in_overview_matrix, short_label
              FROM {src_schema}.data_tables
             WHERE include_in_overview_matrix = 1"""
     ).fetchall()
 
-    _materialize_status_cells(conn, source_rows, assay_to_modalities, src_schema)
+    # Status aggregation ignores the two trailing columns (expand flag, label).
+    _materialize_status_cells(
+        conn,
+        [row[:6] for row in source_rows],
+        assay_to_modalities,
+        src_schema,
+    )
     # Every joined row yields at least an "assayed_null" cell, so the status
     # cells already carry the full perturbed-gene universe. The status-cell
     # table lives in the write DB (unqualified); central_gene is read from src.
@@ -567,9 +622,15 @@ def materialize_overview_matrix(
     )
 
     expanded_source_tables: list[str] = []
-    for table_name, assay, pvalue_column, fdr_column, link_tables_raw, expand in (
-        source_rows
-    ):
+    for (
+        table_name,
+        assay,
+        pvalue_column,
+        fdr_column,
+        link_tables_raw,
+        expand,
+        short_label,
+    ) in source_rows:
         if not expand:
             continue
         modality_keys_for_table = _modality_keys_for(assay, assay_to_modalities)
@@ -581,6 +642,7 @@ def materialize_overview_matrix(
             conn,
             modality_key=modality_key,
             table_name=table_name,
+            source_label=short_label,
             pvalue_column=pvalue_column,
             fdr_column=fdr_column,
             link_tables_raw=link_tables_raw,
@@ -606,13 +668,13 @@ def materialize_overview_matrix(
         )
 
     if not no_index:
-        # The read path picks the qualifying columns by threshold, then walks
-        # them in rank order; the cells themselves need no index because the
-        # table is already clustered by (modality, column).
+        # The read path selects a (modality, source table) and walks its columns
+        # in rank order (top K per dataset); the cells need no index because the
+        # table is already clustered by (modality, source table, column).
         conn.execute(
             "CREATE INDEX overview_matrix_expanded_columns_rank_idx "
             "ON overview_matrix_expanded_columns "
-            "(modality_key, n_sig_regions, sort_rank)"
+            "(modality_key, source_table, sort_rank)"
         )
 
     _write_info(conn, min_groups, expanded_source_tables)
@@ -628,6 +690,7 @@ def _write_info(
             ("schema_version", SCHEMA_VERSION),
             ("built_at", datetime.now(timezone.utc).isoformat()),
             ("min_groups_floor", str(min_groups)),
+            ("materialize_top_m", str(MATERIALIZE_TOP_M)),
             ("expanded_source_tables", json.dumps(expanded_source_tables)),
         ],
     )

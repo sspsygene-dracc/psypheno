@@ -59,7 +59,8 @@ def _make_db() -> sqlite3.Connection:
         "CREATE TABLE data_tables (table_name TEXT, assay TEXT, "
         "pvalue_column TEXT, fdr_column TEXT, link_tables TEXT, "
         "include_in_overview_matrix INTEGER NOT NULL DEFAULT 0, "
-        "expand_in_overview_matrix INTEGER NOT NULL DEFAULT 0)"
+        "expand_in_overview_matrix INTEGER NOT NULL DEFAULT 0, "
+        "short_label TEXT)"
     )
     return conn
 
@@ -84,9 +85,9 @@ def _register(
 ) -> None:
     conn.execute(
         "INSERT INTO data_tables (table_name, assay, pvalue_column, fdr_column, "
-        "link_tables, include_in_overview_matrix, expand_in_overview_matrix) "
-        "VALUES (?, ?, ?, ?, ?, 1, ?)",
-        (table_name, assay, pvalue_column, fdr_column, link_tables, expand),
+        "link_tables, include_in_overview_matrix, expand_in_overview_matrix, "
+        "short_label) VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
+        (table_name, assay, pvalue_column, fdr_column, link_tables, expand, table_name),
     )
 
 
@@ -200,7 +201,7 @@ def test_assay_mapping_to_two_modalities(conn: sqlite3.Connection) -> None:
 def test_expanded_columns_selection_and_order(conn: sqlite3.Connection) -> None:
     materialize_overview_matrix(conn, min_groups=1)
     columns = conn.execute(
-        "SELECT column_value, n_sig_regions, min_p FROM overview_matrix_expanded_columns "
+        "SELECT column_value, n_sig_groups, min_p FROM overview_matrix_expanded_columns "
         "ORDER BY sort_rank"
     ).fetchall()
 
@@ -306,7 +307,8 @@ def test_expansion_metadata_and_info(conn: sqlite3.Connection) -> None:
     info = dict(conn.execute("SELECT key, value FROM overview_matrix_info"))
     assert info["min_groups_floor"] == "2"
     assert json.loads(info["expanded_source_tables"]) == ["expr"]
-    assert info["schema_version"] == "1"
+    assert info["schema_version"] == "2"
+    assert info["materialize_top_m"] == "200"
 
 
 def test_rebuild_is_idempotent(conn: sqlite3.Connection) -> None:

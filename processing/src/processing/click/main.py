@@ -261,18 +261,18 @@ def meta_analysis(no_index: bool, no_r_cache: bool) -> None:
     "Speeds up the build for test purposes.",
 )
 @click.option(
-    "--expression-min-regions",
+    "--min-sig-groups",
     type=int,
-    default=1,
+    default=2,
     show_default=True,
-    help="Materialization floor for the overview matrix's expanded columns "
-    "(#222): a target gene becomes a sub-column when it is FDR-significant "
-    "across at least this many distinct perturbed-column values (CNV regions, "
-    "for the ASD organoid table). Deliberately low — /api/collated-matrix "
-    "picks its own, higher threshold per request, and can only go as low as "
-    "this floor without a rebuild.",
+    help="Eligibility floor for the overview matrix's expanded columns (#222): a "
+    "measured target gene becomes a sub-column only when it is FDR-significant "
+    "across at least this many distinct perturbed groups (CNV regions for the "
+    "organoid table, perturbed genes elsewhere). Independently, only the top "
+    "~200 most-convergent columns per dataset are materialized; the web app "
+    "serves the top K (columns per dataset) the user picks.",
 )
-def overview_matrix(no_index: bool, expression_min_regions: int) -> None:
+def overview_matrix(no_index: bool, min_sig_groups: int) -> None:
     """Materialize the collated overview matrix into sspsygene-overview.db.
 
     Reads the already-built dataset DB (sspsygene.db) and writes a separate
@@ -289,7 +289,7 @@ def overview_matrix(no_index: bool, expression_min_regions: int) -> None:
             config.out_db,
             config.overview_db,
             no_index=no_index,
-            min_groups=expression_min_regions,
+            min_groups=min_sig_groups,
         )
         _echo_sspsygene_env("end")
     except ValueError as e:
@@ -527,16 +527,16 @@ def deploy_meta_analysis(
     "sspsygene.db.",
 )
 @click.option(
-    "--expression-min-regions",
+    "--min-sig-groups",
     type=int,
-    default=1,
+    default=2,
     show_default=True,
-    help="Materialization floor for the expanded columns (see `overview-matrix`).",
+    help="Eligibility floor for the expanded columns (see `overview-matrix`).",
 )
 def deploy_overview(
     no_push: bool,
     instances: str | None,
-    expression_min_regions: int,
+    min_sig_groups: int,
 ) -> None:
     """Refresh sspsygene-overview.db on psygene sites (separate from `deploy`).
 
@@ -550,7 +550,7 @@ def deploy_overview(
     run_deploy_overview(
         no_push=no_push,
         instances=instances,
-        expression_min_regions=expression_min_regions,
+        min_sig_groups=min_sig_groups,
     )
 
 

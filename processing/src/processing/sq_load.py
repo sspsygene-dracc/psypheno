@@ -863,7 +863,7 @@ def run_overview_matrix(
     overview_db: Path,
     *,
     no_index: bool = False,
-    min_groups: int = 1,
+    min_groups: int = 2,
 ) -> None:
     """Materialize the collated overview matrix into a standalone DB (#222).
 

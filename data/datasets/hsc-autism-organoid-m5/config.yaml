@@ -33,6 +33,7 @@ maintainers:
 tables:
   - table: hsc_asd_organoid_m5_DE_targets_M5_TFs
     overview_matrix: true  # #212 overview matrix source
+    overview_matrix_expand: true  # #213 perturb-seq target-gene sub-columns
     changelog:
       - date: "2026-05-05"
         message: "Standardized title to first-author/year/assay/medium format and added column tooltips."

@@ -58,13 +58,23 @@ def test_default_is_off() -> None:
     "overrides, expected",
     [
         ({"overview_matrix": False}, "overview_matrix: true"),
-        ({"pvalue_column": None}, "pvalue_column"),
-        ({"fdr_column": None}, "fdr_column"),
+        # Only *both* stat columns missing is fatal — one is enough (perturb-FISH
+        # ships just a qval, used as the p).
+        (
+            {"pvalue_column": None, "fdr_column": None},
+            "a pvalue_column or fdr_column",
+        ),
     ],
 )
 def test_missing_prerequisite_raises(overrides: dict, expected: str) -> None:
     with pytest.raises(ValueError, match=expected):
         _from_json(**overrides)
+
+
+@pytest.mark.parametrize("overrides", [{"pvalue_column": None}, {"fdr_column": None}])
+def test_single_stat_column_is_enough(overrides: dict) -> None:
+    """An expanded table needs only one of pvalue/fdr (perturb-FISH = qval)."""
+    _from_json(**overrides)  # does not raise
 
 
 def test_missing_gene_mapping_direction_raises() -> None:

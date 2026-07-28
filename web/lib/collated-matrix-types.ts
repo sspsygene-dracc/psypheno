@@ -43,14 +43,23 @@ export interface MatrixStatusColumn {
 export interface MatrixPvalueColumn {
   section: string;
   key: string;
+  /** The measured target gene (the column's short label). */
   label: string;
   kind: "pvalue";
   /**
-   * How many distinct perturbed-side groups this target gene is
-   * FDR-significant in — CNV regions, for the ASD organoid table. Drives both
-   * column selection and the strongest-first render order.
+   * How many distinct perturbed groups this target gene is FDR-significant in —
+   * CNV regions for the ASD organoid table, perturbed genes elsewhere. Drives
+   * both column eligibility (≥2) and the most-convergent-first render order.
    */
-  nSigRegions: number;
+  nSigGroups: number;
+  /** Source dataset table name — the column's dataset identity. */
+  sourceTable: string;
+  /** Dataset short label, shown once per dataset band above the columns. */
+  sourceLabel: string;
+  /** Fuller dataset identity for the band's (i) tooltip. */
+  sourceMediumLabel: string | null;
+  /** Dataset source/citation string, appended to the band tooltip. */
+  sourceCitation: string | null;
 }
 
 export type MatrixColumn = MatrixStatusColumn | MatrixPvalueColumn;
@@ -77,15 +86,18 @@ export interface MatrixGeneRow {
 }
 
 export interface CollatedMatrixMeta {
-  /** Effective threshold used for this response (after clamping). */
-  expressionMinRegions: number;
-  /** Expanded columns actually returned. */
-  expressionColumnCount: number;
-  /** Expanded columns that met the threshold before `expressionMaxColumns`. */
-  expressionColumnsAvailable: number;
-  expressionColumnsTruncated: boolean;
-  /** Build-time floor; `expressionMinRegions` can never go below it. */
-  expressionMinRegionsFloor: number;
+  /** Columns-per-dataset cap used for this response (after clamping). */
+  colsPerDataset: number;
+  /** Total expanded (pvalue) columns actually returned across all datasets. */
+  expandedColumnCount: number;
+  /** Expanded columns available at the eligibility floor, before the top-K cap. */
+  expandedColumnsAvailable: number;
+  /** True when some dataset had more eligible columns than the cap showed. */
+  expandedColumnsTruncated: boolean;
+  /** Build-time eligibility floor (min significant groups; typically 2). */
+  minSigGroupsFloor: number;
+  /** Largest columns-per-dataset the build materialized (cap ceiling). */
+  materializeTopM: number;
   /** False when serving the live fallback against an un-materialized DB. */
   materialized: boolean;
   builtAt: string | null;

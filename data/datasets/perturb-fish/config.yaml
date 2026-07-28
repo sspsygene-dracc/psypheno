@@ -28,6 +28,7 @@ maintainers:
 tables:
   - table: perturb_fish_astro
     overview_matrix: true  # #212 overview matrix source
+    overview_matrix_expand: true  # #213 perturb-FISH target-gene sub-columns (qval)
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"

@@ -33,14 +33,13 @@ import {
  * columns.
  *
  * Query params:
- *   expressionMinRegions — a target gene is a sub-column when it is
- *     FDR-significant across at least this many distinct perturbed-side groups
- *     (CNV regions, for the ASD organoid table). Default 3 (232 columns today);
- *     it cannot go below the build floor, which is 1 by default.
- *   expressionMaxColumns — safety cap on the fan-out. At the lowest threshold
- *     the axis is ~4,700 columns / ~545k cells, which is a multi-megabyte
- *     response; columns beyond the cap are dropped strongest-first and
- *     `meta.expressionColumnsTruncated` says so.
+ *   colsPerDataset — how many columns to show per expanded dataset (top K by
+ *     convergence). Default 25, max 200 (the build materializes the top ~200
+ *     most-convergent per dataset, so K can range freely within that). This is
+ *     the one size knob: it bounds the dense CRISPR screens (SCZ arrayed alone
+ *     has thousands of eligible target columns) while giving every dataset equal
+ *     representation. Eligibility (target FDR-significant in ≥2 perturbations) is
+ *     fixed at build time.
  *
  * Degradation: when the overview DB isn't attached (never built, or a pre-#222
  * instance), the status columns are computed live (the fallback kept below) and
@@ -52,8 +51,7 @@ import {
 export type { CellStatus };
 
 const querySchema = z.object({
-  expressionMinRegions: z.coerce.number().int().min(1).max(10).default(3),
-  expressionMaxColumns: z.coerce.number().int().min(1).max(5_000).default(1_500),
+  colsPerDataset: z.coerce.number().int().min(1).max(200).default(25),
 });
 
 interface ModalityRow {
@@ -348,7 +346,7 @@ export default async function handler(
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid query parameters" });
   }
-  const { expressionMaxColumns } = parsed.data;
+  const K = parsed.data.colsPerDataset;
 
   try {
     const db = getDb();
@@ -361,6 +359,7 @@ export default async function handler(
       ? readMaterializedStatusMatrix(db)
       : computeLiveStatusMatrix(db, modalities);
     genes.sort(compareGeneRows);
+    const byId = new Map(genes.map((g) => [g.centralGeneId, g]));
 
     const info = materialized
       ? new Map(
@@ -371,10 +370,8 @@ export default async function handler(
           ).map((r) => [r.key, r.value])
         )
       : new Map<string, string>();
-    const floor = Math.max(1, Number(info.get("min_groups_floor") ?? 1) || 1);
-    // The build decides how deep the fan-out can go; a request can only ask for
-    // the same threshold or a stricter one.
-    const minRegions = Math.max(parsed.data.expressionMinRegions, floor);
+    const floor = Math.max(1, Number(info.get("min_groups_floor") ?? 2) || 2);
+    const topM = Math.max(1, Number(info.get("materialize_top_m") ?? 200) || 200);
 
     // Which modalities are expanded, and under what cell-key prefix.
     const expansions = materialized
@@ -390,10 +387,30 @@ export default async function handler(
         )
       : new Map<string, string>();
 
+    // Fuller dataset identity for the per-dataset (i) tooltips, from the main DB.
+    const datasetMeta = new Map<
+      string,
+      { mediumLabel: string | null; citation: string | null }
+    >();
+    if (materialized) {
+      for (const r of db
+        .prepare("SELECT table_name, medium_label, source FROM data_tables")
+        .all() as Array<{
+        table_name: string;
+        medium_label: string | null;
+        source: string | null;
+      }>) {
+        datasetMeta.set(r.table_name, {
+          mediumLabel: r.medium_label,
+          citation: r.source,
+        });
+      }
+    }
+
     const sections: MatrixSection[] = [];
     const columns: MatrixColumn[] = [];
-    let expressionColumnCount = 0;
-    let expressionColumnsAvailable = 0;
+    let expandedColumnCount = 0;
+    let expandedColumnsAvailable = 0;
 
     for (const modality of modalities) {
       const prefix = expansions.get(modality.key);
@@ -424,78 +441,98 @@ export default async function handler(
         continue;
       }
 
-      // Expanded section: the qualifying target genes, strongest first.
-      const available = db
+      // Expanded section: fan out each contributing dataset into its top-K
+      // most-convergent target columns. Columns are emitted contiguously per
+      // dataset so the frontend can render one dataset band per group.
+      const srcTables = db
         .prepare(
-          "SELECT COUNT(*) AS n FROM overview.overview_matrix_expanded_columns " +
-            "WHERE modality_key = ? AND n_sig_regions >= ?"
+          "SELECT source_table, source_label, COUNT(*) AS available " +
+            "FROM overview.overview_matrix_expanded_columns " +
+            "WHERE modality_key = ? GROUP BY source_table, source_label " +
+            "ORDER BY source_label ASC"
         )
-        .get(modality.key, minRegions) as { n: number };
-      const columnRows = db
-        .prepare(
-          "SELECT column_value, n_sig_regions FROM overview.overview_matrix_expanded_columns " +
-            "WHERE modality_key = ? AND n_sig_regions >= ? " +
-            "ORDER BY sort_rank ASC LIMIT ?"
-        )
-        .all(modality.key, minRegions, expressionMaxColumns) as Array<{
-        column_value: string;
-        n_sig_regions: number;
+        .all(modality.key) as Array<{
+        source_table: string;
+        source_label: string | null;
+        available: number;
       }>;
 
-      for (const row of columnRows) {
-        columns.push({
-          section: modality.key,
-          key: `${prefix}:${row.column_value}`,
-          label: row.column_value,
-          kind: "pvalue",
-          nSigRegions: row.n_sig_regions,
-        });
-      }
+      let sectionSpan = 0;
+      for (const st of srcTables) {
+        const colRows = db
+          .prepare(
+            "SELECT column_value, n_sig_groups " +
+              "FROM overview.overview_matrix_expanded_columns " +
+              "WHERE modality_key = ? AND source_table = ? " +
+              "ORDER BY sort_rank ASC LIMIT ?"
+          )
+          .all(modality.key, st.source_table, K) as Array<{
+          column_value: string;
+          n_sig_groups: number;
+        }>;
+        if (colRows.length === 0) continue;
 
-      if (columnRows.length > 0) {
-        const byId = new Map(genes.map((g) => [g.centralGeneId, g]));
-        // Join against the same selection rather than fetching every
-        // materialized cell and filtering here: at the build floor that would
-        // be ~545k rows to reach the ~27k this response needs.
-        // `.raw()` yields plain arrays: this is the one genuinely hot loop in
-        // the handler (tens of thousands of cells), and skipping a row object
-        // per cell is worth the positional access.
+        const dsMeta = datasetMeta.get(st.source_table) ?? {
+          mediumLabel: null,
+          citation: null,
+        };
+        for (const row of colRows) {
+          columns.push({
+            section: modality.key,
+            key: `${prefix}:${st.source_table}:${row.column_value}`,
+            label: row.column_value,
+            kind: "pvalue",
+            nSigGroups: row.n_sig_groups,
+            sourceTable: st.source_table,
+            sourceLabel: st.source_label ?? st.source_table,
+            sourceMediumLabel: dsMeta.mediumLabel,
+            sourceCitation: dsMeta.citation,
+          });
+        }
+
+        // Cells for this dataset's top-K. Same CROSS-JOIN join-order hint as
+        // before: seek the ~K selected columns in the column-clustered cell
+        // table rather than scanning the whole modality. `.raw()` skips a row
+        // object per cell in the one hot loop.
         for (const [geneId, columnValue, negLogP] of db
           .prepare(
-            // CROSS JOIN is the join-order hint, not a cartesian product:
-            // left to itself SQLite scans every cell of the modality and
-            // probes the column list (~80 ms), instead of seeking the ~230
-            // selected columns in the column-clustered cell table (~2 ms).
             `SELECT c.central_gene_id, c.column_value, c.neg_log_p
-               FROM (SELECT column_value FROM overview.overview_matrix_expanded_columns
-                      WHERE modality_key = ? AND n_sig_regions >= ?
+               FROM (SELECT column_value
+                       FROM overview.overview_matrix_expanded_columns
+                      WHERE modality_key = ? AND source_table = ?
                       ORDER BY sort_rank ASC LIMIT ?) k
                CROSS JOIN overview.overview_matrix_expanded_cells c
-                 ON c.modality_key = ? AND c.column_value = k.column_value`
+                 ON c.modality_key = ? AND c.source_table = ?
+                    AND c.column_value = k.column_value`
           )
           .raw()
           .all(
             modality.key,
-            minRegions,
-            expressionMaxColumns,
-            modality.key
+            st.source_table,
+            K,
+            modality.key,
+            st.source_table
           ) as Array<[number, string, number]>) {
           const gene = byId.get(geneId);
           if (!gene) continue;
-          gene.cells[`${prefix}:${columnValue}`] = { negLogP };
+          gene.cells[`${prefix}:${st.source_table}:${columnValue}`] = {
+            negLogP,
+          };
         }
+
+        sectionSpan += colRows.length;
+        expandedColumnCount += colRows.length;
+        expandedColumnsAvailable += st.available;
       }
 
       sections.push({
         key: modality.key,
         label: modality.label,
         kind: "expanded",
-        span: columnRows.length,
+        span: sectionSpan,
         alwaysShow: modality.alwaysShow,
-        isEmpty: columnRows.length === 0,
+        isEmpty: sectionSpan === 0,
       });
-      expressionColumnCount += columnRows.length;
-      expressionColumnsAvailable += available.n;
     }
 
     const body: CollatedMatrixResponse = {
@@ -503,12 +540,12 @@ export default async function handler(
       columns,
       genes,
       meta: {
-        expressionMinRegions: minRegions,
-        expressionColumnCount,
-        expressionColumnsAvailable,
-        expressionColumnsTruncated:
-          expressionColumnCount < expressionColumnsAvailable,
-        expressionMinRegionsFloor: floor,
+        colsPerDataset: K,
+        expandedColumnCount,
+        expandedColumnsAvailable,
+        expandedColumnsTruncated: expandedColumnCount < expandedColumnsAvailable,
+        minSigGroupsFloor: floor,
+        materializeTopM: topM,
         materialized,
         builtAt: info.get("built_at") ?? null,
       },
