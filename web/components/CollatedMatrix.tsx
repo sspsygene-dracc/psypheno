@@ -1,6 +1,4 @@
 import { useMemo } from "react";
-import DoubleScrollX from "@/components/DoubleScrollX";
-import InfoTooltip from "@/components/InfoTooltip";
 import {
   isPvalueCell,
   type CellStatus,
@@ -20,10 +18,12 @@ import {
  *   perturb-FISH — fanned out into one column per significant target gene,
  *   grouped by source dataset): a yellow→orange→red tile encoding `-log10(p)`.
  *
- * The header is three-tier: modality band → dataset band → per-column gene
- * labels. A DataTable can't express this (sticky multi-row header + frozen first
- * column), so it's purpose-built; horizontal scroll + sticky axes ride a
- * bounded-height DoubleScrollX.
+ * The header is two-tier: a band row ("experiment type · author-year", one cell
+ * per source dataset) → per-column gene labels. A DataTable can't express this
+ * (sticky multi-row header + frozen first column), so it's purpose-built. It
+ * scrolls in a single native bounded-height container — no JS scroll-syncing —
+ * so horizontal trackpad/scrollbar scrolling stays smooth; the header sticks to
+ * the top and the gene column stays frozen at the left.
  */
 
 const MATRIX_MAX_HEIGHT = "72vh";
@@ -32,8 +32,7 @@ const CELL = 17; // tile + ~1px gutter each side → ~2px between adjacent tiles
 const ROW_H = CELL;
 const COL_W = CELL;
 const LABEL_W = 120; // frozen gene-label column width, px
-const MODALITY_H = 22; // header row 1 (modality band) height, px
-const DATASET_H = 20; // header row 2 (dataset band) height, px
+const BAND_H = 22; // header band row ("experiment · author") height, px
 
 // p < 0.05 as a -log10(p) value (informational; the API already applied FDR).
 const STATUS_META: Record<
@@ -44,19 +43,6 @@ const STATUS_META: Record<
   data: { fill: "#fdba74", border: "#fb923c", label: "Data, not significant" },
   assayed_null: { fill: "#9ca3af", border: "#8b909b", label: "Assayed, null result" },
   none: { fill: "#fcfcfd", border: "#eef0f2", label: "No data" },
-};
-
-// Short per-modality explanation for the modality-band (i) tooltip.
-const MODALITY_INFO: Record<string, string> = {
-  expression:
-    "RNA differential expression. Each column is a measured target gene; the tile is -log10(p) of the perturbation's effect on it (red = most significant).",
-  perturb_seq:
-    "Perturb-seq differential expression across CRISPR perturbations. Each column is a measured target gene, colored by -log10(p).",
-  perturb_fish:
-    "Perturb-FISH spatial screen. Each column is a measured target gene, colored by -log10(qval) — an FDR, not a raw p-value.",
-  behavior: "Behavioral phenotype screens (aggregated status across datasets).",
-  morphology: "Morphology assays (aggregated status).",
-  electrophysiology: "Electrophysiology assays (aggregated status).",
 };
 
 // ColorBrewer "YlOrRd" anchors — the p-value heatmap ramp. Position ∈ [0,1].
@@ -131,9 +117,27 @@ export function StatusSwatch({
   return <Tile fill={m.fill} border={m.border} label={m.label} size={size} />;
 }
 
-const NO_DATA_TILE = (
-  <Tile fill={STATUS_META.none.fill} border={STATUS_META.none.border} label="No data" />
-);
+// Fill / border / a11y-label for one grid cell. Painted directly on the `<td>`
+// (no child node) — see the cell render below — so the ~42k-cell grid is ~42k
+// DOM nodes instead of ~84k.
+function cellVisual(
+  column: MatrixColumn,
+  cell: MatrixGeneRow["cells"][string] | undefined
+): { fill: string; border: string; label: string } {
+  if (column.kind === "pvalue") {
+    if (cell && isPvalueCell(cell)) {
+      return {
+        fill: pColor(cell.negLogP),
+        border: "rgba(0,0,0,0.12)",
+        label: `-log10(p) ≈ ${cell.negLogP}`,
+      };
+    }
+    return { ...STATUS_META.none, label: "No data" };
+  }
+  const status: CellStatus = cell && !isPvalueCell(cell) ? cell.status : "none";
+  const m = STATUS_META[status];
+  return { fill: m.fill, border: m.border, label: m.label };
+}
 
 function pApprox(negLogP: number): string {
   if (negLogP >= 20) return "p ≤ 1e-20";
@@ -178,7 +182,8 @@ function cellTitle(
 interface BandGroup {
   gkey: string;
   kind: "pvalue" | "status";
-  label: string;
+  /** "RNA expression · Gordon 2026" for an expanded dataset; "" for a status column. */
+  bandLabel: string;
   tooltip: string | null;
   span: number;
 }
@@ -192,6 +197,15 @@ export default function CollatedMatrix({
   columns: MatrixColumn[];
   genes: MatrixGeneRow[];
 }) {
+  const sectionLabel = useMemo(
+    () => new Map(sections.map((s) => [s.key, s.label])),
+    [sections]
+  );
+
+  // One band cell per contiguous run of columns sharing a dataset (or a single
+  // status column). The band shows "experiment type · author-year" on one line —
+  // a single header tier that scrolls with its columns (no horizontal pinning),
+  // which is what keeps horizontal scrolling smooth across browsers.
   const datasetGroups = useMemo<BandGroup[]>(() => {
     const groups: BandGroup[] = [];
     for (const c of columns) {
@@ -202,10 +216,11 @@ export default function CollatedMatrix({
         last.span++;
         continue;
       }
+      const modality = sectionLabel.get(c.section) ?? c.section;
       groups.push({
         gkey,
         kind: c.kind,
-        label: c.kind === "pvalue" ? c.sourceLabel : "",
+        bandLabel: c.kind === "pvalue" ? `${modality} · ${c.sourceLabel}` : "",
         tooltip:
           c.kind === "pvalue"
             ? [c.sourceMediumLabel ?? c.sourceLabel, c.sourceCitation]
@@ -216,22 +231,7 @@ export default function CollatedMatrix({
       });
     }
     return groups;
-  }, [columns]);
-
-  const stickyLabel = (top: number) =>
-    ({
-      position: "sticky",
-      top,
-      zIndex: 5,
-      background: "#f3f4f6",
-      // Left-align so the inner sticky-left label starts at the section's left
-      // edge; a th's default center alignment would push a wide section's label
-      // to its (off-screen) middle and defeat the sticky-left ride-along.
-      textAlign: "left",
-      whiteSpace: "nowrap",
-      borderBottom: "1px solid #e5e7eb",
-      borderLeft: "1px solid #e5e7eb",
-    }) as const;
+  }, [columns, sectionLabel]);
 
   return (
     <div
@@ -241,7 +241,10 @@ export default function CollatedMatrix({
         overflow: "hidden",
       }}
     >
-      <DoubleScrollX maxHeight={MATRIX_MAX_HEIGHT}>
+      <div
+        className="matrix-scroll"
+        style={{ overflow: "auto", maxHeight: MATRIX_MAX_HEIGHT }}
+      >
         <table
           style={{
             borderCollapse: "separate",
@@ -252,11 +255,15 @@ export default function CollatedMatrix({
           }}
         >
           <thead>
-            {/* Row 1 — modality band. Corner spans all three header rows. */}
+            {/* Row 1 — band: "experiment type · author-year", one cell per dataset
+                group. Sticky to the top (stays put on vertical scroll) but NOT
+                horizontally pinned, so it just scrolls with its columns — no nested
+                sticky-left, which is what flickered during horizontal scroll. */}
             <tr>
               <th
                 scope="col"
-                rowSpan={3}
+                rowSpan={2}
+                title="Rows are experimentally perturbed SSPsyGene target genes — one row per perturbed gene. Hover any square for its value."
                 style={{
                   position: "sticky",
                   top: 0,
@@ -277,74 +284,35 @@ export default function CollatedMatrix({
                 }}
               >
                 Gene
-                <InfoTooltip
-                  size={12}
-                  text="Rows are experimentally perturbed SSPsyGene target genes — one row per perturbed gene. Hover any square for its value."
-                />
               </th>
-              {sections.map((s) => (
-                <th
-                  key={s.key}
-                  scope="colgroup"
-                  colSpan={s.span}
-                  style={{ ...stickyLabel(0), height: MODALITY_H, padding: 0 }}
-                >
-                  {s.kind === "expanded" && (
-                    <div
-                      style={{
-                        position: "sticky",
-                        left: LABEL_W,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        padding: "0 8px",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: s.isEmpty ? "#9ca3af" : "#374151",
-                      }}
-                    >
-                      {s.label}
-                      {MODALITY_INFO[s.key] && (
-                        <InfoTooltip size={11} text={MODALITY_INFO[s.key]} />
-                      )}
-                    </div>
-                  )}
-                </th>
-              ))}
-            </tr>
-            {/* Row 2 — dataset band (one cell per dataset group). */}
-            <tr>
               {datasetGroups.map((g) => (
                 <th
                   key={g.gkey}
                   scope="colgroup"
                   colSpan={g.span}
+                  title={g.tooltip ?? undefined}
                   style={{
-                    ...stickyLabel(MODALITY_H),
-                    height: DATASET_H,
-                    padding: 0,
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 5,
+                    background: "#f3f4f6",
+                    height: BAND_H,
+                    textAlign: "left",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#374151",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    padding: "0 8px",
+                    borderBottom: "1px solid #e5e7eb",
+                    borderLeft: "1px solid #e5e7eb",
                   }}
                 >
-                  {g.kind === "pvalue" && (
-                    <div
-                      style={{
-                        position: "sticky",
-                        left: LABEL_W,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        padding: "0 8px",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: "#4b5563",
-                      }}
-                    >
-                      {g.label}
-                      {g.tooltip && <InfoTooltip size={11} text={g.tooltip} />}
-                    </div>
-                  )}
+                  {g.bandLabel}
                 </th>
               ))}
             </tr>
-            {/* Row 3 — per-column vertical labels. */}
+            {/* Row 2 — per-column vertical gene labels. */}
             <tr>
               {columns.map((c) => (
                 <th
@@ -357,7 +325,7 @@ export default function CollatedMatrix({
                   }
                   style={{
                     position: "sticky",
-                    top: MODALITY_H + DATASET_H,
+                    top: BAND_H,
                     zIndex: 5,
                     background: "#f9fafb",
                     verticalAlign: "bottom",
@@ -389,7 +357,22 @@ export default function CollatedMatrix({
               const rowBg = i % 2 === 0 ? "#ffffff" : "#fafbfc";
               const gene = g.humanSymbol ?? `#${g.centralGeneId}`;
               return (
-                <tr key={g.centralGeneId} style={{ height: ROW_H }}>
+                <tr
+                  key={g.centralGeneId}
+                  style={{
+                    height: ROW_H,
+                    // Row stripe shows through each tile's 1px transparent border
+                    // (the inter-tile gap), so it lives on the <tr>, not the <td>.
+                    background: rowBg,
+                    // Skip layout+paint for off-screen rows — only the ~30 visible
+                    // rows are painted per frame instead of all ~240, which is what
+                    // makes scrolling a 42k-cell grid smooth. `contain-intrinsic-height`
+                    // (not the `-size` shorthand) reserves only the height, leaving
+                    // the fixed table layout to own each column's width.
+                    contentVisibility: "auto",
+                    containIntrinsicHeight: `${ROW_H}px`,
+                  }}
+                >
                   <th
                     scope="row"
                     title={gene}
@@ -416,39 +399,28 @@ export default function CollatedMatrix({
                   </th>
                   {columns.map((c) => {
                     const cell = g.cells[c.key];
-                    let tile;
-                    if (c.kind === "pvalue") {
-                      tile =
-                        cell && isPvalueCell(cell) ? (
-                          <Tile
-                            fill={pColor(cell.negLogP)}
-                            border="rgba(0,0,0,0.12)"
-                            label={`-log10(p) ≈ ${cell.negLogP}`}
-                          />
-                        ) : (
-                          NO_DATA_TILE
-                        );
-                    } else {
-                      const status: CellStatus =
-                        cell && !isPvalueCell(cell) ? cell.status : "none";
-                      tile = <StatusSwatch status={status} />;
-                    }
+                    const { fill, border, label } = cellVisual(c, cell);
+                    // The tile is painted directly on the <td> (no child span):
+                    // a 1px transparent border is the inter-tile gap (row stripe
+                    // shows through), a padding-box layer draws the tile's 1px
+                    // border, and a content-box layer draws the fill.
                     return (
                       <td
                         key={c.key}
+                        role="img"
+                        aria-label={label}
                         title={cellTitle(gene, c, cell)}
                         style={{
-                          background: rowBg,
-                          textAlign: "center",
-                          padding: 0,
+                          boxSizing: "border-box",
                           width: COL_W,
                           minWidth: COL_W,
                           height: ROW_H,
-                          lineHeight: 0,
+                          padding: 1,
+                          border: "1px solid transparent",
+                          borderRadius: 2,
+                          background: `linear-gradient(${fill}, ${fill}) content-box, linear-gradient(${border}, ${border}) padding-box`,
                         }}
-                      >
-                        {tile}
-                      </td>
+                      />
                     );
                   })}
                 </tr>
@@ -456,7 +428,7 @@ export default function CollatedMatrix({
             })}
           </tbody>
         </table>
-      </DoubleScrollX>
+      </div>
     </div>
   );
 }

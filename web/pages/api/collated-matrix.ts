@@ -54,6 +54,18 @@ const querySchema = z.object({
   colsPerDataset: z.coerce.number().int().min(1).max(200).default(25),
 });
 
+/**
+ * Dataset band label = the "Author Year" prefix of `medium_label` (which is
+ * hand-curated as `"<Author> <Year> - <description>"`, e.g.
+ * `"Gordon 2026 - Autism Genetic-Form DEGs …"`). The raw `publication_first_author`
+ * column is inconsistently formatted across datasets, so the curated prefix is the
+ * clean source. Falls back to the short label / table name when unavailable.
+ */
+function authorYearLabel(mediumLabel: string | null, fallback: string): string {
+  const head = (mediumLabel ?? "").split(" - ")[0].trim();
+  return head || fallback;
+}
+
 interface ModalityRow {
   key: string;
   label: string;
@@ -484,7 +496,10 @@ export default async function handler(
             kind: "pvalue",
             nSigGroups: row.n_sig_groups,
             sourceTable: st.source_table,
-            sourceLabel: st.source_label ?? st.source_table,
+            sourceLabel: authorYearLabel(
+              dsMeta.mediumLabel,
+              st.source_label ?? st.source_table
+            ),
             sourceMediumLabel: dsMeta.mediumLabel,
             sourceCitation: dsMeta.citation,
           });
