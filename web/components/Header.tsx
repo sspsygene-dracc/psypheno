@@ -8,6 +8,7 @@ const PRIMARY_LINKS = [
   { href: "/full-datasets", label: "Full datasets" },
   { href: "/publications", label: "Publications" },
   { href: "/most-significant", label: "Most Significant Genes" },
+  { href: "/matrix", label: "Overview matrix" },
 ];
 
 // Everything else is reachable via the "Other" dropdown on desktop, and

@@ -101,6 +101,109 @@ function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
   );
 }
 
+const METHODS_TERM: React.CSSProperties = {
+  fontWeight: 600,
+  color: "#1f2937",
+  marginTop: 10,
+};
+const METHODS_DEF: React.CSSProperties = {
+  margin: "2px 0 0 0",
+  color: "#4b5563",
+};
+
+/**
+ * Expandable "methods" note (#216): explains exactly which rows and columns the
+ * matrix shows, and how columns are selected. Numbers come from `data.meta` so
+ * the copy tracks the live build instead of drifting from hardcoded values.
+ */
+function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
+  const m = data.meta;
+  const metricList = m.metrics.map((mp) => scaleFor(mp.id).label).join(", ");
+  return (
+    <details style={{ marginBottom: 18, maxWidth: 840 }}>
+      <summary
+        style={{
+          cursor: "pointer",
+          color: "#374151",
+          fontSize: 13,
+          fontWeight: 600,
+          width: "fit-content",
+        }}
+      >
+        How to read this matrix &mdash; what the rows and columns are
+      </summary>
+      <div
+        style={{
+          marginTop: 8,
+          padding: "12px 14px",
+          background: "#f9fafb",
+          border: "1px solid #e5e7eb",
+          borderRadius: 8,
+          fontSize: 13,
+          color: "#4b5563",
+          lineHeight: 1.55,
+        }}
+      >
+        <dl style={{ margin: 0 }}>
+          <dt style={{ ...METHODS_TERM, marginTop: 0 }}>Rows &mdash; perturbed genes</dt>
+          <dd style={METHODS_DEF}>
+            Every experimentally perturbed SSPsyGene target gene, one row per gene,
+            pooled across all included datasets.
+          </dd>
+
+          <dt style={METHODS_TERM}>Columns &mdash; one per measured readout</dt>
+          <dd style={METHODS_DEF}>
+            Each dataset fans out into one sub-column per measurement: a{" "}
+            <strong>target gene</strong> (gene columns) or a{" "}
+            <strong>phenotype</strong> (behavioral parameter, brain region, cell
+            subcluster). Columns are grouped by dataset unless you cluster them.
+          </dd>
+
+          <dt style={METHODS_TERM}>Which datasets</dt>
+          <dd style={METHODS_DEF}>
+            Only grant-verified <strong>SSPsyGene consortium</strong>{" "}
+            datasets appear &mdash; a dataset is included only when its paper
+            acknowledges an SSPsyGene consortium grant.
+          </dd>
+
+          <dt style={METHODS_TERM}>How columns are chosen</dt>
+          <dd style={METHODS_DEF}>
+            A target-gene column is shown only when it is significant across at
+            least <strong>{m.minSigGroupsFloor}</strong> distinct perturbed genes
+            (phenotype columns are always kept). At most{" "}
+            <strong>{m.colsPerDataset}</strong>{" "}
+            columns per dataset are shown &mdash; change this with the{" "}
+            <em>Columns per dataset</em> control (up to{" "}
+            {m.materializeTopM} are precomputed).
+            {m.expandedColumnsTruncated && (
+              <>
+                {" "}
+                Some datasets have more eligible columns than shown (
+                {m.expandedColumnsAvailable.toLocaleString()} available across all
+                datasets); only the most convergent are displayed.
+              </>
+            )}
+          </dd>
+
+          <dt style={METHODS_TERM}>Color</dt>
+          <dd style={METHODS_DEF}>
+            Each column is colored by its own metric
+            {metricList ? ` (${metricList})` : ""}; metrics are never mixed in one
+            scale &mdash; see the legends above.
+          </dd>
+
+          <dt style={METHODS_TERM}>Sparsity</dt>
+          <dd style={{ ...METHODS_DEF, marginBottom: 0 }}>
+            The matrix is intentionally sparse; an empty cell means there is no
+            measurement for that perturbed-gene &times; readout pair. Gaps are
+            expected and permanent.
+          </dd>
+        </dl>
+      </div>
+    </details>
+  );
+}
+
 export default function MatrixPage() {
   const [colsPerDataset, setColsPerDataset] = useState(25);
   const [data, setData] = useState<CollatedMatrixResponse | null>(null);
@@ -231,6 +334,8 @@ export default function MatrixPage() {
             links to its full table. The matrix is{" "}
             <strong>intentionally sparse</strong> &mdash; gaps are expected.
           </p>
+
+          {data && <MatrixMethods data={data} />}
 
           {data && <MetricLegend data={data} />}
 
