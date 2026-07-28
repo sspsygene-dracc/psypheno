@@ -298,6 +298,165 @@ def overview_matrix(no_index: bool, min_sig_groups: int) -> None:
         sys.exit(1)
 
 
+@cli.command(name="subset-db")
+@click.option(
+    "--destination",
+    type=click.Choice(["int", "prod"], case_sensitive=False),
+    required=True,
+    help="Which instance to build the subset for. Only datasets whose "
+    "`deployTo` names this instance are included.",
+)
+@click.option(
+    "--from",
+    "from_db",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Source dataset DB (the dev superset). Defaults to SSPSYGENE_DATA_DB.",
+)
+@click.option(
+    "--to",
+    "to_db",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Output path. Defaults to a `-<destination>` sibling of the source, "
+    "e.g. sspsygene.db -> sspsygene-prod.db.",
+)
+@click.option(
+    "--config-root",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Dataset config directory used to cross-check the DB's own labels. "
+    "Defaults to <SSPSYGENE_DATA_DIR>/datasets.",
+)
+@click.option(
+    "--no-verify",
+    is_flag=True,
+    default=False,
+    help="Skip the destination check. For debugging only — never for a build "
+    "that will be promoted.",
+)
+def subset_db_command(
+    destination: str,
+    from_db: Path | None,
+    to_db: Path | None,
+    config_root: Path | None,
+    no_verify: bool,
+) -> None:
+    """Derive an int/prod dataset DB from the dev superset (#225).
+
+    The dataset DB is built once, on dev, with every dataset in it. This
+    produces the file a promotion copies: a fresh DB containing only the
+    datasets whose `deployTo` names the destination.
+
+    \b
+    Fail-closed by construction — it creates an empty DB and copies in only
+    what the labels allow, rather than copying the superset and deleting.
+    It never re-reads raw data or re-runs gene resolution; central_gene and
+    the synonym tables are recomputed from `central_gene_usage`.
+
+    \b
+        sspsygene subset-db --destination prod
+        sspsygene subset-db --destination int --from dev.db --to int.db
+    """
+    from processing.destination_guard import DestinationGuardError
+    from processing.subset_db import SubsetError, subset_db
+
+    destination = destination.lower()
+    _echo_sspsygene_env("start")
+    try:
+        config = get_sspsygene_config()
+        source = from_db or config.out_db
+        target = to_db or source.with_name(
+            f"{source.stem}-{destination}{source.suffix}"
+        )
+        root = config_root or (config.base_dir / "datasets")
+        subset_db(
+            source,
+            target,
+            destination,
+            verify=not no_verify,
+            config_root=root if root.exists() else None,
+        )
+        click.secho(f"Wrote {destination} subset to {target}", fg="green")
+        _echo_sspsygene_env("end")
+    except (SubsetError, DestinationGuardError) as e:
+        click.echo(f"{e}", err=True)
+        sys.exit(1)
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command(name="verify-destination")
+@click.argument(
+    "db", type=click.Path(exists=True, dir_okay=False, path_type=Path)
+)
+@click.option(
+    "--destination",
+    type=click.Choice(["dev", "int", "prod"], case_sensitive=False),
+    required=True,
+    help="The instance this DB is (or is about to be) served on.",
+)
+@click.option(
+    "--config-root",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Dataset config directory whose `deployTo` lists are the source of "
+    "truth. Defaults to <SSPSYGENE_DATA_DIR>/datasets. Without it the DB's "
+    "own labels are used alone, which is a weaker check.",
+)
+def verify_destination_command(
+    db: Path, destination: str, config_root: Path | None
+) -> None:
+    """Check that a DB contains exactly what its destination allows (#225).
+
+    Answers: does this file contain anything belonging to a dataset that is not
+    allowed on this instance? The allowed set is re-read from the checkout's
+    data/datasets/*/config.yaml and cross-checked against the DB's own
+    `dataset_destinations`, so this is an independent check rather than a
+    restatement of the build that produced the file.
+
+    \b
+    The assertion is equality in both directions — no non-member data present,
+    and no member data missing — and every place a table name can hide is
+    swept, including the member list inside all-tables.zip. The `-meta` and
+    `-overview` siblings, if present, are held to the prod-only rule on every
+    instance.
+
+    \b
+    Exits non-zero on any finding. Safe to run at any time against a live
+    instance's DB:
+
+    \b
+        sspsygene verify-destination /hive/.../data/db/sspsygene.db \\
+            --destination prod
+    """
+    from processing.destination_guard import (
+        DestinationGuardError,
+        verify_destination,
+    )
+
+    destination = destination.lower()
+    root = config_root
+    if root is None:
+        try:
+            root = get_sspsygene_config().base_dir / "datasets"
+        except ValueError:
+            root = None
+    try:
+        verify_destination(
+            db,
+            destination,
+            config_root=root if root and root.exists() else None,
+        )
+    except DestinationGuardError as e:
+        click.secho(f"{e}", fg="red", bold=True, err=True)
+        sys.exit(1)
+    click.secho(
+        f"OK: {db} is valid for destination {destination!r}.", fg="green"
+    )
+
+
 @cli.command()
 def load_gene_descriptions() -> None:
     """Parse NCBI gene_info.gz into a standalone gene_descriptions.db."""
