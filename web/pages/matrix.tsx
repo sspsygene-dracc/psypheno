@@ -4,22 +4,30 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CollatedMatrix, {
   StatusSwatch,
-  type MatrixGeneRow,
-  type MatrixModalityColumn,
+  pColor,
 } from "@/components/CollatedMatrix";
-import type { CellStatus } from "@/pages/api/collated-matrix";
+import type {
+  CellStatus,
+  CollatedMatrixResponse,
+} from "@/lib/collated-matrix-types";
 
-interface MatrixResponse {
-  modalities: MatrixModalityColumn[];
-  genes: MatrixGeneRow[];
-}
-
-const LEGEND_ITEMS: [CellStatus, string][] = [
+const STATUS_LEGEND: [CellStatus, string][] = [
   ["significant", "significant"],
   ["data", "data, not significant"],
   ["assayed_null", "assayed but null"],
   ["none", "no data"],
 ];
+
+// A yellow→orange→red gradient bar matching the p-value tiles' ramp.
+function pvalueRampCss(): string {
+  const stops = [1, 4.75, 9.5, 14.25, 20]
+    .map((v) => {
+      const t = ((v - 1) / 19) * 100;
+      return `${pColor(v)} ${t.toFixed(0)}%`;
+    })
+    .join(", ");
+  return `linear-gradient(to right, ${stops})`;
+}
 
 function Legend() {
   return (
@@ -34,8 +42,8 @@ function Legend() {
         marginBottom: 20,
       }}
     >
-      <span style={{ fontWeight: 600, color: "#374151" }}>Legend:</span>
-      {LEGEND_ITEMS.map(([status, label]) => (
+      <span style={{ fontWeight: 600, color: "#374151" }}>Status columns:</span>
+      {STATUS_LEGEND.map(([status, label]) => (
         <span
           key={status}
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
@@ -43,12 +51,38 @@ function Legend() {
           <StatusSwatch status={status} /> {label}
         </span>
       ))}
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          marginLeft: 8,
+        }}
+      >
+        <span style={{ fontWeight: 600, color: "#374151" }}>
+          RNA expression:
+        </span>
+        <span>-log10(p)</span>
+        <span style={{ color: "#9ca3af" }}>1</span>
+        <span
+          aria-hidden="true"
+          style={{
+            display: "inline-block",
+            width: 90,
+            height: 12,
+            borderRadius: 2,
+            border: "1px solid rgba(0,0,0,0.12)",
+            background: pvalueRampCss(),
+          }}
+        />
+        <span style={{ color: "#9ca3af" }}>20</span>
+      </span>
     </div>
   );
 }
 
 export default function MatrixPage() {
-  const [data, setData] = useState<MatrixResponse | null>(null);
+  const [data, setData] = useState<CollatedMatrixResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +91,7 @@ export default function MatrixPage() {
       try {
         const res = await fetch("/api/collated-matrix");
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
-        const json = (await res.json()) as MatrixResponse;
+        const json = (await res.json()) as CollatedMatrixResponse;
         setData(json);
       } catch (e: any) {
         setError(e?.message || "Failed to load matrix");
@@ -69,7 +103,9 @@ export default function MatrixPage() {
   }, []);
 
   const genes = data?.genes ?? [];
-  const modalities = data?.modalities ?? [];
+  const sections = data?.sections ?? [];
+  const columns = data?.columns ?? [];
+  const meta = data?.meta;
 
   return (
     <>
@@ -109,14 +145,16 @@ export default function MatrixPage() {
               color: "#4b5563",
               marginBottom: 16,
               lineHeight: 1.5,
-              maxWidth: 760,
+              maxWidth: 820,
             }}
           >
             Every experimentally perturbed SSPsyGene target gene (rows) against
-            each experimental modality (columns). Each tile is a{" "}
-            <strong>color-coded status</strong>, not an effect size. The matrix
-            is <strong>intentionally sparse</strong> &mdash; most modalities have
-            little or no data yet, and gaps are expected.
+            each experimental modality (grouped columns). Most modalities are a
+            single <strong>color-coded status</strong> tile; RNA expression is{" "}
+            <strong>fanned out</strong> into one column per measured target gene
+            that responds across multiple perturbations, colored by{" "}
+            <strong>-log10(p)</strong> (red = most significant). The matrix is{" "}
+            <strong>intentionally sparse</strong> &mdash; gaps are expected.
           </p>
 
           <Legend />
@@ -137,20 +175,21 @@ export default function MatrixPage() {
             </div>
           )}
 
-          {/* #222 replaced the API's `modalities` array with `sections` +
-              `columns` so RNA expression can fan out into a per-target-gene
-              heatmap. This view still speaks the old shape; the rework that
-              consumes the new contract is tracked separately. Until then, say
-              so rather than rendering a table with no columns. */}
-          {!loading && !error && genes.length > 0 && modalities.length === 0 && (
-            <div style={{ color: "#6b7280", marginTop: 16 }}>
-              This view is being rebuilt against the expanded matrix API
-              (#222) and is temporarily unavailable.
-            </div>
-          )}
-
-          {!loading && !error && genes.length > 0 && modalities.length > 0 && (
-            <CollatedMatrix modalities={modalities} genes={genes} />
+          {!loading && !error && genes.length > 0 && (
+            <>
+              <CollatedMatrix
+                sections={sections}
+                columns={columns}
+                genes={genes}
+              />
+              {meta?.expressionColumnsTruncated && (
+                <div style={{ color: "#9ca3af", fontSize: 12, marginTop: 8 }}>
+                  Showing the {meta.expressionColumnCount.toLocaleString()}{" "}
+                  strongest of {meta.expressionColumnsAvailable.toLocaleString()}{" "}
+                  qualifying RNA-expression columns.
+                </div>
+              )}
+            </>
           )}
         </main>
         <Footer />

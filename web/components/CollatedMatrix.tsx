@@ -1,40 +1,29 @@
 import { useMemo, useState } from "react";
 import DoubleScrollX from "@/components/DoubleScrollX";
-import type { CellStatus } from "@/pages/api/collated-matrix";
+import {
+  isPvalueCell,
+  type CellStatus,
+  type MatrixColumn,
+  type MatrixGeneRow,
+  type MatrixSection,
+} from "@/lib/collated-matrix-types";
 
 /**
- * CollatedMatrix — the perturbed-gene × modality "red table" (psypheno #213,
- * epic #220), rendered as a compact status heatmap. Rows are experimentally-
- * perturbed genes, columns are experimental modalities, and each cell is a
- * small color-coded tile whose fill encodes a status (not an effect size).
- * Sparse by design: most tiles are "no data" (near-empty), so signal pops.
+ * CollatedMatrix — the perturbed-gene × modality "red table" (epic #220),
+ * rendered as a compact heatmap. Rows are experimentally-perturbed genes;
+ * columns come in two flavours (the #222 contract, `@/lib/collated-matrix-types`):
  *
- * Consumes the shape returned by GET /api/collated-matrix. That route exports
- * `CellStatus`; the record types below mirror its file-private interfaces.
+ * - **status** columns (one per un-expanded modality): a small color-coded tile
+ *   whose fill encodes a status glyph (significant / data / assayed-null / none).
+ * - **pvalue** columns (an *expanded* section, e.g. RNA expression fanned out
+ *   into one column per significant target gene): a yellow→orange→red tile whose
+ *   fill encodes `-log10(p)` (red = most significant).
  *
- * A DataTable config can't express this (sticky header + frozen first column),
- * so this is a purpose-built component. Horizontal scroll + sticky axes are
- * handled by a bounded-height DoubleScrollX (see MATRIX_MAX_HEIGHT).
+ * Sections group the columns; the header is two-tier — a section band over the
+ * per-column labels. A DataTable config can't express this (sticky header +
+ * frozen first column), so this is a purpose-built component. Horizontal scroll
+ * + sticky axes are handled by a bounded-height DoubleScrollX.
  */
-
-export interface MatrixCell {
-  status: CellStatus;
-  count: number;
-  tableNames: string[];
-}
-
-export interface MatrixGeneRow {
-  centralGeneId: number;
-  humanSymbol: string | null;
-  cells: Record<string, MatrixCell>;
-}
-
-export interface MatrixModalityColumn {
-  key: string;
-  label: string;
-  alwaysShow: boolean;
-  isEmpty: boolean;
-}
 
 type SortMode = "symbol" | "sig";
 
@@ -47,12 +36,16 @@ const CELL = 17; // tile + ~1px gutter each side → ~2px between adjacent tiles
 const ROW_H = CELL; // row height, px (compact)
 const COL_W = CELL; // data column width, px
 const LABEL_W = 120; // frozen gene-label column width, px
+const SECTION_H = 24; // height of the top section-band header row, px
+
+// p < 0.05 as a -log10(p) threshold — the bar for counting a cell "significant"
+// in the row-sort score and, for a status cell, what the API already applied.
+const SIG_NEG_LOG_P = 1.30103;
 
 /**
- * Sequential status ramp in the orange range (darker = more signal), plus a
- * distinct mid-gray for "assayed but null" so it reads as measured-yet-empty.
- * `none` is essentially white (barely off-white) so gaps recede and the sparse
- * signal stands out; the gray of `assayed_null` is clearly darker than `none`.
+ * Status ramp for un-expanded modality tiles. Orange for signal (darker = more),
+ * a distinct mid-gray for "assayed but null", near-white for "no data" so gaps
+ * recede. Shared with the page legend so the two render identically.
  */
 const STATUS_META: Record<
   CellStatus,
@@ -64,11 +57,72 @@ const STATUS_META: Record<
   none: { fill: "#fcfcfd", border: "#eef0f2", label: "No data" },
 };
 
+// ColorBrewer "YlOrRd" anchors — the p-value heatmap ramp. Position ∈ [0,1].
+const YLORRD: Array<[number, [number, number, number]]> = [
+  [0.0, [255, 255, 204]],
+  [0.25, [254, 217, 118]],
+  [0.5, [253, 141, 60]],
+  [0.75, [240, 59, 32]],
+  [1.0, [189, 0, 38]],
+];
+
+function lerp(a: number, b: number, t: number): number {
+  return Math.round(a + (b - a) * t);
+}
+
 /**
- * A single status tile — a small filled square. Shared between the heatmap
- * cells and the page legend so the two always render identically. `aria-label`
- * carries the meaning since the visual is color-only.
+ * Map a clamped `-log10(p)` (the API already clamps to [1, 20]) onto the YlOrRd
+ * ramp. 1 → palest yellow, 20 → deep red. Exported so the page legend paints the
+ * exact same gradient.
  */
+export function pColor(negLogP: number): string {
+  const t = (Math.min(Math.max(negLogP, 1), 20) - 1) / 19;
+  let lo = YLORRD[0];
+  let hi = YLORRD[YLORRD.length - 1];
+  for (let i = 0; i < YLORRD.length - 1; i++) {
+    if (t >= YLORRD[i][0] && t <= YLORRD[i + 1][0]) {
+      lo = YLORRD[i];
+      hi = YLORRD[i + 1];
+      break;
+    }
+  }
+  const span = hi[0] - lo[0] || 1;
+  const local = (t - lo[0]) / span;
+  const [r, g, b] = [0, 1, 2].map((k) => lerp(lo[1][k], hi[1][k], local));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/** A small filled square tile. */
+function Tile({
+  fill,
+  border,
+  label,
+  size = TILE,
+}: {
+  fill: string;
+  border: string;
+  label: string;
+  size?: number;
+}) {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      style={{
+        display: "inline-block",
+        width: size,
+        height: size,
+        borderRadius: 2,
+        background: fill,
+        border: `1px solid ${border}`,
+        boxSizing: "border-box",
+        verticalAlign: "middle",
+      }}
+    />
+  );
+}
+
+/** Status tile — reused by the page legend. */
 export function StatusSwatch({
   status,
   size = TILE,
@@ -77,34 +131,32 @@ export function StatusSwatch({
   size?: number;
 }) {
   const m = STATUS_META[status];
+  return <Tile fill={m.fill} border={m.border} label={m.label} size={size} />;
+}
+
+/** p-value tile — reused by the page legend ramp. */
+export function PvalueSwatch({
+  negLogP,
+  size = TILE,
+}: {
+  negLogP: number;
+  size?: number;
+}) {
   return (
-    <span
-      role="img"
-      aria-label={m.label}
-      style={{
-        display: "inline-block",
-        width: size,
-        height: size,
-        borderRadius: 2,
-        background: m.fill,
-        border: `1px solid ${m.border}`,
-        boxSizing: "border-box",
-        verticalAlign: "middle",
-      }}
+    <Tile
+      fill={pColor(negLogP)}
+      border="rgba(0,0,0,0.12)"
+      label={`-log10(p) ≈ ${negLogP}`}
+      size={size}
     />
   );
 }
 
-function significantModalityCount(g: MatrixGeneRow): number {
-  let n = 0;
-  for (const c of Object.values(g.cells)) {
-    if (c.status === "significant") n++;
-  }
-  return n;
-}
+const NO_DATA_TILE = (
+  <Tile fill={STATUS_META.none.fill} border={STATUS_META.none.border} label="No data" />
+);
 
-// Mirrors the API's own comparator: case-insensitive A→Z, null/empty last,
-// ties broken by centralGeneId.
+// Case-insensitive A→Z, null/empty last, ties by id — mirrors the API.
 function bySymbol(a: MatrixGeneRow, b: MatrixGeneRow): number {
   const as = a.humanSymbol || "";
   const bs = b.humanSymbol || "";
@@ -114,23 +166,59 @@ function bySymbol(a: MatrixGeneRow, b: MatrixGeneRow): number {
   return as.localeCompare(bs, "en", { sensitivity: "base" });
 }
 
-function cellTitle(gene: string, label: string, cell: MatrixCell): string {
-  const meaning = STATUS_META[cell.status].label;
-  if (cell.status === "none") return `${gene} · ${label}: no data`;
-  const tables = cell.tableNames.length
-    ? ` — ${cell.tableNames.join(", ")}`
-    : "";
-  const noun = cell.status === "assayed_null" ? "assayed" : "row";
-  return `${gene} · ${label}: ${meaning} (${cell.count} ${noun}${
-    cell.count === 1 ? "" : "s"
+// Count of "significant" cells across a gene's row: a significant status cell,
+// or a p-value cell at p < 0.05. Only present cells are iterated.
+function significanceScore(g: MatrixGeneRow): number {
+  let n = 0;
+  for (const cell of Object.values(g.cells)) {
+    if (isPvalueCell(cell)) {
+      if (cell.negLogP >= SIG_NEG_LOG_P) n++;
+    } else if (cell.status === "significant") {
+      n++;
+    }
+  }
+  return n;
+}
+
+function pApprox(negLogP: number): string {
+  if (negLogP >= 20) return "p ≤ 1e-20";
+  if (negLogP <= 1) return "p ≥ 0.1";
+  return `p ≈ ${Math.pow(10, -negLogP).toExponential(1)}`;
+}
+
+function cellTitle(
+  gene: string,
+  column: MatrixColumn,
+  cell: MatrixGeneRow["cells"][string] | undefined
+): string {
+  if (column.kind === "pvalue") {
+    if (cell && isPvalueCell(cell)) {
+      return `${gene} · ${column.label}: ${pApprox(cell.negLogP)} (-log10 ${cell.negLogP})`;
+    }
+    return `${gene} · ${column.label}: no data`;
+  }
+  const status: CellStatus =
+    cell && !isPvalueCell(cell) ? cell.status : "none";
+  const meaning = STATUS_META[status].label;
+  if (status === "none") return `${gene} · ${column.label}: no data`;
+  const count = cell && !isPvalueCell(cell) ? cell.count : 0;
+  const tables =
+    cell && !isPvalueCell(cell) && cell.tableNames.length
+      ? ` — ${cell.tableNames.join(", ")}`
+      : "";
+  const noun = status === "assayed_null" ? "assayed" : "row";
+  return `${gene} · ${column.label}: ${meaning} (${count} ${noun}${
+    count === 1 ? "" : "s"
   })${tables}`;
 }
 
 export default function CollatedMatrix({
-  modalities,
+  sections,
+  columns,
   genes,
 }: {
-  modalities: MatrixModalityColumn[];
+  sections: MatrixSection[];
+  columns: MatrixColumn[];
   genes: MatrixGeneRow[];
 }) {
   const [sortMode, setSortMode] = useState<SortMode>("symbol");
@@ -139,9 +227,7 @@ export default function CollatedMatrix({
     const rows = [...genes];
     if (sortMode === "sig") {
       rows.sort(
-        (a, b) =>
-          significantModalityCount(b) - significantModalityCount(a) ||
-          bySymbol(a, b)
+        (a, b) => significanceScore(b) - significanceScore(a) || bySymbol(a, b)
       );
     } else {
       rows.sort(bySymbol);
@@ -172,6 +258,8 @@ export default function CollatedMatrix({
     );
   };
 
+  const expandedCols = columns.filter((c) => c.kind === "pvalue").length;
+
   return (
     <div>
       <div
@@ -186,7 +274,9 @@ export default function CollatedMatrix({
       >
         <div style={{ fontSize: 13, color: "#6b7280" }}>
           {sortedGenes.length.toLocaleString()} perturbed genes ×{" "}
-          {modalities.length} modalities
+          {columns.length.toLocaleString()} columns
+          {expandedCols > 0 &&
+            ` (${expandedCols.toLocaleString()} expanded RNA-expression targets)`}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
@@ -215,14 +305,16 @@ export default function CollatedMatrix({
             }}
           >
             <thead>
+              {/* Row 1 — section band. The frozen corner spans both header rows. */}
               <tr>
                 <th
                   scope="col"
+                  rowSpan={2}
                   style={{
                     position: "sticky",
                     top: 0,
                     left: 0,
-                    zIndex: 3,
+                    zIndex: 5,
                     background: "#f9fafb",
                     textAlign: "right",
                     verticalAlign: "bottom",
@@ -239,15 +331,64 @@ export default function CollatedMatrix({
                 >
                   Gene
                 </th>
-                {modalities.map((m) => (
+                {sections.map((s) => (
                   <th
-                    key={m.key}
-                    scope="col"
-                    title={m.isEmpty ? `${m.label} (no data yet)` : m.label}
+                    key={s.key}
+                    scope="colgroup"
+                    colSpan={s.span}
+                    title={s.label}
                     style={{
                       position: "sticky",
                       top: 0,
-                      zIndex: 2,
+                      zIndex: 4,
+                      height: SECTION_H,
+                      background: "#f3f4f6",
+                      color: s.isEmpty ? "#9ca3af" : "#374151",
+                      fontWeight: 700,
+                      fontSize: 12,
+                      padding: 0,
+                      textAlign: "left",
+                      whiteSpace: "nowrap",
+                      borderBottom: "1px solid #e5e7eb",
+                      borderLeft: "1px solid #e5e7eb",
+                    }}
+                  >
+                    {/* Expanded sections span thousands of px; a sticky-left
+                        label rides the viewport so it stays visible as you scroll
+                        across the section. Single-column status sections are too
+                        narrow (17px) for horizontal text — their name is carried
+                        by the vertical per-column header below, band left blank. */}
+                    {s.kind === "expanded" ? (
+                      <div
+                        style={{
+                          position: "sticky",
+                          left: LABEL_W,
+                          padding: "0 8px",
+                          display: "inline-block",
+                          maxWidth: "100%",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {s.label}
+                      </div>
+                    ) : (
+                      ""
+                    )}
+                  </th>
+                ))}
+              </tr>
+              {/* Row 2 — per-column vertical labels. */}
+              <tr>
+                {columns.map((c) => (
+                  <th
+                    key={c.key}
+                    scope="col"
+                    title={c.label}
+                    style={{
+                      position: "sticky",
+                      top: SECTION_H,
+                      zIndex: 4,
                       background: "#f9fafb",
                       verticalAlign: "bottom",
                       padding: "6px 0",
@@ -263,11 +404,11 @@ export default function CollatedMatrix({
                         margin: "0 auto",
                         fontSize: 12,
                         fontWeight: 600,
-                        color: m.isEmpty ? "#9ca3af" : "#374151",
+                        color: "#374151",
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {m.label}
+                      {c.label}
                     </div>
                   </th>
                 ))}
@@ -285,7 +426,7 @@ export default function CollatedMatrix({
                       style={{
                         position: "sticky",
                         left: 0,
-                        zIndex: 1,
+                        zIndex: 2,
                         background: rowBg,
                         textAlign: "right",
                         fontWeight: 500,
@@ -303,14 +444,25 @@ export default function CollatedMatrix({
                     >
                       {gene}
                     </th>
-                    {modalities.map((m) => {
-                      const cell =
-                        g.cells[m.key] ??
-                        ({ status: "none", count: 0, tableNames: [] } as MatrixCell);
+                    {columns.map((c) => {
+                      const cell = g.cells[c.key];
+                      let tile;
+                      if (c.kind === "pvalue") {
+                        tile =
+                          cell && isPvalueCell(cell) ? (
+                            <PvalueSwatch negLogP={cell.negLogP} />
+                          ) : (
+                            NO_DATA_TILE
+                          );
+                      } else {
+                        const status: CellStatus =
+                          cell && !isPvalueCell(cell) ? cell.status : "none";
+                        tile = <StatusSwatch status={status} />;
+                      }
                       return (
                         <td
-                          key={m.key}
-                          title={cellTitle(gene, m.label, cell)}
+                          key={c.key}
+                          title={cellTitle(gene, c, cell)}
                           style={{
                             background: rowBg,
                             textAlign: "center",
@@ -321,7 +473,7 @@ export default function CollatedMatrix({
                             lineHeight: 0,
                           }}
                         >
-                          <StatusSwatch status={cell.status} />
+                          {tile}
                         </td>
                       );
                     })}
