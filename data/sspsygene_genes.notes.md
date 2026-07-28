@@ -6,12 +6,7 @@ Sidecar for `sspsygene_genes.txt` (259 genes) and `sspsygene_capstone_genes.txt`
 ## Source
 
 The consortium's live Google Sheet **"Gene preference selection"**, linked from
-the CCC monthly-meeting notes doc as the *"Gene Selection site"*:
-
-    https://docs.google.com/spreadsheets/d/1bHH1rKILTXGyWaOxb6RnaaNbRlAzqa_tahEo4sYrFxE/
-
-Tab `Spreadsheet`, column A, rows 4+. The column header reads verbatim:
-*"250 SSPsyGene list (+9 genes), Capstone genes in red"*.
+the CCC monthly-meeting notes doc as the *"Gene Selection site"*.
 
 Snapshot taken **2026-07-28**. The rest of that sheet is a per-(ADGC × assay ×
 cell line) status matrix, a weighted score block, and a mostly-empty Cell Line
