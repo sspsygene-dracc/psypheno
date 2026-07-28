@@ -47,6 +47,13 @@ maintainers:
     date: "2026-05-07"
     comment: "Initial table creation (issue #56). Source xlsx bundle manually downloaded from Science. Bulk-cortex DGE only — DTE/DTU/TWAS/WGCNA companion sheets skipped per makeDoc.txt."
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: gandal_2018_bulk_de
     shortLabel: gandal_2018_bulk_de

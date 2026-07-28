@@ -94,6 +94,13 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2026-05-05"
     comment: Standardized table titles, tightened the tissue label from Brain to PFC, added column header tooltips, declared effect_columns, and migrated preprocessing to the Pipeline framework.
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: psychscreen_age_deg
     changelog:

@@ -25,6 +25,13 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2026-05-05"
     comment: Standardized table title, added paper-tailored column tooltips, declared effect_column on perturb_fish_astro, and migrated off drop_values to the new patient_list filter.
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: perturb_fish_astro
     overview_matrix: true  # #212 overview matrix source

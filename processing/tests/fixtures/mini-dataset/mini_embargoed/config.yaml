@@ -1,0 +1,62 @@
+publication:
+  authors:
+    - Ada Poe
+    - Rex Vance
+  year: 2026
+  journal: Test Journal of Embargoed Genetics
+  doi: 10.0000/test.0002
+  pmid: "87654321"
+  sspsygene_grants: ["R01HG000001"]
+maintainers:
+  - name: Test Fixture
+    email: nobody@example.invalid
+    date: "2026-07-28"
+    comment: Fixture dataset exercising the deployTo subset path (#225)
+# Deliberately dev-only: this is the fixture's stand-in for an embargoed
+# dataset. `subset-db --destination prod` must drop it entirely, and
+# verify-destination must catch it if any trace survives (#225).
+deployTo:
+  - dev
+tables:
+  - table: mini_embargoed_deg
+    changelog:
+      - date: "2026-07-28"
+        message: "Initial embargoed fixture data load"
+    shortLabel: mini_embargoed_degs
+    mediumLabel: Mini Embargoed DEGs (test fixture)
+    longLabel: Synthetic dev-only differential-expression rows used to test destination subsetting
+    description:
+      Tiny synthetic perturb-seq DEG table marked dev-only. Shares some genes
+      with mini_perturb (so subsetting must shrink num_datasets rather than
+      drop the gene) and introduces others found nowhere else (so subsetting
+      must drop those central_gene rows entirely).
+    source: "Test fixture"
+    assay: perturbation
+    fieldLabels:
+      gene: "Mouse target gene whose expression was measured"
+      perturbation_gene: "Gene targeted by the gRNA in this row"
+    categories:
+      - test fixture
+      - perturb-seq
+    organism: Mus musculus (test fixture)
+    organism_key: mouse
+    in_path: deg.tsv
+    separator: "\t"
+    gene_mappings:
+      - column_name: gene
+        link_table_name: gene
+        species: mouse
+        perturbed_or_target: target
+        non_resolving:
+          record_values:
+            - Gm88888
+      - column_name: perturbation_gene
+        link_table_name: perturbation_gene
+        species: mouse
+        perturbed_or_target: perturbed
+        non_resolving:
+          control_values:
+            - NonTarget2
+    pvalue_column: pvalue
+    fdr_column: padj
+    effect_column: logfc

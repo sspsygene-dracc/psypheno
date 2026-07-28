@@ -24,6 +24,13 @@ maintainers:
     date: "2026-05-07"
     comment: "Initial table creation (issue #55). Source xlsx bundle manually downloaded from Science. Per-gene per-cell-type ASD-vs-CTL DEG list NOT in this snapshot — lives on PsychENCODE Synapse syn51032009; see makeDoc.txt and the issue comment."
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: wamsley_2024_cluster_markers
     shortLabel: wamsley_2024_cluster_markers

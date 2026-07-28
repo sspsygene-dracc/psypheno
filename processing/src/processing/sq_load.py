@@ -119,9 +119,28 @@ def load_gene_tables(
         central_gene_id INTEGER
         )"""
     )
+    # Per-(gene, table, name) resolution record (#225). central_gene's
+    # dataset_names / human_synonyms / mouse_synonyms columns are all flattened
+    # aggregates over every table that used the gene; this table keeps the
+    # pairing so `subset-db` can recompute those aggregates for a subset of
+    # tables without re-running gene resolution or re-parsing HGNC/MGI/Alliance.
+    cur.execute(
+        """CREATE TABLE central_gene_usage (
+        central_gene_id INTEGER NOT NULL,
+        table_name TEXT NOT NULL,
+        species TEXT NOT NULL,
+        matched_name TEXT NOT NULL,
+        PRIMARY KEY (central_gene_id, table_name, species, matched_name)
+        ) WITHOUT ROWID"""
+    )
+    usage_rows: list[tuple[int, str, str, str]] = []
     for entry in get_central_gene_table().entries:
         if not entry.used:
             continue
+        usage_rows.extend(
+            (entry.row_id, table_name, species, matched_name)
+            for table_name, species, matched_name in entry.usages
+        )
         human_synonyms = entry.human_synonyms & entry.used_human_names
         mouse_synonyms = entry.mouse_synonyms & entry.used_mouse_names
         to_insert = (
@@ -175,6 +194,21 @@ def load_gene_tables(
                 VALUES (?, ?)""",
                 (entry.row_id, mouse_symbol),
             )
+    cur.executemany(
+        """INSERT INTO central_gene_usage (
+        central_gene_id, table_name, species, matched_name)
+        VALUES (?, ?, ?, ?)""",
+        usage_rows,
+    )
+    # table_name is the subsetter's filter column; central_gene_id is the join
+    # back to the surviving genes. The WITHOUT ROWID PK already covers
+    # central_gene_id as a prefix, so only table_name needs its own index.
+    create_indexes(
+        conn,
+        "central_gene_usage",
+        ["table_name"],
+        skip=no_index,
+    )
     create_indexes(
         conn,
         "central_gene",
@@ -256,6 +290,9 @@ def load_data_tables(
         """CREATE TABLE data_tables (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         table_name TEXT,
+        -- The data/datasets/<name> directory this table was defined in (#225).
+        -- Distinct from table_name: one dataset may define several tables.
+        dataset TEXT,
         short_label TEXT,
         medium_label TEXT,
         long_label TEXT,
@@ -378,6 +415,7 @@ def load_data_tables(
         # one-line dict edit — no counting a long row of positional `?`.
         row = {
             "table_name": table_config.table,
+            "dataset": table_config.dataset,
             "short_label": table_config.short_label,
             "medium_label": table_config.medium_label,
             "long_label": table_config.long_label,
@@ -481,7 +519,7 @@ def load_data_tables(
     create_indexes(
         conn,
         "data_tables",
-        ["table_name", "gene_species", "link_tables"],
+        ["table_name", "dataset", "gene_species", "link_tables"],
         skip=no_index,
     )
     create_indexes(
@@ -522,6 +560,55 @@ def load_data_tables(
             f"  {click.style(str(len(loaded)), bold=True)} loaded, "
             f"{click.style(str(len(skipped)), bold=True)} skipped"
         )
+
+
+def load_dataset_destinations(
+    conn: sqlite3.Connection,
+    table_configs: list[TableToProcessConfig],
+    *,
+    no_index: bool = False,
+) -> None:
+    """Record each table's declared `deployTo` destinations in the DB (#225).
+
+    This is the in-DB copy of the labels from data/datasets/*/config.yaml. It
+    lets `subset-db` and `verify-destination` work from the DB alone, and lets
+    the verifier cross-check the DB against the on-disk configs — a mismatch
+    between the two is itself a failure, which is what makes the check
+    independent of the code that produced the file rather than a restatement
+    of it.
+
+    Membership is derived from what actually landed in `data_tables`, so a
+    table skipped via --skip-missing-datasets contributes no rows and the two
+    sets stay in exact agreement.
+    """
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE dataset_destinations (
+        dataset TEXT NOT NULL,
+        table_name TEXT NOT NULL,
+        destination TEXT NOT NULL,
+        PRIMARY KEY (dataset, table_name, destination)
+        ) WITHOUT ROWID"""
+    )
+    present = {
+        row[0] for row in cur.execute("SELECT table_name FROM data_tables")
+    }
+    rows = [
+        (table_config.dataset, table_config.table, destination)
+        for table_config in table_configs
+        if table_config.table in present
+        for destination in sorted(table_config.deploy_to)
+    ]
+    cur.executemany(
+        "INSERT OR IGNORE INTO dataset_destinations "
+        "(dataset, table_name, destination) VALUES (?, ?, ?)",
+        rows,
+    )
+    # The subsetter and the verifier both filter by destination, then by table.
+    create_indexes(
+        conn, "dataset_destinations", ["destination", "table_name"], skip=no_index
+    )
+    conn.commit()
 
 
 def load_assay_types(conn: sqlite3.Connection, assay_types: dict[str, str]) -> None:
@@ -704,6 +791,10 @@ def load_db(
             test_central_gene_ids=test_central_gene_ids,
             column_header_tokens=column_header_tokens,
         )
+        # Must run after load_data_tables: membership is read back out of
+        # `data_tables` so the two sets agree exactly even when a table was
+        # skipped for a missing input file (#225).
+        load_dataset_destinations(conn, table_configs, no_index=no_index)
         load_gene_tables(conn, no_index=no_index)
         compute_ensembl_to_symbol(conn, no_index=no_index)
         load_assay_types(conn, assay_types or {})

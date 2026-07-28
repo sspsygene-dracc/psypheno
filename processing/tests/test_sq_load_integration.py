@@ -63,6 +63,8 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
         _assert_lookup_tables(conn)
         _assert_changelog(conn)
         _assert_export_files(conn)
+        _assert_dataset_destinations(conn)
+        _assert_central_gene_usage(conn)
     finally:
         conn.close()
 
@@ -88,6 +90,99 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
         _assert_overview_matrix(overview_conn)
     finally:
         overview_conn.close()
+
+
+def _assert_dataset_destinations(conn: sqlite3.Connection) -> None:
+    """`dataset_destinations` mirrors the fixtures' deployTo lists (#225)."""
+    rows = {
+        (r["dataset"], r["table_name"], r["destination"])
+        for r in conn.execute("SELECT * FROM dataset_destinations")
+    }
+    assert rows == {
+        ("mini_perturb", "mini_perturb_deg", "dev"),
+        ("mini_perturb", "mini_perturb_deg", "prod"),
+        ("mini_embargoed", "mini_embargoed_deg", "dev"),
+    }
+
+    # The destination set must agree exactly with data_tables — nothing
+    # labelled that wasn't built, nothing built that wasn't labelled.
+    labelled = {r[0] for r in conn.execute(
+        "SELECT DISTINCT table_name FROM dataset_destinations"
+    )}
+    built = {r[0] for r in conn.execute("SELECT table_name FROM data_tables")}
+    assert labelled == built
+
+    # data_tables.dataset carries the dataset directory name (#225).
+    assert {
+        (r["table_name"], r["dataset"])
+        for r in conn.execute("SELECT table_name, dataset FROM data_tables")
+    } == {
+        ("mini_perturb_deg", "mini_perturb"),
+        ("mini_embargoed_deg", "mini_embargoed"),
+    }
+
+
+def _assert_central_gene_usage(conn: sqlite3.Connection) -> None:
+    """`central_gene_usage` keeps the (gene, table, name) pairing that
+    central_gene's flattened columns throw away (#225)."""
+    usage = [
+        (r["central_gene_id"], r["table_name"], r["species"], r["matched_name"])
+        for r in conn.execute("SELECT * FROM central_gene_usage")
+    ]
+    assert usage, "central_gene_usage must not be empty"
+    assert {u[1] for u in usage} == {"mini_perturb_deg", "mini_embargoed_deg"}
+    assert {u[2] for u in usage} == {"mouse"}
+
+    # Every usage row points at a central_gene row that survived `used`.
+    gene_ids = {r[0] for r in conn.execute("SELECT id FROM central_gene")}
+    assert {u[0] for u in usage} <= gene_ids
+
+    # The flattened aggregates must be exactly re-derivable from the usage
+    # rows — that equivalence is what lets subset-db recompute them.
+    for row in conn.execute(
+        "SELECT id, dataset_names, num_datasets FROM central_gene"
+    ):
+        derived = {
+            r[0]
+            for r in conn.execute(
+                "SELECT DISTINCT table_name FROM central_gene_usage "
+                "WHERE central_gene_id = ?",
+                (row["id"],),
+            )
+        }
+        assert derived == set((row["dataset_names"] or "").split(",")) - {""}
+        assert len(derived) == row["num_datasets"]
+
+    # Genes reached only by the dev-only dataset exist and are attributable to
+    # it alone — these are the rows a prod subset must drop entirely.
+    pax6_only = conn.execute(
+        "SELECT DISTINCT table_name FROM central_gene_usage "
+        "WHERE matched_name = 'Pax6'"
+    ).fetchall()
+    assert [r[0] for r in pax6_only] == ["mini_embargoed_deg"]
+
+    # Tcf4 is shared: a prod subset must keep it but shrink num_datasets.
+    tcf4 = {
+        r[0]
+        for r in conn.execute(
+            "SELECT DISTINCT table_name FROM central_gene_usage "
+            "WHERE matched_name = 'Tcf4'"
+        )
+    }
+    assert tcf4 == {"mini_perturb_deg", "mini_embargoed_deg"}
+
+    # The non-resolving stub paths (record_values / control_values) record
+    # usages too, so manually-added entries drop cleanly when their table is
+    # not a subset member.
+    stub_names = {
+        r[0]
+        for r in conn.execute(
+            "SELECT matched_name FROM central_gene_usage u "
+            "JOIN central_gene g ON g.id = u.central_gene_id "
+            "WHERE g.manually_added = 1"
+        )
+    }
+    assert {"Gm99999", "NonTarget1", "Gm88888", "NonTarget2"} <= stub_names
 
 
 def _assert_data_tables_row(conn: sqlite3.Connection) -> None:

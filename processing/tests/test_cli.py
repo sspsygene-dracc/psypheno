@@ -42,7 +42,7 @@ def test_load_db_full_run(mini_fixture: Path) -> None:
         }
     finally:
         conn.close()
-    assert names == {"mini_perturb_deg"}
+    assert names == {"mini_perturb_deg", "mini_embargoed_deg"}
 
 
 def test_load_db_dataset_filter(mini_fixture: Path) -> None:

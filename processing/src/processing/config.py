@@ -1,14 +1,19 @@
 from functools import lru_cache
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any, TypedDict, List, TYPE_CHECKING
 
 import yaml
 
+from processing.instances import INSTANCE_ORDER, REQUIRED_DESTINATION
+
 if TYPE_CHECKING:
     # Imported only for type checking to avoid circular import at runtime
     from processing.types.table_to_process_config import TableToProcessConfig
+
+logger = logging.getLogger(__name__)
 
 
 def _require_env(name: str) -> str:
@@ -62,6 +67,68 @@ class GlobalConfig(TypedDict, total=False):
 class YamlTablesFile(TypedDict, total=False):
     tables: List[dict[str, Any]]
     publication: dict[str, Any]
+    maintainers: List[dict[str, Any]]
+    deployTo: List[str]
+
+
+# Recognized top-level keys in a per-dataset config.yaml. Mirrors
+# _KNOWN_TABLE_KEYS in types/table_to_process_config.py: an unrecognized key is
+# warned about rather than silently ignored, so `deployto:` / `deplyTo:` typos
+# surface instead of silently disarming the deployTo safety flag (#225).
+_KNOWN_DATASET_KEYS = frozenset(
+    {
+        "publication",
+        "maintainers",
+        "tables",
+        "deployTo",
+    }
+)
+
+
+def _parse_deploy_to(loaded: dict[str, Any], yaml_path: Path) -> list[str]:
+    """Validate and normalize a dataset's `deployTo` list (#225).
+
+    `deployTo` declares which site instances a dataset may appear on. It is
+    mandatory and has no default: the failure mode of a silent default is
+    publishing embargoed data, so every malformed form is a hard error naming
+    the offending file. `dev` must always be listed explicitly even though it
+    is present in every dataset — explicit beats implicit for a safety flag.
+    """
+    valid = ", ".join(INSTANCE_ORDER)
+    hint = (
+        f"Add a top-level `deployTo:` list naming the instances this dataset "
+        f"may be served on (valid: {valid}); `dev` is required. Example:\n"
+        f"    deployTo:\n      - dev\n      - int\n      - prod"
+    )
+
+    if "deployTo" not in loaded:
+        raise ValueError(f"{yaml_path}: missing required top-level `deployTo`. {hint}")
+
+    deploy_to = loaded["deployTo"]
+    if not isinstance(deploy_to, list):
+        raise ValueError(
+            f"{yaml_path}: `deployTo` must be a list, got "
+            f"{type(deploy_to).__name__}. {hint}"
+        )
+    if not deploy_to:
+        raise ValueError(f"{yaml_path}: `deployTo` is empty. {hint}")
+
+    unknown = [d for d in deploy_to if d not in INSTANCE_ORDER]
+    if unknown:
+        raise ValueError(
+            f"{yaml_path}: `deployTo` contains unknown instance(s) "
+            f"{sorted(unknown)}. Valid instances: {valid}."
+        )
+    if REQUIRED_DESTINATION not in deploy_to:
+        raise ValueError(
+            f"{yaml_path}: `deployTo` must include `{REQUIRED_DESTINATION}` — "
+            f"dev is the build superset that int and prod are subsetted from. "
+            f"Got {sorted(deploy_to)}."
+        )
+
+    # Normalize to INSTANCE_ORDER so downstream comparisons and the DB rows are
+    # order-stable regardless of how the wrangler wrote the list.
+    return [inst for inst in INSTANCE_ORDER if inst in deploy_to]
 
 
 class TablesConfig:
@@ -117,10 +184,33 @@ class TablesConfig:
                 ) from e
 
             if loaded is None:
-                continue
+                raise ValueError(
+                    f"{yaml_path}: file is empty. Every dataset config.yaml must "
+                    f"declare at least `deployTo` and `tables`."
+                )
+
+            unknown_keys = set(loaded) - _KNOWN_DATASET_KEYS
+            if unknown_keys:
+                logger.warning(
+                    "%s: unknown top-level YAML key(s) %s — typo? Recognized "
+                    "keys: %s",
+                    yaml_path,
+                    sorted(unknown_keys),
+                    sorted(_KNOWN_DATASET_KEYS),
+                )
+
+            # Validated per file, BEFORE the table loop: a dataset with an empty
+            # `tables:` list must still fail on a bad deployTo rather than pass
+            # silently because the loop body never runs.
+            deploy_to = _parse_deploy_to(loaded, yaml_path)
 
             table_entries = loaded.get("tables", [])
             publication = loaded.get("publication")
+            # The dataset directory name. Stamped onto every table so the table
+            # knows which dataset it came from — nothing else in the config
+            # carries this today, which is why central_gene.dataset_names
+            # actually holds *table* names (#225).
+            dataset_name = yaml_path.parent.name
 
             # For each YAML file, in_path values are interpreted relative
             # to the directory containing that YAML file.
@@ -130,6 +220,8 @@ class TablesConfig:
                 merged_config: dict[str, Any] = dict(table_config)
                 if publication:
                     merged_config["_publication"] = publication
+                merged_config["_deploy_to"] = deploy_to
+                merged_config["_dataset"] = dataset_name
                 try:
                     tables.append(
                         TableToProcessConfig.from_json(
@@ -152,15 +244,17 @@ class TablesConfig:
     ) -> "TablesConfig":
         """
         Backwards-compatible loader for the old JSON-based `tables` list.
-        """
-        # Local import to avoid circular dependency with central_gene_table
-        from processing.types.table_to_process_config import TableToProcessConfig
 
-        tables = [
-            TableToProcessConfig.from_json(table_config, base_dir)
-            for table_config in tables_config
-        ]
-        return cls(tables)
+        Unsupported since #225: a bare `tables` list has no per-dataset
+        config.yaml, so it can carry neither a `deployTo` nor a dataset name,
+        and a table with no declared destination must never reach the DB.
+        """
+        raise ValueError(
+            "config.json uses the legacy `tables` list, which cannot declare "
+            "the mandatory per-dataset `deployTo` (#225). Move the table "
+            "definitions into data/datasets/<name>/config.yaml files and set "
+            "`table_config_root` instead."
+        )
 
 
 class Config:

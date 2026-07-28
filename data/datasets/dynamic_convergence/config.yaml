@@ -47,6 +47,13 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2026-05-05"
     comment: Standardized table titles, added column tooltips, expanded the behavioral fingerprint source description per Catharina's wrangler-meeting feedback, and updated paper reference to the published Nature Neuroscience version.
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: dynamic_convergence_S2
     changelog:

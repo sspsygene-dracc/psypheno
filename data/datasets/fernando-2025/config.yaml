@@ -139,6 +139,13 @@ maintainers:
     date: "2026-07-07"
     comment: Initial table creation
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: fernando_2025_patient_splicing
     overview_matrix: true  # #212 overview matrix source

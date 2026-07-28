@@ -109,9 +109,15 @@ def mini_data_root(
     Layout:
         <root>/homology/{hgnc_complete_set.txt,...}   # symlinks to real files
         <root>/datasets/globals.yaml                   # copy
-        <root>/datasets/mini_perturb/                  # copy
+        <root>/datasets/mini_perturb/                  # copy (deployTo: dev, prod)
+        <root>/datasets/mini_embargoed/                # copy (deployTo: dev)
         <root>/db/                                     # empty; sq_load writes here
         <root>/side-config.json                        # written from template
+
+    The two datasets differ in `deployTo` on purpose (#225): mini_perturb is
+    prod-promotable, mini_embargoed is dev-only, so a build of this root
+    exercises subsetting, and the destination guard has a real non-member to
+    scan for.
 
     Returns the root path. Tests get an `SSPSYGENE_DATA_DIR` env var pointing
     here via the per-test `mini_fixture`.
@@ -126,9 +132,10 @@ def mini_data_root(
     datasets_dir.mkdir()
     fixture_root = _FIXTURES_DIR / "mini-dataset"
     shutil.copy2(fixture_root / "globals.yaml", datasets_dir / "globals.yaml")
-    shutil.copytree(
-        fixture_root / "mini_perturb", datasets_dir / "mini_perturb"
-    )
+    for dataset_name in ("mini_perturb", "mini_embargoed"):
+        shutil.copytree(
+            fixture_root / dataset_name, datasets_dir / dataset_name
+        )
 
     (root / "db").mkdir()
 

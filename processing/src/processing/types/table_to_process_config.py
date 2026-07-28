@@ -96,7 +96,21 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         # Internal: dataset-level publication block, merged in by TablesConfig.
         "_publication",
         "publication",
+        # Internal: dataset-level `deployTo` list and the dataset directory
+        # name, stamped onto every table by TablesConfig.from_yaml_root (#225).
+        # Note the *bare* `deployTo` is deliberately NOT recognized here — it is
+        # a dataset-level key, so a wrangler who puts it under a table should
+        # get the unknown-key warning below rather than a silently ignored flag.
+        "_deploy_to",
+        "_dataset",
     }
+)
+
+# Internal keys stamped in by the loader rather than written by a wrangler.
+# Excluded from the "recognized keys" list in the unknown-key warning so we
+# don't advertise them as things to type into a config.yaml.
+_INTERNAL_TABLE_KEYS: frozenset[str] = frozenset(
+    {"_publication", "_deploy_to", "_dataset"}
 )
 
 
@@ -329,11 +343,35 @@ class TableToProcessConfig:
     publication_pmid: str | None = None
     publication_sspsygene_grants: list[str] = field(default_factory=list)
     changelog: list[dict[str, str]] = field(default_factory=list)
+    # The dataset directory name this table was defined in (data/datasets/<name>),
+    # stamped in from the config.yaml's location (#225). Nothing else in a table
+    # config carries it, which is why central_gene.dataset_names historically
+    # holds *table* names.
+    dataset: str = ""
+    # Which site instances this table's dataset may be served on — the dataset's
+    # `deployTo:` list, normalized to INSTANCE_ORDER (#225). Mandatory in the
+    # YAML and validated there; the empty default exists only so the dataclass
+    # field ordering works, and __post_init__ rejects it.
+    deploy_to: frozenset[str] = frozenset()
 
     # short_label is a code/link identifier: lowercase letters, digits, underscores only
     _SHORT_LABEL_RE = re.compile(r"^[a-z0-9_]+$")
 
     def __post_init__(self):
+        # Belt-and-braces (#225): config.py validates deployTo per config.yaml
+        # with a message naming the file, but nothing may construct a table with
+        # no declared destination — an undeclared table is one that could be
+        # promoted anywhere.
+        if not self.deploy_to:
+            raise ValueError(
+                f"table {self.table}: no deploy_to — the dataset's config.yaml "
+                f"must declare a top-level `deployTo` list including `dev`."
+            )
+        if not self.dataset:
+            raise ValueError(
+                f"table {self.table}: no dataset name — tables must be loaded "
+                f"from a data/datasets/<name>/config.yaml."
+            )
         if self.short_label is not None:
             if not self._SHORT_LABEL_RE.match(self.short_label):
                 raise ValueError(
@@ -447,11 +485,15 @@ class TableToProcessConfig:
                 "table %s: unknown YAML key(s) %s — typo? Recognized keys: %s",
                 table_name,
                 sorted(unknown),
-                sorted(_KNOWN_TABLE_KEYS - {"_publication"}),
+                sorted(_KNOWN_TABLE_KEYS - _INTERNAL_TABLE_KEYS),
             )
         publication: dict[str, Any] = (
             json_data.get("_publication") or json_data.get("publication") or {}
         )
+        # Stamped in by TablesConfig.from_yaml_root; validated there against
+        # INSTANCE_ORDER with the offending config.yaml path in the message.
+        deploy_to = frozenset(json_data.get("_deploy_to") or ())
+        dataset = str(json_data.get("_dataset") or "")
         authors: list[str] = (
             list(publication.get("authors", []))
             if isinstance(publication.get("authors", []), list)
@@ -624,6 +666,8 @@ class TableToProcessConfig:
             publication_pmid=publication.get("pmid"),
             publication_sspsygene_grants=sspsygene_grants,
             changelog=list(json_data.get("changelog", [])),
+            dataset=dataset,
+            deploy_to=deploy_to,
         )
 
     def load_data_table(

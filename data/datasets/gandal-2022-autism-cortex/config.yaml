@@ -48,6 +48,13 @@ maintainers:
     date: "2026-05-07"
     comment: "Initial table creation (issue #56). Source xlsx bundle manually downloaded from Nature. Bulk per-region DE + single-cell ASD-vs-CTL DE ingested; isoform-level / WGCNA / ARI / methylation companion sheets skipped (see makeDoc.txt)."
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: gandal_2022_bulk_de_per_region
     shortLabel: gandal_2022_bulk_de_per_region

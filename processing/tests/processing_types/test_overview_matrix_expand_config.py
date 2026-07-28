@@ -17,6 +17,11 @@ def _table_json(**overrides) -> dict:
         "table": "expanded_de",
         "description": "d",
         "in_path": "expanded_de.tsv",
+        # Stamped onto every table by TablesConfig.from_yaml_root (#225). These
+        # tests bypass the loader and call from_json directly, so supply them
+        # here exactly the way the loader would.
+        "_dataset": "expanded_dataset",
+        "_deploy_to": ["dev", "prod"],
         "overview_matrix": True,
         "overview_matrix_expand": True,
         "pvalue_column": "P-Value",

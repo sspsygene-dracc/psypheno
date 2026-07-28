@@ -68,6 +68,13 @@ maintainers:
     date: "2026-05-26"
     comment: Initial table creation
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   # ---- Table 1: Autosomal TADA statistics (17,484 genes) ------------------
   - table: satterstrom_2020_tada

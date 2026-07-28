@@ -33,6 +33,21 @@ from pathlib import Path
 
 import click
 
+# Instance identity (names, /hive paths, labels, ports) lives in its own
+# dependency-free module so config.py can validate `deployTo:` against the same
+# list without importing the deploy stack (#225). Re-exported here because
+# callers and tests have always imported these names from `processing.deploy`.
+from processing.instances import (  # noqa: F401  (re-exported)
+    DEV_PATH,
+    INSTANCE_E2E_URLS,
+    INSTANCE_LABELS,
+    INSTANCE_ORDER,
+    INSTANCE_PATHS,
+    INSTANCE_PORTS,
+    INT_PATH,
+    PROD_PATH,
+)
+
 # ── Server / path configuration ──────────────────────────────────────────────
 
 PSYGENE = "psygene"
@@ -47,11 +62,6 @@ GIT_BRANCH = "main"
 # than failing with "host key verification failed" in non-interactive mode.
 PSYGENE_SSH_HOST = "psygene"
 PSYGENE_PROXY_JUMP = "hgwdev"
-
-PROD_PATH = "/hive/groups/SSPsyGene/sspsygene_website"
-DEV_PATH = "/hive/groups/SSPsyGene/sspsygene_website_dev"
-INT_PATH = "/hive/groups/SSPsyGene/sspsygene_website_int"
-
 
 def _site_env(path: str) -> dict[str, str]:
     env = {
@@ -79,23 +89,7 @@ PROD_ENV = _site_env(PROD_PATH)
 DEV_ENV = _site_env(DEV_PATH)
 INT_ENV = _site_env(INT_PATH)
 
-# Display/iteration order when --instances picks multiple. The three sites
-# are independent deploys (dev stages prod's public datasets; int is its own
-# parallel site for embargoed data, possibly disjoint from prod) — this
-# ordering is just for log readability, not a gating chain.
-INSTANCE_ORDER = ("dev", "int", "prod")
-INSTANCE_PATHS = {"dev": DEV_PATH, "int": INT_PATH, "prod": PROD_PATH}
 INSTANCE_ENVS = {"dev": DEV_ENV, "int": INT_ENV, "prod": PROD_ENV}
-INSTANCE_LABELS = {"dev": "Dev", "int": "Internal", "prod": "Production"}
-INSTANCE_E2E_URLS = {
-    "dev": "https://psypheno-dev.gi.ucsc.edu",
-    "int": "https://psypheno-int.gi.ucsc.edu",
-    "prod": "https://psypheno.gi.ucsc.edu",
-}
-# Ports each instance's `npm start` listens on (Apache reverse-proxies the
-# public URL to localhost:PORT). Used by _step_restart_psygene to target
-# only the deployed instance(s) rather than killing every Next.js process.
-INSTANCE_PORTS = {"dev": 3112, "int": 3111, "prod": 3110}
 
 CONDA_ENV = "sspsygene"
 # Source conda.sh from whichever common location exists for this user, so

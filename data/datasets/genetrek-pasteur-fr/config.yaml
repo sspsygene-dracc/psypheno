@@ -49,6 +49,13 @@ maintainers:
     date: "2026-05-07"
     comment: "Initial table creation (issue #11). Source TSV manually downloaded from genetrek.pasteur.fr. Categorical codes decoded against Fu et al. 2022 / Wang et al. 2022 papers; promoted from DRAFT."
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: genetrek_pasteur
     shortLabel: genetrek_pasteur

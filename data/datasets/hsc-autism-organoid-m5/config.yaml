@@ -30,6 +30,13 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2026-05-05"
     comment: Standardized table titles, added column tooltips, merged the geschwind_2026_cnv data into DE_results with HGNC/chromosome/biotype columns, and migrated preprocessing to the Pipeline framework.
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: hsc_asd_organoid_m5_DE_targets_M5_TFs
     overview_matrix: true  # #212 overview matrix source

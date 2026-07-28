@@ -243,6 +243,22 @@ maintainers:
     comment: Initial table creation  # Short note
 
 # ============================================================================
+# Which sites this dataset may be served on — MANDATORY, no default
+# ============================================================================
+deployTo:
+  - dev                             # REQUIRED in every dataset. dev is the
+                                    #   build superset: the DB is built once on
+                                    #   dev and int/prod are subsetted from it.
+  - int                             # Optional. The internal site, behind basic
+                                    #   auth — where embargoed / pre-publication
+                                    #   data goes.
+  - prod                            # Optional. The public site,
+                                    #   https://psypheno.gi.ucsc.edu/. Omit
+                                    #   until the data is cleared for release.
+                                    # `int` and `prod` are independent; a
+                                    # dataset may list both, either, or neither.
+
+# ============================================================================
 # Tables — this is where the actual data is defined
 # One dataset can have multiple tables (e.g. different experiments from
 # the same paper). Each table becomes a separate entry on the website.
@@ -469,6 +485,9 @@ maintainers:
     email: you@ucsc.edu
     date: "2026-03-21"
     comment: Initial table creation
+
+deployTo:
+  - dev
 
 tables:
   - table: smith_2026_degs
@@ -766,6 +785,44 @@ differentiate by the Assay/Medium half — see e.g. `data/datasets/zebra-autism/
 
 5. **Duplicate `table` names:** The `table` field must be unique across ALL
    datasets in the entire project, not just within your config file.
+
+6. **Missing or misspelled `deployTo`:** It is mandatory, and `load-db` refuses
+   to build without it. See below.
+
+### `deployTo`: which sites may serve this dataset
+
+`deployTo` is a **mandatory** top-level key in every `config.yaml`. It is the
+one place that records where a dataset is allowed to appear:
+
+```yaml
+deployTo:
+  - dev     # required in every dataset
+  - int     # optional — the internal, auth-protected site
+  - prod    # optional — the public site
+```
+
+Rules, and why they are the way they are:
+
+- **`dev` must always be listed**, even though it will be in every dataset.
+  A safety flag should be explicit, not inferred from absence.
+- **`prod` and `int` are independent.** A dataset may list both, either, or
+  neither. int is not a staging step on the way to prod — it is a parallel site
+  for embargoed / pre-publication data.
+- **There is no default.** `load-db` fails, naming your file, if `deployTo` is
+  missing, empty, not a list, includes an unknown site name, or leaves out
+  `dev`. A silent default here would mean publishing embargoed data, so the
+  build refuses rather than guessing.
+- **A typo warns.** An unrecognized top-level key (`deployto:`, `deplyTo:`)
+  logs a warning, so a misspelling shows up as "missing `deployTo`" plus a
+  warning naming the key you actually wrote, rather than silently disarming
+  the flag.
+- **It belongs at the top level, not under a table.** All of a dataset's tables
+  share its destinations. A `deployTo` under a `- table:` entry gets the
+  per-table unknown-key warning and has no effect.
+
+If you are not sure whether data is cleared for public release, ship it as
+`deployTo: [dev]` (or `[dev, int]`) and add `prod` in a follow-up commit once
+it is. Widening is a one-line change; un-publishing is not.
 
 ---
 

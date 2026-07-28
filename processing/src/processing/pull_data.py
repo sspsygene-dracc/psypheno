@@ -29,20 +29,16 @@ from pathlib import Path
 import click
 
 from processing.deploy import (
-    DEV_PATH,
-    INT_PATH,
-    PROD_PATH,
     PSYGENE,
     PSYGENE_PROXY_JUMP,
     PSYGENE_SSH_HOST,
 )
+from processing.instances import INSTANCE_PATHS  # noqa: F401  (re-exported)
 
 # hgwdev is directly reachable and shares /hive with psygene, so it can read
 # every instance's tree without a ProxyJump. It's the right default reference
 # host for a read-only data pull.
 DEFAULT_HOST = "hgwdev"
-
-INSTANCE_PATHS = {"dev": DEV_PATH, "int": INT_PATH, "prod": PROD_PATH}
 
 
 def _ssh_prefix(host: str) -> list[str]:

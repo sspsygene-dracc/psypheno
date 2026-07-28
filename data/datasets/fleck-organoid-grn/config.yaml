@@ -23,6 +23,13 @@ maintainers:
     date: "2026-05-07"
     comment: "Initial table creation (issue #13)."
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: fleck_2023_organoid_grn
     shortLabel: fleck_2023_organoid_grn
