@@ -17,7 +17,11 @@ from processing.exports import write_exports
 from processing.gene_descriptions import copy_gene_descriptions
 from processing.my_logger import get_sspsygene_logger
 from processing.new_sqlite3 import NewSqlite3
-from processing.overview_matrix import materialize_overview_matrix
+from processing.overview_matrix import (
+    load_panel_symbols,
+    materialize_overview_matrix,
+    resolve_panel_gene_ids,
+)
 from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import (
     TableToProcessConfig,
@@ -882,6 +886,7 @@ def run_overview_matrix(
     *,
     no_index: bool = False,
     min_groups: int = 2,
+    panel_gene_list: Path | None = None,
 ) -> None:
     """Materialize the collated overview matrix into a standalone DB (#222).
 
@@ -892,11 +897,22 @@ def run_overview_matrix(
     This is the overview-matrix analogue of `run_meta_analysis`: a second,
     independent-cadence build over the dataset DB (`load-db` then
     `overview-matrix`), so the main DB stays lean and the web app reads the
-    matrix from its own ATTACHed file."""
+    matrix from its own ATTACHed file.
+
+    `panel_gene_list` points at `data/sspsygene_genes.txt`; the matrix's rows are
+    restricted to the consortium genes it names (#228). Required — a missing file
+    is an error rather than a silent unfiltered build, because an unfiltered
+    matrix looks plausible and is wrong (it is dominated by CNV passenger genes)."""
     logger = logging.getLogger(__name__)
     if not main_db.exists():
         raise ValueError(
             f"Dataset DB not found at {main_db}; run `sspsygene load-db` first."
+        )
+    if panel_gene_list is None or not panel_gene_list.exists():
+        raise ValueError(
+            f"SSPsyGene gene list not found at {panel_gene_list}. The overview "
+            "matrix restricts its rows to the consortium panel and will not "
+            "build without it."
         )
     overview_db.parent.mkdir(parents=True, exist_ok=True)
     staging = _staging_path(overview_db)
@@ -907,8 +923,18 @@ def run_overview_matrix(
         # ever locking or mutating the file the web app serves. URI attach is
         # honored because NewSqlite3 opens the connection with uri=True.
         conn.execute(f"ATTACH DATABASE 'file:{main_db}?mode=ro' AS src")
+        panel_symbols = load_panel_symbols(panel_gene_list)
+        panel_gene_ids = resolve_panel_gene_ids(conn, panel_symbols, "src")
+        click.echo(
+            f"SSPsyGene panel: {len(panel_symbols)} symbols → "
+            f"{len(panel_gene_ids)} central genes (matrix rows restricted to these)"
+        )
         materialize_overview_matrix(
-            conn, no_index=no_index, min_groups=min_groups, src_schema="src"
+            conn,
+            no_index=no_index,
+            min_groups=min_groups,
+            src_schema="src",
+            panel_gene_ids=panel_gene_ids,
         )
         # Detach before the context manager's PRAGMA optimize / commit so those
         # never reach across into the read-only source DB.

@@ -290,6 +290,7 @@ def overview_matrix(no_index: bool, min_sig_groups: int) -> None:
             config.overview_db,
             no_index=no_index,
             min_groups=min_sig_groups,
+            panel_gene_list=config.sspsygene_gene_list,
         )
         _echo_sspsygene_env("end")
     except ValueError as e:

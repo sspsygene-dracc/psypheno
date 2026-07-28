@@ -203,6 +203,11 @@ class Config:
             self.overview_db = self.out_db.with_name(
                 f"{self.out_db.stem}-overview{self.out_db.suffix}"
             )
+        # The canonical 259-gene SSPsyGene consortium panel. Never used to filter
+        # *ingestion* (psypheno#23: "we always add all the genes") — it is a
+        # display/filter concern. Today its one consumer is the overview matrix,
+        # whose rows are restricted to consortium genes.
+        self.sspsygene_gene_list: Path = self.base_dir / "sspsygene_genes.txt"
         self.gene_map_config = GeneMapConfig(self.base_dir, config["gene_map_files"])
 
         # Load global config (field labels, assay types) if specified

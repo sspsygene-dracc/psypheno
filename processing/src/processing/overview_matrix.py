@@ -36,6 +36,7 @@ import math
 import sqlite3
 from collections import defaultdict
 from datetime import datetime, timezone
+from pathlib import Path
 
 import click
 
@@ -85,6 +86,91 @@ _TABLES = (
     "overview_matrix_expanded_cells",
     "overview_matrix_info",
 )
+
+# TEMP table holding the central genes allowed to be matrix rows. Every
+# perturbed-gene read in this module goes through it, so there is exactly one
+# place the row axis is decided. Populated by `_create_panel_filter` with the
+# SSPsyGene consortium panel (minus controls), or — when no panel is supplied —
+# with every non-control gene, which reproduces the pre-#228 behaviour.
+_PANEL_TABLE = "matrix_panel_gene"
+
+
+def load_panel_symbols(path: Path) -> list[str]:
+    """Read the SSPsyGene gene list: one HGNC symbol per line, `#` comments."""
+    symbols: list[str] = []
+    with open(path, "r") as handle:
+        for line in handle:
+            symbol = line.strip()
+            if symbol and not symbol.startswith("#"):
+                symbols.append(symbol)
+    if not symbols:
+        raise ValueError(f"SSPsyGene gene list at {path} contains no symbols")
+    return symbols
+
+
+def resolve_panel_gene_ids(
+    conn: sqlite3.Connection, symbols: list[str], src_schema: str = "main"
+) -> set[int]:
+    """Map panel symbols to `central_gene` ids, falling back to synonyms.
+
+    The consortium sheet carries at least one retired symbol (`SUV420H1`, whose
+    current HGNC symbol is `KMT5B`), and `central_gene.human_symbol` only holds
+    the current one — so a plain equijoin silently drops consortium genes. Any
+    symbol that resolves through neither path is logged, not swallowed.
+    """
+    log = get_sspsygene_logger()
+    gene_ids: set[int] = set()
+    unresolved: list[str] = []
+    for symbol in symbols:
+        row = conn.execute(
+            f"SELECT id FROM {src_schema}.central_gene WHERE human_symbol = ?",
+            (symbol,),
+        ).fetchone()
+        if row is None:
+            row = conn.execute(
+                f"""SELECT e.central_gene_id
+                      FROM {src_schema}.extra_gene_synonyms e
+                      JOIN {src_schema}.central_gene c ON c.id = e.central_gene_id
+                     WHERE e.synonym = ? AND c.human_symbol IS NOT NULL
+                     LIMIT 1""",
+                (symbol,),
+            ).fetchone()
+        if row is None:
+            unresolved.append(symbol)
+        else:
+            gene_ids.add(row[0])
+    if unresolved:
+        log.warning(
+            "overview matrix: %d of %d SSPsyGene panel symbols did not resolve to "
+            "a central gene and cannot appear as matrix rows: %s",
+            len(unresolved),
+            len(symbols),
+            ", ".join(sorted(unresolved)),
+        )
+    return gene_ids
+
+
+def _create_panel_filter(
+    conn: sqlite3.Connection, panel_gene_ids: set[int] | None, src_schema: str
+) -> None:
+    conn.execute(f"DROP TABLE IF EXISTS temp.{_PANEL_TABLE}")
+    conn.execute(f"CREATE TEMP TABLE {_PANEL_TABLE} (id INTEGER PRIMARY KEY)")
+    if panel_gene_ids is None:
+        conn.execute(
+            f"""INSERT INTO {_PANEL_TABLE} (id)
+                SELECT id FROM {src_schema}.central_gene WHERE kind != 'control'"""
+        )
+        return
+    conn.executemany(
+        f"INSERT OR IGNORE INTO {_PANEL_TABLE} (id) VALUES (?)",
+        [(gene_id,) for gene_id in sorted(panel_gene_ids)],
+    )
+    # A control guide should never be on the panel, but the row axis must not
+    # depend on that holding.
+    conn.execute(
+        f"""DELETE FROM {_PANEL_TABLE} WHERE id IN
+            (SELECT id FROM {src_schema}.central_gene WHERE kind = 'control')"""
+    )
 
 
 def _create_schema(conn: sqlite3.Connection) -> None:
@@ -208,12 +294,7 @@ def _group_to_genes(
     count; on any mismatch we fall back to the exact (slower) DISTINCT join.
     """
     log = get_sspsygene_logger()
-    controls = {
-        row[0]
-        for row in conn.execute(
-            f"SELECT id FROM {src_schema}.central_gene WHERE kind = 'control'"
-        )
-    }
+    allowed = {row[0] for row in conn.execute(f"SELECT id FROM {_PANEL_TABLE}")}
     reps = conn.execute(
         f"SELECT {group_expr}, MIN(id), COUNT(*) "
         f"FROM {src_schema}.{base_table} GROUP BY {group_expr}"
@@ -239,7 +320,7 @@ def _group_to_genes(
     ).fetchone()
     if expected == actual:
         return {
-            group: [gene_id for gene_id in gene_ids if gene_id not in controls]
+            group: [gene_id for gene_id in gene_ids if gene_id in allowed]
             for group, gene_ids in full_mapping.items()
         }
 
@@ -255,8 +336,7 @@ def _group_to_genes(
         f"""SELECT DISTINCT {group_expr}, lt.central_gene_id
               FROM {src_schema}.{base_table} t
               JOIN {src_schema}.{link_table} lt ON lt.id = t.id
-              JOIN {src_schema}.central_gene cg ON cg.id = lt.central_gene_id
-             WHERE cg.kind != 'control'"""
+             WHERE lt.central_gene_id IN (SELECT id FROM {_PANEL_TABLE})"""
     ):
         mapping.setdefault(group, []).append(gene_id)
     return mapping
@@ -437,8 +517,8 @@ def _materialize_wide_axis(
             f"""SELECT lt.central_gene_id, t.{pc}
                   FROM {src_schema}.{base_table} t
                   JOIN {src_schema}.{link_table} lt ON t.id = lt.id
-                  JOIN {src_schema}.central_gene cg ON cg.id = lt.central_gene_id
-                 WHERE cg.kind != 'control' AND t.{pc} IS NOT NULL"""
+                 WHERE lt.central_gene_id IN (SELECT id FROM {_PANEL_TABLE})
+                   AND t.{pc} IS NOT NULL"""
         ).fetchall()
         signed_agg: dict[int, float] = {}
         mean_acc: dict[int, list[float]] = {}
@@ -617,6 +697,7 @@ def materialize_overview_matrix(
     no_index: bool = False,
     min_groups: int = ELIGIBILITY_MIN_GROUPS,
     src_schema: str = "main",
+    panel_gene_ids: set[int] | None = None,
 ) -> None:
     """Precompute the overview matrix (#222, #213).
 
@@ -629,13 +710,19 @@ def materialize_overview_matrix(
     only when FDR-significant across at least this many perturbed groups); at
     most `MATERIALIZE_TOP_M` most-convergent are kept per (modality, source
     table). Phenotype axes ignore the floor and keep every distinct column.
+
+    `panel_gene_ids` restricts the row axis to the SSPsyGene consortium panel
+    (#228). It also gates which perturbed groups count toward a column's
+    convergence, so columns are scored over the genes actually displayed. Pass
+    ``None`` to keep every non-control perturbed gene, the pre-#228 behaviour.
     """
     min_groups = max(1, min_groups)
     _create_schema(conn)
+    _create_panel_filter(conn, panel_gene_ids, src_schema)
 
     modality_keys, assay_to_modalities = _load_modalities(conn, src_schema)
     if not modality_keys:
-        _write_info(conn, min_groups, [])
+        _write_info(conn, min_groups, [], panel_gene_ids)
         conn.commit()
         return
 
@@ -724,7 +811,7 @@ def materialize_overview_matrix(
                SELECT DISTINCT lt.central_gene_id, cg.human_symbol
                  FROM {src_schema}.{safe_link} lt
                  JOIN {src_schema}.central_gene cg ON cg.id = lt.central_gene_id
-                WHERE cg.kind != 'control'"""
+                WHERE lt.central_gene_id IN (SELECT id FROM {_PANEL_TABLE})"""
         )
 
     if not no_index:
@@ -734,12 +821,15 @@ def materialize_overview_matrix(
             "(modality_key, source_table, sort_rank)"
         )
 
-    _write_info(conn, min_groups, expanded_source_tables)
+    _write_info(conn, min_groups, expanded_source_tables, panel_gene_ids)
     conn.commit()
 
 
 def _write_info(
-    conn: sqlite3.Connection, min_groups: int, expanded_source_tables: list[str]
+    conn: sqlite3.Connection,
+    min_groups: int,
+    expanded_source_tables: list[str],
+    panel_gene_ids: set[int] | None = None,
 ) -> None:
     conn.executemany(
         "INSERT INTO overview_matrix_info (key, value) VALUES (?, ?)",
@@ -749,5 +839,12 @@ def _write_info(
             ("min_groups_floor", str(min_groups)),
             ("materialize_top_m", str(MATERIALIZE_TOP_M)),
             ("expanded_source_tables", json.dumps(expanded_source_tables)),
+            # Whether the row axis was restricted to the consortium panel (#228),
+            # so a reader can tell an unfiltered build from a filtered one.
+            ("sspsygene_panel_filtered", "1" if panel_gene_ids is not None else "0"),
+            (
+                "sspsygene_panel_gene_count",
+                str(len(panel_gene_ids)) if panel_gene_ids is not None else "",
+            ),
         ],
     )

@@ -72,7 +72,13 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
     assert not overview_db.exists()
     # min_groups=1 so the fixture's single-perturbation columns still materialize
     # (the default floor is 2; the fixture is too small to exercise it).
-    run_overview_matrix(out_db, overview_db, no_index=True, min_groups=1)
+    run_overview_matrix(
+        out_db,
+        overview_db,
+        no_index=True,
+        min_groups=1,
+        panel_gene_list=config.sspsygene_gene_list,
+    )
     assert overview_db.exists()
     assert not overview_db.with_name(overview_db.name + ".new").exists()
 

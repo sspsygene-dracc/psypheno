@@ -132,6 +132,14 @@ def mini_data_root(
 
     (root / "db").mkdir()
 
+    # The SSPsyGene consortium panel, at the same path production reads it from
+    # (`config.sspsygene_gene_list`). The overview matrix restricts its rows to
+    # these genes (#228), so the fixture's three perturbed genes must be listed
+    # or the matrix comes out empty.
+    (root / "sspsygene_genes.txt").write_text(
+        "# Mini fixture panel — the perturbed genes of mini_perturb.\nFOXG1\nTBR1\nTCF4\n"
+    )
+
     # Write a side config from the template (paths in the template are
     # already relative to SSPSYGENE_DATA_DIR, so no substitution is needed).
     template = json.loads(

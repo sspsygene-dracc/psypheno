@@ -17,7 +17,9 @@ from processing.overview_matrix import (
     NEG_LOG_P_MAX,
     NEG_LOG_P_MIN,
     _neg_log_p,
+    load_panel_symbols,
     materialize_overview_matrix,
+    resolve_panel_gene_ids,
 )
 
 
@@ -329,3 +331,80 @@ def test_neg_log_p_clamp() -> None:
     assert _neg_log_p(0.0) == NEG_LOG_P_MAX
     assert _neg_log_p(0.001) == 3.0
     assert _neg_log_p(0.003) == 2.523
+
+
+# --- SSPsyGene panel row filter (#228) -------------------------------------
+
+
+def test_panel_filter_restricts_rows_and_cells(conn: sqlite3.Connection) -> None:
+    materialize_overview_matrix(conn, min_groups=1, panel_gene_ids={1, 3})
+    genes = dict(
+        conn.execute("SELECT central_gene_id, human_symbol FROM overview_matrix_genes")
+    )
+    # Gene 2 is perturbed but off-panel, so it is neither a row nor a cell.
+    assert genes == {1: "AAA", 3: "CCC"}
+    assert {gene_id for gene_id, _ in _cells(conn, "expr")} <= {1, 3}
+
+
+def test_panel_filter_excludes_controls_even_if_listed(
+    conn: sqlite3.Connection,
+) -> None:
+    # A control guide named on the panel must still never become a row.
+    materialize_overview_matrix(conn, min_groups=1, panel_gene_ids={1, 9})
+    genes = dict(
+        conn.execute("SELECT central_gene_id, human_symbol FROM overview_matrix_genes")
+    )
+    assert genes == {1: "AAA"}
+
+
+def test_no_panel_keeps_every_non_control_gene(conn: sqlite3.Connection) -> None:
+    materialize_overview_matrix(conn, min_groups=1, panel_gene_ids=None)
+    genes = dict(
+        conn.execute("SELECT central_gene_id, human_symbol FROM overview_matrix_genes")
+    )
+    assert genes == {1: "AAA", 2: "BBB", 3: "CCC"}
+
+
+def test_panel_filter_recorded_in_info(conn: sqlite3.Connection) -> None:
+    materialize_overview_matrix(conn, min_groups=1, panel_gene_ids={1, 3})
+    info = dict(conn.execute("SELECT key, value FROM overview_matrix_info"))
+    assert info["sspsygene_panel_filtered"] == "1"
+    assert info["sspsygene_panel_gene_count"] == "2"
+
+    materialize_overview_matrix(conn, min_groups=1, panel_gene_ids=None)
+    info = dict(conn.execute("SELECT key, value FROM overview_matrix_info"))
+    assert info["sspsygene_panel_filtered"] == "0"
+
+
+def test_resolve_panel_gene_ids_falls_back_to_synonyms(
+    conn: sqlite3.Connection,
+) -> None:
+    conn.execute(
+        "CREATE TABLE extra_gene_synonyms (central_gene_id INTEGER, synonym TEXT)"
+    )
+    # The consortium sheet carries retired symbols (SUV420H1 -> KMT5B); resolving
+    # only on human_symbol would silently drop the gene from the matrix.
+    conn.execute("INSERT INTO extra_gene_synonyms VALUES (2, 'OLD_BBB')")
+    assert resolve_panel_gene_ids(conn, ["AAA", "OLD_BBB"]) == {1, 2}
+
+
+def test_resolve_panel_gene_ids_skips_unknown_symbols(
+    conn: sqlite3.Connection,
+) -> None:
+    conn.execute(
+        "CREATE TABLE extra_gene_synonyms (central_gene_id INTEGER, synonym TEXT)"
+    )
+    assert resolve_panel_gene_ids(conn, ["AAA", "NOT_A_GENE"]) == {1}
+
+
+def test_load_panel_symbols_skips_comments_and_blanks(tmp_path) -> None:
+    path = tmp_path / "sspsygene_genes.txt"
+    path.write_text("# provenance header\n\nAAA\nBBB\n\n# trailing note\nCCC\n")
+    assert load_panel_symbols(path) == ["AAA", "BBB", "CCC"]
+
+
+def test_load_panel_symbols_rejects_an_empty_list(tmp_path) -> None:
+    path = tmp_path / "sspsygene_genes.txt"
+    path.write_text("# only comments\n\n")
+    with pytest.raises(ValueError, match="no symbols"):
+        load_panel_symbols(path)
