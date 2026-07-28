@@ -1,27 +1,8 @@
-# The SSPsyGene consortium gene list: 250 genes + 9 later additions (259 total).
+# The SSPsyGene consortium gene list: 259 HGNC symbols.
+# 250 original (alphabetical) + 9 later additions (kept in sheet order).
 #
-# Source: Google Sheet "Gene preference selection" (tab 1, column A), owned by the
-#   SSPsyGene program office and linked from the CCC monthly-meeting notes as the
-#   "Gene Selection site":
-#   https://docs.google.com/spreadsheets/d/1bHH1rKILTXGyWaOxb6RnaaNbRlAzqa_tahEo4sYrFxE/
-# Column A header reads verbatim: "250 SSPsyGene list (+9 genes), Capstone genes in red".
-# Snapshot taken 2026-07-28. The sheet is live (wranglers update per-assay status
-#   columns continuously), but the gene roster itself changes rarely. Re-pull before
-#   relying on it for anything load-bearing.
-#
-# Symbols are HGNC human symbols, exactly as written in the sheet. Checked against
-#   central_gene.human_symbol on 2026-07-28: 258/259 resolve directly. The one miss
-#   is SUV420H1, which is the legacy alias of KMT5B - the sheet carries the old name
-#   and KMT5B itself is NOT separately in the list. Resolve through
-#   extra_gene_synonyms (or special-case that one) before joining on human_symbol,
-#   or you will silently drop a consortium gene.
-#
-# NOT captured here: the sheet marks "Capstone genes" by cell background colour,
-#   which does not survive CSV export. If you need the capstone subset, read it off
-#   the sheet directly or ask the wranglers.
-#
-# The first 250 entries are the original alphabetical roster; the trailing 9 were
-#   appended later and are deliberately left in sheet order, not re-sorted.
+# Provenance, the one deviation from the source sheet, and refresh instructions:
+#   data/sspsygene_genes.notes.md
 
 ABCC9
 ADNP
@@ -147,6 +128,7 @@ KMT2A
 KMT2B
 KMT2C
 KMT2E
+KMT5B
 LONP1
 MAGEL2
 MAGI2
@@ -243,7 +225,6 @@ SP4
 SPAST
 SRSF1
 STXBP1
-SUV420H1
 SV2A
 SYNCRIP
 SYNGAP1
