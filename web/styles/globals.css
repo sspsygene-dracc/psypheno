@@ -51,12 +51,13 @@ body {
   }
 }
 
-/* Links inside the cross-modality matrix (/matrix): read as plain header text,
-   underline on hover so they're discoverable without cluttering the grid. */
+/* Links inside the cross-modality matrix (/matrix): the app's usual link blue,
+   underlined on hover so gene / dataset headers read clearly as links. */
 .matrix-link {
-  color: inherit;
+  color: #2563eb;
   text-decoration: none;
 }
 .matrix-link:hover {
+  color: #1e40af;
   text-decoration: underline;
 }
