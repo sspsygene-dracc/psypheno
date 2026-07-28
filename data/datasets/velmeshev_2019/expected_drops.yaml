@@ -1,0 +1,18 @@
+tables:
+  velmeshev_2019_degs:
+    raw_file: velmeshev_2019_degs.tsv
+    pipeline_used: true
+    cleaned_rows: 692
+    raw_rows: 692
+    expected_drops:
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        passed_through: 669
+        rescued_gencode_clone_hgnc_symbol: 5
+        non_symbol_gencode_clone: 5
+        rescued_gencode_clone_current_ensg: 6
+        non_symbol_contig: 3
+        unresolved: 4
+    db_rows: 692

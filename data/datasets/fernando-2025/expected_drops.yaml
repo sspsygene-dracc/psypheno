@@ -1,0 +1,22 @@
+tables:
+  fernando_2025_isogenic_splicing:
+    raw_file: supTabl3.xlsx
+    pipeline_used: true
+    cleaned_file: isogenic_splicing.tsv
+    cleaned_rows: 243
+    expected_drops: []
+    db_rows: 243
+  fernando_2025_nrxn_locus_splicing:
+    raw_file: supTabl2.xlsx
+    pipeline_used: true
+    cleaned_file: nrxn_locus_splicing.tsv
+    cleaned_rows: 29
+    expected_drops: []
+    db_rows: 29
+  fernando_2025_patient_splicing:
+    raw_file: supTabl3.xlsx
+    pipeline_used: true
+    cleaned_file: patient_splicing.tsv
+    cleaned_rows: 914
+    expected_drops: []
+    db_rows: 914
