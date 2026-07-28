@@ -157,3 +157,7 @@ tables:
     pvalue_column: P.Value
     fdr_column: FDR
     effect_column: limma_coef
+    # Overview matrix (#213): one column per cell subcluster (long format),
+    # colored by -log10(p) (default metric).
+    overview_matrix_expand: true
+    overview_matrix_phenotype_column: subcluster

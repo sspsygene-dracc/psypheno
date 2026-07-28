@@ -1,106 +1,92 @@
 /**
  * Response contract for GET /api/collated-matrix — the collated cross-modality
- * overview table ("red table", epic #220).
+ * overview table ("red table", epic #220, #213).
  *
- * The producer/consumer boundary lives here rather than in the API route so the
- * matrix components import the same declarations the handler builds, instead of
- * re-declaring structurally-identical copies that drift silently.
+ * The producer/consumer boundary lives here so the matrix components import the
+ * same declarations the handler builds, instead of re-declaring structurally
+ * identical copies that drift silently.
  *
- * The matrix has two kinds of column, described by `sections`:
- *
- * - a **status** section is one column whose cell is a status glyph aggregated
- *   over every source table of that modality (the original #212 shape);
- * - an **expanded** section (#222) fans out into one `pvalue` sub-column per
- *   measured target gene, forming a heatmap. RNA expression is the first one.
- *
- * `columns` is the flat render order. Every column's `key` is also the key
- * under which a gene's cell appears in `MatrixGeneRow.cells`; a status column's
- * key is its modality key, an expanded sub-column's key is prefixed
- * (`expr:SHANK3`). A missing key means "no data" — expanded sections are sparse,
- * status columns are not.
+ * Every modality is **expanded** (#213 removed the aggregated "status" columns):
+ * a section fans out into one value sub-column per measured target gene (genes)
+ * or per phenotype (behavioral parameter, cell subcluster, brain region). Each
+ * column carries a `metric` naming its color scale; each cell carries a single
+ * `value` in that metric's units. `columns` is the flat render order; every
+ * column's `key` is also the key under which a gene's cell appears in
+ * `MatrixGeneRow.cells`. A missing key means "no data" (the matrix is sparse).
  */
 
-export type CellStatus = "significant" | "data" | "assayed_null" | "none";
-
 export interface MatrixSection {
+  /** Modality key (e.g. "expression", "behavior"). */
   key: string;
+  /** Modality label (e.g. "RNA expression", "Behavioral"). */
   label: string;
-  kind: "status" | "expanded";
   /** Number of entries in `columns` belonging to this section. */
   span: number;
-  /** Expensive low-output modalities render even when entirely empty (#215). */
-  alwaysShow: boolean;
-  isEmpty: boolean;
 }
 
-export interface MatrixStatusColumn {
+export interface MatrixColumn {
+  /** Modality key this column belongs to. */
   section: string;
+  /** Cell-lookup key: `${prefix}:${sourceTable}:${columnValue}`. */
   key: string;
+  /** The column's short label — a target gene or a phenotype. */
   label: string;
-  kind: "status";
-}
-
-export interface MatrixPvalueColumn {
-  section: string;
-  key: string;
-  /** The measured target gene (the column's short label). */
-  label: string;
-  kind: "pvalue";
+  /** Color-scale metric id (see web/lib/matrix-color-scales.ts). */
+  metric: string;
+  /** True when `label` is a gene (→ links to a target-gene search). */
+  columnIsGene: boolean;
   /**
-   * How many distinct perturbed groups this target gene is FDR-significant in —
-   * CNV regions for the ASD organoid table, perturbed genes elsewhere. Drives
-   * both column eligibility (≥2) and the most-convergent-first render order.
+   * How many distinct perturbed groups this column is significant in (gene
+   * columns) or how many genes have data (phenotype columns). Drives render
+   * order and the header tooltip.
    */
   nSigGroups: number;
-  /** Source dataset table name — the column's dataset identity. */
+  /** Source dataset table name — the column's dataset identity + Full-datasets link. */
   sourceTable: string;
-  /** Dataset short label, shown once per dataset band above the columns. */
+  /** Dataset author-year label, shown once per dataset band above the columns. */
   sourceLabel: string;
-  /** Fuller dataset identity for the band's (i) tooltip. */
+  /** Fuller dataset identity for the band's hover tooltip. */
   sourceMediumLabel: string | null;
   /** Dataset source/citation string, appended to the band tooltip. */
   sourceCitation: string | null;
 }
 
-export type MatrixColumn = MatrixStatusColumn | MatrixPvalueColumn;
-
-export interface MatrixStatusCell {
-  status: CellStatus;
-  /** Row count for the winning status tier, not a total across tiers. */
-  count: number;
-  /** Contributing source tables, for drill-down (#214). */
-  tableNames: string[];
+export interface MatrixCell {
+  /** The cell value in its column's metric units (frontend maps it to a color). */
+  value: number;
 }
-
-export interface MatrixPvalueCell {
-  /** -log10 of the most significant raw p-value, clamped to [1, 20]. */
-  negLogP: number;
-}
-
-export type MatrixCellValue = MatrixStatusCell | MatrixPvalueCell;
 
 export interface MatrixGeneRow {
   centralGeneId: number;
   humanSymbol: string | null;
-  cells: Record<string, MatrixCellValue>;
+  cells: Record<string, MatrixCell>;
+}
+
+/** A metric present in the response — drives one auto-generated legend bar. */
+export interface MetricPresence {
+  id: string;
+  /** Per-dataset domain override, or null → use the registry default. */
+  domain: [number, number] | null;
 }
 
 export interface CollatedMatrixMeta {
   /** Columns-per-dataset cap used for this response (after clamping). */
   colsPerDataset: number;
-  /** Total expanded (pvalue) columns actually returned across all datasets. */
+  /** Total value columns actually returned across all datasets. */
   expandedColumnCount: number;
-  /** Expanded columns available at the eligibility floor, before the top-K cap. */
+  /** Columns available at the eligibility floor, before the top-K cap. */
   expandedColumnsAvailable: number;
   /** True when some dataset had more eligible columns than the cap showed. */
   expandedColumnsTruncated: boolean;
-  /** Build-time eligibility floor (min significant groups; typically 2). */
+  /** Build-time gene-target eligibility floor (min significant groups; typically 2). */
   minSigGroupsFloor: number;
   /** Largest columns-per-dataset the build materialized (cap ceiling). */
   materializeTopM: number;
-  /** False when serving the live fallback against an un-materialized DB. */
+  /** False when the overview DB isn't built/attached (matrix is then empty). */
   materialized: boolean;
   builtAt: string | null;
+  /** Distinct metrics present, for the auto-generated per-metric legend bars. */
+  metrics: MetricPresence[];
 }
 
 export interface CollatedMatrixResponse {
@@ -110,13 +96,8 @@ export interface CollatedMatrixResponse {
   meta: CollatedMatrixMeta;
 }
 
-export function isPvalueCell(cell: MatrixCellValue): cell is MatrixPvalueCell {
-  return "negLogP" in cell;
-}
-
 /**
- * Gene-row sort used by the API and mirrored by the matrix component's
- * "sort by symbol" mode: case-insensitive A→Z, unnamed genes last.
+ * Gene-row sort used by the API: case-insensitive A→Z, unnamed genes last.
  */
 export function compareGeneRows(a: MatrixGeneRow, b: MatrixGeneRow): number {
   const as = a.humanSymbol || "";

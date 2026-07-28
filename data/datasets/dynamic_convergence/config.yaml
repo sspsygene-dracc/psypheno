@@ -173,3 +173,33 @@ tables:
         link_table_name: gene
         species: human
         perturbed_or_target: perturbed
+    # Overview matrix (#213): one column per behavior parameter (wide format).
+    # Values are already signed -log10(p), so a diverging signed metric — no
+    # p-value column of its own.
+    overview_matrix_expand: true
+    overview_matrix_metric: signed_neglog_p
+    overview_matrix_phenotype_columns:
+      - ActivityD
+      - ActivityN
+      - WakingActivityD
+      - WakingActivityN
+      - RestBoutD
+      - RestBoutN
+      - SleepLatencyD
+      - SleepLatencyN
+      - SleepLengthD
+      - SleepLengthN
+      - SleepD
+      - SleepN
+      - "On:Avg STIM"
+      - "On:Avg POST"
+      - "On:Avg STIM1"
+      - "On:Avg POST1"
+      - "On:Avg STIMvPOST"
+      - "On:Avg STIM5"
+      - "Off:Avg STIM"
+      - "Off:Avg POST"
+      - "Off:Avg STIM1"
+      - "Off:Avg POST1"
+      - "Off:Avg STIMvPOST"
+      - "Off:Avg STIM5"

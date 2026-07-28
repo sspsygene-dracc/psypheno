@@ -1,36 +1,31 @@
-"""Materialization of the collated cross-modality overview matrix (#222).
+"""Materialization of the collated cross-modality overview matrix (#222, #213).
 
 `/api/collated-matrix` used to compute the whole perturbed-gene × modality
-aggregation live on every request (~6.8 s), and the #222 RNA-expression
-expansion would have added another ~5.6 s on top. Both halves are pure,
-deterministic SQL over the dataset DB, so they are precomputed here during
-`load-db` — the same reasoning that moved the combined p-values into their own
-build in #176 — and the API becomes a cheap indexed read.
+aggregation live on every request (~6.8 s), and the RNA-expression expansion
+would have added another ~5.6 s on top. It is pure, deterministic SQL over the
+dataset DB, so it is precomputed here — the same reasoning that moved the
+combined p-values into their own build in #176 — and the API becomes a cheap
+indexed read.
 
-Two kinds of column are materialized:
+Every `overview_matrix`-flagged table is **expanded** into a set of heatmap
+columns (#213 removed the old aggregated "status" columns entirely). The rows
+are the experimentally perturbed genes. A table's columns come from one of three
+axes, declared in config:
 
-**Status columns** (the original #212 matrix). One column per modality; the cell
-is a status glyph aggregated over every `overview_matrix`-labeled table whose
-`assay` maps to that modality:
+- **gene target** — one column per measured target gene (expression, perturb-seq,
+  perturb-FISH). A target qualifies when it is FDR-significant across at least
+  `min_groups` distinct perturbed-side groups, and only the top-M most-convergent
+  are kept (the dense CRISPR screens have thousands).
+- **long phenotype** (`overview_matrix_phenotype_column`) — one column per
+  distinct value of a text column (behavioral parameter, cell subcluster). All
+  distinct values are kept (these datasets have few).
+- **wide phenotype** (`overview_matrix_phenotype_columns`) — one column per named
+  numeric column (brain regions, behavior parameters), value aggregated per gene.
 
-    nSig     = rows where any pvalue/fdr column < 0.05
-    nData    = rows where any pvalue/fdr column IS NOT NULL
-    nAssayed = joined rows (gene present in the perturbed link table)
-
-with precedence ``significant`` > ``data`` > ``assayed_null`` > ``none``.
-Controls (``central_gene.kind = 'control'``) are excluded. This is a port of the
-query the API ran live; it must stay behaviourally identical.
-
-**Expanded columns** (new in #222). A table flagged `overview_matrix_expand`
-turns its modality into a p-value heatmap with one sub-column per measured
-(target) gene. A target qualifies when it is FDR-significant across at least
-`min_groups` distinct values of the table's *perturbed* gene column — for the ASD
-organoid table those values are the CNV regions, which is the honest unit because
-every member gene of a region shares the identical DE rows (#221). Groups that
-resolve to no perturbed gene don't count (that table's idiopathic-ASD cohort has
-no molecular diagnosis, so it contributes no cells either). Each cell carries
-``-log10(min raw p)`` for that (perturbed gene, target gene) pair, clamped to
-``[1, 20]``.
+Each column carries a **metric** id naming its color scale (`neglog_p`,
+`neglog_q`, `signed_neglog_p`, `activity_ratio`); each cell stores a single
+`value` in that metric's units. The web color-scale registry turns (metric,
+value) into a color and renders one legend bar per metric present.
 
 Row ordering is deliberately *not* materialized: the API sorts genes with
 JavaScript's ``localeCompare``, which Python cannot reproduce byte-for-byte.
@@ -41,7 +36,6 @@ import math
 import sqlite3
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any
 
 import click
 
@@ -51,42 +45,41 @@ from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import normalize_column_name
 
 
-SCHEMA_VERSION = "2"
+SCHEMA_VERSION = "3"
 
-# Cell-status precedence, strongest first.
-STATUS_SIGNIFICANT = "significant"
-STATUS_DATA = "data"
-STATUS_ASSAYED_NULL = "assayed_null"
-
-# -log10(p) clamp for expanded heatmap cells. The lower bound keeps every
-# present cell visible against "no data"; the upper bound stops a single
-# p ~ 1e-49 row (they exist) from owning the whole color ramp.
+# -log10(p) clamp for neglog_* heatmap cells. The lower bound keeps every present
+# cell visible against "no data"; the upper bound stops a single p ~ 1e-49 row
+# (they exist) from owning the whole color ramp. This range is also the frontend
+# neglog scale's domain, so clamping here doesn't lose anything.
 NEG_LOG_P_MIN = 1.0
 NEG_LOG_P_MAX = 20.0
 
-# Response-side key prefix for an expanded modality's sub-columns, e.g.
-# `expr:<table>:SHANK3`. Stored in the DB so the web API doesn't hardcode it.
+# Metrics whose cell value is -log10(min significance) rather than a raw column
+# value. For these the materializer transforms + clamps; the effect metrics
+# (signed_neglog_p, activity_ratio) store the aggregated raw value verbatim.
+_NEGLOG_METRICS = frozenset({"neglog_p", "neglog_q"})
+
+# Response-side key prefix for a modality's sub-columns, e.g. `expr:<table>:SHANK3`.
+# Stored in the DB so the web API doesn't hardcode it; unknown modalities fall
+# back to their own key.
 _COLUMN_PREFIXES = {
     "expression": "expr",
     "perturb_seq": "ps",
     "perturb_fish": "pf",
+    "behavior": "beh",
 }
 
-# A target gene is an expanded column only if it is FDR-significant across at
-# least this many distinct perturbed-side groups (CNV regions for the organoid
-# table, perturbed genes elsewhere). Fixed floor — the API/UI tunes *how many*
-# columns per dataset to show, not this eligibility bar.
+# A gene-target column is kept only if it is FDR-significant across at least this
+# many distinct perturbed-side groups. Fixed floor — the API/UI tunes *how many*
+# columns per dataset to show, not this bar. Phenotype axes ignore it (few cols).
 ELIGIBILITY_MIN_GROUPS = 2
 
 # Only the top-M most-convergent columns per (modality, source table) are
-# materialized. M is the largest "columns per dataset" the UI offers, so nothing
-# selectable is ever missing while the DB stays small even for the dense CRISPR
-# screens (SCZ arrayed alone has ~8.5k eligible columns).
+# materialized. M is the largest "columns per dataset" the UI offers.
 MATERIALIZE_TOP_M = 200
 
 _TABLES = (
     "overview_matrix_genes",
-    "overview_matrix_status_cells",
     "overview_matrix_expansions",
     "overview_matrix_expanded_columns",
     "overview_matrix_expanded_cells",
@@ -102,16 +95,6 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         central_gene_id INTEGER PRIMARY KEY,
         human_symbol TEXT)"""
     )
-    # Only non-"none" cells are stored; the API fills the gaps.
-    conn.execute(
-        """CREATE TABLE overview_matrix_status_cells (
-        central_gene_id INTEGER NOT NULL,
-        modality_key TEXT NOT NULL,
-        status TEXT NOT NULL,
-        count INTEGER NOT NULL,
-        table_names TEXT NOT NULL,
-        PRIMARY KEY (central_gene_id, modality_key)) WITHOUT ROWID"""
-    )
     conn.execute(
         """CREATE TABLE overview_matrix_expansions (
         modality_key TEXT PRIMARY KEY,
@@ -120,8 +103,10 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         n_columns_total INTEGER NOT NULL)"""
     )
     # An expanded modality can fan out several source datasets (perturb-seq has
-    # six); `source_table` keeps a target gene from different datasets in
-    # distinct columns and lets the API group + label them by dataset.
+    # several; behavior has three with different metrics); `source_table` keeps
+    # columns from different datasets distinct and lets the API group + label
+    # them by dataset. `metric` names the color scale, `column_is_gene` drives
+    # whether the column header links to a target-gene search.
     conn.execute(
         """CREATE TABLE overview_matrix_expanded_columns (
         modality_key TEXT NOT NULL,
@@ -131,19 +116,21 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         n_sig_groups INTEGER NOT NULL,
         min_p REAL NOT NULL,
         sort_rank INTEGER NOT NULL,
+        metric TEXT NOT NULL,
+        metric_domain TEXT,
+        column_is_gene INTEGER NOT NULL,
         PRIMARY KEY (modality_key, source_table, column_value)) WITHOUT ROWID"""
     )
-    # Clustered by column, not by gene: the read path always selects a set of
-    # qualifying columns and wants every gene's value for each, so a
-    # column-major key turns the whole fetch into one contiguous range scan per
-    # column instead of a scan of the full cell table.
+    # Clustered by column, not by gene: the read path selects a set of qualifying
+    # columns and wants every gene's value for each, so a column-major key turns
+    # the whole fetch into one contiguous range scan per column.
     conn.execute(
         """CREATE TABLE overview_matrix_expanded_cells (
         modality_key TEXT NOT NULL,
         source_table TEXT NOT NULL,
         column_value TEXT NOT NULL,
         central_gene_id INTEGER NOT NULL,
-        neg_log_p REAL NOT NULL,
+        value REAL NOT NULL,
         PRIMARY KEY (modality_key, source_table, column_value, central_gene_id))
         WITHOUT ROWID"""
     )
@@ -174,11 +161,7 @@ def _load_modalities(
 
 
 def _split_columns(raw: str | None) -> list[str]:
-    """Split a comma-separated column list, dropping unusable identifiers.
-
-    Mirrors the API's tolerance: a single malformed entry is skipped rather
-    than aborting the whole build.
-    """
+    """Split a comma-separated column list, dropping unusable identifiers."""
     out: list[str] = []
     for part in (raw or "").split(","):
         part = part.strip()
@@ -209,128 +192,20 @@ def _table_columns(conn: sqlite3.Connection, table: str, src_schema: str) -> set
     return {row[1] for row in conn.execute(f"PRAGMA {src_schema}.table_info({table})")}
 
 
-def _materialize_status_cells(
-    conn: sqlite3.Connection,
-    source_rows: list[tuple[Any, ...]],
-    assay_to_modalities: dict[str, list[str]],
-    src_schema: str,
-) -> None:
-    """Write `overview_matrix_status_cells` for every labeled source table."""
-    log = get_sspsygene_logger()
-    # (gene id, modality key) -> [nSig, nData, nAssayed, {table names}]
-    accum: dict[tuple[int, str], list[Any]] = {}
-    universe: set[int] = set()
-
-    for table_name, assay, pvalue_column, fdr_column, link_tables_raw, _expand in (
-        source_rows
-    ):
-        link_tables = parse_link_tables_for_direction(link_tables_raw or "", "perturbed")
-        if not link_tables:
-            continue
-        modality_keys = _modality_keys_for(assay, assay_to_modalities)
-        if not modality_keys:
-            # A labeled table whose assay maps to no modality is a
-            # misconfiguration; skip it rather than emit orphan cells.
-            log.warning(
-                "overview matrix: table %s (assay %r) maps to no modality, skipping",
-                table_name,
-                assay,
-            )
-            continue
-        try:
-            base_table = sanitize_identifier(table_name)
-        except ValueError:
-            continue
-
-        stat_cols = _split_columns(pvalue_column) + _split_columns(fdr_column)
-        # A table with no usable stat column can only ever contribute
-        # "assayed_null" — the literal 0 predicates say so explicitly.
-        data_predicate = (
-            " OR ".join(f"t.{col} IS NOT NULL" for col in stat_cols)
-            if stat_cols
-            else "0"
-        )
-        sig_predicate = (
-            " OR ".join(
-                f"(t.{col} IS NOT NULL AND t.{col} < 0.05)" for col in stat_cols
-            )
-            if stat_cols
-            else "0"
-        )
-
-        for link_table in link_tables:
-            rows = conn.execute(
-                f"""SELECT lt.central_gene_id,
-                           COUNT(*),
-                           SUM(CASE WHEN ({data_predicate}) THEN 1 ELSE 0 END),
-                           SUM(CASE WHEN ({sig_predicate}) THEN 1 ELSE 0 END)
-                      FROM {src_schema}.{base_table} t
-                      JOIN {src_schema}.{link_table} lt ON t.id = lt.id
-                      JOIN {src_schema}.central_gene cg ON cg.id = lt.central_gene_id
-                     WHERE cg.kind != 'control'
-                     GROUP BY lt.central_gene_id"""
-            ).fetchall()
-            for gene_id, n_assayed, n_data, n_sig in rows:
-                universe.add(gene_id)
-                # One assay can map to several modalities (perturb-FISH data is
-                # also perturb-seq data); it contributes to each of them.
-                for modality_key in modality_keys:
-                    entry = accum.setdefault(
-                        (gene_id, modality_key), [0, 0, 0, set()]
-                    )
-                    entry[0] += n_sig or 0
-                    entry[1] += n_data or 0
-                    entry[2] += n_assayed or 0
-                    entry[3].add(table_name)
-
-    cell_rows: list[tuple[int, str, str, int, str]] = []
-    for (gene_id, modality_key), (n_sig, n_data, n_assayed, table_names) in (
-        accum.items()
-    ):
-        if n_sig > 0:
-            status, count = STATUS_SIGNIFICANT, n_sig
-        elif n_data > 0:
-            status, count = STATUS_DATA, n_data
-        elif n_assayed > 0:
-            status, count = STATUS_ASSAYED_NULL, n_assayed
-        else:
-            continue
-        cell_rows.append(
-            (
-                gene_id,
-                modality_key,
-                status,
-                count,
-                json.dumps(sorted(table_names)),
-            )
-        )
-    conn.executemany(
-        "INSERT INTO overview_matrix_status_cells "
-        "(central_gene_id, modality_key, status, count, table_names) "
-        "VALUES (?, ?, ?, ?, ?)",
-        cell_rows,
-    )
-    click.echo(
-        f"  Overview matrix: {len(cell_rows)} status cells "
-        f"over {len(universe)} perturbed genes"
-    )
-
-
 def _group_to_genes(
     conn: sqlite3.Connection,
     base_table: str,
     link_table: str,
     group_expr: str,
     src_schema: str,
-) -> dict[Any, list[int]]:
+) -> dict[object, list[int]]:
     """Map each distinct perturbed-column value to its central gene ids.
 
     Rows sharing a perturbed-column value always resolve to the same gene set —
     the link rows are generated per value — so one representative row id per
-    distinct value is enough, and the 11M-row link table is scanned once with a
-    tiny `IN` filter instead of being joined row-by-row. The invariant is
-    asserted against the link table's row count; on any mismatch we fall back to
-    the exact (slower) DISTINCT join.
+    distinct value is enough, and the large link table is scanned once with a
+    tiny `IN` filter. The invariant is asserted against the link table's row
+    count; on any mismatch we fall back to the exact (slower) DISTINCT join.
     """
     log = get_sspsygene_logger()
     controls = {
@@ -347,9 +222,7 @@ def _group_to_genes(
     rows_per_group = {group: n_rows for group, _, n_rows in reps}
 
     placeholders = ",".join("?" for _ in rep_id_to_group)
-    # Controls stay in `full_mapping` (they occupy link rows too, so dropping
-    # them would break the row-count check) and are filtered out at the end.
-    full_mapping: dict[Any, list[int]] = {group: [] for group in rows_per_group}
+    full_mapping: dict[object, list[int]] = {group: [] for group in rows_per_group}
     if rep_id_to_group:
         for row_id, gene_id in conn.execute(
             f"""SELECT id, central_gene_id FROM {src_schema}.{link_table}
@@ -370,7 +243,6 @@ def _group_to_genes(
             for group, gene_ids in full_mapping.items()
         }
 
-    # The per-value invariant doesn't hold for this table — redo it exactly.
     log.warning(
         "overview matrix: %s link-row count %d != expected %d from the "
         "representative-row shortcut; falling back to the exact join",
@@ -378,7 +250,7 @@ def _group_to_genes(
         actual,
         expected,
     )
-    mapping: dict[Any, list[int]] = {group: [] for group in rows_per_group}
+    mapping: dict[object, list[int]] = {group: [] for group in rows_per_group}
     for group, gene_id in conn.execute(
         f"""SELECT DISTINCT {group_expr}, lt.central_gene_id
               FROM {src_schema}.{base_table} t
@@ -390,6 +262,252 @@ def _group_to_genes(
     return mapping
 
 
+def _resolve_source_columns(
+    link_tables_raw: str | None, columns: set[str]
+) -> dict[str, str | None]:
+    """Read the target / perturbed source columns out of the link-table spec."""
+    source_columns: dict[str, str | None] = {"target": None, "perturbed": None}
+    for entry in (link_tables_raw or "").split(","):
+        parts = entry.strip().split(":")
+        if len(parts) < 3:
+            continue
+        candidate = normalize_column_name(parts[0])
+        if parts[2] in source_columns and candidate in columns:
+            source_columns[parts[2]] = candidate
+    return source_columns
+
+
+def _neg_log_p(p: float) -> float:
+    """-log10(p), clamped to [1, 20]. p <= 0 (underflow) maps to the top."""
+    if p <= 0:
+        return NEG_LOG_P_MAX
+    return round(min(max(-math.log10(p), NEG_LOG_P_MIN), NEG_LOG_P_MAX), 3)
+
+
+def _materialize_pvalue_axis(
+    conn: sqlite3.Connection,
+    *,
+    modality_key: str,
+    table_name: str,
+    source_label: str | None,
+    base_table: str,
+    link_table: str,
+    group_expr: str,
+    target_column: str,
+    column_is_gene: bool,
+    metric: str,
+    metric_domain: str | None,
+    p_col: str,
+    fdr_col: str,
+    min_groups: int,
+    show_all: bool,
+    src_schema: str,
+) -> int:
+    """Gene-target or long-phenotype axis: columns keyed by `target_column`.
+
+    A cell is -log10(most significant p) per (perturbed gene, column value).
+    Gene columns keep the ≥`min_groups` convergence floor + top-M cap; phenotype
+    columns (`show_all`) keep every distinct value.
+    """
+    group_genes = _group_to_genes(conn, base_table, link_table, group_expr, src_schema)
+
+    per_group = conn.execute(
+        f"""SELECT {group_expr}, {target_column}, MIN({p_col}), MIN({fdr_col})
+              FROM {src_schema}.{base_table}
+             WHERE {target_column} IS NOT NULL AND {target_column} != ''
+             GROUP BY 1, 2"""
+    ).fetchall()
+
+    n_sig_by_target: dict[str, int] = defaultdict(int)
+    min_p_by_target: dict[str, float] = {}
+    for group, target, min_p, min_fdr in per_group:
+        if min_p is None or not group_genes.get(group):
+            continue
+        if min_fdr is not None and min_fdr < 0.05:
+            n_sig_by_target[target] += 1
+        current = min_p_by_target.get(target)
+        if current is None or min_p < current:
+            min_p_by_target[target] = min_p
+
+    if show_all:
+        # Every column that has any data — phenotype datasets are small and the
+        # user wants the raw columns, not just convergent ones.
+        qualifying = {
+            target: n_sig_by_target.get(target, 0) for target in min_p_by_target
+        }
+    else:
+        qualifying = {
+            target: n_sig
+            for target, n_sig in n_sig_by_target.items()
+            if n_sig >= min_groups and target in min_p_by_target
+        }
+    if not qualifying:
+        return 0
+
+    ordered = sorted(
+        qualifying, key=lambda t: (-qualifying[t], min_p_by_target[t], str(t))
+    )[:MATERIALIZE_TOP_M]
+    kept = set(ordered)
+    conn.executemany(
+        "INSERT INTO overview_matrix_expanded_columns "
+        "(modality_key, source_table, source_label, column_value, n_sig_groups, "
+        " min_p, sort_rank, metric, metric_domain, column_is_gene) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+            (
+                modality_key,
+                table_name,
+                source_label,
+                str(target),
+                qualifying[target],
+                min_p_by_target[target],
+                rank,
+                metric,
+                metric_domain,
+                1 if column_is_gene else 0,
+            )
+            for rank, target in enumerate(ordered)
+        ],
+    )
+
+    cells: dict[tuple[int, str], float] = {}
+    for group, target, min_p, _min_fdr in per_group:
+        if min_p is None or target not in kept:
+            continue
+        for gene_id in group_genes.get(group, ()):
+            key = (gene_id, str(target))
+            current = cells.get(key)
+            if current is None or min_p < current:
+                cells[key] = min_p
+    conn.executemany(
+        "INSERT INTO overview_matrix_expanded_cells "
+        "(modality_key, source_table, column_value, central_gene_id, value) "
+        "VALUES (?, ?, ?, ?, ?)",
+        [
+            (modality_key, table_name, target, gene_id, _neg_log_p(min_p))
+            for (gene_id, target), min_p in cells.items()
+        ],
+    )
+    click.echo(
+        f"  Overview matrix: '{modality_key}' / {table_name} → "
+        f"{len(ordered)} columns / {len(cells)} cells "
+        f"(metric {metric}, {'all' if show_all else f'≥{min_groups} sig'})"
+    )
+    return len(ordered)
+
+
+def _materialize_wide_axis(
+    conn: sqlite3.Connection,
+    *,
+    modality_key: str,
+    table_name: str,
+    source_label: str | None,
+    base_table: str,
+    link_table: str,
+    phenotype_columns: list[str],
+    metric: str,
+    metric_domain: str | None,
+    src_schema: str,
+) -> int:
+    """Wide phenotype axis: each named numeric column is one column.
+
+    The raw config name is the (short) column header; it is normalized to read
+    the loaded DB column. The cell value aggregates that column across the gene's
+    rows — max-magnitude for signed −log10(p), mean for effect ratios. Values are
+    stored verbatim in the metric's units (the frontend scale clamps to domain).
+    """
+    log = get_sspsygene_logger()
+    existing = _table_columns(conn, base_table, src_schema)
+    signed = metric == "signed_neglog_p"
+
+    per_column: dict[str, dict[int, float]] = {}
+    labels: dict[str, str] = {}
+    for raw_pc in phenotype_columns:
+        pc = normalize_column_name(raw_pc)
+        if pc not in existing:
+            log.warning(
+                "overview matrix: %s has no phenotype column %r (normalized %r), "
+                "skipping it",
+                table_name,
+                raw_pc,
+                pc,
+            )
+            continue
+        rows = conn.execute(
+            f"""SELECT lt.central_gene_id, t.{pc}
+                  FROM {src_schema}.{base_table} t
+                  JOIN {src_schema}.{link_table} lt ON t.id = lt.id
+                  JOIN {src_schema}.central_gene cg ON cg.id = lt.central_gene_id
+                 WHERE cg.kind != 'control' AND t.{pc} IS NOT NULL"""
+        ).fetchall()
+        signed_agg: dict[int, float] = {}
+        mean_acc: dict[int, list[float]] = {}
+        for gene_id, raw in rows:
+            try:
+                v = float(raw)
+            except (TypeError, ValueError):
+                continue
+            if signed:
+                current = signed_agg.get(gene_id)
+                if current is None or abs(v) > abs(current):
+                    signed_agg[gene_id] = v
+            else:
+                mean_acc.setdefault(gene_id, []).append(v)
+        agg = (
+            signed_agg
+            if signed
+            else {g: sum(vals) / len(vals) for g, vals in mean_acc.items() if vals}
+        )
+        if not agg:
+            continue
+        per_column[pc] = agg
+        labels[pc] = raw_pc
+
+    if not per_column:
+        return 0
+
+    ordered = sorted(
+        per_column, key=lambda pc: (-len(per_column[pc]), labels[pc])
+    )[:MATERIALIZE_TOP_M]
+    conn.executemany(
+        "INSERT INTO overview_matrix_expanded_columns "
+        "(modality_key, source_table, source_label, column_value, n_sig_groups, "
+        " min_p, sort_rank, metric, metric_domain, column_is_gene) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+            (
+                modality_key,
+                table_name,
+                source_label,
+                labels[pc],
+                len(per_column[pc]),
+                0.0,
+                rank,
+                metric,
+                metric_domain,
+                0,
+            )
+            for rank, pc in enumerate(ordered)
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO overview_matrix_expanded_cells "
+        "(modality_key, source_table, column_value, central_gene_id, value) "
+        "VALUES (?, ?, ?, ?, ?)",
+        [
+            (modality_key, table_name, labels[pc], gene_id, round(value, 3))
+            for pc in ordered
+            for gene_id, value in per_column[pc].items()
+        ],
+    )
+    n_cells = sum(len(per_column[pc]) for pc in ordered)
+    click.echo(
+        f"  Overview matrix: '{modality_key}' / {table_name} → "
+        f"{len(ordered)} columns / {n_cells} cells (metric {metric}, wide)"
+    )
+    return len(ordered)
+
+
 def _materialize_expansion(
     conn: sqlite3.Connection,
     *,
@@ -399,17 +517,17 @@ def _materialize_expansion(
     pvalue_column: str | None,
     fdr_column: str | None,
     link_tables_raw: str | None,
+    phenotype_column: str | None,
+    phenotype_columns: list[str],
+    metric: str | None,
+    metric_domain: str | None,
     min_groups: int,
     src_schema: str,
 ) -> int:
     """Materialize one expanded (modality, source table). Returns column count.
 
-    Columns are the measured *target* genes that are FDR-significant across at
-    least `min_groups` distinct perturbed-side groups; only the top
-    MATERIALIZE_TOP_M most-convergent are kept (the API serves the top K <= M per
-    dataset). Each cell holds -log10(most significant p) per (perturbed gene,
-    target). Rows are tagged with `table_name` so several datasets can share a
-    modality without their columns colliding.
+    Dispatches on the declared column axis: gene target, long phenotype column,
+    or wide phenotype columns.
     """
     log = get_sspsygene_logger()
     base_table = sanitize_identifier(table_name)
@@ -423,29 +541,39 @@ def _materialize_expansion(
         return 0
     link_table = perturbed_links[0]
 
-    # The sub-column axis and the significance-group axis are the *source
-    # columns* of the target / perturbed link entries, normalized the same way
-    # the loader normalizes column names.
-    columns = _table_columns(conn, base_table, src_schema)
-    source_columns: dict[str, str | None] = {"target": None, "perturbed": None}
-    for entry in (link_tables_raw or "").split(","):
-        parts = entry.strip().split(":")
-        if len(parts) < 3:
-            continue
-        candidate = normalize_column_name(parts[0])
-        if parts[2] in source_columns and candidate in columns:
-            source_columns[parts[2]] = candidate
+    if phenotype_columns:
+        # WIDE — metric is required by config validation for this axis.
+        return _materialize_wide_axis(
+            conn,
+            modality_key=modality_key,
+            table_name=table_name,
+            source_label=source_label,
+            base_table=base_table,
+            link_table=link_table,
+            phenotype_columns=phenotype_columns,
+            metric=metric or "signed_neglog_p",
+            metric_domain=metric_domain,
+            src_schema=src_schema,
+        )
 
-    target_column = source_columns["target"]
-    if target_column is None:
+    columns = _table_columns(conn, base_table, src_schema)
+    source_columns = _resolve_source_columns(link_tables_raw, columns)
+    group_expr = source_columns["perturbed"] or "''"
+
+    if phenotype_column:
+        target_column = phenotype_column
+        column_is_gene = False
+        show_all = True
+    else:
+        target_column = source_columns["target"]
+        column_is_gene = True
+        show_all = False
+    if not target_column or target_column not in columns:
         log.warning(
-            "overview matrix: %s has no usable target column, skipping expansion",
+            "overview matrix: %s has no usable column axis, skipping expansion",
             table_name,
         )
         return 0
-    # An implicit (constant_value) perturbation has no per-row column; the whole
-    # table is then a single significance group.
-    group_expr = source_columns["perturbed"] or "''"
 
     pvalue_cols = _split_columns(pvalue_column)
     fdr_cols = _split_columns(fdr_column)
@@ -460,108 +588,27 @@ def _materialize_expansion(
             table_name,
         )
         return 0
+    # Default metric: a table with only an FDR/qval colours on the FDR scale.
+    resolved_metric = metric or ("neglog_q" if not pvalue_cols and fdr_cols else "neglog_p")
 
-    group_genes = _group_to_genes(conn, base_table, link_table, group_expr, src_schema)
-
-    # Per (group, target): the most significant raw p and the most significant
-    # FDR. MIN(fdr) < 0.05 is exactly "at least one significant row here".
-    per_group = conn.execute(
-        f"""SELECT {group_expr}, {target_column}, MIN({p_col}), MIN({fdr_col})
-              FROM {src_schema}.{base_table}
-             WHERE {target_column} IS NOT NULL AND {target_column} != ''
-             GROUP BY 1, 2"""
-    ).fetchall()
-
-    # Only groups that resolve to at least one perturbed central gene can
-    # select a column. The organoid table's idiopathic-ASD cohort has no
-    # molecular diagnosis and therefore no perturbed gene, so it contributes no
-    # matrix cells either — letting it qualify a column would produce a column
-    # that renders completely empty.
-    n_sig_by_target: dict[str, int] = defaultdict(int)
-    min_p_by_target: dict[str, float] = {}
-    for group, target, min_p, min_fdr in per_group:
-        if min_p is None or not group_genes.get(group):
-            continue
-        if min_fdr is not None and min_fdr < 0.05:
-            n_sig_by_target[target] += 1
-        current = min_p_by_target.get(target)
-        if current is None or min_p < current:
-            min_p_by_target[target] = min_p
-
-    qualifying = {
-        target: n_sig
-        for target, n_sig in n_sig_by_target.items()
-        if n_sig >= min_groups and target in min_p_by_target
-    }
-    if not qualifying:
-        return 0
-
-    # Most-convergent first (then strongest single p, then name), capped at the
-    # per-dataset materialization limit. `sort_rank` is 0-based within this
-    # (modality, source table), so the API's `LIMIT K` takes the top K.
-    ordered = sorted(
-        qualifying, key=lambda t: (-qualifying[t], min_p_by_target[t], t)
-    )[:MATERIALIZE_TOP_M]
-    kept = set(ordered)
-    conn.executemany(
-        "INSERT INTO overview_matrix_expanded_columns "
-        "(modality_key, source_table, source_label, column_value, n_sig_groups, "
-        " min_p, sort_rank) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [
-            (
-                modality_key,
-                table_name,
-                source_label,
-                target,
-                qualifying[target],
-                min_p_by_target[target],
-                rank,
-            )
-            for rank, target in enumerate(ordered)
-        ],
+    return _materialize_pvalue_axis(
+        conn,
+        modality_key=modality_key,
+        table_name=table_name,
+        source_label=source_label,
+        base_table=base_table,
+        link_table=link_table,
+        group_expr=group_expr,
+        target_column=target_column,
+        column_is_gene=column_is_gene,
+        metric=resolved_metric,
+        metric_domain=metric_domain,
+        p_col=p_col,
+        fdr_col=fdr_col,
+        min_groups=min_groups,
+        show_all=show_all,
+        src_schema=src_schema,
     )
-
-    # Cells: expand each (group, target) across the group's central genes,
-    # keeping the most significant p per (gene, target). A gene can sit in two
-    # groups (SHANK3 is both its own perturbation and a member of the 22q13
-    # region), hence the min rather than an overwrite. Only the kept (top-M)
-    # columns get cells.
-    cells: dict[tuple[int, str], float] = {}
-    for group, target, min_p, _min_fdr in per_group:
-        if min_p is None or target not in kept:
-            continue
-        for gene_id in group_genes.get(group, ()):
-            key = (gene_id, target)
-            current = cells.get(key)
-            if current is None or min_p < current:
-                cells[key] = min_p
-    conn.executemany(
-        "INSERT INTO overview_matrix_expanded_cells "
-        "(modality_key, source_table, column_value, central_gene_id, neg_log_p) "
-        "VALUES (?, ?, ?, ?, ?)",
-        [
-            (modality_key, table_name, target, gene_id, _neg_log_p(min_p))
-            for (gene_id, target), min_p in cells.items()
-        ],
-    )
-    click.echo(
-        f"  Overview matrix: '{modality_key}' / {table_name} → "
-        f"{len(ordered)} columns / {len(cells)} cells "
-        f"(≥ {min_groups} sig group(s), top {MATERIALIZE_TOP_M})"
-    )
-    return len(ordered)
-
-
-def _neg_log_p(p: float) -> float:
-    """-log10(p), clamped to [1, 20]. p <= 0 (underflow to zero) maps to the top.
-
-    Rounded to 3 decimals: this is a color-ramp coordinate, not an analysis
-    value, and full float64 repr would add ~13 bytes to each of the tens of
-    thousands of cells in an /api/collated-matrix response.
-    """
-    if p <= 0:
-        return NEG_LOG_P_MAX
-    return round(min(max(-math.log10(p), NEG_LOG_P_MIN), NEG_LOG_P_MAX), 3)
 
 
 def materialize_overview_matrix(
@@ -571,73 +618,68 @@ def materialize_overview_matrix(
     min_groups: int = ELIGIBILITY_MIN_GROUPS,
     src_schema: str = "main",
 ) -> None:
-    """Precompute the overview matrix (#222).
+    """Precompute the overview matrix (#222, #213).
 
     Writes the `overview_matrix_*` tables into `conn`'s main schema, reading the
-    dataset tables (`modalities`, `data_tables`, `central_gene`, and each
-    labeled source/link table) from `src_schema`. `run_overview_matrix` passes
-    ``src_schema="src"`` with the dataset DB ATTACHed read-only, so the matrix
-    lands in its own file; the in-process path (tests) leaves it ``"main"`` and
-    everything is one DB.
+    dataset tables from `src_schema`. `run_overview_matrix` passes
+    ``src_schema="src"`` with the dataset DB ATTACHed read-only; the in-process
+    path (tests) leaves it ``"main"``.
 
-    `min_groups` is the *eligibility floor*: a target gene becomes an expanded
-    sub-column only when it is FDR-significant across at least this many distinct
-    perturbed groups (default 2). Independently, at most `MATERIALIZE_TOP_M` of
-    the most-convergent columns are kept per (modality, source table) — the API
-    then serves the top K <= M per dataset.
+    `min_groups` is the gene-target eligibility floor (a target gene is a column
+    only when FDR-significant across at least this many perturbed groups); at
+    most `MATERIALIZE_TOP_M` most-convergent are kept per (modality, source
+    table). Phenotype axes ignore the floor and keep every distinct column.
     """
     min_groups = max(1, min_groups)
     _create_schema(conn)
 
     modality_keys, assay_to_modalities = _load_modalities(conn, src_schema)
     if not modality_keys:
-        # No taxonomy (older globals.yaml) — leave the tables empty rather than
-        # failing the build; the API degrades to an empty matrix.
         _write_info(conn, min_groups, [])
         conn.commit()
         return
 
     source_rows = conn.execute(
         f"""SELECT table_name, assay, pvalue_column, fdr_column, link_tables,
-                   expand_in_overview_matrix, short_label
+                   short_label,
+                   overview_matrix_phenotype_column,
+                   overview_matrix_phenotype_columns,
+                   overview_matrix_metric, overview_matrix_metric_domain
              FROM {src_schema}.data_tables
-            WHERE include_in_overview_matrix = 1"""
+            WHERE include_in_overview_matrix = 1 AND expand_in_overview_matrix = 1"""
     ).fetchall()
 
-    # Status aggregation ignores the two trailing columns (expand flag, label).
-    _materialize_status_cells(
-        conn,
-        [row[:6] for row in source_rows],
-        assay_to_modalities,
-        src_schema,
-    )
-    # Every joined row yields at least an "assayed_null" cell, so the status
-    # cells already carry the full perturbed-gene universe. The status-cell
-    # table lives in the write DB (unqualified); central_gene is read from src.
-    conn.execute(
-        f"""INSERT INTO overview_matrix_genes (central_gene_id, human_symbol)
-           SELECT DISTINCT c.central_gene_id, cg.human_symbol
-             FROM overview_matrix_status_cells c
-             JOIN {src_schema}.central_gene cg ON cg.id = c.central_gene_id"""
-    )
-
     expanded_source_tables: list[str] = []
+    perturbed_link_tables: list[str] = []
     for (
         table_name,
         assay,
         pvalue_column,
         fdr_column,
         link_tables_raw,
-        expand,
         short_label,
+        phenotype_column,
+        phenotype_columns_raw,
+        metric,
+        metric_domain,
     ) in source_rows:
-        if not expand:
-            continue
         modality_keys_for_table = _modality_keys_for(assay, assay_to_modalities)
         if not modality_keys_for_table:
             continue
-        # An expanded table drives exactly one section: its first modality.
         modality_key = modality_keys_for_table[0]
+
+        # Genes present in this table (its rows), regardless of column success —
+        # the perturbed-gene axis of the whole matrix is their union.
+        for link_table in parse_link_tables_for_direction(link_tables_raw or "", "perturbed"):
+            perturbed_link_tables.append(link_table)
+
+        try:
+            phenotype_columns = (
+                json.loads(phenotype_columns_raw) if phenotype_columns_raw else []
+            )
+        except (TypeError, ValueError):
+            phenotype_columns = []
+
         n_columns = _materialize_expansion(
             conn,
             modality_key=modality_key,
@@ -646,6 +688,10 @@ def materialize_overview_matrix(
             pvalue_column=pvalue_column,
             fdr_column=fdr_column,
             link_tables_raw=link_tables_raw,
+            phenotype_column=phenotype_column,
+            phenotype_columns=phenotype_columns,
+            metric=metric,
+            metric_domain=metric_domain,
             min_groups=min_groups,
             src_schema=src_schema,
         )
@@ -667,10 +713,21 @@ def materialize_overview_matrix(
             ),
         )
 
+    # Rows: every perturbed (non-control) gene across the expanded tables.
+    for link_table in dict.fromkeys(perturbed_link_tables):
+        try:
+            safe_link = sanitize_identifier(link_table)
+        except ValueError:
+            continue
+        conn.execute(
+            f"""INSERT OR IGNORE INTO overview_matrix_genes (central_gene_id, human_symbol)
+               SELECT DISTINCT lt.central_gene_id, cg.human_symbol
+                 FROM {src_schema}.{safe_link} lt
+                 JOIN {src_schema}.central_gene cg ON cg.id = lt.central_gene_id
+                WHERE cg.kind != 'control'"""
+        )
+
     if not no_index:
-        # The read path selects a (modality, source table) and walks its columns
-        # in rank order (top K per dataset); the cells need no index because the
-        # table is already clustered by (modality, source table, column).
         conn.execute(
             "CREATE INDEX overview_matrix_expanded_columns_rank_idx "
             "ON overview_matrix_expanded_columns "

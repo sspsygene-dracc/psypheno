@@ -286,6 +286,10 @@ def load_data_tables(
         why_excluded_from_meta_analysis TEXT,
         include_in_overview_matrix INTEGER NOT NULL DEFAULT 0,
         expand_in_overview_matrix INTEGER NOT NULL DEFAULT 0,
+        overview_matrix_phenotype_column TEXT,
+        overview_matrix_phenotype_columns TEXT,
+        overview_matrix_metric TEXT,
+        overview_matrix_metric_domain TEXT,
         preprocessing TEXT)"""
     )
     log = get_sspsygene_logger()
@@ -429,6 +433,20 @@ def load_data_tables(
             "expand_in_overview_matrix": 1
             if table_config.overview_matrix_expand
             else 0,
+            "overview_matrix_phenotype_column": (
+                table_config.overview_matrix_phenotype_column
+            ),
+            "overview_matrix_phenotype_columns": (
+                json.dumps(table_config.overview_matrix_phenotype_columns)
+                if table_config.overview_matrix_phenotype_columns
+                else None
+            ),
+            "overview_matrix_metric": table_config.overview_matrix_metric,
+            "overview_matrix_metric_domain": (
+                json.dumps(table_config.overview_matrix_metric_domain)
+                if table_config.overview_matrix_metric_domain is not None
+                else None
+            ),
             "preprocessing": json.dumps(preprocessing_dict)
             if preprocessing_dict
             else None,

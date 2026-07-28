@@ -256,23 +256,9 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
     The fixture table is labeled `overview_matrix` + `overview_matrix_expand`
     with assay `perturbation`, which the fixture taxonomy maps to `perturb_seq`.
     Foxg1/Tbr1/Tcf4 are the perturbed genes; NonTarget1 is a control and must
-    not appear.
+    not appear. #213 removed the aggregated status columns — the rows are the
+    perturbed genes across the expanded tables.
     """
-    statuses = {
-        (row["human_symbol"], row["modality_key"]): (row["status"], row["count"])
-        for row in conn.execute(
-            "SELECT g.human_symbol, c.modality_key, c.status, c.count "
-            "FROM overview_matrix_status_cells c "
-            "JOIN overview_matrix_genes g ON g.central_gene_id = c.central_gene_id"
-        )
-    }
-    # Foxg1 perturbs 4 rows, 3 of them significant (padj or pvalue < 0.05);
-    # Tbr1 2 rows, both significant; Tcf4 1 significant row.
-    assert statuses[("FOXG1", "perturb_seq")] == ("significant", 4)
-    assert statuses[("TBR1", "perturb_seq")] == ("significant", 2)
-    assert statuses[("TCF4", "perturb_seq")] == ("significant", 1)
-    assert not any(symbol == "NONTARGET1" for symbol, _ in statuses)
-
     perturbed = {
         row["human_symbol"]
         for row in conn.execute("SELECT human_symbol FROM overview_matrix_genes")
@@ -294,9 +280,9 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
     assert not any(value == "Trp53" for value, _ in columns)
 
     cells = {
-        (row["human_symbol"], row["column_value"]): row["neg_log_p"]
+        (row["human_symbol"], row["column_value"]): row["value"]
         for row in conn.execute(
-            "SELECT g.human_symbol, c.column_value, c.neg_log_p "
+            "SELECT g.human_symbol, c.column_value, c.value "
             "FROM overview_matrix_expanded_cells c "
             "JOIN overview_matrix_genes g ON g.central_gene_id = c.central_gene_id"
         )

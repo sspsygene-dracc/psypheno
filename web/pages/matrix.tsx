@@ -1,81 +1,68 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import CollatedMatrix, {
-  StatusSwatch,
-  pColor,
-} from "@/components/CollatedMatrix";
-import type {
-  CellStatus,
-  CollatedMatrixResponse,
-} from "@/lib/collated-matrix-types";
-
-const STATUS_LEGEND: [CellStatus, string][] = [
-  ["significant", "significant"],
-  ["data", "data, not significant"],
-  ["assayed_null", "assayed but null"],
-  ["none", "no data"],
-];
+import CollatedMatrix, { type MetricDomains } from "@/components/CollatedMatrix";
+import {
+  legendEndpoints,
+  legendGradientCss,
+  scaleFor,
+} from "@/lib/matrix-color-scales";
+import type { CollatedMatrixResponse } from "@/lib/collated-matrix-types";
 
 const COLS_PER_DATASET_OPTIONS = [25, 50, 100, 200];
 
-function pvalueRampCss(): string {
-  const stops = [1, 4.75, 9.5, 14.25, 20]
-    .map((v) => `${pColor(v)} ${(((v - 1) / 19) * 100).toFixed(0)}%`)
-    .join(", ");
-  return `linear-gradient(to right, ${stops})`;
-}
-
-function Legend() {
+function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
+  const metrics = data.meta.metrics;
+  if (metrics.length === 0) return null;
   return (
     <div
       style={{
         display: "flex",
         flexWrap: "wrap",
-        gap: 18,
-        alignItems: "center",
-        fontSize: 13,
-        color: "#4b5563",
+        gap: 22,
+        alignItems: "flex-start",
         marginBottom: 18,
       }}
     >
-      <span style={{ fontWeight: 600, color: "#374151" }}>Status columns:</span>
-      {STATUS_LEGEND.map(([status, label]) => (
-        <span
-          key={status}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-        >
-          <StatusSwatch status={status} /> {label}
-        </span>
-      ))}
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          marginLeft: 8,
-        }}
-      >
-        <span style={{ fontWeight: 600, color: "#374151" }}>
-          Expanded columns:
-        </span>
-        <span>-log10(p)</span>
-        <span style={{ color: "#9ca3af" }}>1</span>
-        <span
-          aria-hidden="true"
-          style={{
-            display: "inline-block",
-            width: 90,
-            height: 12,
-            borderRadius: 2,
-            border: "1px solid rgba(0,0,0,0.12)",
-            background: pvalueRampCss(),
-          }}
-        />
-        <span style={{ color: "#9ca3af" }}>20</span>
-        <span style={{ color: "#9ca3af" }}>(perturb-FISH: qval)</span>
-      </span>
+      {metrics.map((m) => {
+        const scale = scaleFor(m.id);
+        const [lo, hi] = legendEndpoints(m.id, m.domain);
+        return (
+          <div
+            key={m.id}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 3,
+              fontSize: 12,
+              color: "#4b5563",
+            }}
+          >
+            <span style={{ fontWeight: 600, color: "#374151" }}>{scale.label}</span>
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              <span style={{ color: "#9ca3af" }}>{lo}</span>
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-block",
+                  width: 120,
+                  height: 12,
+                  borderRadius: 2,
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  background: legendGradientCss(m.id, m.domain),
+                }}
+              />
+              <span style={{ color: "#9ca3af" }}>{hi}</span>
+            </span>
+            {scale.note && (
+              <span style={{ color: "#9ca3af", fontSize: 11 }}>{scale.note}</span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -115,7 +102,12 @@ export default function MatrixPage() {
   const sections = data?.sections ?? [];
   const columns = data?.columns ?? [];
   const meta = data?.meta;
-  const expanded = columns.filter((c) => c.kind === "pvalue").length;
+
+  const metricDomains: MetricDomains = useMemo(() => {
+    const out: MetricDomains = {};
+    for (const m of meta?.metrics ?? []) out[m.id] = m.domain;
+    return out;
+  }, [meta]);
 
   return (
     <>
@@ -159,16 +151,15 @@ export default function MatrixPage() {
             }}
           >
             Every experimentally perturbed SSPsyGene target gene (rows) against
-            each experimental modality (grouped columns). Most modalities are a
-            single <strong>color-coded status</strong> tile; RNA expression,
-            perturb-seq, and perturb-FISH are <strong>fanned out</strong> into
-            one column per measured target gene (grouped by source dataset),
-            colored by <strong>-log10(p)</strong> (red = most significant). The
-            matrix is <strong>intentionally sparse</strong> &mdash; gaps are
-            expected.
+            each experimental dataset (grouped columns). Each dataset fans out
+            into its raw measurements &mdash; one column per measured target gene
+            or phenotype &mdash; colored by its own metric (see the legends). Row
+            and column gene names link to their gene search; each dataset heading
+            links to its full table. The matrix is{" "}
+            <strong>intentionally sparse</strong> &mdash; gaps are expected.
           </p>
 
-          <Legend />
+          {data && <MetricLegend data={data} />}
 
           <div
             style={{
@@ -181,21 +172,17 @@ export default function MatrixPage() {
             }}
           >
             <div style={{ fontSize: 13, color: "#6b7280" }}>
-              {genes.length.toLocaleString()} perturbed genes ×{" "}
+              {genes.length.toLocaleString()} perturbed genes &times;{" "}
               {columns.length.toLocaleString()} columns
-              {expanded > 0 &&
-                ` (${expanded.toLocaleString()} expanded target-gene columns)`}
               {meta?.expandedColumnsTruncated && (
                 <span style={{ color: "#9ca3af" }}>
                   {" "}
-                  — top {meta.colsPerDataset} per dataset shown
+                  &mdash; top {meta.colsPerDataset} per dataset shown
                 </span>
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span
-                style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}
-              >
+              <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
                 Columns per dataset:
               </span>
               {COLS_PER_DATASET_OPTIONS.map((k) => {
@@ -253,6 +240,7 @@ export default function MatrixPage() {
                 sections={sections}
                 columns={columns}
                 genes={genes}
+                metricDomains={metricDomains}
               />
             </div>
           )}

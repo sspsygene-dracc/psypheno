@@ -93,6 +93,19 @@ tables:
         link_table_name: Mutant_Experiment_Sample_gene
         species: human
         perturbed_or_target: perturbed
+    # Overview matrix (#213): one column per brain region, colored by the pERK
+    # activity ratio (mutant/WT). Not a p-value, so an explicit metric.
+    overview_matrix_expand: true
+    overview_matrix_metric: activity_ratio
+    overview_matrix_phenotype_columns:
+      - Forebrain
+      - Optic Tectum
+      - Thalamus
+      - Hypothalamus
+      - Cerebellum
+      - Hindbrain
+      - Habenula
+      - Posterior Tuberculum
   - table: RestWake_VisStart_byGene
     overview_matrix: true  # #212 overview matrix source
     changelog:
@@ -137,3 +150,7 @@ tables:
         perturbed_or_target: perturbed
     pvalue_column: Pvalue
     effect_column: Beta
+    # Overview matrix (#213): one column per behavioral parameter (long format),
+    # colored by -log10(p) (default metric).
+    overview_matrix_expand: true
+    overview_matrix_phenotype_column: Behavioral_Parameter

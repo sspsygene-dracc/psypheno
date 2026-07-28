@@ -50,3 +50,13 @@ body {
     scrollbar-color: rgba(100, 116, 139, 0.6) transparent;
   }
 }
+
+/* Links inside the cross-modality matrix (/matrix): read as plain header text,
+   underline on hover so they're discoverable without cluttering the grid. */
+.matrix-link {
+  color: inherit;
+  text-decoration: none;
+}
+.matrix-link:hover {
+  text-decoration: underline;
+}
