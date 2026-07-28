@@ -260,6 +260,10 @@ def main() -> None:
         Pipeline("results_phenotypes.tsv", tracker=tracker, normalizer=normalizer)
         .from_dataframe(df12, label="Table S12")
         .clean_gene("gene", species="human")
+        # gene_raw is identical to gene for all 238 rows here (all 10 gene
+        # symbols were already clean HGNC symbols) -- redundant, unlike in
+        # zhou_2022_gene_meta where it preserves real pre-resolution values.
+        .drop_columns("gene_raw")
         .write_tsv(DIR / "results_phenotypes.tsv")
         .run()
     )

@@ -46,7 +46,7 @@ tables:
       - date: "2026-07-07"
         message: "Initial data load"
     shortLabel: zhou_2022_gene_meta
-    mediumLabel: "Zhou 2022 - Moderate-Risk ASD Gene Meta-Analysis"
+    mediumLabel: "Zhou 2022 - Moderate-Risk Autism Gene Meta-Analysis"
     longLabel: "Per-gene meta-analysis of de novo, inherited, and case-control burden evidence for autism risk (Zhou et al. 2022)"
     description: >
       Gene-based meta-analysis from a two-stage study of 42,607 ASD cases
@@ -191,7 +191,7 @@ tables:
         message: "Initial data load"
     shortLabel: zhou_2022_phenotypes
     mediumLabel: "Zhou 2022 - Comorbidities in Novel Moderate-Risk Gene Carriers (10 Genes)"
-    longLabel: "Per-patient comorbidity flags for individuals with high-confidence LoF variants in the 5 novel moderate-risk genes and 5 established comparison ASD risk genes (Zhou et al. 2022)"
+    longLabel: "Per-patient comorbidity flags for individuals with high-confidence LoF variants in the 5 novel moderate-risk genes and 5 established comparison Autism risk genes (Zhou et al. 2022)"
     description: >
       Patient-level phenotype data (238 individuals) for carriers of
       high-confidence LoF variants in the study's 5 novel moderate-risk ASD
@@ -231,7 +231,6 @@ tables:
       adhd: "ADHD"
     fieldLabels:
       gene: "Resolved HGNC gene symbol (source column: gene_symbol). The same gene appears on multiple rows, one per patient carrying a qualifying variant in it."
-      gene_raw: "Gene symbol before HGNC resolution (gene_symbol column value from Table S12, whitespace-stripped)"
       sample_id: "SPARK sample/participant ID (spid column)"
       inheritance: "How this variant arose: De novo (new mutation, not in either parent), Maternal/Paternal (inherited from that parent), Inherited (inherited, parent-of-origin not determined), Non-maternal/Non-paternal (inherited, confirmed not from that parent), or Unknown"
       variant_id_hg38: "Variant identifier in chrom_position_ref_alt format (GRCh38)"
