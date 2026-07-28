@@ -8,9 +8,43 @@ import {
   legendGradientCss,
   scaleFor,
 } from "@/lib/matrix-color-scales";
+import { orderColumns, orderRows } from "@/lib/matrix-clustering";
 import type { CollatedMatrixResponse } from "@/lib/collated-matrix-types";
 
 const COLS_PER_DATASET_OPTIONS = [25, 50, 100, 200];
+
+function ToggleButton({
+  active,
+  onClick,
+  disabled,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      disabled={disabled}
+      style={{
+        padding: "4px 10px",
+        background: active ? "#e5e7eb" : "#ffffff",
+        border: "1px solid #d1d5db",
+        color: disabled ? "#9ca3af" : "#1f2937",
+        borderRadius: 6,
+        cursor: disabled ? "default" : "pointer",
+        fontSize: 13,
+        fontWeight: active ? 700 : 500,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
   const metrics = data.meta.metrics;
@@ -72,6 +106,17 @@ export default function MatrixPage() {
   const [data, setData] = useState<CollatedMatrixResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [clusterRows, setClusterRows] = useState(false);
+  const [clusterCols, setClusterCols] = useState(false);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+
+  const toggleHide = (sourceTable: string) =>
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(sourceTable)) next.delete(sourceTable);
+      else next.add(sourceTable);
+      return next;
+    });
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +153,30 @@ export default function MatrixPage() {
     for (const m of meta?.metrics ?? []) out[m.id] = m.domain;
     return out;
   }, [meta]);
+
+  // Visible columns (hidden datasets dropped) then optional clustering. Row and
+  // column clustering both run over the visible columns so hidden datasets are
+  // excluded from the distances. Memoized so a re-render doesn't recluster.
+  const visibleColumns = useMemo(
+    () => columns.filter((c) => !hidden.has(c.sourceTable)),
+    [columns, hidden]
+  );
+
+  const orderedColumns = useMemo(
+    () =>
+      clusterCols
+        ? orderColumns(genes, visibleColumns).map((i) => visibleColumns[i])
+        : visibleColumns,
+    [clusterCols, genes, visibleColumns]
+  );
+
+  const orderedGenes = useMemo(
+    () =>
+      clusterRows
+        ? orderRows(genes, visibleColumns).map((i) => genes[i])
+        : genes,
+    [clusterRows, genes, visibleColumns]
+  );
 
   return (
     <>
@@ -172,8 +241,14 @@ export default function MatrixPage() {
             }}
           >
             <div style={{ fontSize: 13, color: "#6b7280" }}>
-              {genes.length.toLocaleString()} perturbed genes &times;{" "}
-              {columns.length.toLocaleString()} columns
+              {orderedGenes.length.toLocaleString()} perturbed genes &times;{" "}
+              {orderedColumns.length.toLocaleString()} columns
+              {hidden.size > 0 && (
+                <span style={{ color: "#9ca3af" }}>
+                  {" "}
+                  &mdash; {hidden.size} dataset{hidden.size === 1 ? "" : "s"} hidden
+                </span>
+              )}
               {meta?.expandedColumnsTruncated && (
                 <span style={{ color: "#9ca3af" }}>
                   {" "}
@@ -181,34 +256,58 @@ export default function MatrixPage() {
                 </span>
               )}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
               <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
+                Cluster:
+              </span>
+              <ToggleButton
+                active={clusterRows}
+                disabled={loading}
+                onClick={() => setClusterRows((v) => !v)}
+              >
+                Rows
+              </ToggleButton>
+              <ToggleButton
+                active={clusterCols}
+                disabled={loading}
+                onClick={() => setClusterCols((v) => !v)}
+              >
+                Columns
+              </ToggleButton>
+              <ToggleButton
+                active={false}
+                disabled={hidden.size === 0}
+                onClick={() => setHidden(new Set())}
+              >
+                Unhide all datasets
+              </ToggleButton>
+              <span
+                style={{
+                  fontSize: 13,
+                  color: "#374151",
+                  fontWeight: 600,
+                  marginLeft: 8,
+                }}
+              >
                 Columns per dataset:
               </span>
-              {COLS_PER_DATASET_OPTIONS.map((k) => {
-                const active = k === colsPerDataset;
-                return (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setColsPerDataset(k)}
-                    aria-pressed={active}
-                    disabled={loading}
-                    style={{
-                      padding: "4px 10px",
-                      background: active ? "#e5e7eb" : "#ffffff",
-                      border: "1px solid #d1d5db",
-                      color: "#1f2937",
-                      borderRadius: 6,
-                      cursor: active || loading ? "default" : "pointer",
-                      fontSize: 13,
-                      fontWeight: active ? 700 : 500,
-                    }}
-                  >
-                    {k}
-                  </button>
-                );
-              })}
+              {COLS_PER_DATASET_OPTIONS.map((k) => (
+                <ToggleButton
+                  key={k}
+                  active={k === colsPerDataset}
+                  disabled={loading}
+                  onClick={() => setColsPerDataset(k)}
+                >
+                  {k}
+                </ToggleButton>
+              ))}
             </div>
           </div>
 
@@ -238,9 +337,11 @@ export default function MatrixPage() {
             >
               <CollatedMatrix
                 sections={sections}
-                columns={columns}
-                genes={genes}
+                columns={orderedColumns}
+                genes={orderedGenes}
                 metricDomains={metricDomains}
+                bandsVisible={!clusterCols}
+                onToggleHide={toggleHide}
               />
             </div>
           )}

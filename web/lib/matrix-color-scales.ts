@@ -75,7 +75,7 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
   signed_neglog_p: {
     label: "signed −log10(p)",
     kind: "diverging",
-    domain: [-20, 20],
+    domain: [-5, 5],
     mid: 0,
     stops: BLUE_RED,
     note: "blue = down, red = up in mutant",
