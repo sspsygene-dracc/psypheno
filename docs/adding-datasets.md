@@ -19,7 +19,7 @@ on gene pages.
 5. [Test on the server](#step-5-test-on-the-server)
 6. [Commit to git](#step-6-commit-to-git)
 7. [Deploy](#step-7-deploy)
-8. [Promoting a dataset from internal to production](#promoting-a-dataset-from-internal-to-production)
+8. [Widening a dataset's destinations (dev → int / prod)](#widening-a-datasets-destinations-dev--int--prod)
 9. [Troubleshooting](#troubleshooting)
 
 ---
@@ -1014,15 +1014,25 @@ server instance. The three instances (dev, int, prod — see
 been swapped and reopens the connection on the next request — no service
 restart, no sudo.
 
-The three sites are independent deploys — **not** a staging chain:
+**The database is built once, on dev.** dev holds every dataset; prod's and
+int's DBs are derived from dev's by subsetting to the datasets whose `deployTo`
+names them (#225). So the shape of a rollout is always the same:
 
-- **Public datasets** → rebuild on **dev** first to verify, then on **prod**.
-  (Dev is the staging instance for prod.)
-- **Embargoed / pre-publication datasets** → rebuild on **int** only. int is a
-  parallel site for embargoed data and never auto-promotes anywhere.
-- A dataset can later move from int to prod if it becomes publishable; that's
-  a deliberate operator action (see *Promoting an embargoed dataset to
-  production* below), not part of any automatic flow.
+- **Build on dev**, verify at https://psypheno-dev.gi.ucsc.edu.
+- **Promote** to whichever instances the dataset's `deployTo` names.
+
+Where a dataset ends up is decided by its `deployTo` list, not by which server
+you happen to run a command on:
+
+- **Public datasets** → `deployTo: [dev, int, prod]` (or `[dev, prod]`).
+- **Embargoed / pre-publication datasets** → `deployTo: [dev, int]`, or
+  `[dev]` while you are still working on it.
+- Widening later is a config edit plus a promotion — see
+  *Widening a dataset's destinations* below.
+
+`sspsygene deploy --load-db` against int or prod is **refused**: their DBs come
+from dev's build, and rebuilding in place would need that site's checkout to
+hold every dev dataset's data files.
 
 There are two ways to do this:
 
@@ -1038,34 +1048,28 @@ rollouts follow this pattern:
 sspsygene deploy --instances dev --load-db
 ```
 
-Verify at https://psypheno-dev.gi.ucsc.edu. Once you're happy, **promote the
-verified dev build to prod** — don't rebuild on prod. `promote-dev-to-prod`
-copies dev's already-built DB straight to prod, so prod serves byte-identical
-bytes instead of re-running `load-db` independently (which can drift from dev
-if data files or tool versions differ):
+Verify at https://psypheno-dev.gi.ucsc.edu. Once you're happy, **promote**:
 
 ```bash
-sspsygene promote-dev-to-prod                 # then check psypheno (live)
+sspsygene promote-dev-to-int      # then check psypheno-int
+sspsygene promote-dev-to-prod     # then check psypheno (live)
 ```
 
-This is the standard dev → prod path (issue #178); it copies dev's
-`sspsygene.db` (and `sspsygene-meta.db`) and atomically swaps them in, no
-rebuild and no restart. See [development.md](development.md) for the full
-flag reference (`--no-meta-analysis`, `--dry-run`, `--local`).
+Each derives that instance's DB from dev's build — keeping only the datasets
+whose `deployTo` names it — verifies the result before and after the swap, and
+copies dev's `sspsygene-meta.db` and `sspsygene-overview.db` alongside it. No
+rebuild, no restart. See [development.md](development.md) for the full flag
+reference (`--no-meta-analysis`, `--dry-run`, `--local`).
 
-> If you instead run `sspsygene deploy --instances prod --load-db`, the deploy
-> now **warns and asks for confirmation**, because rebuilding on prod is the
-> thing `promote-dev-to-prod` is meant to replace. Prefer the promote command.
+If a promotion aborts with a "possible embargoed-data leak" banner, **do not
+retry** — send the full message to jbirgmei@gmail.com. The target instance is
+left exactly as it was.
 
-For an **embargoed** dataset, skip dev and prod and deploy directly to int:
+An **embargoed** dataset follows the same path; it just carries
+`deployTo: [dev, int]`, so `promote-dev-to-prod` leaves it out automatically.
+You no longer deploy "directly to int" — build on dev, promote to int.
 
-```bash
-sspsygene deploy --instances int --load-db    # then check psypheno-int
-```
-
-You can also pass multiple instances at once (e.g. `--instances dev,prod`);
-they're iterated in dev→int→prod order purely for log readability but are
-independent deploys — failures on one don't roll back the others. Useful flags:
+Useful `deploy` flags:
 
 - `--preprocess` — also re-run each dataset's `preprocess.py` on the server
   before `load-db`. Use when a `preprocess.py` change has landed and the
@@ -1162,68 +1166,67 @@ tracked files, so the server's git tree stays clean for the next `git pull`.
 
 ---
 
-## Promoting a dataset from internal to production
+## Widening a dataset's destinations (dev → int / prod)
 
-Use this **only when an embargoed dataset on int becomes publishable** and
-you want to make it part of prod. It is **not** part of any automatic flow —
-int and prod are independent sites with possibly disjoint dataset sets, and
-most embargoed datasets stay on int. Public datasets follow the dev → prod
-path in Step 7 and don't go through int at all.
+Since #225 this is a **one-line config change plus a promotion** — no rsync
+between instance trees, and no rebuild anywhere but dev.
 
-> **Why not `promote-dev-to-prod` here?** That command copies the *whole* DB
-> dev → prod, which only works when dev is a superset of prod. int and prod
-> have disjoint dataset sets, so a whole-DB copy would clobber prod's other
-> datasets. Moving a single dataset from int to prod is therefore a per-dataset
-> rsync + rebuild, as below — not a DB-file copy.
+A dataset appears on an instance if and only if its `config.yaml` says so:
 
-Each instance has its **own data directory** on `/hive`. The `config.yaml`
-and preprocessing script live in git, so they reach prod automatically via
-`git pull`. But **processed CSV/TSV files are not in git**, so they must be
-copied between instances (or regenerated by re-running the preprocessing
-script).
-
-The cleanest path is to push the data files from your laptop with
-`sspsygene push-data my-dataset --instance prod` (it copies only the
-gitignored payloads, group-writable, without dirtying prod's git tree) and then
-run `sspsygene deploy --instances prod --load-db` — the
-[7c](#7c-push-your-data-files-with-sspsygene-push-data) flow, pointed at prod.
-
-If you're already SSHed into the server and want to copy directly between
-instance trees on `/hive`, you can rsync int → prod by hand:
-
-```bash
-ssh psygene
-
-# 1. Copy processed data files from int to prod (config.yaml is harmlessly
-#    overwritten with the same content from git):
-rsync -av \
-  /hive/groups/SSPsyGene/sspsygene_website_int/data/datasets/my-dataset/ \
-  /hive/groups/SSPsyGene/sspsygene_website/data/datasets/my-dataset/
-
-# 2. Rebuild the production database (same steps as Step 7, but in the
-#    prod directory):
-cd /hive/groups/SSPsyGene/sspsygene_website
-git pull
-source $HOME/opt_rocky9/miniconda3/etc/profile.d/conda.sh
-conda activate sspsygene
-export SSPSYGENE_CONFIG_JSON="$(pwd)/processing/src/processing/config.json"
-export SSPSYGENE_DATA_DIR="$(pwd)/data"
-export SSPSYGENE_DATA_DB="$(pwd)/data/db/sspsygene.db"
-sspsygene load-db
+```yaml
+deployTo:
+  - dev
+  - int     # add to publish on the internal site
+  - prod    # add to publish on the public site
 ```
 
-Verify at https://psypheno.gi.ucsc.edu.
+To widen a dataset that is currently `deployTo: [dev]`:
 
-Alternative to rsync: re-run your preprocessing script in the prod dataset
-directory if the raw input is accessible there.
+1. **Edit `deployTo`** in `data/datasets/<name>/config.yaml`, adding `int`
+   and/or `prod`. Commit and push — the config reaches every instance via
+   `git pull`.
+2. **Make sure dev has the data and a current build.** Push the gitignored
+   payloads to dev if you haven't (`sspsygene push-data <name> --instance dev`)
+   and rebuild there:
+
+   ```bash
+   sspsygene deploy --instances dev --load-db
+   ```
+
+3. **Promote.** From your laptop or on the server:
+
+   ```bash
+   sspsygene promote-dev-to-int      # for int
+   sspsygene promote-dev-to-prod     # for prod
+   ```
+
+   Each derives that instance's DB from dev's superset, keeping only the
+   datasets whose `deployTo` names it, verifies the result before and after
+   the swap, and copies dev's `sspsygene-meta.db` and `sspsygene-overview.db`
+   alongside. No restart is needed.
+
+4. **Verify** at https://psypheno-int.gi.ucsc.edu /
+   https://psypheno.gi.ucsc.edu.
 
 ### Important notes
 
-- **Do not skip the data file copy.** Running `sspsygene load-db` without
-  the data files will cause the load to fail or silently skip the dataset.
-- Dev has its own directory (`sspsygene_website_dev`); if you want the
-  dataset on dev too, repeat the rsync + `sspsygene load-db` there (with
-  env vars pointing at the dev directory).
+- **You do not copy data files to int or prod.** Their DBs are derived from
+  dev's build, so the raw and cleaned payloads only ever need to exist on dev.
+  `sspsygene push-data <name> --instance prod` will in fact **refuse** unless
+  `prod` is in that dataset's `deployTo` — pushing a dataset's inputs into an
+  instance's tree is a disclosure even if that instance never reads them.
+- **You cannot rebuild the DB on int or prod.** `sspsygene deploy --load-db`
+  (or `--preprocess`) against either is refused. Build on dev, then promote.
+- **Narrowing is not retroactive.** Removing `prod` from `deployTo` keeps the
+  dataset out of the *next* promotion; it does not remove it from what prod is
+  serving right now. Promote again to apply the change.
+- **A dev-only dataset won't appear in `/most-significant` or `/matrix`, even
+  on dev.** Those are computed from `prod`-labelled datasets only so the
+  results can be shared across instances. Mark the dataset `prod` and rebuild
+  to see its contribution.
+- **If a promotion aborts** with a "possible embargoed-data leak" banner, do
+  not retry — send the full message to jbirgmei@gmail.com. The target is left
+  untouched.
 
 ---
 
@@ -1299,14 +1302,16 @@ section 10c ("GitHub access for the deploy's `git pull`").
 | Load single dataset (fast test) | `sspsygene load-db --dataset NAME` |
 | Load all datasets, skip indexing | `sspsygene load-db --no-index` |
 | Load all datasets (full build) | `sspsygene load-db` |
-| Deploy to dev (from laptop) | `sspsygene deploy --instances dev --load-db` |
-| Deploy to internal (from laptop) | `sspsygene deploy --instances int --load-db` |
-| Deploy to production (from laptop) | `sspsygene deploy --instances prod --load-db` |
+| Build on dev (from laptop) | `sspsygene deploy --instances dev --load-db` |
+| Publish to internal | `sspsygene promote-dev-to-int` |
+| Publish to production | `sspsygene promote-dev-to-prod` |
+| Check what an instance is serving | `sspsygene verify-destination <db> --destination prod` |
 | Pull data files from a server (fresh machine) | `sspsygene pull-data` |
-| Push data files to a server (from laptop) | `sspsygene push-data NAME --instance dev` |
-| Manual deploy to internal (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website_int && git pull && sspsygene load-db` |
-| Manual deploy to dev (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website_dev && git pull && sspsygene load-db` |
-| Manual deploy to production (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website && git pull && sspsygene load-db` |
+| Push data files to dev (from laptop) | `sspsygene push-data NAME --instance dev` |
+| Manual build on dev (on server) | `cd /hive/groups/SSPsyGene/sspsygene_website_dev && git pull && sspsygene load-db` |
+
+> int and prod have no build command — their DBs are derived from dev's by the
+> promote commands. `sspsygene deploy --load-db` against either is refused.
 
 ---
 

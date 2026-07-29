@@ -77,6 +77,24 @@ feature isn't materialized yet, never a 500. Their paths default to the `-meta` 
 servers with `sspsygene deploy-meta-analysis` / `sspsygene deploy-overview`
 (push+pull code, then run the build on each site — no dataset rebuild or restart).
 
+**Both take `prod`-labelled inputs only (#225)**, whichever main DB they read.
+Each records the table names that contributed to it, and derives its numbers
+from those tables — so run against dev's superset they would carry int-only
+names and int-derived statistics into every copy of themselves. Restricting to
+`prod` makes each file destination-independent by construction, which is what
+lets a promotion copy them verbatim to prod and int instead of re-running the
+R jobs per site.
+
+The tradeoff, deliberate: **a dev-only dataset does not appear in dev's
+`/most-significant` or `/matrix`**, so you cannot preview a dataset's
+meta-analysis contribution on dev before marking it `prod` in `deployTo`.
+
+Each derived DB records the `build_uuid` of the main DB it came from (#225), and
+the web app compares that against the live main DB's to decide whether it has
+gone stale. It is a UUID rather than the source file's (mtime, size) because
+promotion *copies* these files: `cp` gives the target's main DB a fresh mtime,
+which used to mark every correctly-promoted meta DB permanently stale.
+
 ### Fast iteration with `--test`
 
 `sspsygene load-db --test` runs the **full** pipeline (every dataset, every
@@ -284,30 +302,60 @@ Two deployment paths:
   file, no restart. Use this when `sspsygene deploy` isn't available or when
   you want to do exactly one step and nothing else.
 
-- **Promote a verified dev build to prod (no rebuild):** once dev serves a
-  build you've verified, `sspsygene promote-dev-to-prod` copies dev's
-  already-built `sspsygene.db` (and, by default, `sspsygene-meta.db`) into
-  prod's db dir and atomically swaps them in — so prod serves *byte-identical*
-  bytes instead of independently re-running preprocess/`load-db` and risking
-  drift from gitignored-payload skew or tool/version differences (issue #178).
-  dev and prod share the `/hive` filesystem, so the copy is a local `cp` + `mv`
-  on the server — no cross-host rsync. **No restart needed** (the web process
-  re-opens on the new inode, exactly as after `load-db`/`meta-analysis`), which
-  makes it multi-user-safe — unlike `deploy --restart`, it has no systemd/kill
+- **Promote dev's build to prod or int (no rebuild):** once dev serves a build
+  you've verified, `sspsygene promote-dev-to-prod` (or `promote-dev-to-int`)
+  derives that instance's DB from dev's and swaps it in.
+
+  Since #225 the dataset DB is **built once, on dev**. dev holds every dataset;
+  each other instance's DB is a *subset* of it, restricted to the datasets
+  whose `deployTo` names that instance. A promotion:
+
+  1. checks dev's build is complete for the destination — the exact set of
+     tables its labels call for, not merely "non-empty";
+  2. runs `subset-db` on dev to derive the destination's main DB (which
+     verifies its own output before writing it);
+  3. copies that file plus dev's `sspsygene-meta.db` and
+     `sspsygene-overview.db` into the target's db dir as `.new` siblings;
+  4. verifies the staged main DB, then renames all three back-to-back;
+  5. verifies again on the target, after the swap.
+
+  The meta and overview DBs are copied **verbatim** rather than subsetted: both
+  are computed from `prod`-labelled inputs only, so the same bytes are correct
+  on every instance, and a per-site rebuild would miss the entire R cache
+  (which keys on the p-value bytes).
+
+  dev and the targets share the `/hive` filesystem, so the copy is a local
+  `cp` + `mv` — no cross-host rsync. **No restart needed** (the web process
+  re-opens on the new inode, exactly as after `load-db`), which makes it
+  multi-user-safe — unlike `deploy --restart`, it has no systemd/kill
   interaction. It runs from a laptop (SSHes into psygene) or directly on
   hgwdev/psygene (`--local`, or auto-detected by whether the `/hive` trees are
-  visible locally). **int is never a source or target** — it carries its own,
-  possibly-embargoed dataset set. Before copying it smoke-checks dev's DB
-  (exists + non-empty `data_tables`) and after the swap confirms prod's row
-  count matches dev's. `--no-meta-analysis` copies only the main DB;
-  `--dry-run` previews without writing.
+  visible locally). `--no-meta-analysis` copies only the main DB; `--dry-run`
+  previews without writing.
 
-  This is the **standard way to update prod**: prefer it over
-  `sspsygene deploy --instances prod --load-db`, which rebuilds the DB on prod
-  independently of dev. To steer you there, `deploy` warns and prompts for
-  confirmation when you target prod with a DB rebuild (`--load-db` /
-  `--preprocess`). A code-only prod deploy (`--build`, no DB rebuild) isn't
-  affected — promotion only moves DBs, not code.
+  On any destination-check failure the promotion **aborts, leaves the target
+  untouched, and exits non-zero** with a banner naming the offending datasets
+  and where each was found. There is no `--force` and no partial promote.
+
+  **dev is the only site that builds.** `sspsygene deploy --load-db` (or
+  `--preprocess`) against int or prod is refused outright: an in-place rebuild
+  would need that site's checkout to hold every dev dataset's gitignored
+  payloads, and would bypass the destination check. A code-only deploy
+  (`--build`, no DB rebuild) is unaffected — promotion moves DBs, not code.
+
+- **Check any instance's DB at any time:**
+
+  ```bash
+  sspsygene verify-destination \
+      /hive/groups/SSPsyGene/sspsygene_website/data/db/sspsygene.db \
+      --destination prod
+  ```
+
+  Re-reads `deployTo` from the checkout's `data/datasets/*/config.yaml`,
+  cross-checks it against the DB's own `dataset_destinations`, asserts set
+  equality in both directions, and deny-scans every place a table name can
+  hide — including the member list inside `all-tables.zip`. Exits non-zero on
+  any finding.
 
 ## CLI Reference
 
@@ -333,7 +381,9 @@ Commands:
                                          prod; int is a parallel site for
                                          embargoed data), not a staging chain.
                                          Default: all three.
-    --load-db                          Rebuild DB during deploy
+    --load-db                          Rebuild DB during deploy. dev only —
+                                         REFUSED for int/prod, which get their
+                                         DBs by promotion (#225).
     --preprocess                       Re-run each dataset's preprocess.py
                                          on the selected sites before load-db
     --run-tests                        After each site's build/load-db,
@@ -357,21 +407,53 @@ Commands:
                                          process — currently jbirgmei. Other
                                          wranglers' restart silently no-ops.
 
-  promote-dev-to-prod                Copy dev's built DB file(s) to prod and
-                                       atomically swap them in (no rebuild, no
-                                       restart). The standard way to update
-                                       prod. Runs from a laptop (SSH) or on
-                                       hgwdev/psygene (--local). int is never a
-                                       source/target. (issue #178)
+  subset-db                          Derive an int/prod dataset DB from the
+                                       dev superset (#225). Fail-closed: builds
+                                       a fresh DB holding only the datasets
+                                       whose deployTo names the destination,
+                                       then verifies it. Never re-reads raw
+                                       data or re-runs gene resolution.
+    --destination int|prod             Required.
+    --from PATH                        Source DB. Default: SSPSYGENE_DATA_DB.
+    --to PATH                          Output. Default: a `-<destination>`
+                                         sibling of the source.
+    --config-root PATH                 Dataset configs to cross-check against.
+                                         Default: <SSPSYGENE_DATA_DIR>/datasets.
+    --no-verify                        Skip the destination check. Debugging
+                                         only — never for a build to promote.
+
+  verify-destination DB              Check a DB contains exactly what its
+                                       destination allows (#225). Independent
+                                       of the build: re-reads deployTo from the
+                                       checkout's configs, cross-checks the
+                                       DB's dataset_destinations, asserts set
+                                       equality both ways, and deny-scans every
+                                       place a table name can hide (including
+                                       inside all-tables.zip). The -meta and
+                                       -overview siblings are held to the
+                                       prod-only rule on every instance. Exits
+                                       non-zero on any finding.
+    --destination dev|int|prod         Required.
+    --config-root PATH                 Source of truth for deployTo.
+                                         Default: <SSPSYGENE_DATA_DIR>/datasets.
+
+  promote-dev-to-prod                Derive prod's DB from dev's build and swap
+  promote-dev-to-int                   it in — subset, verify, copy main +
+                                       -meta + -overview, verify, atomic swap,
+                                       verify again. No rebuild, no restart.
+                                       The only way onto prod or int. Runs from
+                                       a laptop (SSH) or on hgwdev/psygene
+                                       (--local). Aborts and leaves the target
+                                       untouched on any finding; no --force.
+                                       (issues #178, #225)
     --include-meta-analysis /          Also copy sspsygene-meta.db. ON by
-      --no-meta-analysis                 default (keeps prod's meta consistent
-                                         with the promoted main DB); skipped
-                                         with a warning if dev has no meta DB.
+      --no-meta-analysis                 default (keeps the target's meta
+                                         consistent with the promoted main DB);
+                                         skipped with a warning if dev has none.
+                                         sspsygene-overview.db is copied
+                                         whenever dev has one.
     --local / --ssh                    Force local (on /hive host) vs SSH (from
                                          a laptop). Default: auto-detect.
-    --min-data-tables INT              Refuse to promote if dev's main DB has
-                                         fewer than N data_tables rows
-                                         (default 1).
     --dry-run                          Preview without writing.
 
   pull-data                      Pull the gitignored files load-db needs
