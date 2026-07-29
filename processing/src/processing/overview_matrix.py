@@ -51,8 +51,9 @@ SCHEMA_VERSION = "3"
 
 # -log10(p) clamp for neglog_* heatmap cells. The lower bound keeps every present
 # cell visible against "no data"; the upper bound stops a single p ~ 1e-49 row
-# (they exist) from owning the whole color ramp. This range is also the frontend
-# neglog scale's domain, so clamping here doesn't lose anything.
+# (they exist) from owning the whole color ramp. This is the *storage* range: each
+# frontend scale in web/lib/matrix-color-scales.ts carries its own display domain,
+# which may be narrower (neglog_q is [1, 2]) and re-clamps at render time.
 NEG_LOG_P_MIN = 1.0
 NEG_LOG_P_MAX = 20.0
 

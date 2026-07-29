@@ -66,9 +66,12 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     note: "red = more significant",
   },
   neglog_q: {
+    // Domain fits the real data: the only neglog_q source today (Binan 2025
+    // perturb-FISH) has a permutation floor at q = 0.0099, so -log10(FDR) tops
+    // out at 2.0. A wider ramp left every cell in the near-white bottom fifth.
     label: "−log10(FDR)",
     kind: "sequential",
-    domain: [1, 20],
+    domain: [1, 2],
     stops: PURPLES,
     note: "purple = more significant",
   },
