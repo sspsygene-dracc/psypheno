@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DatasetItem, { type Dataset } from "@/components/DatasetItem";
+import DestinationBadge from "@/components/DestinationBadge";
 import InfoTooltip from "@/components/InfoTooltip";
 import { formatAuthors } from "@/lib/format-authors";
 import { hostFromUrl, type DatasetLink } from "@/lib/links";
@@ -528,6 +529,16 @@ function PublicationCard({
               {" "}— {pub.journal}
             </span>
           )}
+          {/* Paper-level flag (#225): set only when NONE of this paper's
+              tables are prod-bound, i.e. the paper is absent from the public
+              site entirely. A paper with a mix IS publicly visible, so the
+              per-table badges on its datasets below carry that case instead
+              — flagging the whole paper would overstate it. */}
+          {pub.restricted && (
+            <DestinationBadge
+              destinations={pub.tables[0]?.dataset?.destinations}
+            />
+          )}
         </div>
         {pub.authors.length > 0 && (
           <AuthorListLine authors={pub.authors} />
@@ -812,6 +823,12 @@ function CollapsibleDatasetCard({
               {ds.source && (
                 <InfoTooltip text={`Source: ${ds.source}`} size={13} />
               )}
+              {/* Also on the COLLAPSED row (#225): the full DatasetItem below
+                  carries a badge too, but only once expanded — a paper whose
+                  tables are a mix of prod and non-prod gets no paper-level
+                  badge, so without this the flagged table would be invisible
+                  until someone clicked it. */}
+              <DestinationBadge destinations={ds.destinations} />
             </span>
             <span
               style={{
