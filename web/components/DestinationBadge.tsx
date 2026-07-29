@@ -13,7 +13,7 @@
  * warn, never to reassure.
  */
 
-import { restrictionLabel } from "@/lib/destinations";
+import { restrictionLabel } from "@/lib/destination-labels";
 
 export type BadgeSize = "inline" | "compact";
 

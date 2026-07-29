@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isRestricted, restrictionLabel } from "@/lib/destinations";
+import { isRestricted, restrictionLabel } from "@/lib/destination-labels";
 
 /**
  * The "not on production" badge is a safety signal for wranglers (#225): it
