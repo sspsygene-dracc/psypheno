@@ -66,6 +66,52 @@ def _gitignored_files(dataset_dir: Path) -> list[str]:
     return [line for line in result.stdout.splitlines() if line.strip()]
 
 
+def _config_deploy_to(dataset_dir: Path) -> list[str] | None:
+    """The dataset's declared `deployTo` list, or None if unreadable (#225).
+
+    Read straight from the config.yaml rather than through processing.config so
+    push-data keeps working without SSPSYGENE_* env vars set — it is a plain
+    rsync wrapper, not a DB command.
+    """
+    cfg = dataset_dir / "config.yaml"
+    if not cfg.is_file():
+        return None
+    try:
+        with open(cfg) as f:
+            loaded = yaml.safe_load(f)
+    except (yaml.YAMLError, OSError):
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    deploy_to = loaded.get("deployTo")
+    return deploy_to if isinstance(deploy_to, list) else None
+
+
+def _assert_dataset_allowed(dataset_dir: Path, name: str, instance: str) -> None:
+    """Refuse to push a dataset's inputs to an instance it isn't cleared for.
+
+    Cheap and high-value: it catches an operator shipping embargoed *inputs*
+    into prod's tree, which is a disclosure even if `load-db` on that tree
+    would never pick them up.
+    """
+    deploy_to = _config_deploy_to(dataset_dir)
+    if deploy_to is None:
+        raise click.ClickException(
+            f"Dataset '{name}' has no readable `deployTo` in its config.yaml. "
+            f"Since #225 every dataset must declare which instances it may be "
+            f"served on; refusing to push its data files anywhere until it does."
+        )
+    if instance not in deploy_to:
+        raise click.ClickException(
+            f"Dataset '{name}' declares deployTo: {sorted(deploy_to)}, which "
+            f"does not include '{instance}'. Refusing to push its data files "
+            f"to {instance} — that would place the dataset's inputs on an "
+            f"instance it has not been cleared for.\n\n"
+            f"  If it should be there, add '{instance}' to deployTo in "
+            f"data/datasets/{name}/config.yaml, commit, and push again."
+        )
+
+
 def _config_in_paths(dataset_dir: Path) -> list[str]:
     """Return every ``in_path`` declared in the dataset's config.yaml.
 
@@ -162,6 +208,8 @@ def run_push_data(
             raise click.ClickException(
                 f"No local dataset directory '{name}' under {local_datasets}."
             )
+        # Before anything is created on the remote (#225).
+        _assert_dataset_allowed(dataset_dir, name, instance)
 
         files = _gitignored_files(dataset_dir)
         remote_dataset_dir = f"{remote_datasets}/{name}"

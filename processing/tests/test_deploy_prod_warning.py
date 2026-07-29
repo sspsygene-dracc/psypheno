@@ -1,70 +1,67 @@
-"""Tests for the prod-rebuild warning prompt (issue #178).
+"""Tests for the in-place DB-rebuild refusal on int/prod (#178, #225).
 
-`deploy` should steer operators toward `promote-dev-to-prod` instead of
-rebuilding the DB directly on prod. The warning fires only when prod is a
-data-rebuild target (`--load-db` / `--preprocess`); a code-only deploy to prod
-isn't covered by promote and is left alone.
+`deploy --load-db` used to warn and ask for confirmation before rebuilding the
+dataset DB directly on prod. Since #225 it is a hard refusal, and it covers int
+as well: the dataset DB is built once on dev and each other instance's DB is
+derived from it by `subset-db` at promotion time. Rebuilding in place would
+need that site's checkout to hold every dev dataset's gitignored payloads —
+what the design exists to prevent — and would bypass the destination check.
+
+A code-only deploy (`--build`, no DB rebuild) still has to happen per site and
+is deliberately untouched.
 """
 
 from __future__ import annotations
 
-import click
 import pytest
 
 from processing import deploy
-from processing.deploy import _confirm_prod_db_rebuild
+from processing.deploy import DeployError, _confirm_prod_db_rebuild
 
 
-def test_warns_and_aborts_on_decline(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(click, "confirm", lambda *a, **k: False)
-    with pytest.raises(SystemExit):
+def test_refuses_load_db_on_prod() -> None:
+    with pytest.raises(DeployError, match="Refusing to rebuild"):
         _confirm_prod_db_rebuild(["prod"], load_db=True, preprocess=False)
 
 
-def test_continues_on_accept(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(click, "confirm", lambda *a, **k: True)
-    # Should not raise when the operator confirms.
-    _confirm_prod_db_rebuild(["prod"], load_db=True, preprocess=False)
+def test_refuses_load_db_on_int() -> None:
+    """int is covered now too — it used to build its own tree, which is how an
+    embargoed dataset could sit on an instance nobody had declared it for."""
+    with pytest.raises(DeployError, match="Refusing to rebuild"):
+        _confirm_prod_db_rebuild(["int"], load_db=True, preprocess=False)
 
 
-def test_fires_for_preprocess_too(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls = []
-    monkeypatch.setattr(click, "confirm", lambda *a, **k: calls.append(1) or False)
-    with pytest.raises(SystemExit):
+def test_refuses_preprocess_too() -> None:
+    with pytest.raises(DeployError, match="Refusing to rebuild"):
         _confirm_prod_db_rebuild(["prod"], load_db=False, preprocess=True)
-    assert calls == [1]
 
 
-def test_no_warning_without_prod(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls = []
-    monkeypatch.setattr(click, "confirm", lambda *a, **k: calls.append(1) or False)
-    # dev/int with a DB rebuild → no prompt.
-    _confirm_prod_db_rebuild(["dev", "int"], load_db=True, preprocess=True)
-    assert calls == []
+def test_names_every_offending_instance() -> None:
+    with pytest.raises(DeployError) as excinfo:
+        _confirm_prod_db_rebuild(
+            ["dev", "int", "prod"], load_db=True, preprocess=False
+        )
+    message = str(excinfo.value)
+    assert "INTERNAL" in message and "PRODUCTION" in message
+    # ...and points at the right promote command for each.
+    assert "sspsygene promote-dev-to-int" in message
+    assert "sspsygene promote-dev-to-prod" in message
+    assert "sspsygene deploy --load-db --instances dev" in message
 
 
-def test_no_warning_for_code_only_prod_deploy(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    calls = []
-    monkeypatch.setattr(click, "confirm", lambda *a, **k: calls.append(1) or False)
-    # prod --build with no DB rebuild → promote doesn't apply, so no prompt.
+def test_dev_rebuild_is_allowed() -> None:
+    """dev is the build server — this is the supported path, not an error."""
+    _confirm_prod_db_rebuild(["dev"], load_db=True, preprocess=True)
+
+
+def test_code_only_prod_deploy_is_allowed() -> None:
+    """`--build` with no DB rebuild isn't covered by promote, so it stays."""
     _confirm_prod_db_rebuild(["prod"], load_db=False, preprocess=False)
-    assert calls == []
+    _confirm_prod_db_rebuild(["int", "prod"], load_db=False, preprocess=False)
 
 
-def test_warning_shows_promote_command(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    monkeypatch.setattr(click, "confirm", lambda *a, **k: True)
-    _confirm_prod_db_rebuild(["prod"], load_db=True, preprocess=False)
-    out = capsys.readouterr().out
-    assert "sspsygene promote-dev-to-prod" in out
-    assert "PRODUCTION" in out
-
-
-def test_run_deploy_invokes_warning(monkeypatch: pytest.MonkeyPatch) -> None:
-    # run_deploy should reach the prod warning after preflight, before anything
+def test_run_deploy_invokes_the_guard(monkeypatch: pytest.MonkeyPatch) -> None:
+    # run_deploy must reach the guard after preflight and before anything
     # touches the network.
     seen = {}
 
@@ -77,3 +74,18 @@ def test_run_deploy_invokes_warning(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(SystemExit):
         deploy.run_deploy(instances="prod", load_db=True)
     assert seen == {"selected": ["prod"], "load_db": True, "preprocess": False}
+
+
+def test_run_deploy_refuses_before_touching_the_network(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """End-to-end: the real guard fires, and no git push / SSH happens."""
+    calls: list[str] = []
+    monkeypatch.setattr(deploy, "_preflight_checks", lambda: None)
+    monkeypatch.setattr(deploy, "_step_push", lambda *a, **k: calls.append("push"))
+    monkeypatch.setattr(
+        deploy, "_run_build_pipeline", lambda *a, **k: calls.append("build")
+    )
+    with pytest.raises(DeployError, match="Refusing to rebuild"):
+        deploy.run_deploy(instances="prod", load_db=True)
+    assert calls == []

@@ -359,6 +359,11 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
     Foxg1/Tbr1/Tcf4 are the perturbed genes; NonTarget1 is a control and must
     not appear. #213 removed the aggregated status columns — the rows are the
     perturbed genes across the expanded tables.
+
+    mini_embargoed carries the same two flags but is dev-only, and the matrix
+    takes prod-labelled inputs only (#225) — so everything asserted here comes
+    from mini_perturb alone. Sox2 and Pax6 appear only in mini_embargoed, so
+    their absence below is what proves the prod filter actually ran.
     """
     perturbed = {
         row["human_symbol"]
@@ -391,6 +396,16 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
     # -log10 of the most significant raw p for that (perturbed, measured) pair.
     assert cells[("TCF4", "Tcf4")] == round(-math.log10(7.1e-06), 3)
     assert cells[("TBR1", "Tcf4")] == round(-math.log10(0.00043), 3)
+    # mini_embargoed's Pax6 -> Sox2 rows are more significant than several of
+    # the above, so they would be columns/rows here if the prod-input filter
+    # were not applied.
+    assert "SOX2" not in perturbed
+    assert not any(value == "Pax6" for value, _ in columns)
+    info = dict(
+        (row["key"], row["value"])
+        for row in conn.execute("SELECT key, value FROM overview_matrix_info")
+    )
+    assert json.loads(info["expanded_source_tables"]) == ["mini_perturb_deg"]
     # Selenoo's other row is under the NonTarget1 control, which is excluded.
     assert set(cells) == {
         ("FOXG1", "Selenoo"),

@@ -727,6 +727,23 @@ def materialize_overview_matrix(
         conn.commit()
         return
 
+    # Prod-labelled inputs only (#225), whichever main DB we are reading. The
+    # overview tables record contributing table names (expansions.source_tables,
+    # expanded_columns/_cells.source_table, info.expanded_source_tables), so a
+    # run against dev's superset would carry int-only names into every copy.
+    # Restricting to prod makes the file destination-independent, which is what
+    # lets it be built once on dev and copied verbatim to prod and int.
+    # Guarded on the table existing so pre-#225 DBs and the in-memory test
+    # fixtures still materialize every flagged table.
+    prod_clause = ""
+    if conn.execute(
+        f"SELECT 1 FROM {src_schema}.sqlite_master "
+        f"WHERE type='table' AND name='dataset_destinations'"
+    ).fetchone():
+        prod_clause = (
+            f" AND table_name IN (SELECT table_name FROM "
+            f"{src_schema}.dataset_destinations WHERE destination = 'prod')"
+        )
     source_rows = conn.execute(
         f"""SELECT table_name, assay, pvalue_column, fdr_column, link_tables,
                    short_label,
@@ -734,7 +751,8 @@ def materialize_overview_matrix(
                    overview_matrix_phenotype_columns,
                    overview_matrix_metric, overview_matrix_metric_domain
              FROM {src_schema}.data_tables
-            WHERE include_in_overview_matrix = 1 AND expand_in_overview_matrix = 1"""
+            WHERE include_in_overview_matrix = 1
+              AND expand_in_overview_matrix = 1{prod_clause}"""
     ).fetchall()
 
     expanded_source_tables: list[str] = []

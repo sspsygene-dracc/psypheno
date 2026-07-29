@@ -32,6 +32,12 @@ tables:
       must drop those central_gene rows entirely).
     source: "Test fixture"
     assay: perturbation
+    # Flagged as an overview-matrix source on purpose: the matrix is computed
+    # from prod-labelled inputs only (#225), so a dev-only dataset carrying
+    # these flags must still be absent from the materialized matrix. Without
+    # the flags the filter would be untested.
+    overview_matrix: true
+    overview_matrix_expand: true
     fieldLabels:
       gene: "Mouse target gene whose expression was measured"
       perturbation_gene: "Gene targeted by the gRNA in this row"

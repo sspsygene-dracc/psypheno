@@ -364,18 +364,25 @@ def subset_db_command(
     destination = destination.lower()
     _echo_sspsygene_env("start")
     try:
-        config = get_sspsygene_config()
-        source = from_db or config.out_db
-        target = to_db or source.with_name(
-            f"{source.stem}-{destination}{source.suffix}"
-        )
-        root = config_root or (config.base_dir / "datasets")
+        # Only load the config for values the caller didn't supply. With
+        # --from/--to/--config-root all given (how the promote path invokes
+        # it) this needs no SSPSYGENE_* environment at all, and must not fail
+        # on some unrelated dataset's config.
+        source, target, root = from_db, to_db, config_root
+        if source is None or root is None:
+            config = get_sspsygene_config()
+            source = source or config.out_db
+            root = root or (config.base_dir / "datasets")
+        if target is None:
+            target = source.with_name(
+                f"{source.stem}-{destination}{source.suffix}"
+            )
         subset_db(
             source,
             target,
             destination,
             verify=not no_verify,
-            config_root=root if root.exists() else None,
+            config_root=root if root and root.exists() else None,
         )
         click.secho(f"Wrote {destination} subset to {target}", fg="green")
         _echo_sspsygene_env("end")
@@ -714,57 +721,72 @@ def deploy_overview(
     )
 
 
+_PROMOTE_OPTIONS = """\b
+    Run it from a laptop (SSHes into psygene) or directly on hgwdev/psygene
+    (--local, or auto-detected)."""
+
+
+def _promote_options(fn):
+    """Shared option stack for promote-dev-to-prod / promote-dev-to-int."""
+    for decorator in reversed(
+        [
+            click.option(
+                "--include-meta-analysis/--no-meta-analysis",
+                "include_meta_analysis",
+                default=True,
+                help="Also copy dev's meta-analysis DB (sspsygene-meta.db) "
+                "alongside the main dataset DB. On by default so the target's "
+                "meta stays consistent with the promoted main DB. If dev has "
+                "no meta DB the copy is skipped with a warning.",
+            ),
+            click.option(
+                "--local/--ssh",
+                "local",
+                default=None,
+                help="Force running the promotion locally (on hgwdev/psygene) "
+                "or over SSH (from a laptop, proxy-jumping through hgwdev). "
+                "Default: auto-detect by whether the /hive trees are visible "
+                "as local directories.",
+            ),
+            click.option(
+                "--dry-run",
+                is_flag=True,
+                default=False,
+                help="Print what would be built and copied without modifying "
+                "any files.",
+            ),
+        ]
+    ):
+        fn = decorator(fn)
+    return fn
+
+
 @cli.command(name="promote-dev-to-prod")
-@click.option(
-    "--include-meta-analysis/--no-meta-analysis",
-    "include_meta_analysis",
-    default=True,
-    help="Also copy dev's meta-analysis DB (sspsygene-meta.db) alongside the "
-    "main dataset DB. On by default so prod's meta stays consistent with the "
-    "promoted main DB. If dev has no meta DB, the meta copy is skipped with a "
-    "warning. Pass --no-meta-analysis to copy only the main DB.",
-)
-@click.option(
-    "--local/--ssh",
-    "local",
-    default=None,
-    help="Force running the copy locally (on hgwdev/psygene) or over SSH "
-    "(from a laptop, proxy-jumping through hgwdev). Default: auto-detect by "
-    "whether the /hive trees are visible as local directories.",
-)
-@click.option(
-    "--min-data-tables",
-    type=int,
-    default=1,
-    show_default=True,
-    help="Refuse to promote if dev's main DB has fewer than this many "
-    "data_tables rows (guards against promoting a stale/empty build).",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    default=False,
-    help="Print what would be copied without modifying any files.",
-)
+@_promote_options
 def promote_dev_to_prod(
     include_meta_analysis: bool,
     local: bool | None,
-    min_data_tables: int,
     dry_run: bool,
 ) -> None:
-    """Promote dev's built DB(s) to prod by copying the files (no rebuild).
+    """Derive prod's DB from dev's build and swap it in (no rebuild on prod).
 
-    Once dev has a verified build, this copies dev's `sspsygene.db` (and, by
-    default, `sspsygene-meta.db`) into prod's db dir and atomically swaps them
-    in, so prod serves byte-identical bytes instead of re-running preprocess /
-    load-db (issue #178). dev and prod share the /hive filesystem, so the copy
-    is a local `cp` + `mv` on the server; no cross-host rsync, no service
-    restart (the web app re-opens on inode change). int is never a source or
-    target.
+    dev is the only site that builds. This subsets dev's superset down to the
+    datasets whose `deployTo` includes `prod` (#225), verifies the result
+    before and after the swap, and copies it plus dev's `sspsygene-meta.db` and
+    `sspsygene-overview.db` into prod's db dir. dev and prod share /hive, so
+    it is a local `cp` + `mv` on the server — no cross-host rsync and no
+    service restart (the web app re-opens on inode change).
 
-    Run it from a laptop (SSHes into psygene) or directly on hgwdev/psygene
-    (`--local`, or auto-detected):
+    \b
+    The meta and overview DBs are copied verbatim rather than subsetted: they
+    are computed from prod-labelled inputs only, so the same bytes are correct
+    on every instance.
 
+    \b
+    On any destination-check failure the promotion aborts, prod is left
+    untouched, and the command exits non-zero. There is no --force.
+
+    \b
         # from a laptop
         sspsygene promote-dev-to-prod
         # on hgwdev or psygene
@@ -776,7 +798,35 @@ def promote_dev_to_prod(
         include_meta_analysis=include_meta_analysis,
         local=local,
         dry_run=dry_run,
-        min_data_tables=min_data_tables,
+    )
+
+
+@cli.command(name="promote-dev-to-int")
+@_promote_options
+def promote_dev_to_int(
+    include_meta_analysis: bool,
+    local: bool | None,
+    dry_run: bool,
+) -> None:
+    """Derive int's DB from dev's build and swap it in (no rebuild on int).
+
+    The mirror of promote-dev-to-prod for the internal site, subsetting to the
+    datasets whose `deployTo` includes `int` (#225). int used to be neither a
+    source nor a target — it built its own tree — which is why an embargoed
+    dataset landing in dev could reach prod unnoticed. It is now a target of
+    dev like prod is, with its dataset set declared in config rather than
+    implied by which payloads someone rsynced. dev remains the only source.
+
+    \b
+        sspsygene promote-dev-to-int
+        sspsygene promote-dev-to-int --local
+    """
+    from processing.deploy import run_promote_dev_to_int
+
+    run_promote_dev_to_int(
+        include_meta_analysis=include_meta_analysis,
+        local=local,
+        dry_run=dry_run,
     )
 
 
