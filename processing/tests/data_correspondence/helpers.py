@@ -105,15 +105,16 @@ class PrimaryTable:
     and force a heavier import (central_gene_table is imported lazily by
     that class but loads HGNC at first use).
 
-    `dataset_dir` points at the git-tracked dataset dir (config.yaml,
-    sidecars, manifest). `in_path_name` is the filename the wrangler set in
-    config.yaml; resolve it via `payload_in_path()` for actual file reads
-    (the file is gitignored and may live in a different checkout when
-    running from a worktree).
+    `dataset_dir` points at the git-tracked dataset dir (config.yaml and the
+    expected_drops.yaml manifest). `in_path_name` is the filename the wrangler
+    set in config.yaml; resolve it via `payload_in_path()` for actual file
+    reads (the file is gitignored and may live in a different checkout when
+    running from a worktree). The `.preprocessing.yaml` sidecar is likewise a
+    gitignored payload artifact — see `sidecar_path`.
     """
 
     dataset: str
-    dataset_dir: Path  # git-tracked dir for sidecars / manifests
+    dataset_dir: Path  # git-tracked dir for config.yaml / expected_drops.yaml
     table_name: str  # SQL identifier; matches data_tables.table_name
     short_label: str
     in_path_name: str  # bare filename from config.yaml's in_path
@@ -126,8 +127,20 @@ class PrimaryTable:
 
     @property
     def sidecar_path(self) -> Path:
-        """Sidecar lives next to the cleaned file in the git-tracked tree."""
-        return self.dataset_dir / (self.in_path_name + ".preprocessing.yaml")
+        """The `.preprocessing.yaml` sidecar, next to the cleaned data file.
+
+        Resolved under the *payload* dir, not the git-tracked one: the sidecar
+        is gitignored (docs/adding-datasets.md — its `generated:` timestamp
+        churns on every run), so it only exists in the checkout where
+        preprocess.py last ran. Resolving it against the git tree made every
+        row-accounting test fail with "no sidecar exists" in a worktree or a
+        fresh clone, which is exactly where SSPSYGENE_DATA_DIR points
+        elsewhere. The manifest (expected_drops.yaml) IS tracked and stays on
+        the git tree, so a wrangler's local manifest edits are still picked up.
+        """
+        return payload_dataset_dir(self.dataset) / (
+            self.in_path_name + ".preprocessing.yaml"
+        )
 
     @property
     def payload_in_path(self) -> Path:

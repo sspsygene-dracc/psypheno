@@ -63,11 +63,30 @@ def _scalar(db: Path, sql: str):
         conn.close()
 
 
+# Built-superset bytes, cached for the module. `load_db` against the mini
+# fixture costs ~13s — almost all of it parsing the real HGNC / MGI / Alliance
+# homology files, which are identical on every call here. Rebuilding it per
+# test made this module alone ~140s of a ~280s suite. The inputs are fixed, so
+# one build and a file copy per test is equivalent and ~100x cheaper.
+_SUPERSET_BYTES: bytes | None = None
+
+
 @pytest.fixture
 def superset(mini_fixture: Path) -> tuple[Path, Path]:
-    """(built superset DB, dataset config root)."""
+    """(built superset DB, dataset config root).
+
+    `mini_fixture` stays function-scoped — it owns the SSPSYGENE_* env and the
+    module-cache resets, which tests do depend on being fresh. Only the
+    expensive build result is reused.
+    """
+    global _SUPERSET_BYTES
     config = get_sspsygene_config()
-    return _build_superset(config), config.base_dir / "datasets"
+    if _SUPERSET_BYTES is None:
+        _build_superset(config)
+        _SUPERSET_BYTES = config.out_db.read_bytes()
+    else:
+        config.out_db.write_bytes(_SUPERSET_BYTES)
+    return config.out_db, config.base_dir / "datasets"
 
 
 def test_prod_subset_keeps_only_the_prod_dataset(
@@ -163,7 +182,9 @@ def test_genes_only_in_the_dev_only_dataset_are_dropped(
 
 
 def test_subset_matches_a_from_scratch_prod_only_build(
-    superset: tuple[Path, Path], tmp_path: Path
+    superset: tuple[Path, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The equivalence the whole build-once/subset-at-promote design rests on.
 
@@ -177,13 +198,19 @@ def test_subset_matches_a_from_scratch_prod_only_build(
     out = tmp_path / "prod.db"
     subset_db(src, out, "prod", config_root=config_root)
 
-    # Build a prod-only DB from scratch by dropping the dev-only dataset dir.
+    # Build a prod-only DB from scratch, from a PRIVATE copy of the data root
+    # with the dev-only dataset removed. Deleting from `config_root` directly
+    # would mutate the session-scoped mini_data_root and leak into whichever
+    # test runs next.
     import shutil
 
     from processing import central_gene_table as cgt
     from processing import config as config_module
 
-    shutil.rmtree(config_root / "mini_embargoed")
+    private_root = tmp_path / "prod-only-root"
+    shutil.copytree(config_root.parent, private_root, symlinks=True)
+    shutil.rmtree(private_root / "datasets" / "mini_embargoed")
+    monkeypatch.setenv("SSPSYGENE_DATA_DIR", str(private_root))
     config_module.get_sspsygene_config.cache_clear()
     cgt._CENTRAL_GENE_TABLE = None
     scratch_config = get_sspsygene_config()
