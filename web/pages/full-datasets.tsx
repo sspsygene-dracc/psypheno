@@ -8,6 +8,7 @@ import DataTable, { type SortMode } from "@/components/DataTable";
 import InfoTooltip from "@/components/InfoTooltip";
 import type { Dataset } from "@/components/DatasetItem";
 import type { DatasetLink } from "@/lib/links";
+import DestinationBadge from "@/components/DestinationBadge";
 
 type DatasetData = {
   tableName: string;
@@ -777,6 +778,7 @@ function DatasetPicker({
                   }}
                 >
                   <span>{datasetLabel(d)}</span>
+                  <DestinationBadge destinations={d.destinations} size="compact" />
                   {isSelected && (
                     <span style={{ fontSize: 11, color: "#2563eb" }}>
                       • selected

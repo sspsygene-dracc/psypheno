@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
+import { loadDestinations } from "@/lib/destinations";
 import {
   sanitizeIdentifier,
   parseDisplayColumns,
@@ -60,6 +61,9 @@ export default async function handler(
 
   try {
     const db = getDb();
+    // Per-table deployTo (#225) — drives the "not on production" badge on the
+    // home page's per-dataset result sections.
+    const destinations = loadDestinations(db);
     const tables = db
       .prepare(
         `SELECT table_name, short_label, medium_label, long_label, description, source, assay, condition, organism, organism_key, field_labels, column_labels, gene_columns, display_columns, scalar_columns, link_tables, pvalue_column, fdr_column, effect_column FROM data_tables ORDER BY id ASC`
@@ -88,6 +92,8 @@ export default async function handler(
 
     type GeneTableResult = {
       tableName: string;
+      // Instances this dataset's config.yaml allows it on (#225).
+      destinations: string[] | null;
       shortLabel: string | null;
       mediumLabel: string | null;
       longLabel: string | null;
@@ -179,6 +185,7 @@ export default async function handler(
           organismKey: splitCsv(t.organism_key),
           result: {
             tableName: t.table_name,
+            destinations: destinations.get(t.table_name) ?? null,
             shortLabel: t.short_label ?? null,
             mediumLabel: t.medium_label ?? null,
             longLabel: t.long_label ?? null,

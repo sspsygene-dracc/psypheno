@@ -1,6 +1,7 @@
 import { useState } from "react";
 import InfoTooltip from "@/components/InfoTooltip";
 import DatasetLinkAnchor from "@/components/DatasetLinkAnchor";
+import DestinationBadge from "@/components/DestinationBadge";
 import { type DatasetLink } from "@/lib/links";
 
 export type Dataset = {
@@ -28,6 +29,9 @@ export type Dataset = {
   publication_authors?: string[];
   publication_sspsygene_grants?: string[];
   has_preprocessing?: boolean;
+  // Instances this dataset's config.yaml allows it on (#225). null for a DB
+  // built before #225, which renders no badge.
+  destinations?: string[] | null;
 };
 
 type DatasetItemProps = {
@@ -142,6 +146,7 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
               {dataset.source && (
                 <InfoTooltip text={`Source: ${dataset.source}`} size={14} />
               )}
+              <DestinationBadge destinations={dataset.destinations} />
             </div>
             {dataset.long_label && (
               <div

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import DestinationBadge from "@/components/DestinationBadge";
 
 export type TocItem = {
   tableName: string;
@@ -6,6 +7,7 @@ export type TocItem = {
   mediumLabel?: string | null;
   longLabel?: string | null;
   assay?: string[] | null;
+  destinations?: string[] | null;
 };
 
 type AssayGroup = {
@@ -226,6 +228,10 @@ export default function DatasetToc({
                 }}
               >
                 {formatTableName(item)}
+                <DestinationBadge
+                  destinations={item.destinations}
+                  size="compact"
+                />
               </button>
             );
           })}

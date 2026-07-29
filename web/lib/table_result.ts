@@ -27,6 +27,9 @@ export interface TableResult {
   publicationYear?: number | null;
   publicationJournal?: string | null;
   publicationDoi?: string | null;
+  // Instances this dataset's config.yaml allows it on (#225). Drives the
+  // "not on production" badge. null when the DB predates #225.
+  destinations?: string[] | null;
   rows: Record<string, unknown>[];
   totalRows?: number;
 }

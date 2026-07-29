@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 import { parseDatasetLinks } from "@/lib/links";
+import { loadDestinations } from "@/lib/destinations";
 
 export default async function handler(
   req: NextApiRequest,
@@ -51,6 +52,9 @@ export default async function handler(
       has_preprocessing: 0 | 1;
     }>;
 
+    // Per-table deployTo (#225) — drives the "not on production" badge.
+    const destinations = loadDestinations(db);
+
     const datasets = rows.map((r) => {
       const {
         publication_authors,
@@ -83,6 +87,7 @@ export default async function handler(
         publication_authors: authors,
         publication_sspsygene_grants: grants,
         has_preprocessing: has_preprocessing === 1,
+        destinations: destinations.get(r.table_name) ?? null,
       };
     });
 

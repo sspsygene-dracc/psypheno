@@ -6,6 +6,7 @@ import DataTable, { type SortMode } from "@/components/DataTable";
 import DatasetToc from "@/components/DatasetToc";
 import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
 import InfoTooltip from "@/components/InfoTooltip";
+import DestinationBadge from "@/components/DestinationBadge";
 import GeneSignificanceSummary, {
   type CombinedPvalues,
   type ContributingTable,
@@ -628,6 +629,7 @@ export default function GeneResults({
                           size={14}
                         />
                       )}
+                      <DestinationBadge destinations={section.destinations} />
                     </div>
                     <div
                       style={{
