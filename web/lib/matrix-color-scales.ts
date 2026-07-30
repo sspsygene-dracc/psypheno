@@ -25,6 +25,14 @@ export interface ColorScale {
   stops: Array<[number, RGB]>;
   /** Short caption under the legend bar. */
   note?: string;
+  /**
+   * Clustering noise floor: a cell whose distance from the scale's pivot is at
+   * or below this carries no signal, and clustering treats it as missing rather
+   * than as a value to agree on (see `isInformativeForClustering`). Omit for
+   * metrics with no significance semantics — an effect ratio near its pivot is a
+   * real measurement, not an absence of one.
+   */
+  clusterNoiseFloor?: number;
 }
 
 // ColorBrewer YlOrRd — the significance ramp (red = most significant).
@@ -64,6 +72,7 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     domain: [1, 20],
     stops: YLORRD,
     note: "red = more significant",
+    clusterNoiseFloor: 1, // p ≥ 0.1
   },
   neglog_q: {
     // Domain fits the real data: the only neglog_q source today (Binan 2025
@@ -74,6 +83,10 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     domain: [1, 2],
     stops: PURPLES,
     note: "purple = more significant",
+    // Binan 2025 clamps non-hits to exactly q = 0.1, so ~94% of its cells sit on
+    // this floor. Left in, they made most row pairs agree perfectly on "nothing
+    // happened" and swamped the clustering (see matrix-clustering.ts).
+    clusterNoiseFloor: 1, // q ≥ 0.1
   },
   signed_neglog_p: {
     label: "signed −log10(p)",
@@ -82,6 +95,7 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     mid: 0,
     stops: BLUE_RED,
     note: "blue = down, red = up in mutant",
+    clusterNoiseFloor: 1, // |signed −log10(p)| ≤ 1 → p ≥ 0.1 in either direction
   },
   activity_ratio: {
     label: "pERK ratio (mut/WT)",
@@ -90,6 +104,8 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     mid: 1,
     stops: TEAL_BROWN,
     note: "brown = higher, teal = lower than WT",
+    // No clusterNoiseFloor: a ratio at the pivot means "measured, unchanged",
+    // which is real evidence — unlike a p-value pinned to its clamp.
   },
 };
 
@@ -106,6 +122,27 @@ const FALLBACK: ColorScale = {
 
 export function scaleFor(metric: string): ColorScale {
   return COLOR_SCALES[metric] ?? FALLBACK;
+}
+
+/**
+ * Does this cell carry signal for clustering?
+ *
+ * A p/q value pinned to its non-significance clamp says "we looked and found
+ * nothing" — every such cell is identical, so treating them as values to agree
+ * on makes unrelated rows look like perfect matches. Clustering feeds these
+ * through as missing instead (see `matrix-clustering.ts`). Distance from the
+ * scale's pivot is what's tested, so a signed metric is judged on |effect| in
+ * either direction. Metrics without a `clusterNoiseFloor` are always
+ * informative, as is any metric not in the registry.
+ */
+export function isInformativeForClustering(
+  metric: string,
+  value: number
+): boolean {
+  const scale = scaleFor(metric);
+  if (scale.clusterNoiseFloor === undefined) return true;
+  const pivot = scale.kind === "diverging" ? scale.mid ?? 0 : 0;
+  return Math.abs(value - pivot) > scale.clusterNoiseFloor;
 }
 
 function lerp(a: number, b: number, t: number): number {

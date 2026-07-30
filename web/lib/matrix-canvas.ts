@@ -30,6 +30,13 @@ export const GUTTER = 1;
 export const ROW_STRIPE_EVEN = "#ffffff";
 export const ROW_STRIPE_ODD = "#fafbfc";
 export const NO_DATA_FILL = "#fcfcfd";
+// A no-data tile is near-white, and so is the bottom of a sequential ramp — a
+// measurement clamped to "not significant" rendered all but identically to an
+// absent one. The diagonal marks absence so the two read apart at a glance.
+export const NO_DATA_STROKE = "#ecedf0";
+// Keeps each diagonal clear of the tile corners, so a run of no-data tiles reads
+// as separate ticks instead of one unbroken line.
+const NO_DATA_INSET = 3;
 const SELECT_OUTLINE = "#111827";
 
 export type MetricDomains = Record<string, [number, number] | null>;
@@ -97,6 +104,10 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
   const tileW = COL_W - 2 * GUTTER;
   const tileH = ROW_H - 2 * GUTTER;
 
+  // No-data diagonals accumulate into one path and get stroked once at the end —
+  // a stroke() per tile would cost more than the whole fill pass.
+  ctx.beginPath();
+
   for (let i = firstRow; i <= lastRow; i++) {
     const y = i * ROW_H - scrollTop;
     // Row stripe (also the gutter color between tiles in this row).
@@ -109,12 +120,24 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
       if (present[base + j]) {
         const c = packed[base + j];
         ctx.fillStyle = `rgb(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255})`;
+        ctx.fillRect(x + GUTTER, y + GUTTER, tileW, tileH);
       } else {
         ctx.fillStyle = NO_DATA_FILL;
+        ctx.fillRect(x + GUTTER, y + GUTTER, tileW, tileH);
+        // Inset a little so adjacent no-data tiles read as separate marks
+        // rather than one continuous line across the row.
+        ctx.moveTo(x + GUTTER + NO_DATA_INSET, y + GUTTER + NO_DATA_INSET);
+        ctx.lineTo(
+          x + COL_W - GUTTER - NO_DATA_INSET,
+          y + ROW_H - GUTTER - NO_DATA_INSET
+        );
       }
-      ctx.fillRect(x + GUTTER, y + GUTTER, tileW, tileH);
     }
   }
+
+  ctx.strokeStyle = NO_DATA_STROKE;
+  ctx.lineWidth = 1;
+  ctx.stroke();
 
   if (
     selected &&

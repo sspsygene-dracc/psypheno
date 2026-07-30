@@ -153,6 +153,9 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
           <dt style={{ ...METHODS_TERM, marginTop: 0 }}>Data content</dt>
           <dd style={METHODS_DEF}>
             <strong>Rows:</strong> Perturbed genes. <strong>Columns:</strong> Measured readouts. E.g., gene expression, behavioral measurements.
+            A cell crossed by a grey diagonal was <strong>never measured</strong>;
+            a plain pale cell <em>was</em> measured and came back near the bottom
+            of its scale (e.g. a p-value at its non-significance clamp).
           </dd>
 
           <dt style={METHODS_TERM}>Collapsing repeated measurements</dt>
@@ -184,13 +187,22 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             By default rows are alphabetical and columns are grouped by dataset. The{" "}
             <em>Cluster</em>{" "}toggles reorder rows and/or columns so similar profiles
             sit together, computed in your browser over the currently visible
-            datasets. Each column is first min&ndash;max normalized to a common
-            0&ndash;1 scale (so &minus;log10(p), signed effects, and ratios become
-            comparable); the distance between two rows (or columns) is the mean
-            absolute difference over only the cells they <em>both</em>{" "}have, so the
+            datasets and columns. Cells at their metric&rsquo;s{" "}
+            <strong>non-significance clamp</strong>{" "}(p or FDR &ge; 0.1, in either
+            direction for signed effects) are set aside first and treated like
+            missing data: they are real measurements, but they all say the same
+            thing &mdash; <em>nothing here</em> &mdash; and in a screen where most
+            cells are non-hits they otherwise make unrelated rows look like
+            perfect matches and swamp the real signal. Effect ratios have no such
+            clamp and are always kept. Each column is then min&ndash;max
+            normalized over its surviving values to a common 0&ndash;1 scale (so
+            &minus;log10(p), signed effects, and ratios become comparable); the
+            distance between two rows (or columns) is the mean absolute
+            difference over only the cells they <em>both</em>{" "}have, so the
             matrix&rsquo;s many gaps don&rsquo;t dominate; the order comes from
             average-linkage hierarchical clustering, with a fast nearest-neighbor
-            fallback for very large axes.
+            fallback for very large axes. Rows left with no significant cell at
+            all have nothing to be clustered on and settle in an arbitrary block.
           </dd>
         </dl>
       </div>

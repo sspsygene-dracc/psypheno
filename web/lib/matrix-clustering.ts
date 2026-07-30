@@ -5,8 +5,12 @@
  * reordered so similar profiles sit together. The matrix mixes metrics
  * (−log10 p, signed −log10 p, ratios) and is very sparse, so:
  *
- * - every column is min–max normalized to [0,1] over its present values, putting
- *   all metrics on one scale (missing cells stay missing);
+ * - cells pinned to their metric's non-significance clamp are dropped first (see
+ *   `isInformativeForClustering`). They are measurements, not gaps, but they are
+ *   all the *same* measurement — "we looked and found nothing" — so leaving them
+ *   in made unrelated rows agree perfectly and drowned out the real signal;
+ * - every column is then min–max normalized to [0,1] over its surviving values,
+ *   putting all metrics on one scale (missing cells stay missing);
  * - distance between two rows/cols is the mean absolute difference over the cells
  *   present in *both* (no overlap → the max distance, 1);
  * - ordering is average-linkage hierarchical clustering with a leaf order whose
@@ -19,13 +23,19 @@
  */
 
 import type { MatrixColumn, MatrixGeneRow } from "@/lib/collated-matrix-types";
+import { isInformativeForClustering } from "@/lib/matrix-color-scales";
 
 const NO_OVERLAP_DISTANCE = 1;
 // Above this many items the O(n^3) agglomerative pass gets switched for O(n^2)
 // seriation to stay responsive.
 const HCLUST_MAX = 450;
 
-/** rows × cols of per-column min–max normalized values; NaN = missing. */
+/**
+ * rows × cols of per-column min–max normalized values; NaN = missing.
+ *
+ * Cells at their metric's non-significance clamp are folded into "missing" here,
+ * so they neither contribute to a distance nor anchor a column's min–max range.
+ */
 function normalizedMatrix(
   genes: MatrixGeneRow[],
   columns: MatrixColumn[]
@@ -37,7 +47,10 @@ function normalizedMatrix(
     const row = new Float64Array(nCols);
     for (let c = 0; c < nCols; c++) {
       const cell = g.cells[columns[c].key];
-      if (cell === undefined) {
+      if (
+        cell === undefined ||
+        !isInformativeForClustering(columns[c].metric, cell.value)
+      ) {
         row[c] = NaN;
       } else {
         const v = cell.value;
