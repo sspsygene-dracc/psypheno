@@ -884,27 +884,40 @@ def _step_restart_psygene(instances: list[str]) -> None:
         )
         click.echo("  Processes killed — systemd should restart them automatically.")
 
-    # Wait for each instance's public URL to come back. systemd respawn is
-    # usually quick (<5s) but the first request after restart can take a
-    # few seconds while Next.js warms up.
+    # Wait for each instance to come back. systemd respawn is usually quick
+    # (<5s) but the first request after restart can take a few seconds while
+    # Next.js warms up.
+    #
+    # Probe localhost on psygene rather than the public URL, mirroring
+    # `_wait_for_local_service`: the public hostnames sit behind Apache basic
+    # auth (int today, dev soon), and Apache answers 401 for *every* path
+    # without ever proxying to Next.js. An unauthenticated public probe
+    # therefore fails on a healthy instance — and treating its 401 as success
+    # would be worse, passing even when the service is dead. localhost hits the
+    # process we just respawned, needs no credentials, and so behaves the same
+    # for every wrangler.
+    #
+    # The retry loop runs remotely so waiting costs one SSH round-trip per
+    # instance instead of one per poll.
     for inst in instances:
-        url = f"{INSTANCE_E2E_URLS[inst]}/api/full-datasets"
-        click.echo(f"  Waiting for {INSTANCE_LABELS[inst]} ({url}) to respond...")
-        deadline = time.monotonic() + 60
-        while time.monotonic() < deadline:
-            probe = subprocess.run(
-                ["curl", "-fsS", "--max-time", "5", url],
-                capture_output=True,
-                text=True,
-            )
-            if probe.returncode == 0:
-                click.echo(f"    -> {INSTANCE_LABELS[inst]} is up.")
-                break
-            time.sleep(2)
-        else:
+        port = INSTANCE_PORTS[inst]
+        url = f"http://localhost:{port}/api/full-datasets"
+        click.echo(f"  Waiting for {INSTANCE_LABELS[inst]} ({url} on {PSYGENE})...")
+        probe = _run_ssh(
+            PSYGENE,
+            f'end=$(( $(date +%s) + 60 )); '
+            f'while [ "$(date +%s)" -lt "$end" ]; do '
+            f"curl -fsS --max-time 5 {url} >/dev/null 2>&1 && exit 0; "
+            f"sleep 2; done; exit 1",
+            desc=f"Polling {url} until it answers",
+            check=False,
+        )
+        if probe.returncode != 0:
             raise DeployError(
-                f"Timed out after 60s waiting for {INSTANCE_LABELS[inst]} to respond at {url}"
+                f"Timed out after 60s waiting for {INSTANCE_LABELS[inst]} to "
+                f"respond at {url} on {PSYGENE}"
             )
+        click.echo(f"    -> {INSTANCE_LABELS[inst]} is up.")
 
 
 # ── Standalone restart (run directly on psygene) ─────────────────────────────
