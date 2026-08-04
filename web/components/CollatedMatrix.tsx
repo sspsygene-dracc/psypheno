@@ -42,6 +42,13 @@ export type { MetricDomains };
  * span so their DOM stays small at any column count. A click selects a cell and
  * opens a value popover (replacing the per-cell hover title canvas can't carry).
  *
+ * Because only the body is a real scroller, a wheel over the frozen gene column
+ * or the header would otherwise chain straight to the page — the matrix sits
+ * still while the document scrolls under it. A non-passive wheel listener on the
+ * panel root forwards those deltas to the body instead, one axis per region:
+ * the gene column scrolls rows, the column labels scroll columns (their vertical
+ * wheel keeps its existing meaning — the label strip's own scroll).
+ *
  * Header modes: with columns grouped by dataset (`bandsVisible`) a band row
  * ("experiment · author-year", with a hide control) sits above per-column labels.
  * When columns are clustered (`!bandsVisible`) the grouping is gone, so the
@@ -64,6 +71,15 @@ const DEFAULT_PANEL_H = "76vh"; // fixed panel height: both scrollbars live insi
 
 const ROW_STRIPE_EVEN = "#ffffff";
 const ROW_STRIPE_ODD = "#fafbfc";
+const WHEEL_LINE_PX = 16; // px per `deltaMode: DOM_DELTA_LINE` unit (Firefox)
+
+/** Can `el` still move along `axis` in the direction of `delta`? */
+function canScroll(el: HTMLElement, axis: "x" | "y", delta: number): boolean {
+  const pos = axis === "x" ? el.scrollLeft : el.scrollTop;
+  const max =
+    axis === "x" ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight;
+  return delta < 0 ? pos > 0.5 : pos < max - 0.5;
+}
 
 function fmtValue(metric: string, value: number): string {
   const label = scaleFor(metric).label;
@@ -236,6 +252,8 @@ export default function CollatedMatrix({
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const rowLabelsColRef = useRef<HTMLDivElement>(null);
   const bandInnerRef = useRef<HTMLDivElement>(null);
   const labelStripRef = useRef<HTMLDivElement>(null);
   const labelInnerRef = useRef<HTMLDivElement>(null);
@@ -340,6 +358,75 @@ export default function CollatedMatrix({
       el.removeEventListener("scroll", onScroll);
     };
   }, [nRows, nCols]);
+
+  // Wheel over the panel's non-scrolling regions: forward it to the body (the
+  // only real scroller) instead of letting it chain to the page. One axis per
+  // region — the gene column scrolls rows, the column labels scroll columns —
+  // so pointing at a label and scrolling moves the matrix along that label's own
+  // direction. Over the header a vertical wheel still drives the label strip's
+  // own scroll, which is what reveals the long folded labels.
+  //
+  // Registered by hand rather than via `onWheel`: React attaches wheel listeners
+  // passively, where `preventDefault()` is a no-op. Deltas are only consumed when
+  // the target scroller can actually move, so hitting an edge chains to the page
+  // exactly as it already does over the body.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const onWheel = (e: WheelEvent) => {
+      const body = scrollRef.current;
+      if (!body) return;
+      const t = e.target as Node;
+      if (body.contains(t)) return; // the body scrolls natively; don't double it
+
+      let dx = e.deltaX;
+      let dy = e.deltaY;
+      if (e.deltaMode === 1) {
+        dx *= WHEEL_LINE_PX;
+        dy *= WHEEL_LINE_PX;
+      } else if (e.deltaMode === 2) {
+        dx *= body.clientWidth;
+        dy *= body.clientHeight;
+      }
+      // Shift+wheel is the mouse-only way to scroll sideways; most browsers
+      // pre-swap the axes, but fold it in ourselves for the ones that don't.
+      if (e.shiftKey && dx === 0) {
+        dx = dy;
+        dy = 0;
+      }
+
+      let consumed = false;
+      const strip = labelStripRef.current;
+      if (headerRef.current?.contains(t)) {
+        if (dx && canScroll(body, "x", dx)) {
+          body.scrollLeft += dx;
+          consumed = true;
+        }
+        if (dy && strip && canScroll(strip, "y", dy)) {
+          strip.scrollTop += dy;
+          consumed = true;
+        }
+      } else if (rowLabelsColRef.current?.contains(t)) {
+        if (dy && canScroll(body, "y", dy)) {
+          body.scrollTop += dy;
+          consumed = true;
+        }
+      } else {
+        // Corner and any other panel chrome: behave like the body, both axes.
+        if (dx && canScroll(body, "x", dx)) {
+          body.scrollLeft += dx;
+          consumed = true;
+        }
+        if (dy && canScroll(body, "y", dy)) {
+          body.scrollTop += dy;
+          consumed = true;
+        }
+      }
+      if (consumed) e.preventDefault();
+    };
+    root.addEventListener("wheel", onWheel, { passive: false });
+    return () => root.removeEventListener("wheel", onWheel);
+  }, []);
 
   // Track the body's client size (canvas backing store) via ResizeObserver.
   useEffect(() => {
@@ -489,6 +576,7 @@ export default function CollatedMatrix({
           a fixed on-screen height and scrolls vertically on its own when the
           labels are taller than it (folded labels in clustered mode). */}
       <div
+        ref={headerRef}
         style={{
           gridColumn: 2,
           gridRow: 1,
@@ -638,6 +726,7 @@ export default function CollatedMatrix({
 
       {/* Frozen gene column (pinned left; slaved vertically to the body scroll). */}
       <div
+        ref={rowLabelsColRef}
         style={{
           gridColumn: 1,
           gridRow: 2,
