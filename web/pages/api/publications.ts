@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getDb } from "@/lib/db";
+import { columnExists, getDb } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 import type { Dataset } from "@/components/DatasetItem";
 import { parseDatasetLinks, type DatasetLink } from "@/lib/links";
@@ -47,13 +47,21 @@ export default async function handler(
     const db = getDb();
     const destinations = loadDestinations(db);
 
+    // `publication_title` post-dates some deployed DBs. Naming it unconditionally
+    // would fail at prepare time and 500 the whole route — not just blank the
+    // title — on any site whose DB predates the loader change, i.e. between a
+    // code deploy and the next load-db.
+    const titleColumn = columnExists(db, "data_tables", "publication_title")
+      ? "publication_title"
+      : "NULL AS publication_title";
+
     const rows = db
       .prepare(
         `SELECT
            table_name, short_label, medium_label, long_label, description,
            gene_columns, gene_species, display_columns, scalar_columns,
            link_tables, links, categories, source, assay, organism,
-           publication_title,
+           ${titleColumn},
            publication_doi, publication_pmid, publication_year, publication_journal,
            publication_first_author, publication_last_author, publication_author_count,
            publication_authors, publication_sspsygene_grants

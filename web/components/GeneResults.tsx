@@ -351,9 +351,6 @@ export default function GeneResults({
   }
 
   const hasMultipleGroups = groups.length > 1;
-  const hasSignificanceColumns = data.some(
-    (s) => s.pvalueColumn || s.fdrColumn,
-  );
 
   const renderPageNumbers = (
     currentPage: number,
@@ -493,34 +490,6 @@ export default function GeneResults({
         }}
       >
         <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
-        {hasSignificanceColumns && (
-          <div
-            style={{
-              marginBottom: 12,
-              fontSize: 13,
-              color: "#374151",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span
-              aria-hidden="true"
-              style={{
-                display: "inline-block",
-                width: 14,
-                height: 14,
-                background: "#f0fdf4",
-                border: "1px solid #86efac",
-                borderRadius: 3,
-              }}
-            />
-            <span>
-              Rows highlighted in green have FDR or p &lt; 0.05 (FDR is used
-              when available).
-            </span>
-          </div>
-        )}
         {/* The "all controls" sentinel isn't a real gene to describe, so it
             gets no side panel — otherwise it renders a misleading
             "Perturbed/Target gene: CONTROL" header over an empty blurb (#192). */}

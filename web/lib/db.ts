@@ -228,6 +228,39 @@ export function tableExists(
 }
 
 /**
+ * Whether a column exists on a table.
+ *
+ * The column-granularity twin of {@link tableExists}, and it exists for the
+ * same reason: a web process can be serving a DB built before a column was
+ * introduced. That case is nastier than a missing table, because SQLite
+ * resolves a SELECT's column list when the statement is *prepared* — one
+ * unknown name throws before any row is read, so a single new column takes the
+ * whole route down rather than blanking one field. Routes that read
+ * recently-added columns select `NULL AS <col>` when this returns false, which
+ * keeps the row shape (and its TypeScript type) identical.
+ *
+ * Cheap enough to call per request: `table_info` reads the schema the
+ * connection already has open, and connections are swapped by inode on rebuild,
+ * so the answer can never go stale on a live connection.
+ */
+export function columnExists(
+  db: Database.Database,
+  table: string,
+  column: string,
+  schema: "main" | "meta" | "overview" = "main"
+): boolean {
+  try {
+    const cols = db.pragma(`${schema}.table_info(${table})`) as Array<{
+      name: string;
+    }>;
+    return cols.some((c) => c.name === column);
+  } catch {
+    // No such table, or no such schema — e.g. `meta` was never ATTACHed.
+    return false;
+  }
+}
+
+/**
  * Freshness/availability of the meta-analysis DB for the current connection.
  * Call `getDb()` first (it refreshes this). Used by the combined-p-value API
  * routes to fall back gracefully when meta isn't computed, and by
