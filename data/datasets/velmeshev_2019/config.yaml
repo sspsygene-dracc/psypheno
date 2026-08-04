@@ -28,16 +28,16 @@
 publication:
   title: "Single-cell genomics identifies cell type-specific molecular changes in autism"
   authors:
-    - Velmeshev, Dmitry
-    - Schirmer, Lucas
-    - Jung, Diane
-    - Haeussler, Maximilian
-    - Perez, Yonatan
-    - Mayer, Simone
-    - Bhaduri, Aparna
-    - Goyal, Nitasha
-    - Rowitch, David H.
-    - Kriegstein, Arnold R.
+    - Dmitry Velmeshev
+    - Lucas Schirmer
+    - Diane Jung
+    - Maximilian Haeussler
+    - Yonatan Perez
+    - Simone Mayer
+    - Aparna Bhaduri
+    - Nitasha Goyal
+    - David H. Rowitch
+    - Arnold R. Kriegstein
   year: 2019
   journal: "Science"
   doi: "10.1126/science.aav8130"
