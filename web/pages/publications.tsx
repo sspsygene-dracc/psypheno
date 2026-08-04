@@ -460,12 +460,16 @@ export default function PublicationsPage() {
               <div style={{ color: "#6b7280" }}>Loading publications…</div>
             ) : error ? (
               <div style={{ color: "#dc2626" }}>Failed to load: {error}</div>
-            ) : filtered.length === 0 ? (
-              <div style={{ color: "#6b7280", padding: "12px 0" }}>
-                No publications match the current filters.
-              </div>
             ) : (
               <>
+                {/* Shown filtered or not — the count alone left the ordering
+                    unexplained, and the list is neither alphabetical by title
+                    nor grouped by dataset, so readers assumed it was arbitrary.
+                    The order is whatever /api/publications returns: the SQL
+                    orders by publication_year DESC, publication_first_author
+                    ASC, and papers appear in first-row order after the
+                    group-by-DOI pass. Keep this sentence in sync with that
+                    ORDER BY. */}
                 <div
                   style={{
                     color: "#6b7280",
@@ -473,19 +477,29 @@ export default function PublicationsPage() {
                     marginBottom: 12,
                   }}
                 >
-                  Showing {filtered.length} of {publications.length} publications
+                  {`Showing ${filtered.length} of ${publications.length} `}
+                  {publications.length === 1 ? "publication" : "publications"}
+                  {" — sorted by year (newest first), then by first author"}
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  {filtered.map((p) => (
-                    <PublicationCard
-                      key={p.doi}
-                      pub={p}
-                      assayTypeLabels={assayTypeLabels}
-                      authorQuery={authorQuery.trim().toLowerCase()}
-                      onOpenDataset={goToDataset}
-                    />
-                  ))}
-                </div>
+                {filtered.length === 0 ? (
+                  <div style={{ color: "#6b7280", padding: "12px 0" }}>
+                    No publications match the current filters.
+                  </div>
+                ) : (
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 16 }}
+                  >
+                    {filtered.map((p) => (
+                      <PublicationCard
+                        key={p.doi}
+                        pub={p}
+                        assayTypeLabels={assayTypeLabels}
+                        authorQuery={authorQuery.trim().toLowerCase()}
+                        onOpenDataset={goToDataset}
+                      />
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </section>
