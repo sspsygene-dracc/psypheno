@@ -21,25 +21,35 @@ body {
 
 /* The column-label strip scrolls vertically on its own when labels (folded
    "modality · author · gene" labels in clustered mode) are taller than the strip.
-   Keep a slim, always-visible bar so that scrollability is discoverable. */
-.matrix-label-strip {
+   Keep a slim, always-visible bar so that scrollability is discoverable.
+
+   `.scroll-panel` opts any other internally-scrolling panel into the same bar —
+   the sticky sidebars (dataset TOC, /publications filters). macOS defaults to
+   overlay scrollbars that stay hidden on a trackpad-only machine, so without
+   this there is no affordance at all that the panel scrolls. */
+.matrix-label-strip,
+.scroll-panel {
   scrollbar-width: thin; /* Firefox */
   scrollbar-color: rgba(100, 116, 139, 0.55) transparent;
 }
-.matrix-label-strip::-webkit-scrollbar {
+.matrix-label-strip::-webkit-scrollbar,
+.scroll-panel::-webkit-scrollbar {
   -webkit-appearance: none;
   width: 9px;
 }
-.matrix-label-strip::-webkit-scrollbar-thumb {
+.matrix-label-strip::-webkit-scrollbar-thumb,
+.scroll-panel::-webkit-scrollbar-thumb {
   background-color: rgba(100, 116, 139, 0.55);
   border-radius: 5px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
-.matrix-label-strip::-webkit-scrollbar-thumb:hover {
+.matrix-label-strip::-webkit-scrollbar-thumb:hover,
+.scroll-panel::-webkit-scrollbar-thumb:hover {
   background-color: rgba(71, 85, 105, 0.7);
 }
-.matrix-label-strip::-webkit-scrollbar-track {
+.matrix-label-strip::-webkit-scrollbar-track,
+.scroll-panel::-webkit-scrollbar-track {
   background: transparent;
 }
 

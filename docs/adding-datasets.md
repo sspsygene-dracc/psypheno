@@ -212,6 +212,10 @@ Below is a fully annotated example. Read every comment carefully.
 # Publication information
 # ============================================================================
 publication:
+  title: "Paper title as printed"   # Headline shown for the paper on /publications.
+                                    # Copy the title verbatim (PubMed's esummary
+                                    # `title` field is a good source); drop the
+                                    # trailing period PubMed appends.
   authors:                          # Full author list, one per line
     - Last, First M.
     - Last, First M.

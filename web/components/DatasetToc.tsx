@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import DestinationBadge from "@/components/DestinationBadge";
+import { useFitToViewport } from "@/lib/use-fit-to-viewport";
 
 export type TocItem = {
   tableName: string;
@@ -86,6 +87,12 @@ export default function DatasetToc({
   // visible one, not just the most recently changed.
   const ratios = useRef<Map<string, number>>(new Map());
 
+  // Keep the box inside the viewport at every scroll position, not just once
+  // sticky has engaged — otherwise the bottom of the list hangs below the fold
+  // and `overscrollBehavior: contain` traps the wheel there.
+  const navRef = useRef<HTMLElement>(null);
+  useFitToViewport(navRef);
+
   const allTableNames = useMemo(
     () => groups.flatMap((g) => g.items.map((i) => i.tableName)),
     [groups],
@@ -147,6 +154,8 @@ export default function DatasetToc({
 
   return (
     <nav
+      ref={navRef}
+      className="scroll-panel"
       style={{
         width: 220,
         flexShrink: 0,
@@ -156,12 +165,15 @@ export default function DatasetToc({
         padding: "14px 0",
         position: "sticky",
         top: 16,
-        maxHeight: "calc(100vh - 48px)",
+        // useFitToViewport publishes the live value; the calc() is only the
+        // pre-hydration fallback.
+        maxHeight: "var(--fit-max-height, calc(100vh - 48px))",
         overflowY: "auto",
         // Without this, wheel events that hit the TOC's scroll limit chain
         // up to the document and scroll the whole page — surprising when
-        // you're navigating a long dataset list.
-        overscrollBehavior: "contain",
+        // you're navigating a long dataset list. useFitToViewport relaxes it
+        // while the box overhangs the fold, where containing would strand you.
+        overscrollBehavior: "var(--fit-overscroll, contain)",
         ...extraStyle,
       }}
     >

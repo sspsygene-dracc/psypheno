@@ -333,6 +333,7 @@ class TableToProcessConfig:
     overview_matrix_metric: str | None = None
     # Optional [lo, hi] override of the metric's default color-scale domain.
     overview_matrix_metric_domain: list[float] | None = None
+    publication_title: str | None = None
     publication_first_author: str | None = None
     publication_last_author: str | None = None
     publication_author_count: int | None = None
@@ -656,6 +657,7 @@ class TableToProcessConfig:
             overview_matrix_phenotype_columns=overview_matrix_phenotype_columns,
             overview_matrix_metric=overview_matrix_metric,
             overview_matrix_metric_domain=overview_matrix_metric_domain,
+            publication_title=publication.get("title"),
             publication_first_author=first_author,
             publication_last_author=last_author,
             publication_author_count=author_count,

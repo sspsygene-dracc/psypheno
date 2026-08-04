@@ -17,6 +17,8 @@ export type PublicationTableEntry = {
 export type PublicationEntry = {
   doi: string;
   pmid: string | null;
+  /** Paper title from the dataset config; null for papers predating the field. */
+  title: string | null;
   year: number | null;
   journal: string | null;
   firstAuthor: string | null;
@@ -51,6 +53,7 @@ export default async function handler(
            table_name, short_label, medium_label, long_label, description,
            gene_columns, gene_species, display_columns, scalar_columns,
            link_tables, links, categories, source, assay, organism,
+           publication_title,
            publication_doi, publication_pmid, publication_year, publication_journal,
            publication_first_author, publication_last_author, publication_author_count,
            publication_authors, publication_sspsygene_grants
@@ -74,6 +77,7 @@ export default async function handler(
       source: string | null;
       assay: string | null;
       organism: string | null;
+      publication_title: string | null;
       publication_doi: string;
       publication_pmid: string | null;
       publication_year: number | null;
@@ -106,6 +110,7 @@ export default async function handler(
         {
           doi: r.publication_doi,
           pmid: r.publication_pmid,
+          title: r.publication_title,
           year: r.publication_year,
           journal: r.publication_journal,
           firstAuthor: r.publication_first_author,

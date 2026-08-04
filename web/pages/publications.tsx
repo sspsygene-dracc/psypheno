@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Header from "@/components/Header";
@@ -7,6 +7,7 @@ import DatasetItem, { type Dataset } from "@/components/DatasetItem";
 import DestinationBadge from "@/components/DestinationBadge";
 import InfoTooltip from "@/components/InfoTooltip";
 import { formatAuthors } from "@/lib/format-authors";
+import { useFitToViewport } from "@/lib/use-fit-to-viewport";
 import { hostFromUrl, type DatasetLink } from "@/lib/links";
 import DatasetLinkAnchor from "@/components/DatasetLinkAnchor";
 import type {
@@ -188,6 +189,11 @@ export default function PublicationsPage() {
     assayFilter.size > 0 ||
     fundingFilter !== "any";
 
+  // Keep the filter sidebar inside the viewport at every scroll position — see
+  // useFitToViewport for why the static max-height wasn't enough.
+  const facetsRef = useRef<HTMLElement>(null);
+  useFitToViewport(facetsRef);
+
   const clearAllFilters = () => {
     setAuthorQuery("");
     setYearFilter(new Set());
@@ -250,15 +256,22 @@ export default function PublicationsPage() {
 
         <div className="pubs-layout">
           <aside
-            className="pubs-facets"
+            ref={facetsRef}
+            className="pubs-facets scroll-panel"
             style={{
               position: "sticky",
               top: 16,
-              maxHeight: "calc(100vh - 48px)",
+              // useFitToViewport publishes the live value; the calc() is only
+              // the pre-hydration fallback. A static calc() is wrong until
+              // sticky engages — the box hangs below the fold before that, and
+              // with `contain` the wheel dead-ends there.
+              maxHeight: "var(--fit-max-height, calc(100vh - 48px))",
               overflowY: "auto",
               // Without this, wheel events that hit the sidebar's scroll limit
               // chain up to the document and scroll the whole page.
-              overscrollBehavior: "contain",
+              // useFitToViewport relaxes it while the box overhangs the fold,
+              // where containing would strand you.
+              overscrollBehavior: "var(--fit-overscroll, contain)",
               border: "1px solid #e5e7eb",
               borderRadius: 8,
               padding: 16,
@@ -468,6 +481,7 @@ export default function PublicationsPage() {
                       key={p.doi}
                       pub={p}
                       assayTypeLabels={assayTypeLabels}
+                      authorQuery={authorQuery.trim().toLowerCase()}
                       onOpenDataset={goToDataset}
                     />
                   ))}
@@ -485,10 +499,13 @@ export default function PublicationsPage() {
 function PublicationCard({
   pub,
   assayTypeLabels,
+  authorQuery,
   onOpenDataset,
 }: {
   pub: PublicationEntry;
   assayTypeLabels: Record<string, string>;
+  /** Lowercased, trimmed author search; drives highlighting in the author list. */
+  authorQuery: string;
   onOpenDataset: (d: Dataset) => void;
 }) {
   const citation = formatAuthors(
@@ -522,7 +539,10 @@ function PublicationCard({
     >
       <header style={{ marginBottom: 10 }}>
         <div style={{ fontWeight: 600, fontSize: 16, color: "#1f2937" }}>
-          {citation || "Unknown authors"}
+          {/* Title is the headline; the author list lives on its own line
+              below, so falling back to the citation only matters for papers
+              whose config predates the publication `title` field. */}
+          {pub.title || citation || "Unknown authors"}
           {pub.year != null && ` (${pub.year})`}
           {pub.journal && (
             <span style={{ fontWeight: 400, color: "#4b5563" }}>
@@ -541,7 +561,7 @@ function PublicationCard({
           )}
         </div>
         {pub.authors.length > 0 && (
-          <AuthorListLine authors={pub.authors} />
+          <AuthorListLine authors={pub.authors} query={authorQuery} />
         )}
         <div
           style={{
@@ -675,41 +695,102 @@ function PublicationCard({
   );
 }
 
-const AUTHOR_LINE_COLLAPSED_LIMIT = 8;
+/**
+ * Collapsed author lines show the first N authors, an ellipsis, then the last
+ * author — first and last carry the most signal on a paper, and the middle of
+ * a 200-author consortium list carries almost none.
+ */
+const AUTHOR_LINE_HEAD_COUNT = 3;
 
-function AuthorListLine({ authors }: { authors: string[] }) {
-  const [expanded, setExpanded] = useState(false);
-  const overflow = authors.length > AUTHOR_LINE_COLLAPSED_LIMIT;
-  const visible =
-    expanded || !overflow ? authors : authors.slice(0, AUTHOR_LINE_COLLAPSED_LIMIT);
-  const hidden = overflow && !expanded ? authors.length - visible.length : 0;
+const AUTHOR_LINK_BUTTON_STYLE: React.CSSProperties = {
+  background: "transparent",
+  border: "none",
+  // Kept a step lighter than the author names themselves — it's an affordance,
+  // not part of the citation.
+  color: "#4b5563",
+  cursor: "pointer",
+  padding: 0,
+  fontSize: 13,
+  textDecoration: "underline",
+};
+
+function AuthorListLine({
+  authors,
+  query,
+}: {
+  authors: string[];
+  /** Lowercased, trimmed author search, or "" when the facet is empty. */
+  query: string;
+}) {
+  const matched = useMemo(
+    () =>
+      query
+        ? authors.map((a) => a.toLowerCase().includes(query))
+        : authors.map(() => false),
+    [authors, query],
+  );
+  // Collapsing only pays off once it actually hides someone: head + last is
+  // AUTHOR_LINE_HEAD_COUNT + 1 names, so shorter lists render in full.
+  const overflow = authors.length > AUTHOR_LINE_HEAD_COUNT + 1;
+  const isCollapsedVisible = (i: number) =>
+    i < AUTHOR_LINE_HEAD_COUNT || i === authors.length - 1;
+  // A matching author hidden behind the ellipsis is exactly the case the user
+  // can't see — auto-expand so the reason this paper matched is on screen.
+  const autoExpand =
+    overflow && matched.some((m, i) => m && !isCollapsedVisible(i));
+  const [expanded, setExpanded] = useState(autoExpand);
+  // Re-derive on every query change, so clearing the search re-collapses and a
+  // manual "show fewer" doesn't stick across searches.
+  useEffect(() => {
+    setExpanded(autoExpand);
+  }, [autoExpand, query]);
+
+  const collapsed = overflow && !expanded;
+  const hidden = collapsed ? authors.length - AUTHOR_LINE_HEAD_COUNT - 1 : 0;
+  const visibleIdx = collapsed
+    ? authors.map((_, i) => i).filter(isCollapsedVisible)
+    : authors.map((_, i) => i);
+
   return (
     <div
       style={{
         marginTop: 3,
         fontSize: 13,
-        color: "#9ca3af",
+        color: "#374151",
         lineHeight: 1.5,
       }}
     >
-      {visible.join(", ")}
+      {visibleIdx.map((idx, pos) => (
+        <span key={idx}>
+          {pos > 0 && ", "}
+          {/* The gap between the head block and the trailing last author. */}
+          {collapsed && pos === AUTHOR_LINE_HEAD_COUNT && "…, "}
+          {matched[idx] ? (
+            <mark
+              style={{
+                background: "#fef08a",
+                color: "#1f2937",
+                fontWeight: 600,
+                borderRadius: 3,
+                padding: "0 2px",
+              }}
+            >
+              {authors[idx]}
+            </mark>
+          ) : (
+            authors[idx]
+          )}
+        </span>
+      ))}
       {hidden > 0 && (
         <>
-          {", "}
+          {" "}
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#6b7280",
-              cursor: "pointer",
-              padding: 0,
-              fontSize: 13,
-              textDecoration: "underline",
-            }}
+            style={AUTHOR_LINK_BUTTON_STYLE}
           >
-            +{hidden} more
+            ({hidden} more)
           </button>
         </>
       )}
@@ -719,15 +800,7 @@ function AuthorListLine({ authors }: { authors: string[] }) {
           <button
             type="button"
             onClick={() => setExpanded(false)}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#6b7280",
-              cursor: "pointer",
-              padding: 0,
-              fontSize: 13,
-              textDecoration: "underline",
-            }}
+            style={AUTHOR_LINK_BUTTON_STYLE}
           >
             show fewer
           </button>

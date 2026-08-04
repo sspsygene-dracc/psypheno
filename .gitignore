@@ -26,3 +26,6 @@ docs/tutorial/tutorial-hiccups.md
 
 # Original papers (cannot be redistributed; download with download-papers.sh)
 papers/
+
+# Gene-overlap statistics write-up (draft, not for the repo)
+overlap-analysis/

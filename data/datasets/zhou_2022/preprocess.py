@@ -228,8 +228,8 @@ def main() -> None:
     # Keep flag columns as human-readable "Yes"/"No" text rather than Python
     # bool: SQLite has no boolean type, so True/False would round-trip as
     # opaque 1/0 by the time they reach the browser.
-    df["Known"] = df["Known"].map({"x": "Yes", ".": "No"})
-    df["ASDdnSignif"] = df["ASDdnSignif"].map({"x": "Yes", ".": "No"})
+    df["Known"] = df["Known"].map({"x": "Yes", ".": "No"})  # type: ignore[arg-type]
+    df["ASDdnSignif"] = df["ASDdnSignif"].map({"x": "Yes", ".": "No"})  # type: ignore[arg-type]
     # Study-wide significance is already "Yes"/"No" in the source — left as-is.
 
     df = df.rename(columns=_RENAME)
@@ -247,12 +247,12 @@ def main() -> None:
     tracker.note_input(EXCEL.name)
 
     df12["gene_symbol"] = df12["gene_symbol"].str.strip()
-    df12["Sex"] = df12["Sex"].map(_SEX_MAP)
-    df12["inheritance"] = df12["inheritance"].map(_INHERITANCE_MAP)
+    df12["Sex"] = df12["Sex"].map(_SEX_MAP)  # type: ignore[arg-type]
+    df12["inheritance"] = df12["inheritance"].map(_INHERITANCE_MAP)  # type: ignore[arg-type]
     # Keep phenotype flags as "Yes"/"No" text (see note on Table S9 above);
     # unknown/not-collected stays blank rather than "No".
     for col in _PHENOTYPE_FLAG_COLUMNS:
-        df12[col] = df12[col].map({1.0: "Yes", 0.0: "No"})
+        df12[col] = df12[col].map({1.0: "Yes", 0.0: "No"})  # type: ignore[arg-type]
 
     df12 = df12.rename(columns=_RENAME_S12)
 

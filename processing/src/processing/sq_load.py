@@ -312,6 +312,7 @@ def load_data_tables(
         column_labels TEXT,
         organism TEXT,
         organism_key TEXT,
+        publication_title TEXT,
         publication_first_author TEXT,
         publication_last_author TEXT,
         publication_author_count INTEGER,
@@ -452,6 +453,7 @@ def load_data_tables(
             "organism_key": ",".join(table_config.organism_key)
             if table_config.organism_key
             else None,
+            "publication_title": table_config.publication_title,
             "publication_first_author": table_config.publication_first_author,
             "publication_last_author": table_config.publication_last_author,
             "publication_author_count": table_config.publication_author_count,

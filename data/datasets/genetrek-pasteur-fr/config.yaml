@@ -22,6 +22,7 @@
 # bootstrap p-value, NOT on the OR (autism_pvalue_ci_lower / _upper).
 
 publication:
+  title: "Phenotypic effects of genetic variants associated with autism"
   authors:
     - Rolland, Thomas
     - Cliquet, Freddy
