@@ -1,3 +1,8 @@
+deployTo:
+  - dev
+  - int
+  - prod
+
 publication:
   authors:
     - Shi, T.
@@ -45,93 +50,28 @@ maintainers:
 
 tables:
 
-  # ── Table 1: Wilcoxon DEGs ──────────────────────────────────────────────────
-  - table: shi_2026_wilcoxon
-    overview_matrix: true
-    changelog:
-      - date: "2026-08-17"
-        message: "Initial data load"
-
-    shortLabel: shi_2026_wilcoxon
-    mediumLabel: "Shi 2026 - in vivo Perturb-seq Wilcoxon DEGs in Mouse Whole Brain"
-    longLabel: "Wilcoxon differential expression from whole-brain in vivo Perturb-seq (Shi et al. 2026)"
-    description: >
-      Wilcoxon-test differential gene expression results from genome-scale in vivo
-      Perturb-seq across the mouse whole brain. 1,947 disease-associated genes were
-      perturbed; over 7.7 million cells were profiled across 22 major brain cell type
-      clusters. Filtered to FDR-adjusted p-value < 0.05. Each row reports one
-      differentially expressed gene for one perturbation in one cell type.
-
-    source: "Wilcoxon DEG results parquet provided by authors (Dropbox)"
-
-    in_path: shi_2026_wilcoxon.tsv
-    separator: "\t"
-
-    organism: "Mus musculus (whole brain, in vivo)"
-    organism_key: mouse
-    assay: perturbation_deg
-    condition:
-      - autism
-      - scz
-      - bipolar
-      - ndc
-    categories:
-      - in vivo Perturb-seq
-      - whole brain
-      - mouse
-      - Wilcoxon test
-
-    gene_mappings:
-      - column_name: perturbation
-        link_table_name: perturbation_gene
-        species: mouse
-        perturbed_or_target: perturbed
-      - column_name: gene
-        link_table_name: gene
-        species: mouse
-        perturbed_or_target: target
-        non_resolving:
-          record_values:
-            - Tmem250-ps
-            - Pakap-1
-            - Fam220a-1
-
-    pvalue_column: pval
-    fdr_column: pval_adj
-    effect_column: log2fc
-
-    fieldLabels:
-      perturbation: "Mouse gene symbol of the disease-associated gene targeted by
-        CRISPR loss-of-function perturbation (Shi et al. 2026)"
-      gene: "Mouse gene symbol of the differentially expressed gene (measured readout
-        of the perturbation)"
-      log2fc: "Log2 fold change in expression: perturbed cells vs non-targeting
-        control cells (Wilcoxon test)"
-      z_score: "Wilcoxon rank-sum test Z-score for differential expression between
-        perturbed and non-targeting control cells"
-      pval: "Nominal p-value from the Wilcoxon rank-sum test"
-      pval_adj: "BH-adjusted p-value (FDR); rows with pval_adj >= 0.05 were excluded
-        during preprocessing"
-      n_cells_perturbed: "Number of perturbed cells used in the Wilcoxon test"
-      n_cells_control: "Number of non-targeting control cells used in the Wilcoxon test"
-
-  # ── Table 2: DESeq2 pseudobulk DEGs ────────────────────────────────────────
+  # ── Table 1: DESeq2 pseudobulk DEGs ────────────────────────────────────────
+  # Note: Wilcoxon DEG results (shi_2026_wilcoxon.tsv) are retained on disk
+  # but not loaded into the website — DESeq2 pseudobulk is the recommended table.
   - table: shi_2026_deseq2
     overview_matrix: true
     changelog:
       - date: "2026-08-17"
         message: "Initial data load"
+      - date: "2026-08-25"
+        message: "Remove Wilcoxon table from website; DESeq2 pseudobulk is the primary table"
 
     shortLabel: shi_2026_deseq2
-    mediumLabel: "Shi 2026 - in vivo Perturb-seq DESeq2 DEGs in Mouse Whole Brain"
-    longLabel: "DESeq2 pseudobulk differential expression from whole-brain in vivo Perturb-seq (Shi et al. 2026)"
+    mediumLabel: "Shi 2026 - in vivo single-cell Perturb-seq DEGs in Mouse Whole Brain"
+    longLabel: "Pseudobulk differential expression from whole-brain in vivo single-cell Perturb-seq (Shi et al. 2026)"
     description: >
       DESeq2 pseudobulk differential gene expression results from genome-scale in vivo
-      Perturb-seq across the mouse whole brain. 1,947 disease-associated genes were
-      perturbed; over 7.7 million cells were profiled across 22 major brain cell type
-      clusters. Pre-filtered by authors to FDR < 0.05. Each row reports one
-      differentially expressed gene for one perturbation in one cell type. Includes
-      dropout rate and mean expression metrics for quality assessment.
+      single-cell Perturb-seq (Perturb-seq) across the mouse whole brain. 1,947
+      disease-associated genes were perturbed; over 7.7 million single-nucleus
+      transcriptomes were profiled across 22 major brain cell type clusters.
+      Pre-filtered by authors to FDR < 0.05. Each row reports one differentially
+      expressed gene for one perturbation in one cell type. Includes dropout rate
+      and mean expression metrics for quality assessment.
 
     source: "DESeq2 DEG results parquet provided by authors (Dropbox), pre-filtered to FDR < 0.05"
 
