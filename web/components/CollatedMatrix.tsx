@@ -57,7 +57,20 @@ export type { MetricDomains };
  */
 
 const LABEL_W = 120; // frozen gene-label column width, px
-const BAND_H = 34; // header band row — tall enough for a wrapped dataset heading
+// Header band row. The height has to follow the *narrowest* band: a band spans
+// `span * colW`, so at 5 columns per dataset it is only ~85px wide and a heading
+// like "RNA expression · Gordon 2026" needs three lines where a wide band needs
+// one. Fixed at 34px it simply clipped. BAND_H_MIN keeps wide bands looking as
+// they always did; BAND_H_MAX stops a pathological label from eating the panel
+// (past it the heading clips again, but the hover tooltip still has it all).
+const BAND_H_MIN = 34;
+const BAND_H_MAX = 78;
+const BAND_LINE_H = 13; // 11px text at line-height 1.15, rounded up
+const BAND_CHAR_PX = 5.6; // ~advance of one 11px semibold char
+const BAND_PAD_V = 9; // 3px top padding + breathing room under the last line
+// Horizontal chrome inside a band: 4px padding each side, the 2px flex gap, and
+// the ~15px hide button — none of it available to the heading text.
+const BAND_CHROME_W = 25;
 // The column-label strip shows this fixed height; when the longest label needs
 // more (folded "modality · author · gene" labels in clustered mode run long),
 // the strip scrolls vertically on its own instead of making the header taller.
@@ -86,6 +99,39 @@ function canScroll(el: HTMLElement, axis: "x" | "y", delta: number): boolean {
   const max =
     axis === "x" ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight;
   return delta < 0 ? pos > 0.5 : pos < max - 0.5;
+}
+
+/**
+ * Lines `text` wraps to in a box `perLine` characters wide, by the same greedy
+ * word wrapping the browser does. Counting `length / perLine` instead
+ * under-counts: "Behavioral · Fernandez Garcia 2026" is 34 characters, but at 10
+ * characters per line its unbreakable words leave ragged ends and it takes five
+ * lines, not four.
+ */
+function wrappedLineCount(text: string, perLine: number): number {
+  if (perLine <= 0) return 1;
+  let lines = 1;
+  let used = 0;
+  for (const word of text.split(/\s+/)) {
+    if (!word) continue;
+    if (used > 0 && used + 1 + word.length > perLine) {
+      lines++;
+      used = 0;
+    }
+    if (word.length > perLine) {
+      // Longer than the box: breaks mid-word (or overflows, which costs the
+      // same height). Rounding up here errs toward a taller band, not a clipped one.
+      if (used > 0) {
+        lines++;
+        used = 0;
+      }
+      lines += Math.ceil(word.length / perLine) - 1;
+      used = word.length % perLine || perLine;
+    } else {
+      used = used === 0 ? word.length : used + 1 + word.length;
+    }
+  }
+  return lines;
 }
 
 function fmtValue(metric: string, value: number): string {
@@ -290,7 +336,6 @@ export default function CollatedMatrix({
   // give the strip the height it needs rather than making it scroll.
   const stripVisibleH = summary ? labelStripH : LABEL_STRIP_VISIBLE;
   const stripContentH = Math.max(labelStripH, stripVisibleH);
-  const HEADER_H = (bandsVisible ? BAND_H : 0) + stripVisibleH;
 
   const bandLayout = useMemo<BandGroup[]>(() => {
     const groups: BandGroup[] = [];
@@ -315,6 +360,22 @@ export default function CollatedMatrix({
     });
     return groups;
   }, [columns, sectionLabel]);
+
+  // Tall enough for the band that wraps to the most lines (see BAND_H_MIN).
+  const bandH = useMemo(() => {
+    let maxLines = 1;
+    for (const g of bandLayout) {
+      const textW = g.span * colW - BAND_CHROME_W;
+      const perLine = Math.max(1, Math.floor(textW / BAND_CHAR_PX));
+      maxLines = Math.max(maxLines, wrappedLineCount(g.bandLabel, perLine));
+    }
+    return Math.min(
+      BAND_H_MAX,
+      Math.max(BAND_H_MIN, maxLines * BAND_LINE_H + BAND_PAD_V)
+    );
+  }, [bandLayout, colW]);
+
+  const HEADER_H = (bandsVisible ? bandH : 0) + stripVisibleH;
 
   // Every cell's color, precomputed once per data/order change (packed RGB +
   // present-mask). Scrolling never recomputes a color.
@@ -673,7 +734,7 @@ export default function CollatedMatrix({
         {bandsVisible && (
           <div
             style={{
-              height: BAND_H,
+              height: bandH,
               flexShrink: 0,
               overflow: "hidden",
               position: "relative",
@@ -686,7 +747,7 @@ export default function CollatedMatrix({
                 top: 0,
                 left: 0,
                 width: nCols * colW,
-                height: BAND_H,
+                height: bandH,
                 willChange: "transform",
               }}
             >
@@ -703,7 +764,7 @@ export default function CollatedMatrix({
                       left: g.startCol * colW,
                       top: 0,
                       width: g.span * colW,
-                      height: BAND_H,
+                      height: bandH,
                       background: "#f3f4f6",
                       borderLeft: "1px solid #e5e7eb",
                       borderBottom: "1px solid #e5e7eb",
