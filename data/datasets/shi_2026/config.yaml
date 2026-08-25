@@ -62,8 +62,8 @@ tables:
         message: "Remove Wilcoxon table from website; DESeq2 pseudobulk is the primary table"
 
     shortLabel: shi_2026_deseq2
-    mediumLabel: "Shi 2026 - in vivo single-cell Perturb-seq DEGs in Mouse Whole Brain"
-    longLabel: "Pseudobulk differential expression from whole-brain in vivo single-cell Perturb-seq (Shi et al. 2026)"
+    mediumLabel: "Shi 2026 - in vivo Single-Cell Perturb-seq DEGs in Mouse Whole Brain"
+    longLabel: "Pseudobulk differential expression from whole-brain in vivo Single-Cell Perturb-seq (Shi et al. 2026)"
     description: >
       DESeq2 pseudobulk differential gene expression results from genome-scale in vivo
       single-cell Perturb-seq (Perturb-seq) across the mouse whole brain. 1,947
