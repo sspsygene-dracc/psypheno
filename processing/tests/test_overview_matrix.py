@@ -170,6 +170,24 @@ def _cells(conn: sqlite3.Connection, table: str):
     }
 
 
+def _summary_column(conn: sqlite3.Connection, table: str):
+    return conn.execute(
+        "SELECT modality_key, column_prefix, base_metric, sig_rule, n_readouts_total "
+        "FROM overview_matrix_summary_columns WHERE source_table = ?",
+        (table,),
+    ).fetchone()
+
+
+def _summary_cells(conn: sqlite3.Connection, table: str):
+    return {
+        gene_id: (n_sig, n_measured, best)
+        for gene_id, n_sig, n_measured, best in conn.execute(
+            "SELECT central_gene_id, n_sig, n_measured, best_value "
+            f"FROM overview_matrix_summary_cells WHERE source_table = \'{table}\'"
+        )
+    }
+
+
 # --- gene-target axis (unchanged core behaviour) ---------------------------
 
 def test_gene_columns_selection_order_and_metric(conn: sqlite3.Connection) -> None:
@@ -330,6 +348,99 @@ def test_wide_phenotype_max_magnitude_aggregate(conn: sqlite3.Connection) -> Non
     assert cells[(2, "ColB")] == 4.0
 
 
+# --- per-dataset summary column (#234) -------------------------------------
+
+def test_summary_counts_every_readout_not_just_the_columns(
+    conn: sqlite3.Connection,
+) -> None:
+    """The breadth count spans readouts that never become columns.
+
+    T2 is significant nowhere, so it is not a materialized column at any floor —
+    but it *was* measured, and a summary that only walked the materialized
+    columns would report 2 readouts instead of 3.
+    """
+    materialize_overview_matrix(conn, min_groups=1)
+    assert [c[0] for c in _columns(conn, "expr")] == ["T1", "T3"]
+    assert _summary_column(conn, "expr") == (
+        "expression",
+        "expr",
+        "neglog_p",
+        "fdr<0.05",
+        3,
+    )
+    cells = _summary_cells(conn, "expr")
+    # Gene 1 sits only in R1: T1 (1e-30) and T3 (0.004) significant, T2 not.
+    assert cells[1] == (2, 3, NEG_LOG_P_MAX)
+    # Gene 3 sits only in R3: T1 alone is significant there (FDR 0.02).
+    assert cells[3] == (1, 3, round(-math.log10(0.003), 3))
+
+
+def test_summary_counts_each_readout_once_per_gene(conn: sqlite3.Connection) -> None:
+    """A gene in several perturbed groups must not count a readout twice.
+
+    Gene 2 sits in both R1 and R2, and T1 is significant in each. Counting
+    per (group, target) row rather than per distinct target would report 3
+    significant readouts out of 5 measured instead of 2 out of 3.
+    """
+    materialize_overview_matrix(conn, min_groups=1)
+    assert _summary_cells(conn, "expr")[2] == (2, 3, NEG_LOG_P_MAX)
+
+
+def test_summary_survives_a_floor_that_drops_every_column(
+    conn: sqlite3.Connection,
+) -> None:
+    """No column clears the bar, so the expansion returns early — the summary
+    is written before that point and still describes the dataset."""
+    materialize_overview_matrix(conn, min_groups=4)
+    assert _columns(conn, "expr") == []
+    assert conn.execute("SELECT COUNT(*) FROM overview_matrix_expansions").fetchone() == (0,)
+    assert _summary_column(conn, "expr")[4] == 3
+    assert _summary_cells(conn, "expr")[1] == (2, 3, NEG_LOG_P_MAX)
+
+
+def test_summary_excludes_controls_and_off_panel_genes(
+    conn: sqlite3.Connection,
+) -> None:
+    materialize_overview_matrix(conn, min_groups=1)
+    assert 9 not in _summary_cells(conn, "expr")  # CTRL perturbs R1
+    materialize_overview_matrix(conn, min_groups=1, panel_gene_ids={1, 3})
+    assert sorted(_summary_cells(conn, "expr")) == [1, 3]
+
+
+def test_summary_on_the_wide_axis_uses_a_nominal_p_rule(
+    conn: sqlite3.Connection,
+) -> None:
+    """The wide axis carries a signed -log10(nominal p), not an FDR, so its
+    count is taken against |value| >= -log10(0.05) and says so."""
+    conn.execute("CREATE TABLE wide (id INTEGER, cola REAL, colb REAL)")
+    conn.executemany(
+        "INSERT INTO wide VALUES (?, ?, ?)",
+        [(1, 3.0, -1.0), (2, -5.0, 0.5), (3, 2.0, 4.0)],
+    )
+    _add_link(conn, "wide__perturbed", [(1, 1), (1, 2), (2, 3)])
+    _register(
+        conn,
+        "wide",
+        "behavior",
+        "src:wide__perturbed:perturbed",
+        phenotype_columns=["ColA", "ColB"],
+        metric="signed_neglog_p",
+    )
+    materialize_overview_matrix(conn, min_groups=1)
+    assert _summary_column(conn, "wide") == (
+        "behavior",
+        "beh",
+        "signed_neglog_p",
+        "nominal_p<0.05",
+        2,
+    )
+    cells = _summary_cells(conn, "wide")
+    # AAA: ColA -5 clears the bar, ColB -1 does not; strongest is the -5.
+    assert cells[1] == (1, 2, -5.0)
+    # BBB: both clear it; strongest by magnitude is 4.
+    assert cells[2] == (2, 2, 4.0)
+
+
 # --- group-map shortcut fallback (gene axis) -------------------------------
 
 def test_group_map_falls_back_when_shortcut_invariant_breaks(
@@ -353,7 +464,7 @@ def test_expansion_metadata_and_info(conn: sqlite3.Connection) -> None:
     info = dict(conn.execute("SELECT key, value FROM overview_matrix_info"))
     assert info["min_groups_floor"] == "2"
     assert json.loads(info["expanded_source_tables"]) == ["expr"]
-    assert info["schema_version"] == "3"
+    assert info["schema_version"] == "4"
     assert info["materialize_top_m"] == "200"
 
 

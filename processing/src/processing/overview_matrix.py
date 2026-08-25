@@ -27,6 +27,13 @@ Each column carries a **metric** id naming its color scale (`neglog_p`,
 `value` in that metric's units. The web color-scale registry turns (metric,
 value) into a color and renders one legend bar per metric present.
 
+Alongside the expansion, each table is also collapsed to a **single summary
+column** (#234): per perturbed gene, how many of that table's readouts came back
+significant, plus the strongest one. That count is deliberately taken over
+*every* readout — not over the materialized columns, which are already filtered
+to the top-M that converge across ≥`min_groups` perturbations, and so exclude
+exactly the gene-specific responses a breadth count should include.
+
 Row ordering is deliberately *not* materialized: the API sorts genes with
 JavaScript's ``localeCompare``, which Python cannot reproduce byte-for-byte.
 """
@@ -47,7 +54,7 @@ from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import normalize_column_name
 
 
-SCHEMA_VERSION = "3"
+SCHEMA_VERSION = "4"
 
 # -log10(p) clamp for neglog_* heatmap cells. The lower bound keeps every present
 # cell visible against "no data"; the upper bound stops a single p ~ 1e-49 row
@@ -81,11 +88,23 @@ ELIGIBILITY_MIN_GROUPS = 2
 # materialized. M is the largest "columns per dataset" the UI offers.
 MATERIALIZE_TOP_M = 200
 
+# Significance bar for the per-readout counts. The p-value axis has a real FDR
+# to test; the wide axis only carries a signed -log10(nominal p), so it tests
+# |value| against -log10(0.05). The two are NOT the same quantity, which is why
+# each summary column records which rule produced its count (`sig_rule`) and the
+# frontend words the popover from it rather than saying "significant" flatly.
+SIG_ALPHA = 0.05
+SIG_RULE_FDR = "fdr<0.05"
+SIG_RULE_NOMINAL_P = "nominal_p<0.05"
+_SIGNED_NEGLOG_P_SIG = -math.log10(SIG_ALPHA)  # 1.301
+
 _TABLES = (
     "overview_matrix_genes",
     "overview_matrix_expansions",
     "overview_matrix_expanded_columns",
     "overview_matrix_expanded_cells",
+    "overview_matrix_summary_columns",
+    "overview_matrix_summary_cells",
     "overview_matrix_info",
 )
 
@@ -221,6 +240,32 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         value REAL NOT NULL,
         PRIMARY KEY (modality_key, source_table, column_value, central_gene_id))
         WITHOUT ROWID"""
+    )
+    # The per-dataset summary column (#234). Self-sufficient on purpose: it
+    # carries `modality_key` + `column_prefix` rather than joining
+    # `overview_matrix_expansions`, because a dataset whose readouts all fail the
+    # convergence floor contributes no expanded columns and so never gets an
+    # expansions row — but it still has a perfectly good breadth summary.
+    conn.execute(
+        """CREATE TABLE overview_matrix_summary_columns (
+        source_table TEXT PRIMARY KEY,
+        modality_key TEXT NOT NULL,
+        column_prefix TEXT NOT NULL,
+        source_label TEXT,
+        base_metric TEXT NOT NULL,
+        sig_rule TEXT NOT NULL,
+        n_readouts_total INTEGER NOT NULL) WITHOUT ROWID"""
+    )
+    # `n_sig` is stored raw, not pre-scaled: the API applies log10(1 + n_sig) at
+    # read time, so the color scale can be retuned without a rebuild.
+    conn.execute(
+        """CREATE TABLE overview_matrix_summary_cells (
+        source_table TEXT NOT NULL,
+        central_gene_id INTEGER NOT NULL,
+        n_sig INTEGER NOT NULL,
+        n_measured INTEGER NOT NULL,
+        best_value REAL NOT NULL,
+        PRIMARY KEY (source_table, central_gene_id)) WITHOUT ROWID"""
     )
     conn.execute(
         """CREATE TABLE overview_matrix_info (
@@ -366,6 +411,64 @@ def _neg_log_p(p: float) -> float:
     return round(min(max(-math.log10(p), NEG_LOG_P_MIN), NEG_LOG_P_MAX), 3)
 
 
+def _write_summary(
+    conn: sqlite3.Connection,
+    *,
+    modality_key: str,
+    table_name: str,
+    source_label: str | None,
+    base_metric: str,
+    sig_rule: str,
+    n_readouts_total: int,
+    n_sig: dict[int, int],
+    n_measured: dict[int, int],
+    best: dict[int, float],
+) -> None:
+    """Write one dataset’s collapsed summary column and its cells (#234).
+
+    A cell is (n_sig, n_measured, best_value) for one perturbed gene over *all*
+    of the table’s readouts. Genes with no measurement at all are simply absent
+    — the matrix is sparse, and the frontend draws a missing cell differently
+    from a measured-but-empty one (n_sig = 0).
+    """
+    if not n_measured:
+        return
+    conn.execute(
+        "INSERT INTO overview_matrix_summary_columns "
+        "(source_table, modality_key, column_prefix, source_label, base_metric, "
+        " sig_rule, n_readouts_total) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (
+            table_name,
+            modality_key,
+            _COLUMN_PREFIXES.get(modality_key, modality_key),
+            source_label,
+            base_metric,
+            sig_rule,
+            n_readouts_total,
+        ),
+    )
+    conn.executemany(
+        "INSERT INTO overview_matrix_summary_cells "
+        "(source_table, central_gene_id, n_sig, n_measured, best_value) "
+        "VALUES (?, ?, ?, ?, ?)",
+        [
+            (
+                table_name,
+                gene_id,
+                n_sig.get(gene_id, 0),
+                measured,
+                round(best[gene_id], 3),
+            )
+            for gene_id, measured in sorted(n_measured.items())
+            if gene_id in best
+        ],
+    )
+    click.echo(
+        f"  Overview matrix: \'{modality_key}\' / {table_name} summary → "
+        f"{len(n_measured)} genes over {n_readouts_total} readouts ({sig_rule})"
+    )
+
+
 def _materialize_pvalue_axis(
     conn: sqlite3.Connection,
     *,
@@ -410,6 +513,56 @@ def _materialize_pvalue_axis(
         current = min_p_by_target.get(target)
         if current is None or min_p < current:
             min_p_by_target[target] = min_p
+
+    # Per-dataset summary column (#234). Counted over EVERY target, before the
+    # convergence floor and the top-M cut, so a readout that responds to only one
+    # perturbation still counts — which is the whole point of a breadth summary.
+    # Walked target-major because one gene can sit in several perturbed groups
+    # (SHANK3’s two genotypes), and a target must count once per gene, not once
+    # per group. The panel restriction rides on `group_genes`; `per_group` itself
+    # is unfiltered, so counting straight off it would admit controls and
+    # off-panel perturbations.
+    by_target: dict[str, list[tuple[object, float, float | None]]] = defaultdict(list)
+    for group, target, min_p, min_fdr in per_group:
+        if min_p is None or not group_genes.get(group):
+            continue
+        by_target[str(target)].append((group, min_p, min_fdr))
+
+    sum_n_sig: dict[int, int] = defaultdict(int)
+    sum_n_measured: dict[int, int] = defaultdict(int)
+    sum_best_p: dict[int, float] = {}
+    for entries in by_target.values():
+        measured_genes: set[int] = set()
+        sig_genes: set[int] = set()
+        for group, min_p, min_fdr in entries:
+            genes = group_genes.get(group, ())
+            measured_genes.update(genes)
+            # A NULL FDR counts as not significant, matching the column
+            # eligibility rule below. A table carrying only a qval has
+            # `p_col is fdr_col`, so this tests that qval.
+            if min_fdr is not None and min_fdr < SIG_ALPHA:
+                sig_genes.update(genes)
+            for gene_id in genes:
+                current = sum_best_p.get(gene_id)
+                if current is None or min_p < current:
+                    sum_best_p[gene_id] = min_p
+        for gene_id in measured_genes:
+            sum_n_measured[gene_id] += 1
+        for gene_id in sig_genes:
+            sum_n_sig[gene_id] += 1
+
+    _write_summary(
+        conn,
+        modality_key=modality_key,
+        table_name=table_name,
+        source_label=source_label,
+        base_metric=metric,
+        sig_rule=SIG_RULE_FDR,
+        n_readouts_total=len(by_target),
+        n_sig=sum_n_sig,
+        n_measured=sum_n_measured,
+        best={g: _neg_log_p(p) for g, p in sum_best_p.items()},
+    )
 
     if show_all:
         # Every column that has any data — phenotype datasets are small and the
@@ -544,6 +697,45 @@ def _materialize_wide_axis(
             continue
         per_column[pc] = agg
         labels[pc] = raw_pc
+
+    # Per-dataset summary column (#234). `per_column` is already panel-filtered
+    # by SQL and holds every phenotype column that had data, before the top-M cut.
+    if signed:
+        sum_n_sig: dict[int, int] = defaultdict(int)
+        sum_n_measured: dict[int, int] = defaultdict(int)
+        sum_best: dict[int, float] = {}
+        for agg in per_column.values():
+            for gene_id, value in agg.items():
+                sum_n_measured[gene_id] += 1
+                # A nominal p, not an FDR — hence the distinct `sig_rule`, so the
+                # popover doesn’t claim FDR control this axis never had.
+                if abs(value) >= _SIGNED_NEGLOG_P_SIG:
+                    sum_n_sig[gene_id] += 1
+                current = sum_best.get(gene_id)
+                if current is None or abs(value) > abs(current):
+                    sum_best[gene_id] = value
+        _write_summary(
+            conn,
+            modality_key=modality_key,
+            table_name=table_name,
+            source_label=source_label,
+            base_metric=metric,
+            sig_rule=SIG_RULE_NOMINAL_P,
+            n_readouts_total=len(per_column),
+            n_sig=sum_n_sig,
+            n_measured=sum_n_measured,
+            best=sum_best,
+        )
+    else:
+        # An effect ratio has no significance notion at all (a value at the pivot
+        # means "measured, unchanged" — real evidence, not an absence of it), so
+        # there is nothing to count and the dataset gets no summary column.
+        log.warning(
+            "overview matrix: %s uses metric %r, which has no significance "
+            "notion — no summary column will be written for it",
+            table_name,
+            metric,
+        )
 
     if not per_column:
         return 0

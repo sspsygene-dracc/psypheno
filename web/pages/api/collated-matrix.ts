@@ -8,6 +8,7 @@ import {
   type MatrixCell,
   type MatrixColumn,
   type MatrixGeneRow,
+  type MatrixMode,
   type MatrixSection,
   type MetricPresence,
 } from "@/lib/collated-matrix-types";
@@ -28,13 +29,24 @@ import {
  * the top ~200 per dataset). Gene-target eligibility (FDR-significant in ≥N
  * perturbations) is fixed at build time; phenotype datasets show all columns.
  *
+ * Query param `mode=summary` (#234) serves the collapsed view instead: one column
+ * per dataset, whose cell counts how many of that dataset's readouts came back
+ * significant for the gene. That count is materialized over *every* readout, so
+ * it is not reachable by asking for `colsPerDataset=1` — K picks the same top-K
+ * columns for every row, and those are already filtered to the ones that converge
+ * across ≥N perturbations. Colored on log10(1 + n), since counts span 1 → ~3000.
+ *
  * Degradation: when the overview DB isn't attached (never built), the matrix is
  * empty (`meta.materialized:false`) rather than 500ing.
  */
 
 const querySchema = z.object({
   colsPerDataset: z.coerce.number().int().min(1).max(200).default(25),
+  mode: z.enum(["expanded", "summary"]).default("expanded"),
 });
+
+/** Color-scale id for a summary column — see web/lib/matrix-color-scales.ts. */
+const SUMMARY_METRIC = "sig_readouts";
 
 /**
  * Dataset band label = the "Author Year" prefix of `medium_label` (curated as
@@ -78,12 +90,14 @@ function parseDomain(raw: string | null): [number, number] | null {
   return null;
 }
 
-function emptyResponse(K: number): CollatedMatrixResponse {
+function emptyResponse(K: number, mode: MatrixMode): CollatedMatrixResponse {
   return {
     sections: [],
     columns: [],
     genes: [],
     meta: {
+      mode,
+      summaryAvailable: false,
       colsPerDataset: K,
       expandedColumnCount: 0,
       expandedColumnsAvailable: 0,
@@ -93,6 +107,150 @@ function emptyResponse(K: number): CollatedMatrixResponse {
       materialized: false,
       builtAt: null,
       metrics: [],
+    },
+  };
+}
+
+interface SummaryColumnRow {
+  source_table: string;
+  modality_key: string;
+  column_prefix: string;
+  source_label: string | null;
+  base_metric: string;
+  sig_rule: string;
+  n_readouts_total: number;
+}
+
+/**
+ * The collapsed view (#234): one column per dataset, cell = how many of that
+ * dataset's readouts were significant for the gene.
+ *
+ * Shape-compatible with the expanded response on purpose — the canvas, the
+ * clustering and the dataset hide/unhide all keep working on a `MatrixColumn`
+ * without knowing which view produced it.
+ */
+function buildSummaryResponse(args: {
+  db: ReturnType<typeof getDb>;
+  genes: MatrixGeneRow[];
+  byId: Map<number, MatrixGeneRow>;
+  modalities: ModalityRow[];
+  datasetMeta: Map<string, { mediumLabel: string | null; citation: string | null }>;
+  floor: number;
+  topM: number;
+  builtAt: string | null;
+  K: number;
+}): CollatedMatrixResponse {
+  const { db, genes, byId, modalities, datasetMeta, floor, topM, builtAt, K } = args;
+
+  const rows = db
+    .prepare(
+      "SELECT source_table, modality_key, column_prefix, source_label, " +
+        " base_metric, sig_rule, n_readouts_total " +
+        "FROM overview.overview_matrix_summary_columns " +
+        "ORDER BY source_label ASC, source_table ASC"
+    )
+    .all() as SummaryColumnRow[];
+
+  // Author-year alone stops being an identity once a whole dataset is one
+  // column: Zheng 2024 ships two tables and Gordon 2026 two more, so a bare
+  // author-year would label two adjacent columns identically. Fall back to the
+  // dataset's short label only for the ones that actually collide.
+  const authorYear = new Map<string, string>();
+  const collisions = new Map<string, number>();
+  for (const r of rows) {
+    const label = authorYearLabel(
+      datasetMeta.get(r.source_table)?.mediumLabel ?? null,
+      r.source_label ?? r.source_table
+    );
+    authorYear.set(r.source_table, label);
+    collisions.set(label, (collisions.get(label) ?? 0) + 1);
+  }
+  const labelFor = (r: SummaryColumnRow): string => {
+    const base = authorYear.get(r.source_table) ?? r.source_table;
+    if ((collisions.get(base) ?? 0) <= 1 || !r.source_label) return base;
+    // `short_label` is a snake_case slug; the header reads it as words.
+    return `${base} · ${r.source_label.replace(/_/g, " ")}`;
+  };
+
+  // Section order from the modality taxonomy; anything not in it renders after.
+  const knownKeys = modalities.map((m) => m.key);
+  const presentKeys = [...new Set(rows.map((r) => r.modality_key))];
+  const orderedKeys = [
+    ...knownKeys.filter((k) => presentKeys.includes(k)),
+    ...presentKeys.filter((k) => !knownKeys.includes(k)),
+  ];
+  const labelByModality = new Map(modalities.map((m) => [m.key, m.label]));
+
+  const columns: MatrixColumn[] = [];
+  const sections: MatrixSection[] = [];
+  for (const modalityKey of orderedKeys) {
+    const inSection = rows.filter((r) => r.modality_key === modalityKey);
+    if (inSection.length === 0) continue;
+    for (const r of inSection) {
+      const dsMeta = datasetMeta.get(r.source_table) ?? {
+        mediumLabel: null,
+        citation: null,
+      };
+      const label = labelFor(r);
+      columns.push({
+        section: modalityKey,
+        key: `${r.column_prefix}:${r.source_table}:__summary__`,
+        label,
+        metric: SUMMARY_METRIC,
+        columnIsGene: false,
+        nSigGroups: r.n_readouts_total,
+        sourceTable: r.source_table,
+        sourceLabel: label,
+        sourceMediumLabel: dsMeta.mediumLabel,
+        sourceCitation: dsMeta.citation,
+        baseMetric: r.base_metric,
+        sigRule: r.sig_rule,
+      });
+    }
+    sections.push({
+      key: modalityKey,
+      label: labelByModality.get(modalityKey) ?? modalityKey,
+      span: inSection.length,
+    });
+  }
+
+  const keyByTable = new Map(columns.map((c) => [c.sourceTable, c.key]));
+  for (const [sourceTable, geneId, nSig, nMeasured, best] of db
+    .prepare(
+      "SELECT source_table, central_gene_id, n_sig, n_measured, best_value " +
+        "FROM overview.overview_matrix_summary_cells"
+    )
+    .raw()
+    .all() as Array<[string, number, number, number, number]>) {
+    const gene = byId.get(geneId);
+    const key = keyByTable.get(sourceTable);
+    if (!gene || key === undefined) continue;
+    // log10(1 + n). Counts span 1 → ~3000 across datasets, so a linear ramp
+    // would pin everything but the densest DE screens at the bottom of the bar.
+    gene.cells[key] = {
+      value: Math.round(Math.log10(1 + nSig) * 1000) / 1000,
+      nSig,
+      nMeasured,
+      best,
+    };
+  }
+
+  return {
+    sections,
+    columns,
+    genes,
+    meta: {
+      mode: "summary",
+      summaryAvailable: true,
+      colsPerDataset: K,
+      expandedColumnCount: columns.length,
+      expandedColumnsAvailable: columns.length,
+      expandedColumnsTruncated: false,
+      minSigGroupsFloor: floor,
+      materializeTopM: topM,
+      materialized: true,
+      builtAt,
+      metrics: [{ id: SUMMARY_METRIC, domain: null }],
     },
   };
 }
@@ -110,6 +268,7 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid query parameters" });
   }
   const K = parsed.data.colsPerDataset;
+  const mode = parsed.data.mode;
 
   try {
     const db = getDb();
@@ -117,7 +276,18 @@ export default async function handler(
     // as `overview` by getDb(). Absent → empty matrix, never a 500.
     if (!tableExists(db, "overview_matrix_genes", "overview")) {
       setReadCacheHeaders(res);
-      return res.status(200).json(emptyResponse(K));
+      return res.status(200).json(emptyResponse(K, mode));
+    }
+    // Reported on both paths so the page can disable the Summary control against
+    // an overview DB built before #234, instead of showing an empty matrix.
+    const summaryAvailable = tableExists(
+      db,
+      "overview_matrix_summary_columns",
+      "overview"
+    );
+    if (mode === "summary" && !summaryAvailable) {
+      setReadCacheHeaders(res);
+      return res.status(200).json(emptyResponse(K, mode));
     }
 
     const genes: MatrixGeneRow[] = (
@@ -215,6 +385,22 @@ export default async function handler(
       )
       .raw();
 
+    if (mode === "summary") {
+      const body = buildSummaryResponse({
+        db,
+        genes,
+        byId,
+        modalities,
+        datasetMeta,
+        floor,
+        topM,
+        builtAt: info.get("built_at") ?? null,
+        K,
+      });
+      setReadCacheHeaders(res);
+      return res.status(200).json(body);
+    }
+
     for (const modalityKey of orderedModalityKeys) {
       const prefix = prefixByModality.get(modalityKey);
       if (prefix === undefined) continue;
@@ -298,6 +484,8 @@ export default async function handler(
       columns,
       genes,
       meta: {
+        mode,
+        summaryAvailable,
         colsPerDataset: K,
         expandedColumnCount,
         expandedColumnsAvailable,

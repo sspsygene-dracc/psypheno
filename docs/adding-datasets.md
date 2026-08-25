@@ -633,6 +633,33 @@ Expanding a table is not free: the materialization stores one row per
 (perturbed gene, qualifying target) pair. Only expand tables whose target axis is a
 genuinely interesting readout.
 
+#### The collapsed Summary column
+
+Every expanded table *also* gets a single collapsed column, served by the matrix
+page's **Summary** view ([#234](https://github.com/sspsygene-dracc/psypheno/issues/234)).
+Its cell counts how many of the table's readouts came back significant for the
+perturbed gene, with the strongest single result alongside it
+(`overview_matrix_summary_columns` / `overview_matrix_summary_cells` in
+`sspsygene-overview.db`).
+
+Two things to know when adding a dataset:
+
+- **The count spans every readout**, not the sub-columns above — it ignores both
+  the convergence floor and the top-*N* cap, so a readout that responds to a
+  single perturbation still counts. It is therefore not reachable by asking the
+  matrix for one column per dataset.
+- **It is a count, not a percentage**, because tables differ in whether they
+  store their non-significant readouts at all. A table pre-filtered to its
+  significant rows (like `mouse_perturb_deg`) has `n_sig == n_measured` for every
+  gene, so a fraction would read 100% everywhere. If your table *does* carry the
+  non-significant rows, keep them — the `n_measured` in the popover is then the
+  honest denominator a reader can judge the count against.
+
+The wide-phenotype axis has only a signed `-log10(nominal p)`, so its count is
+taken against `|value| >= -log10(0.05)` rather than an FDR; the popover says
+which rule produced it. A metric with no significance notion at all
+(`activity_ratio`) gets no summary column, and the build logs a warning saying so.
+
 #### Implicit (whole-table) perturbed gene (`constant_value`)
 
 Sometimes the perturbed gene isn't a per-row column — the *entire table* is one

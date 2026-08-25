@@ -415,6 +415,29 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
         ("TCF4", "Tcf4"),
     }
 
+    # The collapsed per-dataset summary (#234) obeys the same prod-input filter:
+    # only mini_perturb_deg gets a column, never dev-only mini_embargoed.
+    summary_columns = [
+        (row["source_table"], row["modality_key"], row["n_readouts_total"])
+        for row in conn.execute(
+            "SELECT source_table, modality_key, n_readouts_total "
+            "FROM overview_matrix_summary_columns"
+        )
+    ]
+    assert summary_columns == [("mini_perturb_deg", "perturb_seq", 5)]
+    summary_cells = {
+        (row["human_symbol"], row["n_sig"], row["n_measured"])
+        for row in conn.execute(
+            "SELECT g.human_symbol, c.n_sig, c.n_measured "
+            "FROM overview_matrix_summary_cells c "
+            "JOIN overview_matrix_genes g ON g.central_gene_id = c.central_gene_id"
+        )
+    }
+    # Trp53 is measured under both Foxg1 and Tbr1 and clears FDR under neither,
+    # so it lifts n_measured without lifting n_sig — and it is not a column at
+    # all, which is exactly what a count taken over the columns would miss.
+    assert summary_cells == {("FOXG1", 3, 4), ("TBR1", 1, 2), ("TCF4", 1, 1)}
+
     info = dict(
         (row["key"], row["value"])
         for row in conn.execute("SELECT key, value FROM overview_matrix_info")

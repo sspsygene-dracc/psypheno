@@ -24,6 +24,10 @@ export const CELL = 17;
 export const ROW_H = CELL;
 export const COL_W = CELL;
 export const GUTTER = 1;
+// Column pitch in the summary view (#234). Six dataset columns at COL_W would be
+// a 102px ribbon adrift in a 94vw page; row pitch stays put so the gene column
+// still lines up.
+export const SUMMARY_COL_W = 96;
 
 // Row stripes (the gutter color) + the no-data tile fill — kept identical to the
 // previous DOM rendering.
@@ -86,11 +90,14 @@ export interface DrawParams {
   dpr: number;
   /** Currently click-selected cell (drawn with an outline), or null. */
   selected: { row: number; col: number } | null;
+  /** Column pitch; defaults to COL_W (the expanded view's square tiles). */
+  colW?: number;
 }
 
 /** Repaint the visible cell window onto `ctx`. */
 export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
   const { grid, scrollLeft, scrollTop, viewW, viewH, dpr, selected } = p;
+  const colW = p.colW ?? COL_W;
   const { nRows, nCols, packed, present } = grid;
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -98,10 +105,10 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
 
   const firstRow = Math.max(0, Math.floor(scrollTop / ROW_H));
   const lastRow = Math.min(nRows - 1, Math.floor((scrollTop + viewH) / ROW_H));
-  const firstCol = Math.max(0, Math.floor(scrollLeft / COL_W));
-  const lastCol = Math.min(nCols - 1, Math.floor((scrollLeft + viewW) / COL_W));
+  const firstCol = Math.max(0, Math.floor(scrollLeft / colW));
+  const lastCol = Math.min(nCols - 1, Math.floor((scrollLeft + viewW) / colW));
 
-  const tileW = COL_W - 2 * GUTTER;
+  const tileW = colW - 2 * GUTTER;
   const tileH = ROW_H - 2 * GUTTER;
 
   // No-data diagonals accumulate into one path and get stroked once at the end —
@@ -116,7 +123,7 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
 
     const base = i * nCols;
     for (let j = firstCol; j <= lastCol; j++) {
-      const x = j * COL_W - scrollLeft;
+      const x = j * colW - scrollLeft;
       if (present[base + j]) {
         const c = packed[base + j];
         ctx.fillStyle = `rgb(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255})`;
@@ -128,7 +135,7 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
         // rather than one continuous line across the row.
         ctx.moveTo(x + GUTTER + NO_DATA_INSET, y + GUTTER + NO_DATA_INSET);
         ctx.lineTo(
-          x + COL_W - GUTTER - NO_DATA_INSET,
+          x + colW - GUTTER - NO_DATA_INSET,
           y + ROW_H - GUTTER - NO_DATA_INSET
         );
       }
@@ -146,11 +153,11 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
     selected.col >= firstCol &&
     selected.col <= lastCol
   ) {
-    const x = selected.col * COL_W - scrollLeft;
+    const x = selected.col * colW - scrollLeft;
     const y = selected.row * ROW_H - scrollTop;
     ctx.strokeStyle = SELECT_OUTLINE;
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(x + 0.5, y + 0.5, COL_W - 1, ROW_H - 1);
+    ctx.strokeRect(x + 0.5, y + 0.5, colW - 1, ROW_H - 1);
   }
 }
 
@@ -161,9 +168,10 @@ export function cellAt(
   scrollLeft: number,
   scrollTop: number,
   nRows: number,
-  nCols: number
+  nCols: number,
+  colW: number = COL_W
 ): { row: number; col: number } | null {
-  const col = Math.floor((offsetX + scrollLeft) / COL_W);
+  const col = Math.floor((offsetX + scrollLeft) / colW);
   const row = Math.floor((offsetY + scrollTop) / ROW_H);
   if (row < 0 || row >= nRows || col < 0 || col >= nCols) return null;
   return { row, col };

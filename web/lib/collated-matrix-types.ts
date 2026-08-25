@@ -49,11 +49,29 @@ export interface MatrixColumn {
   sourceMediumLabel: string | null;
   /** Dataset source/citation string, appended to the band tooltip. */
   sourceCitation: string | null;
+  /**
+   * Summary columns only (#234). `baseMetric` is the dataset's own metric — the
+   * units of each cell's `best` — as opposed to `metric`, which is the summary
+   * column's own count scale. `sigRule` names what `nSig` counted, since the
+   * wide phenotype axis only has a nominal p where the others have an FDR.
+   */
+  baseMetric?: string;
+  sigRule?: string;
 }
 
 export interface MatrixCell {
   /** The cell value in its column's metric units (frontend maps it to a color). */
   value: number;
+  /**
+   * Summary-mode only (#234): the raw counts behind a collapsed dataset column,
+   * shown in the click popover. Sent only in `mode: "summary"` — at
+   * `colsPerDataset: 200` these would add three numbers to ~10^5 cells that
+   * nothing displays. `nSig` counts readouts passing the column's `sigRule`;
+   * `best` is the strongest readout in the column's `baseMetric` units.
+   */
+  nSig?: number;
+  nMeasured?: number;
+  best?: number;
 }
 
 export interface MatrixGeneRow {
@@ -69,7 +87,16 @@ export interface MetricPresence {
   domain: [number, number] | null;
 }
 
+export type MatrixMode = "expanded" | "summary";
+
 export interface CollatedMatrixMeta {
+  /** Which view produced this response. */
+  mode: MatrixMode;
+  /**
+   * False when the overview DB predates the summary tables (#234) — the page
+   * disables the Summary control rather than rendering an empty matrix.
+   */
+  summaryAvailable: boolean;
   /** Columns-per-dataset cap used for this response (after clamping). */
   colsPerDataset: number;
   /** Total value columns actually returned across all datasets. */

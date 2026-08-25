@@ -13,6 +13,7 @@ import {
   drawCells,
   COL_W,
   ROW_H,
+  SUMMARY_COL_W,
   type MetricDomains,
 } from "@/lib/matrix-canvas";
 
@@ -65,6 +66,12 @@ const LABEL_STRIP_MIN = 120;
 const LABEL_STRIP_MAX = 340;
 const LABEL_CHAR_PX = 7; // ~advance of one 12px bold char along the rotated label
 const LABEL_STRIP_PAD = 20; // padding above/below the rotated text
+// Summary labels are dataset names over wide columns, so they read horizontally
+// and wrap instead of rotating — a 50-char rotated label would need a 340px
+// header strip, where four wrapped lines need ~62px.
+const SUMMARY_LABEL_CHAR_PX = 6; // ~advance of one 11px char
+const SUMMARY_LABEL_LINE_H = 13;
+const SUMMARY_LABEL_PAD = 12;
 const COL_OVERSCAN = 12; // extra columns rendered each side of the header window
 const ROW_OVERSCAN = 24; // extra gene labels rendered each side of the row window
 const DEFAULT_PANEL_H = "76vh"; // fixed panel height: both scrollbars live inside it
@@ -92,6 +99,26 @@ function fmtValue(metric: string, value: number): string {
   return `${label} = ${value}`;
 }
 
+/** How a summary column's `nSig` was counted — the wide phenotype axis only has
+ *  a nominal p where the other axes have an FDR, so the popover says which. */
+function sigRuleText(rule: string | undefined): string {
+  return rule === "nominal_p<0.05" ? "nominal p < 0.05" : "FDR < 0.05";
+}
+
+/**
+ * Popover text for a collapsed dataset column (#234). The cell's `value` is
+ * log10(1 + n) — a color coordinate, not something to show a reader — so the
+ * text is built from the raw counts the API ships alongside it.
+ */
+function summaryValueText(column: MatrixColumn, cell: MatrixCell): string {
+  const head =
+    `${(cell.nSig ?? 0).toLocaleString()} of ` +
+    `${(cell.nMeasured ?? 0).toLocaleString()} readouts significant ` +
+    `(${sigRuleText(column.sigRule)})`;
+  if (cell.best === undefined || column.baseMetric === undefined) return head;
+  return `${head} · strongest: ${fmtValue(column.baseMetric, cell.best)}`;
+}
+
 interface BandGroup {
   gkey: string;
   bandLabel: string;
@@ -116,19 +143,45 @@ const VLABEL_STYLE = {
  * the strip, nearest the cells and visible by default; `datasetText` (folded /
  * clustered mode) reads above it and scrolls into view.
  */
+const HLABEL_STYLE = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: "#374151",
+  lineHeight: `${SUMMARY_LABEL_LINE_H}px`,
+  textAlign: "center",
+  overflowWrap: "anywhere",
+  width: "100%",
+  padding: "0 4px",
+  boxSizing: "border-box",
+} as const;
+
 function ColumnLabel({
   column,
   datasetText,
+  linkToDataset = false,
+  horizontal = false,
 }: {
   column: MatrixColumn;
   datasetText: string | null;
+  /** Summary mode: the label *is* the dataset, so it carries the dataset link
+   *  that the (suppressed) band row would otherwise provide. */
+  linkToDataset?: boolean;
+  /** Render across the column instead of rotated along it (wide columns). */
+  horizontal?: boolean;
 }) {
   return (
-    <div style={VLABEL_STYLE}>
+    <div style={horizontal ? HLABEL_STYLE : VLABEL_STYLE}>
       {column.columnIsGene ? (
         <a
           className="matrix-link"
           href={`/?target=${encodeURIComponent(column.label)}`}
+        >
+          {column.label}
+        </a>
+      ) : linkToDataset ? (
+        <a
+          className="matrix-link"
+          href={`/full-datasets?open=${encodeURIComponent(column.sourceTable)}`}
         >
           {column.label}
         </a>
@@ -169,6 +222,7 @@ export default function CollatedMatrix({
   metricDomains,
   bandsVisible,
   onToggleHide,
+  summary = false,
   panelHeight = DEFAULT_PANEL_H,
 }: {
   sections: MatrixSection[];
@@ -179,6 +233,14 @@ export default function CollatedMatrix({
   bandsVisible: boolean;
   onToggleHide: (sourceTable: string) => void;
   /**
+   * Summary view (#234): each column *is* a dataset. Widens the column pitch (a
+   * handful of 17px columns is a ribbon adrift in the page), drops the dataset
+   * prefix from the labels (it would repeat the label itself), and words the
+   * popover in readout counts. Pass `bandsVisible={false}` with it — a band over
+   * a single column has no room for its own heading.
+   */
+  summary?: boolean;
+  /**
    * Fixed panel height. Both the vertical and horizontal scrollbars live inside
    * this panel and the header stays pinned; the surrounding page doesn't scroll
    * the matrix.
@@ -187,6 +249,7 @@ export default function CollatedMatrix({
 }) {
   const nRows = genes.length;
   const nCols = columns.length;
+  const colW = summary ? SUMMARY_COL_W : COL_W;
 
   const sectionLabel = useMemo(
     () => new Map(sections.map((s) => [s.key, s.label])),
@@ -197,6 +260,14 @@ export default function CollatedMatrix({
   // In folded (clustered) mode the label carries the dataset prefix, so it's
   // much longer than a plain gene/phenotype name in banded mode.
   const labelStripH = useMemo(() => {
+    if (summary) {
+      const perLine = Math.max(1, Math.floor(colW / SUMMARY_LABEL_CHAR_PX));
+      let maxLines = 1;
+      for (const c of columns) {
+        maxLines = Math.max(maxLines, Math.ceil(c.label.length / perLine));
+      }
+      return maxLines * SUMMARY_LABEL_LINE_H + SUMMARY_LABEL_PAD;
+    }
     let maxLen = 0;
     for (const c of columns) {
       const len = bandsVisible
@@ -212,11 +283,14 @@ export default function CollatedMatrix({
       LABEL_STRIP_MAX,
       Math.max(LABEL_STRIP_MIN, Math.round(maxLen * LABEL_CHAR_PX + LABEL_STRIP_PAD))
     );
-  }, [columns, bandsVisible, sectionLabel]);
+  }, [columns, bandsVisible, summary, colW, sectionLabel]);
   // The strip's on-screen height stays fixed; its scrollable content is as tall
   // as the longest label needs (min the visible height so short labels fill it).
-  const stripContentH = Math.max(labelStripH, LABEL_STRIP_VISIBLE);
-  const HEADER_H = (bandsVisible ? BAND_H : 0) + LABEL_STRIP_VISIBLE;
+  // Summary labels are dataset names, and there are only a handful of columns —
+  // give the strip the height it needs rather than making it scroll.
+  const stripVisibleH = summary ? labelStripH : LABEL_STRIP_VISIBLE;
+  const stripContentH = Math.max(labelStripH, stripVisibleH);
+  const HEADER_H = (bandsVisible ? BAND_H : 0) + stripVisibleH;
 
   const bandLayout = useMemo<BandGroup[]>(() => {
     const groups: BandGroup[] = [];
@@ -289,6 +363,7 @@ export default function CollatedMatrix({
       viewH: el.clientHeight,
       dpr: dprRef.current,
       selected,
+      colW,
     });
   };
 
@@ -302,16 +377,16 @@ export default function CollatedMatrix({
       pop.style.display = "none";
       return;
     }
-    const cellX = selected.col * COL_W - sl;
+    const cellX = selected.col * colW - sl;
     const cellY = selected.row * ROW_H - st;
-    if (cellX < -COL_W || cellX > vw || cellY < -ROW_H || cellY > vh) {
+    if (cellX < -colW || cellX > vw || cellY < -ROW_H || cellY > vh) {
       pop.style.display = "none";
       return;
     }
     pop.style.display = "block";
     const rootW = rootRef.current?.clientWidth ?? vw + LABEL_W;
     const popW = pop.offsetWidth || 220;
-    let left = LABEL_W + cellX + COL_W + 6;
+    let left = LABEL_W + cellX + colW + 6;
     if (left + popW > rootW - 4) left = LABEL_W + cellX - popW - 6;
     if (left < 4) left = 4;
     pop.style.left = `${left}px`;
@@ -341,8 +416,8 @@ export default function CollatedMatrix({
         canvasRef.current.style.transform = `translate(${sl}px, ${st}px)`;
       drawRef.current();
       positionRef.current(sl, st, vw, vh);
-      const cStart = Math.max(0, Math.floor(sl / COL_W) - COL_OVERSCAN);
-      const cEnd = Math.min(nCols, Math.ceil((sl + vw) / COL_W) + COL_OVERSCAN);
+      const cStart = Math.max(0, Math.floor(sl / colW) - COL_OVERSCAN);
+      const cEnd = Math.min(nCols, Math.ceil((sl + vw) / colW) + COL_OVERSCAN);
       const rStart = Math.max(0, Math.floor(st / ROW_H) - ROW_OVERSCAN);
       const rEnd = Math.min(nRows, Math.ceil((st + vh) / ROW_H) + ROW_OVERSCAN);
       setColWindow((p) => (p.start === cStart && p.end === cEnd ? p : { start: cStart, end: cEnd }));
@@ -512,7 +587,8 @@ export default function CollatedMatrix({
       el.scrollLeft,
       el.scrollTop,
       nRows,
-      nCols
+      nCols,
+      colW
     );
     setSelected((prev) =>
       hit && prev && prev.row === hit.row && prev.col === hit.col ? null : hit
@@ -528,7 +604,9 @@ export default function CollatedMatrix({
   const selGeneName = sel ? sel.gene.humanSymbol ?? `#${sel.gene.centralGeneId}` : "";
   const selValueText = sel
     ? selCell
-      ? fmtValue(sel.col.metric, selCell.value)
+      ? summary
+        ? summaryValueText(sel.col, selCell)
+        : fmtValue(sel.col.metric, selCell.value)
       : "No data"
     : "";
 
@@ -541,6 +619,10 @@ export default function CollatedMatrix({
         display: "grid",
         gridTemplateColumns: `${LABEL_W}px 1fr`,
         gridTemplateRows: `${HEADER_H}px 1fr`,
+        // A handful of wide summary columns doesn't fill a 94vw page — cap the
+        // panel at its content so it doesn't trail off into empty row stripes.
+        // (+16 leaves room for the body's vertical scrollbar.)
+        maxWidth: summary ? LABEL_W + nCols * colW + 16 : undefined,
         border: "1px solid #e5e7eb",
         borderRadius: 12,
         overflow: "hidden",
@@ -603,7 +685,7 @@ export default function CollatedMatrix({
                 position: "absolute",
                 top: 0,
                 left: 0,
-                width: nCols * COL_W,
+                width: nCols * colW,
                 height: BAND_H,
                 willChange: "transform",
               }}
@@ -618,9 +700,9 @@ export default function CollatedMatrix({
                     title={g.tooltip ?? undefined}
                     style={{
                       position: "absolute",
-                      left: g.startCol * COL_W,
+                      left: g.startCol * colW,
                       top: 0,
-                      width: g.span * COL_W,
+                      width: g.span * colW,
                       height: BAND_H,
                       background: "#f3f4f6",
                       borderLeft: "1px solid #e5e7eb",
@@ -684,7 +766,7 @@ export default function CollatedMatrix({
               position: "absolute",
               top: 0,
               left: 0,
-              width: nCols * COL_W,
+              width: nCols * colW,
               height: stripContentH,
               willChange: "transform",
             }}
@@ -692,21 +774,27 @@ export default function CollatedMatrix({
             {columns.slice(colWindow.start, colWindow.end).map((c, idx) => {
               const j = colWindow.start + idx;
               const modality = sectionLabel.get(c.section) ?? c.section;
-              const datasetText = bandsVisible ? null : `${modality} · ${c.sourceLabel}`;
+              // In summary mode the label already *is* the dataset, so folding
+              // the dataset in again would read "Zheng 2024 · Perturb-seq · Zheng 2024".
+              const datasetText =
+                bandsVisible || summary ? null : `${modality} · ${c.sourceLabel}`;
               return (
                 <div
                   key={c.key}
                   title={
-                    (bandsVisible ? "" : `${modality} · ${c.sourceLabel} — `) +
-                    (c.columnIsGene
-                      ? `${c.label} (significant in ${c.nSigGroups} perturbations)`
-                      : c.label)
+                    summary
+                      ? `${modality} — ${c.sourceMediumLabel ?? c.label} ` +
+                        `(${c.nSigGroups.toLocaleString()} readouts)`
+                      : (bandsVisible ? "" : `${modality} · ${c.sourceLabel} — `) +
+                        (c.columnIsGene
+                          ? `${c.label} (significant in ${c.nSigGroups} perturbations)`
+                          : c.label)
                   }
                   style={{
                     position: "absolute",
-                    left: j * COL_W,
+                    left: j * colW,
                     top: 0,
-                    width: COL_W,
+                    width: colW,
                     height: stripContentH,
                     overflow: "hidden",
                     display: "flex",
@@ -716,7 +804,12 @@ export default function CollatedMatrix({
                     boxSizing: "border-box",
                   }}
                 >
-                  <ColumnLabel column={c} datasetText={datasetText} />
+                  <ColumnLabel
+                    column={c}
+                    datasetText={datasetText}
+                    linkToDataset={summary}
+                    horizontal={summary}
+                  />
                 </div>
               );
             })}
@@ -808,7 +901,7 @@ export default function CollatedMatrix({
           background: "#ffffff",
         }}
       >
-        <div style={{ width: nCols * COL_W, height: nRows * ROW_H }} />
+        <div style={{ width: nCols * colW, height: nRows * ROW_H }} />
         <canvas
           ref={canvasRef}
           onClick={onCanvasClick}
@@ -873,11 +966,13 @@ export default function CollatedMatrix({
                 sel.col.label
               )}{" "}
               <span style={{ color: "#9ca3af" }}>
-                ({sel.col.columnIsGene ? "measured" : "phenotype"})
+                ({summary ? "dataset" : sel.col.columnIsGene ? "measured" : "phenotype"})
               </span>
             </div>
             <div style={{ color: "#6b7280", fontSize: 11, marginTop: 1 }}>
-              {sel.col.sourceLabel}
+              {/* In summary mode the line above already carries the author-year,
+                  so show the fuller dataset identity instead of repeating it. */}
+              {(summary ? sel.col.sourceMediumLabel : null) ?? sel.col.sourceLabel}
             </div>
             <div style={{ marginTop: 5, fontWeight: 500 }}>{selValueText}</div>
           </>
@@ -888,7 +983,11 @@ export default function CollatedMatrix({
       <div aria-live="polite" style={VISUALLY_HIDDEN}>
         {sel
           ? `${selGeneName} perturbed by ${sel.col.label}${
-              sel.col.columnIsGene ? " measured" : " phenotype"
+              summary
+                ? " dataset"
+                : sel.col.columnIsGene
+                  ? " measured"
+                  : " phenotype"
             }, ${sel.col.sourceLabel}: ${selValueText}`
           : ""}
       </div>

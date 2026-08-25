@@ -9,9 +9,12 @@ import {
   scaleFor,
 } from "@/lib/matrix-color-scales";
 import { orderColumns, orderRows } from "@/lib/matrix-clustering";
-import type { CollatedMatrixResponse } from "@/lib/collated-matrix-types";
+import type {
+  CollatedMatrixResponse,
+  MatrixMode,
+} from "@/lib/collated-matrix-types";
 
-const COLS_PER_DATASET_OPTIONS = [25, 50, 100, 200];
+const COLS_PER_DATASET_OPTIONS = [5, 25, 50, 100, 200];
 
 function ToggleButton({
   active,
@@ -182,6 +185,25 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             aren&rsquo;t filtered this way &mdash; every distinct phenotype is shown.
           </dd>
 
+          <dt style={METHODS_TERM}>The Summary view</dt>
+          <dd style={METHODS_DEF}>
+            <em>Summary</em>{" "}collapses each dataset to a single column, whose
+            cell counts <strong>how many of that dataset&rsquo;s readouts came
+            back significant</strong>{" "}for the perturbed gene. That count is
+            taken over <em>every</em>{" "}readout the dataset measured &mdash; not
+            just the top columns shown above, and not subject to the
+            {" "}{m.minSigGroupsFloor}-perturbation convergence bar &mdash; so a
+            readout that responds to only one gene still counts. It is therefore
+            not the same thing as asking for one column per dataset above. The
+            color is on a <strong>log scale</strong>, because the counts run from
+            a handful of behavioral parameters to thousands of differentially
+            expressed genes. Click a cell for the exact counts and the
+            dataset&rsquo;s strongest single result. We show a count rather than a
+            percentage because datasets differ in whether they store their
+            non-significant readouts at all, which would make the denominators
+            mean different things.
+          </dd>
+
           <dt style={METHODS_TERM}>Clustering rows and columns</dt>
           <dd style={{ ...METHODS_DEF, marginBottom: 0 }}>
             By default rows are alphabetical and columns are grouped by dataset. The{" "}
@@ -189,11 +211,16 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             sit together, computed in your browser over the currently visible
             datasets and columns. Cells at their metric&rsquo;s{" "}
             <strong>non-significance clamp</strong>{" "}(p or FDR &ge; 0.1, in either
-            direction for signed effects) are set aside first and treated like
+            direction for signed effects; in the Summary view, zero significant
+            readouts) are set aside first and treated like
             missing data: they are real measurements, but they all say the same
             thing &mdash; <em>nothing here</em> &mdash; and in a screen where most
             cells are non-hits they otherwise make unrelated rows look like
-            perfect matches and swamp the real signal. Effect ratios have no such
+            perfect matches and swamp the real signal. That bites hardest where
+            the widest-coverage dataset is also the emptiest: the perturb-FISH
+            screen summarizes 87 of the 90 genes and finds nothing in 63 of them,
+            so left in, a shared &ldquo;nothing&rdquo; there was the only thing
+            most pairs of genes had in common. Effect ratios have no such
             clamp and are always kept. Each column is then min&ndash;max
             normalized over its surviving values to a common 0&ndash;1 scale (so
             &minus;log10(p), signed effects, and ratios become comparable); the
@@ -211,6 +238,7 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
 }
 
 export default function MatrixPage() {
+  const [mode, setMode] = useState<MatrixMode>("expanded");
   const [colsPerDataset, setColsPerDataset] = useState(25);
   const [data, setData] = useState<CollatedMatrixResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -230,7 +258,7 @@ export default function MatrixPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/collated-matrix?colsPerDataset=${colsPerDataset}`)
+    fetch(`/api/collated-matrix?colsPerDataset=${colsPerDataset}&mode=${mode}`)
       .then((res) => {
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         return res.json() as Promise<CollatedMatrixResponse>;
@@ -250,7 +278,7 @@ export default function MatrixPage() {
     return () => {
       cancelled = true;
     };
-  }, [colsPerDataset]);
+  }, [colsPerDataset, mode]);
 
   const genes = data?.genes ?? [];
   const sections = data?.sections ?? [];
@@ -333,11 +361,23 @@ export default function MatrixPage() {
             }}
           >
             Every experimentally perturbed SSPsyGene target gene (rows) against
-            each experimental dataset (grouped columns). Each dataset fans out
-            into its raw measurements &mdash; one column per measured target gene
-            or phenotype &mdash; colored by its own metric (see the legends). Row
-            and column gene names link to their gene search; each dataset heading
-            links to its full table. The matrix is{" "}
+            each experimental dataset (columns).{" "}
+            {mode === "summary" ? (
+              <>
+                Each dataset is collapsed to a single column, colored by{" "}
+                <strong>how many of its readouts</strong>{" "}came back significant
+                for that gene &mdash; counted over every readout the dataset
+                measured. Click a cell for the exact counts.
+              </>
+            ) : (
+              <>
+                Each dataset fans out into its raw measurements &mdash; one
+                column per measured target gene or phenotype &mdash; colored by
+                its own metric (see the legends).
+              </>
+            )}{" "}
+            Row and column gene names link to their gene search; each dataset
+            heading links to its full table. The matrix is{" "}
             <strong>intentionally sparse</strong> &mdash; gaps are expected.
           </p>
 
@@ -392,12 +432,24 @@ export default function MatrixPage() {
             <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
               Columns per dataset:
             </span>
+            <ToggleButton
+              active={mode === "summary"}
+              /* An overview DB built before #234 has no summary tables; the
+                 control is disabled rather than serving an empty matrix. */
+              disabled={loading || (data != null && !data.meta.summaryAvailable)}
+              onClick={() => setMode("summary")}
+            >
+              Summary
+            </ToggleButton>
             {COLS_PER_DATASET_OPTIONS.map((k) => (
               <ToggleButton
                 key={k}
-                active={k === colsPerDataset}
+                active={mode === "expanded" && k === colsPerDataset}
                 disabled={loading}
-                onClick={() => setColsPerDataset(k)}
+                onClick={() => {
+                  setColsPerDataset(k);
+                  setMode("expanded");
+                }}
               >
                 {k}
               </ToggleButton>
@@ -430,14 +482,15 @@ export default function MatrixPage() {
             >
               <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 6 }}>
                 {orderedGenes.length.toLocaleString()} perturbed genes &times;{" "}
-                {orderedColumns.length.toLocaleString()} columns
+                {orderedColumns.length.toLocaleString()}{" "}
+                {mode === "summary" ? "datasets" : "columns"}
                 {hidden.size > 0 && (
                   <span style={{ color: "#9ca3af" }}>
                     {" "}
                     &mdash; {hidden.size} dataset{hidden.size === 1 ? "" : "s"} hidden
                   </span>
                 )}
-                {meta?.expandedColumnsTruncated && (
+                {mode === "expanded" && meta?.expandedColumnsTruncated && (
                   <span style={{ color: "#9ca3af" }}>
                     {" "}
                     &mdash; top {meta.colsPerDataset} per dataset shown
@@ -453,7 +506,8 @@ export default function MatrixPage() {
                 columns={orderedColumns}
                 genes={orderedGenes}
                 metricDomains={metricDomains}
-                bandsVisible={!clusterCols}
+                bandsVisible={mode === "summary" ? false : !clusterCols}
+                summary={mode === "summary"}
                 onToggleHide={toggleHide}
               />
             </div>

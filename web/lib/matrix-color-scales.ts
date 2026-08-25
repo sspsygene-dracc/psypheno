@@ -26,6 +26,12 @@ export interface ColorScale {
   /** Short caption under the legend bar. */
   note?: string;
   /**
+   * Endpoint formatter for the legend bar. Needed when the stored value isn't
+   * the quantity the reader cares about — `sig_readouts` stores log10(1 + n) but
+   * the bar has to be labeled in readouts. Defaults to printing the domain.
+   */
+  legendFormat?: (v: number) => string;
+  /**
    * Clustering noise floor: a cell whose distance from the scale's pivot is at
    * or below this carries no signal, and clustering treats it as missing rather
    * than as a value to agree on (see `isInformativeForClustering`). Omit for
@@ -65,6 +71,14 @@ const TEAL_BROWN: Array<[number, RGB]> = [
   [1.0, [140, 81, 10]],
 ];
 
+// Sequential greens — the breadth ramp, deliberately not one of the
+// significance ramps above (a readout count is not a p-value).
+const GREENS: Array<[number, RGB]> = [
+  [0.0, [247, 252, 245]],
+  [0.5, [116, 196, 118]],
+  [1.0, [0, 68, 27]],
+];
+
 export const COLOR_SCALES: Record<string, ColorScale> = {
   neglog_p: {
     label: "−log10(p)",
@@ -96,6 +110,32 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     stops: BLUE_RED,
     note: "blue = down, red = up in mutant",
     clusterNoiseFloor: 1, // |signed −log10(p)| ≤ 1 → p ≥ 0.1 in either direction
+  },
+  sig_readouts: {
+    // The summary view's own scale (#234): how many of a dataset's readouts came
+    // back significant for a perturbed gene. Stored as log10(1 + n) because the
+    // counts span 1 → ~3000 across datasets (a dense DE screen against a
+    // 24-parameter behavior panel), and a linear ramp would leave everything but
+    // the DE screens pinned at the bottom of the bar. Greens, so it reads apart
+    // from the p / FDR bars — it isn't a significance value.
+    label: "significant readouts",
+    kind: "sequential",
+    domain: [0, 3.5],
+    stops: GREENS,
+    note: "log scale; darker = more readouts affected",
+    legendFormat: (v) => {
+      const n = Math.round(Math.pow(10, v) - 1);
+      return n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
+    },
+    // A gene with zero significant readouts *was* assayed — the cell is real and
+    // renders as the palest green, not as a gap. But for clustering it is the
+    // same "nothing here" every other empty cell says, and the widest-coverage
+    // dataset is mostly empty: Binan 2025 summarizes 87 of the 90 genes and 63
+    // of those are zero. Left in, the only cell most row pairs share is a
+    // 0-vs-0 agreement, so unrelated genes look identical and the columns with
+    // actual signal (2-15 genes each) never get a say. Same reason `neglog_q`
+    // carries a floor.
+    clusterNoiseFloor: 0, // no significant readouts
   },
   activity_ratio: {
     label: "pERK ratio (mut/WT)",
@@ -224,6 +264,8 @@ export function legendEndpoints(
 ): [string, string] {
   const scale = scaleFor(metric);
   const [lo, hi] = domainOverride ?? scale.domain;
-  const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+  const fmt =
+    scale.legendFormat ??
+    ((v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1)));
   return [fmt(lo), fmt(hi)];
 }

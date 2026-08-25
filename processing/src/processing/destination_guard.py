@@ -418,6 +418,8 @@ def verify_destination(
                 ("overview_matrix_expansions", "source_tables", True),
                 ("overview_matrix_expanded_columns", "source_table", False),
                 ("overview_matrix_expanded_cells", "source_table", False),
+                ("overview_matrix_summary_columns", "source_table", False),
+                ("overview_matrix_summary_cells", "source_table", False),
             ],
             prod_allowed,
             all_known,
