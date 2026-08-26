@@ -64,6 +64,7 @@ def _list_data_tables(conn: sqlite3.Connection) -> list[sqlite3.Row]:
                   gene_columns, gene_species, display_columns, scalar_columns,
                   link_tables, links, categories, source, assay, condition,
                   field_labels, organism, organism_key,
+                  publication_title,
                   publication_first_author, publication_last_author,
                   publication_author_count, publication_authors, publication_year,
                   publication_journal, publication_doi, publication_pmid,
@@ -198,6 +199,8 @@ def _table_metadata_dict(table_row: sqlite3.Row) -> dict[str, object]:
         "effect_column": table_row["effect_column"],
     }
     publication: dict[str, object] = {}
+    if table_row["publication_title"]:
+        publication["title"] = table_row["publication_title"]
     if table_row["publication_first_author"]:
         publication["first_author"] = table_row["publication_first_author"]
     if table_row["publication_last_author"]:

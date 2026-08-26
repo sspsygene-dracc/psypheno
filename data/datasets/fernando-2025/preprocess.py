@@ -94,6 +94,7 @@ Usage:
 
 import re
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -124,10 +125,22 @@ SUPP3 = DIR / "supTabl3.xlsx"
 # sheet name -> (output table, extra columns to insert for that sheet)
 SHEET_SPECS: dict[str, tuple[str, dict[str, str]]] = {
     # Patient NRXN1+/- deletion vs. control, iGLUT + iGABA.
-    "iglut_ctrl_5del": ("patient_splicing.tsv", {"cell_type": "iGLUT", "genotype": "5'-Del"}),
-    "iglut_ctrl_3del": ("patient_splicing.tsv", {"cell_type": "iGLUT", "genotype": "3'-Del"}),
-    "igaba_ctrl_5del": ("patient_splicing.tsv", {"cell_type": "iGABA", "genotype": "5'-Del"}),
-    "igaba_ctrl_3del": ("patient_splicing.tsv", {"cell_type": "iGABA", "genotype": "3'-Del"}),
+    "iglut_ctrl_5del": (
+        "patient_splicing.tsv",
+        {"cell_type": "iGLUT", "genotype": "5'-Del"},
+    ),
+    "iglut_ctrl_3del": (
+        "patient_splicing.tsv",
+        {"cell_type": "iGLUT", "genotype": "3'-Del"},
+    ),
+    "igaba_ctrl_5del": (
+        "patient_splicing.tsv",
+        {"cell_type": "iGABA", "genotype": "5'-Del"},
+    ),
+    "igaba_ctrl_3del": (
+        "patient_splicing.tsv",
+        {"cell_type": "iGABA", "genotype": "3'-Del"},
+    ),
     # Isogenic manipulations: shRNA knockdown of wildtype or mutant (MT)
     # NRXN1 splice isoforms (recreates the LOF/GOF phenotype), plus ASO
     # and beta-estradiol treatment (rescues it), iGLUT + iGABA.
@@ -269,7 +282,7 @@ def _parse_supp2(tracker: Tracker) -> pd.DataFrame:
     tags whatever data rows follow with the most recently seen section
     title, until a blank row ends the block.
     """
-    records: list[dict] = []
+    records: list[dict[str, Any]] = []
     for sheet_name in SUPP2_SHEETS:
         raw = pd.read_excel(SUPP2, sheet_name=sheet_name, header=None)
         section: str | None = None
@@ -319,18 +332,16 @@ def _parse_supp2(tracker: Tracker) -> pd.DataFrame:
             "see module docstring)"
         ),
         rows_parsed=len(df),
-        unmatched_sections=sorted(
-            set(df["section"].tolist()) - set(SUPP2_SECTIONS)
-        ),
+        unmatched_sections=sorted(set(df["section"].tolist()) - set(SUPP2_SECTIONS)),
     )
 
     df = df[df["status"] == "Success"].drop(columns=["status"])
-    unknown = df.loc[~df["section"].isin(SUPP2_SECTIONS), "section"].unique()
+    unknown = df.loc[~df["section"].isin(SUPP2_SECTIONS), "section"].unique()  # type: ignore[arg-type]
     if len(unknown):
         raise ValueError(f"supTabl2: unrecognized section title(s): {unknown!r}")
 
-    df["comparison"] = df["section"].map(lambda s: SUPP2_SECTIONS[s][0])
-    df["cell_type"] = df["section"].map(lambda s: SUPP2_SECTIONS[s][1])
+    df["comparison"] = df["section"].map(lambda s: SUPP2_SECTIONS[s][0])  # type: ignore[arg-type]
+    df["cell_type"] = df["section"].map(lambda s: SUPP2_SECTIONS[s][1])  # type: ignore[arg-type]
     df["perturbed_gene"] = "NRXN1"
     df = df.drop(columns=["section", "sheet"])
     df = df[
@@ -348,7 +359,7 @@ def _parse_supp2(tracker: Tracker) -> pd.DataFrame:
         ]
     ]
     df["df"] = df["df"].astype("Int64")
-    return df.reset_index(drop=True)
+    return df.reset_index(drop=True)  # type: ignore[return-value]
 
 
 def main() -> None:
@@ -363,7 +374,11 @@ def main() -> None:
     for out_name, sheet_names in by_output.items():
         frames = [
             _clean_sheet(
-                tracker, out_name, sheet_name, SHEET_SPECS[sheet_name][1], ensembl_mapper
+                tracker,
+                out_name,
+                sheet_name,
+                SHEET_SPECS[sheet_name][1],
+                ensembl_mapper,
             )
             for sheet_name in sheet_names
         ]
@@ -392,7 +407,9 @@ def main() -> None:
         sheets=SUPP2_SHEETS,
         rows=len(nrxn_locus),
     )
-    print(f"Wrote {len(nrxn_locus)} rows to {out_path.name} (sheets: {', '.join(SUPP2_SHEETS)})")
+    print(
+        f"Wrote {len(nrxn_locus)} rows to {out_path.name} (sheets: {', '.join(SUPP2_SHEETS)})"
+    )
 
 
 if __name__ == "__main__":

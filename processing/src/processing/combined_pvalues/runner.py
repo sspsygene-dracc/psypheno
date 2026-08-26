@@ -135,6 +135,14 @@ class MetaAnalysisRun:
         ).fetchall()
         return any(r[1] == column for r in info)
 
+    def _has_table(self, name: str) -> bool:
+        row = self.conn.execute(
+            f"SELECT 1 FROM {self.src_schema}.sqlite_master "
+            f"WHERE type='table' AND name=?",
+            (name,),
+        ).fetchone()
+        return row is not None
+
     def _load_source_tables(self) -> list[SourceTableRow]:
         # Per-table opt-out (#187): exclude tables flagged
         # `meta_analysis: false`. Guarded so DBs/fixtures without the column
@@ -142,6 +150,26 @@ class MetaAnalysisRun:
         exclude_clause = ""
         if self._has_data_tables_column("include_in_meta_analysis"):
             exclude_clause = " AND COALESCE(include_in_meta_analysis, 1) = 1"
+        # Prod-labelled inputs only (#225), whichever main DB we are reading.
+        #
+        # The meta DB records contributing table names in
+        # combined_pvalue_groups.source_table_names, and its combined
+        # statistics are derived from those tables' p-values. Run against dev's
+        # superset it would leak int-only names and int-derived numbers into
+        # every copy of itself. Restricting to prod-labelled inputs makes the
+        # output destination-independent by construction, which is what lets us
+        # compute it once on dev and copy the file verbatim to prod and int
+        # rather than re-running the R jobs per site (r_cache keys on the
+        # p-value bytes, so a per-site rebuild would miss every entry).
+        #
+        # Guarded on the table existing so DBs predating #225 and the
+        # hand-built test fixtures still load every p-value table.
+        if self._has_table("dataset_destinations"):
+            exclude_clause += (
+                f" AND table_name IN (SELECT table_name FROM "
+                f"{self.src_schema}.dataset_destinations "
+                f"WHERE destination = 'prod')"
+            )
         rows = self.conn.execute(
             "SELECT table_name, pvalue_column, link_tables, assay, condition, "
             f"organism_key, effect_column FROM {self.src_schema}.data_tables "

@@ -3,5 +3,5 @@ tables:
     raw_file: perturbfish-astro.csv
     pipeline_used: false
     expected_drops: []
-    raw_rows: 361
-    db_rows: 361
+    raw_rows: 35733
+    db_rows: 35733

@@ -22,21 +22,22 @@
 # bootstrap p-value, NOT on the OR (autism_pvalue_ci_lower / _upper).
 
 publication:
+  title: "Phenotypic effects of genetic variants associated with autism"
   authors:
-    - Rolland, Thomas
-    - Cliquet, Freddy
-    - Anney, Richard J. L.
-    - Moreau, Clara
-    - Traut, Nicolas
-    - Mathieu, Alexandre
-    - Huguet, Guillaume
-    - Duan, Jinjie
-    - Warrier, Varun
-    - Portalier, Swan
-    - Dry, Louise
-    - Leblond, Claire S.
-    - Proepper, Christian
-    - Bourgeron, Thomas
+    - Thomas Rolland
+    - Freddy Cliquet
+    - Richard J. L. Anney
+    - Clara Moreau
+    - Nicolas Traut
+    - Alexandre Mathieu
+    - Guillaume Huguet
+    - Jinjie Duan
+    - Varun Warrier
+    - Swan Portalier
+    - Louise Dry
+    - Claire S. Leblond
+    - Christian Proepper
+    - Thomas Bourgeron
   year: 2023
   journal: "Nature Medicine"
   doi: "10.1038/s41591-023-02408-2"
@@ -49,6 +50,13 @@ maintainers:
     date: "2026-05-07"
     comment: "Initial table creation (issue #11). Source TSV manually downloaded from genetrek.pasteur.fr. Categorical codes decoded against Fu et al. 2022 / Wang et al. 2022 papers; promoted from DRAFT."
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: genetrek_pasteur
     shortLabel: genetrek_pasteur

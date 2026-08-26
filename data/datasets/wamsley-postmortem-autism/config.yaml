@@ -1,17 +1,18 @@
 publication:
+  title: "Molecular cascades and cell type-specific signatures in ASD revealed by single-cell genomics"
   authors:
-    - Wamsley, Brie
-    - Bicks, Lucy
-    - Cheng, Yuyan
-    - Kawaguchi, Riki
-    - Quintero, Daniela
-    - Margolis, Michael
-    - Grundman, Jennifer
-    - Liu, Jianyin
-    - Xiao, Shaohua
-    - Hawken, Natalie
-    - Mazariegos, Sandra
-    - Geschwind, Daniel H.
+    - Brie Wamsley
+    - Lucy Bicks
+    - Yuyan Cheng
+    - Riki Kawaguchi
+    - Daniela Quintero
+    - Michael Margolis
+    - Jennifer Grundman
+    - Jianyin Liu
+    - Shaohua Xiao
+    - Natalie Hawken
+    - Sandra Mazariegos
+    - Daniel H. Geschwind
   year: 2024
   journal: "Science"
   doi: "10.1126/science.adh2602"
@@ -24,6 +25,13 @@ maintainers:
     date: "2026-05-07"
     comment: "Initial table creation (issue #55). Source xlsx bundle manually downloaded from Science. Per-gene per-cell-type ASD-vs-CTL DEG list NOT in this snapshot — lives on PsychENCODE Synapse syn51032009; see makeDoc.txt and the issue comment."
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: wamsley_2024_cluster_markers
     shortLabel: wamsley_2024_cluster_markers

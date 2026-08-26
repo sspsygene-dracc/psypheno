@@ -1,0 +1,25 @@
+tables:
+  zhou_2022_gene_meta:
+    raw_file: zhou-2022-supplementary-tables.xlsx
+    pipeline_used: true
+    cleaned_file: results.tsv
+    cleaned_rows: 391
+    expected_drops:
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        passed_through: 391
+    db_rows: 391
+  zhou_2022_phenotypes:
+    raw_file: zhou-2022-supplementary-tables.xlsx
+    pipeline_used: true
+    cleaned_file: results_phenotypes.tsv
+    cleaned_rows: 238
+    expected_drops:
+    - step: clean_gene_column
+      column: gene
+      dropped_rows: 0
+      counts:
+        passed_through: 238
+    db_rows: 238

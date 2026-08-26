@@ -1,27 +1,28 @@
 publication:
+  title: "Functional implications of polygenic risk for schizophrenia in human neurons"
   authors:
-    - Michael Deans, PJ
-    - Retallick-Townsley, Kayla G.
-    - Li, Aiqun
-    - Seah, Carina
-    - Johnson, Jessica
-    - Garcia Gonzalez, Judit
-    - Cao, Evan
-    - Schrode, Nadine
-    - Yu, Alex
-    - Cartwright, Sam
-    - Voloudakis, Georgios
-    - Zhang, Wen
-    - Wang, Minghui
-    - Fullard, John F.
-    - Girdhar, Kiran
-    - Stahl, Eli
-    - Akbarian, Schahram
-    - Zhang, Bin
-    - Roussos, Panos
-    - OReilly, Paul
-    - Huckins, Laura M.
-    - Brennand, Kristen J.
+    - PJ Michael Deans
+    - Kayla G. Retallick-Townsley
+    - Aiqun Li
+    - Carina Seah
+    - Jessica Johnson
+    - Judit Garcia Gonzalez
+    - Evan Cao
+    - Nadine Schrode
+    - Alex Yu
+    - Sam Cartwright
+    - Georgios Voloudakis
+    - Wen Zhang
+    - Minghui Wang
+    - John F. Fullard
+    - Kiran Girdhar
+    - Eli Stahl
+    - Schahram Akbarian
+    - Bin Zhang
+    - Panos Roussos
+    - Paul OReilly
+    - Laura M. Huckins
+    - Kristen J. Brennand
   year: 2026
   journal: Nature Communications
   doi: 10.1038/s41467-025-67959-z
@@ -36,9 +37,15 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2026-05-05"
     comment: Standardized table titles, resolved GENCODE clone IDs and AC-shaped accessions to HGNC symbols / ENSGs at preprocess time, added column tooltips, and migrated preprocessing to the Pipeline framework.
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: SCZ_Risk_Arrayed_RNAseq_supp_1
-    overview_matrix: true  # #212 overview matrix source
     changelog:
       - date: "2026-05-05"
         message: "Standardized title and added column tooltips. Resolved GENCODE clone IDs and AC-shaped accessions to HGNC symbols / ENSGs at preprocess time."
@@ -107,7 +114,6 @@ tables:
       adj_p_val: "Benjamini–Hochberg FDR-adjusted p-value"
       b: "Log-odds that the gene is differentially expressed"
   - table: SCZ_Risk_Pooled_ECCITEseq_supp_2
-    overview_matrix: true  # #212 overview matrix source
     changelog:
       - date: "2026-05-05"
         message: "Standardized title (dropped /shRNA from pooled label), added column tooltips. Resolved GENCODE clone IDs and AC-shaped accessions to HGNC symbols / ENSGs at preprocess time."

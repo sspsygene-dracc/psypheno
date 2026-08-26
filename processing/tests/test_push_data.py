@@ -40,6 +40,9 @@ def repo_with_dataset(tmp_path: Path) -> Path:
     ds.mkdir(parents=True)
     (repo / ".gitignore").write_text("*.csv\n*.tsv\n")
     (ds / "config.yaml").write_text(
+        # deployTo is mandatory since #225, and push-data refuses an instance
+        # it doesn't name — so the fixture declares dev and int but not prod.
+        "deployTo:\n  - dev\n  - int\n"
         "tables:\n  - table: foo_t\n    in_path: foo_cleaned.tsv\n"
     )
     (ds / "preprocess.py").write_text("# noop\n")
@@ -118,6 +121,49 @@ def test_push_data_unknown_dataset_errors(
             dry_run=True,
         )
     assert "does-not-exist" in str(exc.value)
+
+
+def test_push_refuses_an_instance_not_in_deploy_to(
+    repo_with_dataset: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Shipping a dataset's *inputs* to an instance it isn't cleared for is a
+    disclosure even if that instance's load-db would never read them (#225)."""
+    monkeypatch.setenv("SSPSYGENE_DATA_DIR", str(repo_with_dataset / "data"))
+    monkeypatch.delenv("SSPSYGENE_CONFIG_JSON", raising=False)
+    with pytest.raises(Exception) as exc:
+        run_push_data(
+            datasets=("foo",), instance="prod", host="hgwdev", dry_run=True
+        )
+    message = str(exc.value)
+    assert "does not include 'prod'" in message
+    # The message tells the operator exactly how to fix it.
+    assert "data/datasets/foo/config.yaml" in message
+
+
+def test_push_allows_a_declared_instance(
+    repo_with_dataset: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The fixture declares int, so an int push gets past the guard (dry-run,
+    so nothing leaves the machine)."""
+    monkeypatch.setenv("SSPSYGENE_DATA_DIR", str(repo_with_dataset / "data"))
+    monkeypatch.delenv("SSPSYGENE_CONFIG_JSON", raising=False)
+    run_push_data(datasets=("foo",), instance="int", host="hgwdev", dry_run=True)
+
+
+def test_push_refuses_a_dataset_with_no_deploy_to(
+    repo_with_dataset: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ds = repo_with_dataset / "data" / "datasets" / "foo"
+    ds.joinpath("config.yaml").write_text(
+        "tables:\n  - table: foo_t\n    in_path: foo_cleaned.tsv\n"
+    )
+    monkeypatch.setenv("SSPSYGENE_DATA_DIR", str(repo_with_dataset / "data"))
+    monkeypatch.delenv("SSPSYGENE_CONFIG_JSON", raising=False)
+    with pytest.raises(Exception) as exc:
+        run_push_data(
+            datasets=("foo",), instance="dev", host="hgwdev", dry_run=True
+        )
+    assert "no readable `deployTo`" in str(exc.value)
 
 
 def test_cli_push_data_requires_arg() -> None:

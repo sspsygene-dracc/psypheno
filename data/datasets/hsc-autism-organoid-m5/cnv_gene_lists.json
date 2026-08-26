@@ -5,6 +5,8 @@
     "coordinates_hg38": "chr15:30,900,686-32,153,204",
     "coordinates_hg19": "chr15:31,192,889-32,445,405",
     "genes": ["FAN1", "MTMR10", "TRPM1", "KLF13", "OTUD7A", "CHRNA7"],
+    "driver": "CHRNA7",
+    "driver_note": "CHRNA7 is the most consistently implicated gene in the 15q13.3 neuropsychiatric phenotype; the smallest atypical deletions narrow to CHRNA7 (and OTUD7A). Not a definitive sole driver. Off the SSPsyGene panel, so it does not become an overview-matrix row.",
     "sources": [
       "ClinGen ISCA-37411",
       "OMIM #612001",
@@ -24,6 +26,8 @@
       "TBX6", "YPEL3", "GDPD3", "MAPK3", "CORO1A"
     ],
     "notes": "27 core protein-coding genes in unique sequence. Multi-copy genes in flanking segmental duplications (BOLA2/2B, SLX1A/1B, SULT1A3/4, NPIPB11/12/13) are excluded since they are variably affected.",
+    "driver": "KCTD13",
+    "driver_note": "CONTESTED. KCTD13 is the most-cited candidate driver (Golzio 2012 zebrafish head-size dosage), but replication has been mixed and TAOK2, MAPK3, MVP and SEZ6L2 all have supporting evidence; the current consensus leans towards an oligogenic effect with no single driver. Nominated here only so the genotype has one representative row instead of 27. Off the SSPsyGene panel, so it does not become an overview-matrix row.",
     "sources": [
       "ClinGen ISCA-37400",
       "OMIM #611913",
@@ -34,7 +38,9 @@
   "16p11dup": {
     "region": "16p11.2 proximal (BP4-BP5)",
     "note": "Same region as 16p11del, duplicated instead of deleted",
-    "genes": "same as 16p11del"
+    "genes": "same as 16p11del",
+    "driver": "KCTD13",
+    "driver_note": "Same interval, same contested nomination as 16p11del. Note the two arms share a driver and therefore collapse into a single overview-matrix perturbed group."
   },
   "22q11del": {
     "region": "22q11.2 (LCR22A-LCR22D)",
@@ -51,6 +57,8 @@
       "P2RX6", "SLC7A4", "LRRC74B", "HIC2", "ZNF74"
     ],
     "notes": "~44 well-established protein-coding genes in the typical ~2.5Mb (LCR22A-D) deletion. ~85-90% of patients carry this size.",
+    "driver": "TBX1",
+    "driver_note": "CONTESTED. There is no accepted single driver for the neuropsychiatric phenotype. TBX1 is the best-established driver for the craniofacial/cardiac features, while DGCR8, COMT, PRODH, ZDHHC8 and SEPTIN5 are the recurring candidates on the brain side. Nominated here only so the genotype has one representative row instead of 44. Off the SSPsyGene panel, so it does not become an overview-matrix row.",
     "sources": [
       "ClinGen ISCA-37446",
       "GeneReviews NBK1523",
@@ -71,6 +79,8 @@
       "ARSA", "SHANK3", "ACR", "RABL2B"
     ],
     "notes": "~36 protein-coding genes in 22q13.33 sub-band. Actual deletion size varies per patient; this uses the full sub-band as a practical definition.",
+    "driver": "SHANK3",
+    "driver_note": "Uncontested: SHANK3 haploinsufficiency is the established cause of the Phelan-McDermid neurobehavioural phenotype. The only CNV interval here that contains an SSPsyGene panel gene, so this is the one CNV that yields an overview-matrix row — merged with the SHANK3 point-mutation genotype, which perturbs the same gene.",
     "sources": [
       "GeneReviews NBK1198",
       "OMIM #606232",
@@ -78,8 +88,12 @@
       "Tabet et al. 2017 (PMC5838980)"
     ]
   },
-  "PCDH19": { "genes": ["PCDH19"] },
-  "SHANK3": { "genes": ["SHANK3"] },
-  "TS": { "genes": ["CACNA1C"] },
-  "IdiopathicASD": { "genes": [] }
+  "PCDH19": { "genes": ["PCDH19"], "driver": "PCDH19" },
+  "SHANK3": { "genes": ["SHANK3"], "driver": "SHANK3" },
+  "TS": { "genes": ["CACNA1C"], "driver": "CACNA1C" },
+  "IdiopathicASD": {
+    "genes": [],
+    "driver": null,
+    "driver_note": "Idiopathic autism lines carry no engineered perturbation, so there is no perturbed gene. Rows stay searchable by target gene."
+  }
 }

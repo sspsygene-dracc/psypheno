@@ -1,4 +1,5 @@
 publication:
+  title: "Massively parallel in\u00a0vivo Perturb-seq reveals cell-type-specific transcriptional networks in cortical development"
   authors:
     - Xinhe Zheng
     - Boli Wu
@@ -38,9 +39,17 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2026-05-05"
     comment: Standardized table titles, added column header tooltips, migrated off drop_values to the new patient_list filter, and migrated preprocessing to the Pipeline framework.
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: mouse_perturb_deg
     overview_matrix: true  # #212 overview matrix source
+    overview_matrix_expand: true  # #213 perturb-seq target-gene sub-columns
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
@@ -156,3 +165,7 @@ tables:
     pvalue_column: P.Value
     fdr_column: FDR
     effect_column: limma_coef
+    # Overview matrix (#213): one column per cell subcluster (long format),
+    # colored by -log10(p) (default metric).
+    overview_matrix_expand: true
+    overview_matrix_phenotype_column: subcluster

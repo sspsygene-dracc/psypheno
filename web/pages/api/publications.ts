@@ -1,8 +1,10 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getDb } from "@/lib/db";
+import { columnExists, getDb } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 import type { Dataset } from "@/components/DatasetItem";
 import { parseDatasetLinks, type DatasetLink } from "@/lib/links";
+import { loadDestinations } from "@/lib/destinations";
+import { isRestricted } from "@/lib/destination-labels";
 
 export type PublicationTableEntry = {
   tableName: string;
@@ -15,6 +17,8 @@ export type PublicationTableEntry = {
 export type PublicationEntry = {
   doi: string;
   pmid: string | null;
+  /** Paper title from the dataset config; null for papers predating the field. */
+  title: string | null;
   year: number | null;
   journal: string | null;
   firstAuthor: string | null;
@@ -25,6 +29,14 @@ export type PublicationEntry = {
   assays: string[];
   sspsygeneGrants: string[];
   tables: PublicationTableEntry[];
+  /**
+   * True when NOT ONE of this publication's tables is cleared for prod (#225),
+   * i.e. the paper is entirely absent from the public site. Deliberately
+   * all-not-just-any: a paper with a mix is publicly visible, so flagging the
+   * whole paper would overstate it — the per-table badges on the expanded
+   * datasets carry that case.
+   */
+  restricted: boolean;
 };
 
 export default async function handler(
@@ -33,6 +45,15 @@ export default async function handler(
 ) {
   try {
     const db = getDb();
+    const destinations = loadDestinations(db);
+
+    // `publication_title` post-dates some deployed DBs. Naming it unconditionally
+    // would fail at prepare time and 500 the whole route — not just blank the
+    // title — on any site whose DB predates the loader change, i.e. between a
+    // code deploy and the next load-db.
+    const titleColumn = columnExists(db, "data_tables", "publication_title")
+      ? "publication_title"
+      : "NULL AS publication_title";
 
     const rows = db
       .prepare(
@@ -40,6 +61,7 @@ export default async function handler(
            table_name, short_label, medium_label, long_label, description,
            gene_columns, gene_species, display_columns, scalar_columns,
            link_tables, links, categories, source, assay, organism,
+           ${titleColumn},
            publication_doi, publication_pmid, publication_year, publication_journal,
            publication_first_author, publication_last_author, publication_author_count,
            publication_authors, publication_sspsygene_grants
@@ -63,6 +85,7 @@ export default async function handler(
       source: string | null;
       assay: string | null;
       organism: string | null;
+      publication_title: string | null;
       publication_doi: string;
       publication_pmid: string | null;
       publication_year: number | null;
@@ -95,6 +118,7 @@ export default async function handler(
         {
           doi: r.publication_doi,
           pmid: r.publication_pmid,
+          title: r.publication_title,
           year: r.publication_year,
           journal: r.publication_journal,
           firstAuthor: r.publication_first_author,
@@ -105,6 +129,8 @@ export default async function handler(
           assays: [],
           sspsygeneGrants: parseStringArray(r.publication_sspsygene_grants),
           tables: [],
+          // Narrowed to false as soon as any table turns out to be prod-bound.
+          restricted: true,
         };
       if (!existing) byDoi.set(r.publication_doi, entry);
       // Merge per-table assays into the publication-level set.
@@ -116,7 +142,10 @@ export default async function handler(
         if (!entry.assays.includes(a)) entry.assays.push(a);
       }
       const tableLinks = parseDatasetLinks(r.links);
+      const tableDestinations = destinations.get(r.table_name) ?? [];
+      if (!isRestricted(tableDestinations)) entry.restricted = false;
       const dataset: Dataset = {
+        destinations: tableDestinations,
         table_name: r.table_name,
         short_label: r.short_label,
         medium_label: r.medium_label,

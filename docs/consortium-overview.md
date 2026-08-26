@@ -115,18 +115,26 @@ first-class state**:
 
 ## Current coverage (as of mid-2026)
 
-Most of what exists today is on the RNA / perturbation side:
+**The overview matrix is SSPsyGene-only.** A table lands in it only when its
+paper acknowledges an SSPsyGene consortium grant (the `sspsygene_grants` field —
+Brian Lee's grant-number table is the source of truth). That is exactly the set
+carrying `overview_matrix: true`. Most of what exists today is on the RNA /
+perturbation side:
 
-- **~199 perturbed genes** across **7 perturbation DEG / screen tables**
-  (source datasets include `mouse-perturb-4tf`, `perturb-fish`,
-  `ding-cortical-tf-crispri`, `hsc-autism-organoid-m5`, `polygenic-risk-20`, plus
-  non-meta perturbation datasets `fernando-2025`, `fleck-organoid-grn`,
-  `dynamic_convergence`).
-- **Behavioral, morphology, and electrophysiology data are not in yet.**
-  Behavioral data may arrive soon; in the meantime we may add a few
-  non-SSPsyGene publications purely to exercise the UI. The overview table is
-  built data-driven, so rows and filled cells appear automatically as those
-  datasets land.
+- **Five grant-verified SSPsyGene datasets** are the matrix's source tables:
+  `mouse-perturb-4tf` (R01HG012819), `perturb-fish` (R01MH128366),
+  `hsc-autism-organoid-m5` (RM1MH132651), `dynamic_convergence` (RM1MH132648),
+  and `fernando-2025` (RM1MH132648). `fleck-organoid-grn` is consortium-adjacent
+  but excluded on principle (GRN inference, not a perturbation experiment).
+- **Non-SSPsyGene datasets are not in the matrix.** Earlier we briefly carried a
+  few non-consortium publications (`ding-cortical-tf-crispri`,
+  `polygenic-risk-20`, `zebra-autism`) purely to exercise the UI; they were
+  removed once their papers were checked against the grant table and found to
+  carry no SSPsyGene grant. They remain browsable as normal datasets — they just
+  don't feed the cross-modality matrix.
+- **Behavioral, morphology, and electrophysiology data are not in yet.** The
+  overview table is built data-driven, so rows and filled cells appear
+  automatically as grant-verified consortium datasets in those modalities land.
 
 ## Paper context
 

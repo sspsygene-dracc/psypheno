@@ -74,18 +74,34 @@ class CentralGeneTableEntry:
     used_human_names: set[str] = field(default_factory=set)
     used_mouse_names: set[str] = field(default_factory=set)
     used: bool = False
+    # (table_name, species, matched_name) triples, one per way this gene was
+    # reached (#225). The three sets above are flattened — they record *which*
+    # tables used the gene and *which* names matched, but not the pairing. The
+    # destination subsetter needs exactly that pairing: given the subset of
+    # tables allowed on prod, it must recompute dataset_names / num_datasets
+    # and re-intersect the synonym columns without re-running gene resolution.
+    usages: set[tuple[str, str, str]] = field(default_factory=set)
 
     def add_used_name(
         self, species: Literal["human", "mouse"], name: str, dataset_name: str
     ) -> None:
+        """Record that *name* (a `species` identifier) matched this gene in
+        `dataset_name`.
+
+        `dataset_name` is really the primary *table* name, not the dataset
+        directory — that predates #225 and is why central_gene.dataset_names
+        holds table names. The DB-level dataset↔table mapping lives in
+        `data_tables.dataset` / `dataset_destinations`.
+        """
+        if species not in ("human", "mouse"):
+            raise ValueError(f"Invalid species: {species}")
         self.used = True
         self.dataset_names.add(dataset_name)
         if species == "human":
             self.used_human_names.add(name)
-        elif species == "mouse":
-            self.used_mouse_names.add(name)
         else:
-            raise ValueError(f"Invalid species: {species}")
+            self.used_mouse_names.add(name)
+        self.usages.add((dataset_name, species, name))
 
 
 @dataclass
@@ -155,12 +171,15 @@ class CentralGeneTable:
             mouse_mgi_accession_ids=set(),
             human_synonyms=set(),
             mouse_synonyms=set(),
-            dataset_names={dataset},
-            used_mouse_names={symbol},
-            used=True,
             manually_added=True,
             kind=kind,
         )
+        # Route through add_used_name rather than seeding dataset_names /
+        # used_mouse_names / used inline, so this stub path also records a
+        # central_gene_usage triple (#225). Stub entries are always freshly
+        # allocated, so their sole usage is this one — which is what makes them
+        # drop cleanly when their table isn't a subset member.
+        entry.add_used_name(species="mouse", name=symbol, dataset_name=dataset)
         self.entries.append(entry)
         return entry
 
@@ -178,12 +197,11 @@ class CentralGeneTable:
             mouse_mgi_accession_ids=set(),
             human_synonyms=set(),
             mouse_synonyms=set(),
-            dataset_names={dataset},
-            used_human_names={symbol},
             manually_added=True,
-            used=True,
             kind=kind,
         )
+        # See add_manual_mouse_entry: single recording point for usages (#225).
+        entry.add_used_name(species="human", name=symbol, dataset_name=dataset)
         self.entries.append(entry)
         return entry
 

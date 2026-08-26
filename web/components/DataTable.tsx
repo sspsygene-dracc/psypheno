@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import InfoTooltip from "@/components/InfoTooltip";
+import SignificanceLegend from "@/components/SignificanceLegend";
 
 function normalizeColName(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, "_");
@@ -219,6 +220,15 @@ export default function DataTable({
     ? `Significant: ${sigSourceColumn} < ${SIGNIFICANCE_THRESHOLD}`
     : undefined;
 
+  // Explain the green tint right above the table it applies to — a legend
+  // parked at the top of a long results page is too far from the color to
+  // read as an explanation. Only shown when a visible row is actually
+  // highlighted, so tables with no hits stay uncluttered.
+  const showSignificanceLegend =
+    highlightSignificantRows &&
+    sigCols.length > 0 &&
+    rowsToDisplay.some((row) => isRowSignificant(row, sigCols));
+
   // Priority-based render-side column reorder:
   //   tier 1 = gene columns, tier 2 = significance columns, tier 3 = the rest.
   // Source order is preserved within each tier. Row data is keyed by name,
@@ -252,209 +262,212 @@ export default function DataTable({
     scalarSet.has(col) ? "e.g. >0.5" : "Filter...";
 
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          fontSize: 14,
-        }}
-      >
-        <thead>
-          <tr style={{ background: "#f9fafb" }}>
-            {effectiveColumns.map((col) => {
-              const active = isActive(col);
-              return (
-                <th
-                  key={col}
-                  onClick={() => handleHeaderClick(col)}
-                  style={{
-                    padding: "12px 16px",
-                    textAlign: "left",
-                    color: active ? "#1f2937" : "#6b7280",
-                    fontWeight: 600,
-                    borderTop: "1px solid #e5e7eb",
-                    whiteSpace: "nowrap",
-                    cursor: "pointer",
-                    userSelect: "none",
-                  }}
-                >
-                  {headerText(col)}
-                  {fieldLabels?.[col] && (
-                    <InfoTooltip text={fieldLabels[col]} size={13} />
-                  )}
-                  <span
-                    style={{
-                      fontSize: active ? 12 : 18,
-                      marginLeft: 4,
-                      color: active ? "#1f2937" : "#9ca3af",
-                    }}
-                  >
-                    {sortIndicator(active ? effectiveSortMode : "none")}
-                  </span>
-                </th>
-              );
-            })}
-          </tr>
-          {showFilterRow && (
-            <tr style={{ background: "#ffffff" }}>
-              {effectiveColumns.map((col) => (
-                <th
-                  key={col}
-                  style={{
-                    padding: "6px 16px 8px",
-                    borderTop: "1px solid #f3f4f6",
-                    fontWeight: 400,
-                  }}
-                >
-                  <input
-                    type="text"
-                    value={columnFilters?.[col] ?? ""}
-                    onChange={(e) =>
-                      onColumnFilterChange!(col, e.target.value)
-                    }
-                    placeholder={filterPlaceholder(col)}
-                    aria-label={`Filter ${headerText(col)}`}
-                    style={{
-                      width: "100%",
-                      minWidth: 80,
-                      padding: "4px 8px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: 6,
-                      fontSize: 13,
-                      color: "#1f2937",
-                      background: "#ffffff",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </th>
-              ))}
-            </tr>
-          )}
-        </thead>
-        <tbody>
-          {rowsToDisplay.map((row, idx) => {
-            const significant =
-              highlightSignificantRows &&
-              sigCols.length > 0 &&
-              isRowSignificant(row, sigCols);
-            return (
-            <tr
-              key={idx}
-              style={{
-                borderTop: "1px solid #e5e7eb",
-                background: significant ? "#f0fdf4" : undefined,
-              }}
-              title={significant ? sigTitle : undefined}
-            >
+    <div>
+      {showSignificanceLegend && <SignificanceLegend />}
+      <div style={{ overflowX: "auto" }}>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            fontSize: 14,
+          }}
+        >
+          <thead>
+            <tr style={{ background: "#f9fafb" }}>
               {effectiveColumns.map((col) => {
-                const val = row[col];
-                const colNorm = normalizeColName(col);
-                const isGeneCol = geneColumns?.some(
-                  (g) => normalizeColName(g) === colNorm,
-                );
-                const isPerturbedGeneCol = perturbedGeneColumns?.some(
-                  (g) => normalizeColName(g) === colNorm,
-                );
-                const text = formatCellValue(val);
-                const linkParam = isPerturbedGeneCol ? "perturbed" : "target";
-                const singleHref = `/?${linkParam}=${encodeURIComponent(text)}`;
-                // Other-direction symbol if the home page has one selected.
-                const otherSymbol = isPerturbedGeneCol
-                  ? currentTargetSymbol
-                  : currentPerturbedSymbol;
-                const sameSideSymbol = isPerturbedGeneCol
-                  ? currentPerturbedSymbol
-                  : currentTargetSymbol;
-                // Skip the existence check when there's no other-direction
-                // gene to preserve, when the click would just re-navigate
-                // to the same single-gene URL, or when the click matches
-                // the gene already selected in the other direction.
-                const shouldCheckPair =
-                  !!otherSymbol &&
-                  text !== sameSideSymbol &&
-                  text !== otherSymbol;
-                const handleClick = shouldCheckPair
-                  ? async (e: React.MouseEvent<HTMLAnchorElement>) => {
-                      // Let the user open in a new tab via cmd/ctrl-click —
-                      // those modifiers should bypass our async handling.
-                      if (
-                        e.metaKey ||
-                        e.ctrlKey ||
-                        e.shiftKey ||
-                        e.altKey ||
-                        e.button !== 0
-                      ) {
-                        return;
-                      }
-                      e.preventDefault();
-                      const perturbedSymbol = isPerturbedGeneCol
-                        ? text
-                        : otherSymbol;
-                      const targetSymbol = isPerturbedGeneCol
-                        ? otherSymbol
-                        : text;
-                      const combinedHref =
-                        `/?perturbed=${encodeURIComponent(perturbedSymbol!)}` +
-                        `&target=${encodeURIComponent(targetSymbol!)}`;
-                      let exists = false;
-                      try {
-                        const ctrl = new AbortController();
-                        const timer = setTimeout(() => ctrl.abort(), 1500);
-                        const res = await fetch("/api/gene-pair-exists", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            perturbedSymbol,
-                            targetSymbol,
-                          }),
-                          signal: ctrl.signal,
-                        });
-                        clearTimeout(timer);
-                        if (res.ok) {
-                          const data = (await res.json()) as {
-                            exists?: boolean;
-                          };
-                          exists = !!data.exists;
-                        }
-                      } catch {
-                        exists = false;
-                      }
-                      router.push(exists ? combinedHref : singleHref);
-                    }
-                  : undefined;
+                const active = isActive(col);
                 return (
-                  <td
+                  <th
                     key={col}
+                    onClick={() => handleHeaderClick(col)}
                     style={{
                       padding: "12px 16px",
-                      color: "#1f2937",
+                      textAlign: "left",
+                      color: active ? "#1f2937" : "#6b7280",
+                      fontWeight: 600,
+                      borderTop: "1px solid #e5e7eb",
+                      whiteSpace: "nowrap",
+                      cursor: "pointer",
+                      userSelect: "none",
                     }}
                   >
-                    {isGeneCol && text ? (
-                      <Link
-                        href={singleHref}
-                        prefetch={false}
-                        onClick={handleClick}
-                        style={{
-                          color: "#2563eb",
-                          textDecoration: "none",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {text}
-                      </Link>
-                    ) : (
-                      text
+                    {headerText(col)}
+                    {fieldLabels?.[col] && (
+                      <InfoTooltip text={fieldLabels[col]} size={13} />
                     )}
-                  </td>
+                    <span
+                      style={{
+                        fontSize: active ? 12 : 18,
+                        marginLeft: 4,
+                        color: active ? "#1f2937" : "#9ca3af",
+                      }}
+                    >
+                      {sortIndicator(active ? effectiveSortMode : "none")}
+                    </span>
+                  </th>
                 );
               })}
             </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            {showFilterRow && (
+              <tr style={{ background: "#ffffff" }}>
+                {effectiveColumns.map((col) => (
+                  <th
+                    key={col}
+                    style={{
+                      padding: "6px 16px 8px",
+                      borderTop: "1px solid #f3f4f6",
+                      fontWeight: 400,
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={columnFilters?.[col] ?? ""}
+                      onChange={(e) =>
+                        onColumnFilterChange!(col, e.target.value)
+                      }
+                      placeholder={filterPlaceholder(col)}
+                      aria-label={`Filter ${headerText(col)}`}
+                      style={{
+                        width: "100%",
+                        minWidth: 80,
+                        padding: "4px 8px",
+                        border: "1px solid #d1d5db",
+                        borderRadius: 6,
+                        fontSize: 13,
+                        color: "#1f2937",
+                        background: "#ffffff",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </th>
+                ))}
+              </tr>
+            )}
+          </thead>
+          <tbody>
+            {rowsToDisplay.map((row, idx) => {
+              const significant =
+                highlightSignificantRows &&
+                sigCols.length > 0 &&
+                isRowSignificant(row, sigCols);
+              return (
+              <tr
+                key={idx}
+                style={{
+                  borderTop: "1px solid #e5e7eb",
+                  background: significant ? "#f0fdf4" : undefined,
+                }}
+                title={significant ? sigTitle : undefined}
+              >
+                {effectiveColumns.map((col) => {
+                  const val = row[col];
+                  const colNorm = normalizeColName(col);
+                  const isGeneCol = geneColumns?.some(
+                    (g) => normalizeColName(g) === colNorm,
+                  );
+                  const isPerturbedGeneCol = perturbedGeneColumns?.some(
+                    (g) => normalizeColName(g) === colNorm,
+                  );
+                  const text = formatCellValue(val);
+                  const linkParam = isPerturbedGeneCol ? "perturbed" : "target";
+                  const singleHref = `/?${linkParam}=${encodeURIComponent(text)}`;
+                  // Other-direction symbol if the home page has one selected.
+                  const otherSymbol = isPerturbedGeneCol
+                    ? currentTargetSymbol
+                    : currentPerturbedSymbol;
+                  const sameSideSymbol = isPerturbedGeneCol
+                    ? currentPerturbedSymbol
+                    : currentTargetSymbol;
+                  // Skip the existence check when there's no other-direction
+                  // gene to preserve, when the click would just re-navigate
+                  // to the same single-gene URL, or when the click matches
+                  // the gene already selected in the other direction.
+                  const shouldCheckPair =
+                    !!otherSymbol &&
+                    text !== sameSideSymbol &&
+                    text !== otherSymbol;
+                  const handleClick = shouldCheckPair
+                    ? async (e: React.MouseEvent<HTMLAnchorElement>) => {
+                        // Let the user open in a new tab via cmd/ctrl-click —
+                        // those modifiers should bypass our async handling.
+                        if (
+                          e.metaKey ||
+                          e.ctrlKey ||
+                          e.shiftKey ||
+                          e.altKey ||
+                          e.button !== 0
+                        ) {
+                          return;
+                        }
+                        e.preventDefault();
+                        const perturbedSymbol = isPerturbedGeneCol
+                          ? text
+                          : otherSymbol;
+                        const targetSymbol = isPerturbedGeneCol
+                          ? otherSymbol
+                          : text;
+                        const combinedHref =
+                          `/?perturbed=${encodeURIComponent(perturbedSymbol!)}` +
+                          `&target=${encodeURIComponent(targetSymbol!)}`;
+                        let exists = false;
+                        try {
+                          const ctrl = new AbortController();
+                          const timer = setTimeout(() => ctrl.abort(), 1500);
+                          const res = await fetch("/api/gene-pair-exists", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              perturbedSymbol,
+                              targetSymbol,
+                            }),
+                            signal: ctrl.signal,
+                          });
+                          clearTimeout(timer);
+                          if (res.ok) {
+                            const data = (await res.json()) as {
+                              exists?: boolean;
+                            };
+                            exists = !!data.exists;
+                          }
+                        } catch {
+                          exists = false;
+                        }
+                        router.push(exists ? combinedHref : singleHref);
+                      }
+                    : undefined;
+                  return (
+                    <td
+                      key={col}
+                      style={{
+                        padding: "12px 16px",
+                        color: "#1f2937",
+                      }}
+                    >
+                      {isGeneCol && text ? (
+                        <Link
+                          href={singleHref}
+                          prefetch={false}
+                          onClick={handleClick}
+                          style={{
+                            color: "#2563eb",
+                            textDecoration: "none",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {text}
+                        </Link>
+                      ) : (
+                        text
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       {showSummary && (
         <div
           style={{

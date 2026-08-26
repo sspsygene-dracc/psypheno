@@ -1,14 +1,15 @@
 publication:
+  title: "Dissecting gene regulatory networks governing human cortical cell fate"
   authors:
-    - Ding, Jingwen W.
-    - Kim, Chang N.
-    - Ostrowski, Megan S.
-    - Abeykoon, Yashodara
-    - Pavlovic, Bryan J.
-    - Wallace, Jenelle L.
-    - Schaefer, Nathan K.
-    - Nowakowski, Tomasz J.
-    - Pollen, Alex A.
+    - Jingwen W. Ding
+    - Chang N. Kim
+    - Megan S. Ostrowski
+    - Yashodara Abeykoon
+    - Bryan J. Pavlovic
+    - Jenelle L. Wallace
+    - Nathan K. Schaefer
+    - Tomasz J. Nowakowski
+    - Alex A. Pollen
   year: 2026
   journal: "Nature"
   doi: "10.1038/s41586-025-09997-7"
@@ -21,9 +22,15 @@ maintainers:
     date: "2026-05-07"
     comment: "Initial table creation (issue #22). Source xlsx manually downloaded from Nature."
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: ding_2026_deg_human
-    overview_matrix: true  # #212 overview matrix source
     shortLabel: ding_2026_deg_human
     mediumLabel: "Ding 2026 - 44-TF CRISPRi DEGs in Human Cortical Organoid RG Lineage"
     longLabel: "Differentially expressed genes from a single-cell CRISPRi screen of 44 transcription factors in primary human cortical radial-glia cultures (Ding et al. 2026)"
@@ -84,7 +91,6 @@ tables:
         message: "Initial data load from Nature Supplementary Information (Table S5)."
 
   - table: ding_2026_deg_arx_in_lmo1ric3
-    overview_matrix: true  # #212 overview matrix source
     shortLabel: ding_2026_arx_in_lmo1ric3
     mediumLabel: "Ding 2026 - ARX-KD DEGs in IN_LMO1/RIC3 Ectopic Cluster (Cortical Organoid)"
     longLabel: "Differentially expressed genes in the IN_LMO1/RIC3 ectopic interneuron cluster induced by ARX CRISPRi knockdown (Ding et al. 2026)"

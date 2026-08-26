@@ -10,3 +10,56 @@ body {
   background: #ffffff;
   color: #1f2937;
 }
+
+/*
+ * Cross-modality matrix (/matrix) (#213). The heatmap is a fixed-height internal
+ * scroll panel: the header (dataset bands + column labels) is pinned at the top
+ * and the gene column frozen at the left, both slaved to the body's scroll. The
+ * body owns both scrollbars natively — no proxy bar or scrollbar-hiding needed.
+ * The cell field is drawn on a <canvas>; only the header/labels/legends are DOM.
+ */
+
+/* The column-label strip scrolls vertically on its own when labels (folded
+   "modality · author · gene" labels in clustered mode) are taller than the strip.
+   Keep a slim, always-visible bar so that scrollability is discoverable.
+
+   `.scroll-panel` opts any other internally-scrolling panel into the same bar —
+   the sticky sidebars (dataset TOC, /publications filters). macOS defaults to
+   overlay scrollbars that stay hidden on a trackpad-only machine, so without
+   this there is no affordance at all that the panel scrolls. */
+.matrix-label-strip,
+.scroll-panel {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(100, 116, 139, 0.55) transparent;
+}
+.matrix-label-strip::-webkit-scrollbar,
+.scroll-panel::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 9px;
+}
+.matrix-label-strip::-webkit-scrollbar-thumb,
+.scroll-panel::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.55);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.matrix-label-strip::-webkit-scrollbar-thumb:hover,
+.scroll-panel::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(71, 85, 105, 0.7);
+}
+.matrix-label-strip::-webkit-scrollbar-track,
+.scroll-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Links inside the cross-modality matrix (/matrix): the app's usual link blue,
+   underlined on hover so gene / dataset headers read clearly as links. */
+.matrix-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+.matrix-link:hover {
+  color: #1e40af;
+  text-decoration: underline;
+}

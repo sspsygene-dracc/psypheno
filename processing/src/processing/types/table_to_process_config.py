@@ -88,11 +88,40 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "why_excluded_from_meta_analysis",
         "overview_matrix",
         "overview_matrix_expand",
+        "overview_matrix_phenotype_column",
+        "overview_matrix_phenotype_columns",
+        "overview_matrix_metric",
+        "overview_matrix_metric_domain",
         "changelog",
         # Internal: dataset-level publication block, merged in by TablesConfig.
         "_publication",
         "publication",
+        # Internal: dataset-level `deployTo` list and the dataset directory
+        # name, stamped onto every table by TablesConfig.from_yaml_root (#225).
+        # Note the *bare* `deployTo` is deliberately NOT recognized here — it is
+        # a dataset-level key, so a wrangler who puts it under a table should
+        # get the unknown-key warning below rather than a silently ignored flag.
+        "_deploy_to",
+        "_dataset",
     }
+)
+
+# Internal keys stamped in by the loader rather than written by a wrangler.
+# Excluded from the "recognized keys" list in the unknown-key warning so we
+# don't advertise them as things to type into a config.yaml.
+_INTERNAL_TABLE_KEYS: frozenset[str] = frozenset(
+    {"_publication", "_deploy_to", "_dataset"}
+)
+
+
+# Color-scale metric ids an expanded table may declare (`overview_matrix_metric`).
+# The scale definitions (colors, kind, default domain) live in the web
+# color-scale registry — this is only the id allowlist so config typos fail loud.
+# `neglog_p` / `neglog_q` are inferred by default for p/fdr-based tables; the two
+# effect-style metrics must be declared explicitly (their source columns aren't
+# p-values).
+_OVERVIEW_MATRIX_METRICS: frozenset[str] = frozenset(
+    {"neglog_p", "neglog_q", "signed_neglog_p", "activity_ratio"}
 )
 
 
@@ -289,6 +318,22 @@ class TableToProcessConfig:
     # for that (perturbed gene, target gene) pair. Requires both a perturbed and
     # a target gene mapping plus pvalue_column and fdr_column.
     overview_matrix_expand: bool = False
+    # The expansion column axis for a non-gene modality (psypheno #213). Exactly
+    # one axis must resolve: the table's `target` gene mapping (gene columns), OR
+    # `overview_matrix_phenotype_column` (LONG: a text column whose distinct
+    # values are the columns — e.g. Behavioral_Parameter, subcluster), OR
+    # `overview_matrix_phenotype_columns` (WIDE: a fixed list of value columns,
+    # each one column — e.g. brain regions, behavior parameters). Stored
+    # normalized to match the loaded table's column names.
+    overview_matrix_phenotype_column: str | None = None
+    overview_matrix_phenotype_columns: list[str] = field(default_factory=list)
+    # Color-scale metric id (see `_OVERVIEW_MATRIX_METRICS`). None → inferred at
+    # materialization (`neglog_p`, or `neglog_q` when only an FDR/qval exists).
+    # Required explicitly for WIDE effect tables whose values aren't p-values.
+    overview_matrix_metric: str | None = None
+    # Optional [lo, hi] override of the metric's default color-scale domain.
+    overview_matrix_metric_domain: list[float] | None = None
+    publication_title: str | None = None
     publication_first_author: str | None = None
     publication_last_author: str | None = None
     publication_author_count: int | None = None
@@ -299,11 +344,35 @@ class TableToProcessConfig:
     publication_pmid: str | None = None
     publication_sspsygene_grants: list[str] = field(default_factory=list)
     changelog: list[dict[str, str]] = field(default_factory=list)
+    # The dataset directory name this table was defined in (data/datasets/<name>),
+    # stamped in from the config.yaml's location (#225). Nothing else in a table
+    # config carries it, which is why central_gene.dataset_names historically
+    # holds *table* names.
+    dataset: str = ""
+    # Which site instances this table's dataset may be served on — the dataset's
+    # `deployTo:` list, normalized to INSTANCE_ORDER (#225). Mandatory in the
+    # YAML and validated there; the empty default exists only so the dataclass
+    # field ordering works, and __post_init__ rejects it.
+    deploy_to: frozenset[str] = frozenset()
 
     # short_label is a code/link identifier: lowercase letters, digits, underscores only
     _SHORT_LABEL_RE = re.compile(r"^[a-z0-9_]+$")
 
     def __post_init__(self):
+        # Belt-and-braces (#225): config.py validates deployTo per config.yaml
+        # with a message naming the file, but nothing may construct a table with
+        # no declared destination — an undeclared table is one that could be
+        # promoted anywhere.
+        if not self.deploy_to:
+            raise ValueError(
+                f"table {self.table}: no deploy_to — the dataset's config.yaml "
+                f"must declare a top-level `deployTo` list including `dev`."
+            )
+        if not self.dataset:
+            raise ValueError(
+                f"table {self.table}: no dataset name — tables must be loaded "
+                f"from a data/datasets/<name>/config.yaml."
+            )
         if self.short_label is not None:
             if not self._SHORT_LABEL_RE.match(self.short_label):
                 raise ValueError(
@@ -337,9 +406,11 @@ class TableToProcessConfig:
                 f"meta_analysis is still true — set `meta_analysis: false` to "
                 f"actually exclude it, or drop the reason."
             )
-        # An expanded modality column is built from the table's target-gene axis
-        # (the sub-columns), its perturbed-gene axis (the matrix rows and the
-        # significance groups), and both stat columns. Without all four the
+        # An expanded modality column is built from a column axis (the
+        # sub-columns), the perturbed-gene axis (the matrix rows / significance
+        # groups), and a metric/value. The column axis is exactly one of: a target
+        # gene mapping (genes), a phenotype text column (LONG), or a list of
+        # phenotype value columns (WIDE). Without a resolvable axis the
         # materializer would silently emit nothing, so fail loudly at config load.
         if self.overview_matrix_expand:
             missing: list[str] = []
@@ -347,12 +418,54 @@ class TableToProcessConfig:
                 missing.append("overview_matrix: true")
             if num_perturbed == 0:
                 missing.append("a perturbed gene_mapping")
-            if num_target == 0:
-                missing.append("a target gene_mapping")
-            if not self.pvalue_column:
-                missing.append("pvalue_column")
-            if not self.fdr_column:
-                missing.append("fdr_column")
+
+            axes = [
+                ("a target gene_mapping", num_target > 0),
+                ("overview_matrix_phenotype_column", bool(self.overview_matrix_phenotype_column)),
+                ("overview_matrix_phenotype_columns", bool(self.overview_matrix_phenotype_columns)),
+            ]
+            n_axes = sum(1 for _, present in axes if present)
+            wide = bool(self.overview_matrix_phenotype_columns)
+            if n_axes == 0:
+                missing.append(
+                    "a column axis (a target gene_mapping, "
+                    "overview_matrix_phenotype_column, or "
+                    "overview_matrix_phenotype_columns)"
+                )
+            elif n_axes > 1:
+                raise ValueError(
+                    f"table {self.table}: overview_matrix_expand needs exactly one "
+                    f"column axis, but "
+                    f"{', '.join(name for name, present in axes if present)} are all set."
+                )
+
+            # Gene/LONG-phenotype tables color from a p/fdr column (default metric
+            # neglog_p / neglog_q). WIDE tables carry the value in the columns
+            # themselves and must name the metric explicitly (they aren't p-values).
+            if wide:
+                if not self.overview_matrix_metric:
+                    missing.append(
+                        "overview_matrix_metric (required for "
+                        "overview_matrix_phenotype_columns)"
+                    )
+            elif not self.pvalue_column and not self.fdr_column:
+                missing.append("a pvalue_column or fdr_column")
+
+            if self.overview_matrix_metric and (
+                self.overview_matrix_metric not in _OVERVIEW_MATRIX_METRICS
+            ):
+                raise ValueError(
+                    f"table {self.table}: overview_matrix_metric "
+                    f"{self.overview_matrix_metric!r} is not one of "
+                    f"{sorted(_OVERVIEW_MATRIX_METRICS)}."
+                )
+            if self.overview_matrix_metric_domain is not None and (
+                len(self.overview_matrix_metric_domain) != 2
+            ):
+                raise ValueError(
+                    f"table {self.table}: overview_matrix_metric_domain must be "
+                    f"[lo, hi]; got {self.overview_matrix_metric_domain!r}."
+                )
             if missing:
                 raise ValueError(
                     f"table {self.table}: overview_matrix_expand requires "
@@ -373,11 +486,15 @@ class TableToProcessConfig:
                 "table %s: unknown YAML key(s) %s — typo? Recognized keys: %s",
                 table_name,
                 sorted(unknown),
-                sorted(_KNOWN_TABLE_KEYS - {"_publication"}),
+                sorted(_KNOWN_TABLE_KEYS - _INTERNAL_TABLE_KEYS),
             )
         publication: dict[str, Any] = (
             json_data.get("_publication") or json_data.get("publication") or {}
         )
+        # Stamped in by TablesConfig.from_yaml_root; validated there against
+        # INSTANCE_ORDER with the offending config.yaml path in the message.
+        deploy_to = frozenset(json_data.get("_deploy_to") or ())
+        dataset = str(json_data.get("_dataset") or "")
         authors: list[str] = (
             list(publication.get("authors", []))
             if isinstance(publication.get("authors", []), list)
@@ -484,6 +601,26 @@ class TableToProcessConfig:
         overview_matrix = bool(json_data.get("overview_matrix", False))
         # Expanded-modality flag (#222). Opt-in on top of overview_matrix.
         overview_matrix_expand = bool(json_data.get("overview_matrix_expand", False))
+        # Non-gene expansion axis (#213). Phenotype column names are stored
+        # normalized so they match the loaded table's DB column names; their raw
+        # form is recovered for display from fieldLabels / prettified at render.
+        raw_phenotype_col = json_data.get("overview_matrix_phenotype_column")
+        overview_matrix_phenotype_column = (
+            normalize_column_name(raw_phenotype_col) if raw_phenotype_col else None
+        )
+        # Kept RAW (not normalized): the wide-axis materializer normalizes each
+        # to read the loaded DB column but uses the raw name as the short column
+        # header label (e.g. "Optic Tectum", "ActivityD").
+        overview_matrix_phenotype_columns = [
+            str(c) for c in (json_data.get("overview_matrix_phenotype_columns") or [])
+        ]
+        overview_matrix_metric = json_data.get("overview_matrix_metric")
+        raw_metric_domain = json_data.get("overview_matrix_metric_domain")
+        overview_matrix_metric_domain = (
+            [float(v) for v in raw_metric_domain]
+            if raw_metric_domain is not None
+            else None
+        )
 
         return cls(
             table=json_data["table"],
@@ -516,6 +653,11 @@ class TableToProcessConfig:
             why_excluded_from_meta_analysis=why_excluded,
             overview_matrix=overview_matrix,
             overview_matrix_expand=overview_matrix_expand,
+            overview_matrix_phenotype_column=overview_matrix_phenotype_column,
+            overview_matrix_phenotype_columns=overview_matrix_phenotype_columns,
+            overview_matrix_metric=overview_matrix_metric,
+            overview_matrix_metric_domain=overview_matrix_metric_domain,
+            publication_title=publication.get("title"),
             publication_first_author=first_author,
             publication_last_author=last_author,
             publication_author_count=author_count,
@@ -526,6 +668,8 @@ class TableToProcessConfig:
             publication_pmid=publication.get("pmid"),
             publication_sspsygene_grants=sspsygene_grants,
             changelog=list(json_data.get("changelog", [])),
+            dataset=dataset,
+            deploy_to=deploy_to,
         )
 
     def load_data_table(

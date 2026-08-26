@@ -56,20 +56,26 @@ def _echo_sspsygene_env(label: str) -> None:
         "SSPSYGENE_CONFIG_JSON",
         "SSPSYGENE_DATA_DB",
         "SSPSYGENE_META_DB",
+        "SSPSYGENE_OVERVIEW_DB",
     )
+    # Suffixes for the sibling-DB defaults shown when the override is unset.
+    sibling_suffixes = {
+        "SSPSYGENE_META_DB": "-meta",
+        "SSPSYGENE_OVERVIEW_DB": "-overview",
+    }
     click.secho(f"── SSPSYGENE environment ({label}) ──", fg="cyan")
     for name in names:
         value = os.environ.get(name)
         if value:
             click.secho(f"  {name}={value}", fg="cyan")
-        elif name == "SSPSYGENE_META_DB":
-            # No override — the meta DB defaults to the -meta sibling of the
-            # dataset DB; show that so the resolved path isn't a mystery.
+        elif name in sibling_suffixes:
+            # No override — this DB defaults to a sibling of the dataset DB;
+            # show the resolved path so it isn't a mystery.
             data_db = os.environ.get("SSPSYGENE_DATA_DB")
             if data_db:
                 sibling = Path(data_db)
                 sibling = sibling.with_name(
-                    f"{sibling.stem}-meta{sibling.suffix}"
+                    f"{sibling.stem}{sibling_suffixes[name]}{sibling.suffix}"
                 )
                 click.secho(f"  {name}=(unset → {sibling})", fg="cyan")
             else:
@@ -113,18 +119,6 @@ def _echo_sspsygene_env(label: str) -> None:
     "iterating on the export step.",
 )
 @click.option(
-    "--expression-min-regions",
-    type=int,
-    default=1,
-    show_default=True,
-    help="Materialization floor for the overview matrix's expanded columns "
-    "(#222): a target gene becomes a sub-column when it is FDR-significant "
-    "across at least this many distinct perturbed-column values (CNV regions, "
-    "for the ASD organoid table). Deliberately low — /api/collated-matrix "
-    "picks its own, higher threshold per request, and can only go as low as "
-    "this floor without a rebuild.",
-)
-@click.option(
     "--test",
     "test_mode",
     is_flag=True,
@@ -140,7 +134,6 @@ def load_db(
     no_index: bool,
     skip_gene_descriptions: bool,
     export_only: bool,
-    expression_min_regions: int,
     test_mode: bool,
 ) -> None:
     """Load the database"""
@@ -195,7 +188,6 @@ def load_db(
             data_dir=config.base_dir,
             skip_gene_descriptions=skip_gene_descriptions,
             test_central_gene_ids=test_central_gene_ids,
-            expression_min_regions=expression_min_regions,
         )
         _echo_sspsygene_env("end")
     except ValueError as e:
@@ -258,6 +250,218 @@ def meta_analysis(no_index: bool, no_r_cache: bool) -> None:
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
+@cli.command(name="overview-matrix")
+@click.option(
+    "--no-index",
+    is_flag=True,
+    default=False,
+    help="Skip creating the SQLite index on the expanded-columns table. "
+    "Speeds up the build for test purposes.",
+)
+@click.option(
+    "--min-sig-groups",
+    type=int,
+    default=2,
+    show_default=True,
+    help="Eligibility floor for the overview matrix's expanded columns (#222): a "
+    "measured target gene becomes a sub-column only when it is FDR-significant "
+    "across at least this many distinct perturbed groups (CNV regions for the "
+    "organoid table, perturbed genes elsewhere). Independently, only the top "
+    "~200 most-convergent columns per dataset are materialized; the web app "
+    "serves the top K (columns per dataset) the user picks.",
+)
+def overview_matrix(no_index: bool, min_sig_groups: int) -> None:
+    """Materialize the collated overview matrix into sspsygene-overview.db.
+
+    Reads the already-built dataset DB (sspsygene.db) and writes a separate
+    overview DB on its own cadence — the same independent-file pattern as the
+    meta-analysis (#176). The web app ATTACHes it and serves /api/collated-matrix
+    as a cheap read. Run `sspsygene load-db` first if the dataset DB doesn't
+    exist yet."""
+    from processing.sq_load import run_overview_matrix
+
+    _echo_sspsygene_env("start")
+    try:
+        config = get_sspsygene_config()
+        run_overview_matrix(
+            config.out_db,
+            config.overview_db,
+            no_index=no_index,
+            min_groups=min_sig_groups,
+            panel_gene_list=config.sspsygene_gene_list,
+        )
+        _echo_sspsygene_env("end")
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command(name="subset-db")
+@click.option(
+    "--destination",
+    type=click.Choice(["int", "prod"], case_sensitive=False),
+    required=True,
+    help="Which instance to build the subset for. Only datasets whose "
+    "`deployTo` names this instance are included.",
+)
+@click.option(
+    "--from",
+    "from_db",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Source dataset DB (the dev superset). Defaults to SSPSYGENE_DATA_DB.",
+)
+@click.option(
+    "--to",
+    "to_db",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Output path. Defaults to a `-<destination>` sibling of the source, "
+    "e.g. sspsygene.db -> sspsygene-prod.db.",
+)
+@click.option(
+    "--config-root",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Dataset config directory used to cross-check the DB's own labels. "
+    "Defaults to <SSPSYGENE_DATA_DIR>/datasets.",
+)
+@click.option(
+    "--no-verify",
+    is_flag=True,
+    default=False,
+    help="Skip the destination check. For debugging only — never for a build "
+    "that will be promoted.",
+)
+def subset_db_command(
+    destination: str,
+    from_db: Path | None,
+    to_db: Path | None,
+    config_root: Path | None,
+    no_verify: bool,
+) -> None:
+    """Derive an int/prod dataset DB from the dev superset (#225).
+
+    The dataset DB is built once, on dev, with every dataset in it. This
+    produces the file a promotion copies: a fresh DB containing only the
+    datasets whose `deployTo` names the destination.
+
+    \b
+    Fail-closed by construction — it creates an empty DB and copies in only
+    what the labels allow, rather than copying the superset and deleting.
+    It never re-reads raw data or re-runs gene resolution; central_gene and
+    the synonym tables are recomputed from `central_gene_usage`.
+
+    \b
+        sspsygene subset-db --destination prod
+        sspsygene subset-db --destination int --from dev.db --to int.db
+    """
+    from processing.destination_guard import DestinationGuardError
+    from processing.subset_db import SubsetError, subset_db
+
+    destination = destination.lower()
+    _echo_sspsygene_env("start")
+    try:
+        # Only load the config for values the caller didn't supply. With
+        # --from/--to/--config-root all given (how the promote path invokes
+        # it) this needs no SSPSYGENE_* environment at all, and must not fail
+        # on some unrelated dataset's config.
+        source, target, root = from_db, to_db, config_root
+        if source is None or root is None:
+            config = get_sspsygene_config()
+            source = source or config.out_db
+            root = root or (config.base_dir / "datasets")
+        if target is None:
+            target = source.with_name(
+                f"{source.stem}-{destination}{source.suffix}"
+            )
+        subset_db(
+            source,
+            target,
+            destination,
+            verify=not no_verify,
+            config_root=root if root and root.exists() else None,
+        )
+        click.secho(f"Wrote {destination} subset to {target}", fg="green")
+        _echo_sspsygene_env("end")
+    except (SubsetError, DestinationGuardError) as e:
+        click.echo(f"{e}", err=True)
+        sys.exit(1)
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command(name="verify-destination")
+@click.argument(
+    "db", type=click.Path(exists=True, dir_okay=False, path_type=Path)
+)
+@click.option(
+    "--destination",
+    type=click.Choice(["dev", "int", "prod"], case_sensitive=False),
+    required=True,
+    help="The instance this DB is (or is about to be) served on.",
+)
+@click.option(
+    "--config-root",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Dataset config directory whose `deployTo` lists are the source of "
+    "truth. Defaults to <SSPSYGENE_DATA_DIR>/datasets. Without it the DB's "
+    "own labels are used alone, which is a weaker check.",
+)
+def verify_destination_command(
+    db: Path, destination: str, config_root: Path | None
+) -> None:
+    """Check that a DB contains exactly what its destination allows (#225).
+
+    Answers: does this file contain anything belonging to a dataset that is not
+    allowed on this instance? The allowed set is re-read from the checkout's
+    data/datasets/*/config.yaml and cross-checked against the DB's own
+    `dataset_destinations`, so this is an independent check rather than a
+    restatement of the build that produced the file.
+
+    \b
+    The assertion is equality in both directions — no non-member data present,
+    and no member data missing — and every place a table name can hide is
+    swept, including the member list inside all-tables.zip. The `-meta` and
+    `-overview` siblings, if present, are held to the prod-only rule on every
+    instance.
+
+    \b
+    Exits non-zero on any finding. Safe to run at any time against a live
+    instance's DB:
+
+    \b
+        sspsygene verify-destination /hive/.../data/db/sspsygene.db \\
+            --destination prod
+    """
+    from processing.destination_guard import (
+        DestinationGuardError,
+        verify_destination,
+    )
+
+    destination = destination.lower()
+    root = config_root
+    if root is None:
+        try:
+            root = get_sspsygene_config().base_dir / "datasets"
+        except ValueError:
+            root = None
+    try:
+        verify_destination(
+            db,
+            destination,
+            config_root=root if root and root.exists() else None,
+        )
+    except DestinationGuardError as e:
+        click.secho(f"{e}", fg="red", bold=True, err=True)
+        sys.exit(1)
+    click.secho(
+        f"OK: {db} is valid for destination {destination!r}.", fg="green"
+    )
 
 
 @cli.command()
@@ -473,57 +677,116 @@ def deploy_meta_analysis(
     )
 
 
-@cli.command(name="promote-dev-to-prod")
+@cli.command(name="deploy-overview")
 @click.option(
-    "--include-meta-analysis/--no-meta-analysis",
-    "include_meta_analysis",
-    default=True,
-    help="Also copy dev's meta-analysis DB (sspsygene-meta.db) alongside the "
-    "main dataset DB. On by default so prod's meta stays consistent with the "
-    "promoted main DB. If dev has no meta DB, the meta copy is skipped with a "
-    "warning. Pass --no-meta-analysis to copy only the main DB.",
-)
-@click.option(
-    "--local/--ssh",
-    "local",
-    default=None,
-    help="Force running the copy locally (on hgwdev/psygene) or over SSH "
-    "(from a laptop, proxy-jumping through hgwdev). Default: auto-detect by "
-    "whether the /hive trees are visible as local directories.",
-)
-@click.option(
-    "--min-data-tables",
-    type=int,
-    default=1,
-    show_default=True,
-    help="Refuse to promote if dev's main DB has fewer than this many "
-    "data_tables rows (guards against promoting a stale/empty build).",
-)
-@click.option(
-    "--dry-run",
+    "--no-push",
     is_flag=True,
     default=False,
-    help="Print what would be copied without modifying any files.",
+    help="Skip the local git push step.",
 )
+@click.option(
+    "--instances",
+    type=str,
+    default=None,
+    help="Comma-separated subset of {dev, int, prod} to refresh the overview "
+    "matrix on. Default: all three. The three sites are independent — this "
+    "rebuilds each site's sspsygene-overview.db from that site's own "
+    "sspsygene.db.",
+)
+@click.option(
+    "--min-sig-groups",
+    type=int,
+    default=2,
+    show_default=True,
+    help="Eligibility floor for the expanded columns (see `overview-matrix`).",
+)
+def deploy_overview(
+    no_push: bool,
+    instances: str | None,
+    min_sig_groups: int,
+) -> None:
+    """Refresh sspsygene-overview.db on psygene sites (separate from `deploy`).
+
+    Pushes + pulls code, then runs `sspsygene overview-matrix` on each selected
+    site against that site's existing sspsygene.db. Does not rebuild datasets,
+    build the web app, or restart services — the web process auto-detects the
+    new overview DB the same way it detects a rebuilt sspsygene.db. Multi-user
+    safe (no systemd/kill interaction), mirroring `deploy-meta-analysis` (#222)."""
+    from processing.deploy import run_deploy_overview
+
+    run_deploy_overview(
+        no_push=no_push,
+        instances=instances,
+        min_sig_groups=min_sig_groups,
+    )
+
+
+_PROMOTE_OPTIONS = """\b
+    Run it from a laptop (SSHes into psygene) or directly on hgwdev/psygene
+    (--local, or auto-detected)."""
+
+
+def _promote_options(fn):
+    """Shared option stack for promote-dev-to-prod / promote-dev-to-int."""
+    for decorator in reversed(
+        [
+            click.option(
+                "--include-meta-analysis/--no-meta-analysis",
+                "include_meta_analysis",
+                default=True,
+                help="Also copy dev's meta-analysis DB (sspsygene-meta.db) "
+                "alongside the main dataset DB. On by default so the target's "
+                "meta stays consistent with the promoted main DB. If dev has "
+                "no meta DB the copy is skipped with a warning.",
+            ),
+            click.option(
+                "--local/--ssh",
+                "local",
+                default=None,
+                help="Force running the promotion locally (on hgwdev/psygene) "
+                "or over SSH (from a laptop, proxy-jumping through hgwdev). "
+                "Default: auto-detect by whether the /hive trees are visible "
+                "as local directories.",
+            ),
+            click.option(
+                "--dry-run",
+                is_flag=True,
+                default=False,
+                help="Print what would be built and copied without modifying "
+                "any files.",
+            ),
+        ]
+    ):
+        fn = decorator(fn)
+    return fn
+
+
+@cli.command(name="promote-dev-to-prod")
+@_promote_options
 def promote_dev_to_prod(
     include_meta_analysis: bool,
     local: bool | None,
-    min_data_tables: int,
     dry_run: bool,
 ) -> None:
-    """Promote dev's built DB(s) to prod by copying the files (no rebuild).
+    """Derive prod's DB from dev's build and swap it in (no rebuild on prod).
 
-    Once dev has a verified build, this copies dev's `sspsygene.db` (and, by
-    default, `sspsygene-meta.db`) into prod's db dir and atomically swaps them
-    in, so prod serves byte-identical bytes instead of re-running preprocess /
-    load-db (issue #178). dev and prod share the /hive filesystem, so the copy
-    is a local `cp` + `mv` on the server; no cross-host rsync, no service
-    restart (the web app re-opens on inode change). int is never a source or
-    target.
+    dev is the only site that builds. This subsets dev's superset down to the
+    datasets whose `deployTo` includes `prod` (#225), verifies the result
+    before and after the swap, and copies it plus dev's `sspsygene-meta.db` and
+    `sspsygene-overview.db` into prod's db dir. dev and prod share /hive, so
+    it is a local `cp` + `mv` on the server — no cross-host rsync and no
+    service restart (the web app re-opens on inode change).
 
-    Run it from a laptop (SSHes into psygene) or directly on hgwdev/psygene
-    (`--local`, or auto-detected):
+    \b
+    The meta and overview DBs are copied verbatim rather than subsetted: they
+    are computed from prod-labelled inputs only, so the same bytes are correct
+    on every instance.
 
+    \b
+    On any destination-check failure the promotion aborts, prod is left
+    untouched, and the command exits non-zero. There is no --force.
+
+    \b
         # from a laptop
         sspsygene promote-dev-to-prod
         # on hgwdev or psygene
@@ -535,7 +798,35 @@ def promote_dev_to_prod(
         include_meta_analysis=include_meta_analysis,
         local=local,
         dry_run=dry_run,
-        min_data_tables=min_data_tables,
+    )
+
+
+@cli.command(name="promote-dev-to-int")
+@_promote_options
+def promote_dev_to_int(
+    include_meta_analysis: bool,
+    local: bool | None,
+    dry_run: bool,
+) -> None:
+    """Derive int's DB from dev's build and swap it in (no rebuild on int).
+
+    The mirror of promote-dev-to-prod for the internal site, subsetting to the
+    datasets whose `deployTo` includes `int` (#225). int used to be neither a
+    source nor a target — it built its own tree — which is why an embargoed
+    dataset landing in dev could reach prod unnoticed. It is now a target of
+    dev like prod is, with its dataset set declared in config rather than
+    implied by which payloads someone rsynced. dev remains the only source.
+
+    \b
+        sspsygene promote-dev-to-int
+        sspsygene promote-dev-to-int --local
+    """
+    from processing.deploy import run_promote_dev_to_int
+
+    run_promote_dev_to_int(
+        include_meta_analysis=include_meta_analysis,
+        local=local,
+        dry_run=dry_run,
     )
 
 

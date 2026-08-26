@@ -7,6 +7,16 @@ publication:
   doi: 10.0000/test.0001
   pmid: "12345678"
   sspsygene_grants: ["R01HG000000"]
+maintainers:
+  - name: Test Fixture
+    email: nobody@example.invalid
+    date: "2026-07-28"
+    comment: Fixture dataset for the backend test suite
+# Promotable to prod but not int, so the fixture exercises all three of
+# "member", "non-member" and "member of one destination only" (#225).
+deployTo:
+  - dev
+  - prod
 tables:
   - table: mini_perturb_deg
     changelog:

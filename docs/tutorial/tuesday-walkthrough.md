@@ -809,38 +809,50 @@ when that makes editorial sense. The "where does this go?" decision
 is an editorial one, not a technical one; if you're not sure where a
 particular dataset belongs, ask Max or Catharina.
 
-**For int**, the flow is the same as the dev deploy — push the data files
-from your laptop, then build on the server:
+You say where a dataset goes in **one place**: the `deployTo` list at the
+top of its `config.yaml`.
+
+```yaml
+deployTo:
+  - dev     # always
+  - int     # add to publish on the internal site
+  - prod    # add to publish on the public site
+```
+
+Then you **build on dev and promote**. You never build on int or prod —
+their databases are derived from dev's, keeping only the datasets whose
+`deployTo` names them:
 
 ```bash
 # Publish to int:
-sspsygene push-data <your-dataset> --instance int    # push data files
-sspsygene deploy --instances int --load-db               # deploy + rebuild
-```
-
-**For prod**, don't rebuild — **promote the verified dev build**. Since dev
-is the staging instance for prod, `promote-dev-to-prod` copies dev's
-already-built DB straight to prod, so prod serves byte-identical bytes (no
-re-running `load-db`, no risk of drift, no data-file push needed — the built
-DB already contains everything):
-
-```bash
-# Publish to prod (the standard path):
-sspsygene promote-dev-to-prod                            # copy dev DB → prod
+sspsygene promote-dev-to-int
+# Publish to prod:
+sspsygene promote-dev-to-prod
 ```
 
 > **What travels with the copy?** Everything the site serves. The
 > per-table download files and metadata (the tooltips, the field
 > descriptions, the downloadable tables) are stored *inside* the SQLite
-> file as BLOBs, so copying `sspsygene.db` carries them along — there's no
-> separate metadata directory to promote. `promote-dev-to-prod` also makes
-> prod's copy group-writable, so the next wrangler to promote can overwrite
-> it. (The raw `data/datasets/` inputs are deliberately *not* copied: prod
-> serves the pre-built DB and never rebuilds, so it doesn't need them.)
+> file as BLOBs, so the promoted DB carries them along — there's no
+> separate metadata directory to promote. The combined-p-value and
+> overview-matrix DBs are copied too. The promote also makes the target's
+> copy group-writable, so the next wrangler can overwrite it. (The raw
+> `data/datasets/` inputs are deliberately *not* copied: only dev needs
+> them, because only dev builds.)
 
-> If you run `sspsygene deploy --instances prod --load-db` instead, the deploy
-> warns and asks for confirmation — rebuilding on prod is exactly what
-> `promote-dev-to-prod` is meant to replace. Use the promote command.
+> **You only ever push data files to dev.** `sspsygene push-data <dataset>
+> --instance prod` will refuse unless that dataset's `deployTo` includes
+> `prod` — putting a dataset's inputs on an instance it hasn't been cleared
+> for is a disclosure even if that instance never reads them.
+
+> If you run `sspsygene deploy --instances prod --load-db` (or `int`), the
+> deploy **refuses**. Building there would need that server to hold every
+> dataset's data files, which is exactly what this design avoids. Build on
+> dev, then promote.
+
+> **If a promote aborts** with a "possible embargoed-data leak" banner,
+> stop — don't retry. Send the whole message to Johannes. The target site
+> is left exactly as it was.
 
 Useful `sspsygene deploy` flags:
 
@@ -983,7 +995,7 @@ Full reference: `docs/development.md` → "Testing".
 | Pull data files (fresh machine) | `sspsygene pull-data` |
 | Push data to dev | `sspsygene push-data NAME --instance dev` |
 | Rebuild dev DB | `sspsygene deploy --instances dev --load-db` |
-| Publish to int (internal / embargoed) | `sspsygene deploy --instances int --load-db` |
+| Publish to int (internal / embargoed) | `sspsygene promote-dev-to-int` |
 | Publish to prod (public, after dev verify) | `sspsygene promote-dev-to-prod` |
 | Close ticket once live | GitHub website → **Close issue** |
 | List branches | `git branch` |

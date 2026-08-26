@@ -40,9 +40,18 @@ export default function DoubleScrollX({
     };
   }, []);
 
+  // Firefox reports fractional scrollLeft (subpixel scrolling), so the two
+  // containers are almost never *exactly* equal. A strict `!==` guard would let
+  // them write to each other every frame — an oscillating ping-pong that flickers
+  // the sticky header labels during horizontal scroll. A sub-pixel tolerance means
+  // "close enough → already in sync, don't touch it".
+  const inSync = (a: HTMLDivElement, b: HTMLDivElement) =>
+    Math.abs(a.scrollLeft - b.scrollLeft) < 1;
+
   const onTopScroll = () => {
     if (syncingFrom.current === "bottom") return;
     if (!topRef.current || !bottomRef.current) return;
+    if (inSync(topRef.current, bottomRef.current)) return;
     syncingFrom.current = "top";
     bottomRef.current.scrollLeft = topRef.current.scrollLeft;
     requestAnimationFrame(() => {
@@ -53,6 +62,7 @@ export default function DoubleScrollX({
   const onBottomScroll = () => {
     if (syncingFrom.current === "top") return;
     if (!topRef.current || !bottomRef.current) return;
+    if (inSync(topRef.current, bottomRef.current)) return;
     syncingFrom.current = "bottom";
     topRef.current.scrollLeft = bottomRef.current.scrollLeft;
     requestAnimationFrame(() => {

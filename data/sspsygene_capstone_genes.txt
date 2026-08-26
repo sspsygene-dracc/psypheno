@@ -1,0 +1,14 @@
+# The 10 SSPsyGene capstone genes.
+# Subset of data/sspsygene_genes.txt, marked by red cell fill in column A of the
+# consortium sheet. Provenance and extraction method: data/sspsygene_genes.notes.md
+
+ARID1B
+ASXL3
+CACNA1G
+CHD8
+DLL1
+GABRA1
+KMT2C
+SCN2A
+SHANK3
+SMARCC2

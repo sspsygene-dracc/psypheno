@@ -10,6 +10,7 @@ from typing import Any
 import click
 import yaml
 
+from processing.build_info import read_build_uuid, write_build_info
 from processing.central_gene_table import get_central_gene_table
 from processing.combined_pvalues.runner import compute_combined_pvalues
 from processing.ensembl_symbol_table import compute_ensembl_to_symbol
@@ -17,7 +18,11 @@ from processing.exports import write_exports
 from processing.gene_descriptions import copy_gene_descriptions
 from processing.my_logger import get_sspsygene_logger
 from processing.new_sqlite3 import NewSqlite3
-from processing.overview_matrix import materialize_overview_matrix
+from processing.overview_matrix import (
+    load_panel_symbols,
+    materialize_overview_matrix,
+    resolve_panel_gene_ids,
+)
 from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import (
     TableToProcessConfig,
@@ -115,9 +120,28 @@ def load_gene_tables(
         central_gene_id INTEGER
         )"""
     )
+    # Per-(gene, table, name) resolution record (#225). central_gene's
+    # dataset_names / human_synonyms / mouse_synonyms columns are all flattened
+    # aggregates over every table that used the gene; this table keeps the
+    # pairing so `subset-db` can recompute those aggregates for a subset of
+    # tables without re-running gene resolution or re-parsing HGNC/MGI/Alliance.
+    cur.execute(
+        """CREATE TABLE central_gene_usage (
+        central_gene_id INTEGER NOT NULL,
+        table_name TEXT NOT NULL,
+        species TEXT NOT NULL,
+        matched_name TEXT NOT NULL,
+        PRIMARY KEY (central_gene_id, table_name, species, matched_name)
+        ) WITHOUT ROWID"""
+    )
+    usage_rows: list[tuple[int, str, str, str]] = []
     for entry in get_central_gene_table().entries:
         if not entry.used:
             continue
+        usage_rows.extend(
+            (entry.row_id, table_name, species, matched_name)
+            for table_name, species, matched_name in entry.usages
+        )
         human_synonyms = entry.human_synonyms & entry.used_human_names
         mouse_synonyms = entry.mouse_synonyms & entry.used_mouse_names
         to_insert = (
@@ -171,6 +195,21 @@ def load_gene_tables(
                 VALUES (?, ?)""",
                 (entry.row_id, mouse_symbol),
             )
+    cur.executemany(
+        """INSERT INTO central_gene_usage (
+        central_gene_id, table_name, species, matched_name)
+        VALUES (?, ?, ?, ?)""",
+        usage_rows,
+    )
+    # table_name is the subsetter's filter column; central_gene_id is the join
+    # back to the surviving genes. The WITHOUT ROWID PK already covers
+    # central_gene_id as a prefix, so only table_name needs its own index.
+    create_indexes(
+        conn,
+        "central_gene_usage",
+        ["table_name"],
+        skip=no_index,
+    )
     create_indexes(
         conn,
         "central_gene",
@@ -252,6 +291,9 @@ def load_data_tables(
         """CREATE TABLE data_tables (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         table_name TEXT,
+        -- The data/datasets/<name> directory this table was defined in (#225).
+        -- Distinct from table_name: one dataset may define several tables.
+        dataset TEXT,
         short_label TEXT,
         medium_label TEXT,
         long_label TEXT,
@@ -270,6 +312,7 @@ def load_data_tables(
         column_labels TEXT,
         organism TEXT,
         organism_key TEXT,
+        publication_title TEXT,
         publication_first_author TEXT,
         publication_last_author TEXT,
         publication_author_count INTEGER,
@@ -286,6 +329,10 @@ def load_data_tables(
         why_excluded_from_meta_analysis TEXT,
         include_in_overview_matrix INTEGER NOT NULL DEFAULT 0,
         expand_in_overview_matrix INTEGER NOT NULL DEFAULT 0,
+        overview_matrix_phenotype_column TEXT,
+        overview_matrix_phenotype_columns TEXT,
+        overview_matrix_metric TEXT,
+        overview_matrix_metric_domain TEXT,
         preprocessing TEXT)"""
     )
     log = get_sspsygene_logger()
@@ -370,6 +417,7 @@ def load_data_tables(
         # one-line dict edit — no counting a long row of positional `?`.
         row = {
             "table_name": table_config.table,
+            "dataset": table_config.dataset,
             "short_label": table_config.short_label,
             "medium_label": table_config.medium_label,
             "long_label": table_config.long_label,
@@ -405,6 +453,7 @@ def load_data_tables(
             "organism_key": ",".join(table_config.organism_key)
             if table_config.organism_key
             else None,
+            "publication_title": table_config.publication_title,
             "publication_first_author": table_config.publication_first_author,
             "publication_last_author": table_config.publication_last_author,
             "publication_author_count": table_config.publication_author_count,
@@ -429,6 +478,20 @@ def load_data_tables(
             "expand_in_overview_matrix": 1
             if table_config.overview_matrix_expand
             else 0,
+            "overview_matrix_phenotype_column": (
+                table_config.overview_matrix_phenotype_column
+            ),
+            "overview_matrix_phenotype_columns": (
+                json.dumps(table_config.overview_matrix_phenotype_columns)
+                if table_config.overview_matrix_phenotype_columns
+                else None
+            ),
+            "overview_matrix_metric": table_config.overview_matrix_metric,
+            "overview_matrix_metric_domain": (
+                json.dumps(table_config.overview_matrix_metric_domain)
+                if table_config.overview_matrix_metric_domain is not None
+                else None
+            ),
             "preprocessing": json.dumps(preprocessing_dict)
             if preprocessing_dict
             else None,
@@ -459,7 +522,7 @@ def load_data_tables(
     create_indexes(
         conn,
         "data_tables",
-        ["table_name", "gene_species", "link_tables"],
+        ["table_name", "dataset", "gene_species", "link_tables"],
         skip=no_index,
     )
     create_indexes(
@@ -500,6 +563,55 @@ def load_data_tables(
             f"  {click.style(str(len(loaded)), bold=True)} loaded, "
             f"{click.style(str(len(skipped)), bold=True)} skipped"
         )
+
+
+def load_dataset_destinations(
+    conn: sqlite3.Connection,
+    table_configs: list[TableToProcessConfig],
+    *,
+    no_index: bool = False,
+) -> None:
+    """Record each table's declared `deployTo` destinations in the DB (#225).
+
+    This is the in-DB copy of the labels from data/datasets/*/config.yaml. It
+    lets `subset-db` and `verify-destination` work from the DB alone, and lets
+    the verifier cross-check the DB against the on-disk configs — a mismatch
+    between the two is itself a failure, which is what makes the check
+    independent of the code that produced the file rather than a restatement
+    of it.
+
+    Membership is derived from what actually landed in `data_tables`, so a
+    table skipped via --skip-missing-datasets contributes no rows and the two
+    sets stay in exact agreement.
+    """
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE dataset_destinations (
+        dataset TEXT NOT NULL,
+        table_name TEXT NOT NULL,
+        destination TEXT NOT NULL,
+        PRIMARY KEY (dataset, table_name, destination)
+        ) WITHOUT ROWID"""
+    )
+    present = {
+        row[0] for row in cur.execute("SELECT table_name FROM data_tables")
+    }
+    rows = [
+        (table_config.dataset, table_config.table, destination)
+        for table_config in table_configs
+        if table_config.table in present
+        for destination in sorted(table_config.deploy_to)
+    ]
+    cur.executemany(
+        "INSERT OR IGNORE INTO dataset_destinations "
+        "(dataset, table_name, destination) VALUES (?, ?, ?)",
+        rows,
+    )
+    # The subsetter and the verifier both filter by destination, then by table.
+    create_indexes(
+        conn, "dataset_destinations", ["destination", "table_name"], skip=no_index
+    )
+    conn.commit()
 
 
 def load_assay_types(conn: sqlite3.Connection, assay_types: dict[str, str]) -> None:
@@ -655,13 +767,14 @@ def load_db(
     data_dir: Path | None = None,
     skip_gene_descriptions: bool = False,
     test_central_gene_ids: set[int] | None = None,
-    expression_min_regions: int = 1,
 ) -> None:
     """Build the dataset SQLite DB (sspsygene.db) and atomically swap it in.
 
-    As of issue #176 this does NOT compute the combined-p-value meta-analysis.
-    That is a separate, slower-cadence step (`sspsygene meta-analysis`) that
-    reads this DB and writes its own file (sspsygene-meta.db)."""
+    As of issue #176 this does NOT compute the combined-p-value meta-analysis,
+    and as of the #222 follow-up it does NOT materialize the overview matrix
+    either. Both are separate, independent-cadence steps that read this DB and
+    write their own files (`sspsygene meta-analysis` → sspsygene-meta.db;
+    `sspsygene overview-matrix` → sspsygene-overview.db)."""
     logger = logging.getLogger(__name__)
     db_name.parent.mkdir(parents=True, exist_ok=True)
 
@@ -681,23 +794,28 @@ def load_db(
             test_central_gene_ids=test_central_gene_ids,
             column_header_tokens=column_header_tokens,
         )
+        # Must run after load_data_tables: membership is read back out of
+        # `data_tables` so the two sets agree exactly even when a table was
+        # skipped for a missing input file (#225).
+        load_dataset_destinations(conn, table_configs, no_index=no_index)
         load_gene_tables(conn, no_index=no_index)
         compute_ensembl_to_symbol(conn, no_index=no_index)
         load_assay_types(conn, assay_types or {})
         load_condition_types(conn, condition_types or {})
         load_organism_types(conn, organism_types or {})
         load_modalities(conn, modalities or [])
-        # Every dataset table, link table, `data_tables`, `central_gene` and
-        # `modalities` exist by now, which is everything the overview matrix is
-        # derived from (#222). Inside the staging connection, so the result
-        # rides the same atomic swap (and the same group-writable chmod).
-        materialize_overview_matrix(
-            conn, no_index=no_index, min_groups=expression_min_regions
-        )
+        # The overview matrix (#222) is derived purely from the tables built
+        # above, but it is materialized into its own file by `sspsygene
+        # overview-matrix` (see run_overview_matrix) rather than inline here, so
+        # the main dataset DB stays lean and the matrix rebuilds on its own
+        # cadence — the same separation as the meta-analysis (#176).
         if data_dir and not skip_gene_descriptions:
             copy_gene_descriptions(conn, data_dir, no_index=no_index)
         if data_dir:
             load_llm_search_results(conn, data_dir, no_index=no_index)
+        # Identity of this build, carried by the meta / overview DBs derived
+        # from it and preserved across promotion copies (#225).
+        write_build_info(conn)
 
     # Build the user-facing download artifacts as BLOBs in the staging DB
     # (per-table TSVs, metadata YAMLs, preprocessing YAMLs, manifest, README,
@@ -767,32 +885,40 @@ def _checkpoint_and_swap(staging: Path, db_name: Path) -> None:
 
 # Schema version of the meta DB layout. Bump if the combined_pvalue_groups /
 # per-group table shape changes in a way the web app must notice.
-META_SCHEMA_VERSION = "1"
+#
+# 2 (#225): the source-DB fingerprint is a build UUID read from the main DB's
+# `build_info` table rather than the main DB file's (mtime, size).
+META_SCHEMA_VERSION = "2"
+
+
 
 
 def _write_meta_analysis_info(
     conn: sqlite3.Connection,
-    main_db: Path,
     deg_assays: set[str] | None,
 ) -> None:
     """Record provenance + a fingerprint of the source dataset DB into the meta
     DB, so the web app can detect when the meta-analysis has drifted from the
     underlying datasets and show a stale-meta banner (issue #176).
 
-    The fingerprint is the source DB's (mtime, size) at meta-build time. The
-    dataset build's atomic swap mints a fresh inode + mtime on every `load-db`,
-    so any dataset rebuild bumps the fingerprint and marks the meta as stale
-    until `meta-analysis` is re-run. This is an advisory signal, not a hard
-    consistency guarantee — the banner never blocks rendering."""
-    st = main_db.stat()
+    The fingerprint is the source DB's `build_info.build_uuid` (#225). It used
+    to be the source file's (mtime, size), which was wrong the moment we
+    started *copying* built DBs between instances: `cp` gives the target's main
+    DB a fresh mtime, so a correctly-promoted meta DB read as permanently
+    stale. The UUID is a property of the build, not the file, so it survives
+    both the promotion copy and `subset-db`.
+
+    Advisory only — the banner never blocks rendering, and a source DB with no
+    build_info (predating #225) records no fingerprint rather than failing."""
     built_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
     info: dict[str, str] = {
         "schema_version": META_SCHEMA_VERSION,
         "built_at": built_at,
-        "source_db_mtime": repr(st.st_mtime),
-        "source_db_size": str(st.st_size),
         "meta_assays": ",".join(sorted(deg_assays)) if deg_assays else "",
     }
+    source_uuid = read_build_uuid(conn, "src")
+    if source_uuid is not None:
+        info["source_build_uuid"] = source_uuid
     conn.execute(
         "CREATE TABLE meta_analysis_info (key TEXT PRIMARY KEY, value TEXT)"
     )
@@ -846,7 +972,9 @@ def run_meta_analysis(
             src_schema="src",
             deg_assays=deg_assays,
         )
-        _write_meta_analysis_info(conn, main_db, deg_assays)
+        # Must run while `src` is still ATTACHed — it reads the source's
+        # build_info.build_uuid through it.
+        _write_meta_analysis_info(conn, deg_assays)
         # Detach before the context manager's PRAGMA optimize / commit so those
         # never reach across into the read-only source DB.
         conn.execute("DETACH DATABASE src")
@@ -855,5 +983,73 @@ def run_meta_analysis(
     click.echo(
         click.style(
             f"Wrote meta-analysis to {meta_db}", fg="green", bold=True
+        )
+    )
+
+
+def run_overview_matrix(
+    main_db: Path,
+    overview_db: Path,
+    *,
+    no_index: bool = False,
+    min_groups: int = 2,
+    panel_gene_list: Path | None = None,
+) -> None:
+    """Materialize the collated overview matrix into a standalone DB (#222).
+
+    Reads the already-built dataset DB at `main_db` (ATTACHed read-only as
+    `src`), materializes the `overview_matrix_*` tables, and atomically swaps
+    the result onto `overview_db`. Never touches `main_db`.
+
+    This is the overview-matrix analogue of `run_meta_analysis`: a second,
+    independent-cadence build over the dataset DB (`load-db` then
+    `overview-matrix`), so the main DB stays lean and the web app reads the
+    matrix from its own ATTACHed file.
+
+    `panel_gene_list` points at `data/sspsygene_genes.txt`; the matrix's rows are
+    restricted to the consortium genes it names (#228). Required — a missing file
+    is an error rather than a silent unfiltered build, because an unfiltered
+    matrix looks plausible and is wrong (it is dominated by CNV passenger genes)."""
+    logger = logging.getLogger(__name__)
+    if not main_db.exists():
+        raise ValueError(
+            f"Dataset DB not found at {main_db}; run `sspsygene load-db` first."
+        )
+    if panel_gene_list is None or not panel_gene_list.exists():
+        raise ValueError(
+            f"SSPsyGene gene list not found at {panel_gene_list}. The overview "
+            "matrix restricts its rows to the consortium panel and will not "
+            "build without it."
+        )
+    overview_db.parent.mkdir(parents=True, exist_ok=True)
+    staging = _staging_path(overview_db)
+
+    with NewSqlite3(staging, logger) as new_sqlite3:
+        conn = new_sqlite3.conn
+        # ATTACH the dataset DB read-only so the build reads its tables without
+        # ever locking or mutating the file the web app serves. URI attach is
+        # honored because NewSqlite3 opens the connection with uri=True.
+        conn.execute(f"ATTACH DATABASE 'file:{main_db}?mode=ro' AS src")
+        panel_symbols = load_panel_symbols(panel_gene_list)
+        panel_gene_ids = resolve_panel_gene_ids(conn, panel_symbols, "src")
+        click.echo(
+            f"SSPsyGene panel: {len(panel_symbols)} symbols → "
+            f"{len(panel_gene_ids)} central genes (matrix rows restricted to these)"
+        )
+        materialize_overview_matrix(
+            conn,
+            no_index=no_index,
+            min_groups=min_groups,
+            src_schema="src",
+            panel_gene_ids=panel_gene_ids,
+        )
+        # Detach before the context manager's PRAGMA optimize / commit so those
+        # never reach across into the read-only source DB.
+        conn.execute("DETACH DATABASE src")
+
+    _checkpoint_and_swap(staging, overview_db)
+    click.echo(
+        click.style(
+            f"Wrote overview matrix to {overview_db}", fg="green", bold=True
         )
     )

@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 from processing.config import get_sspsygene_config
-from processing.sq_load import load_db
+from processing.sq_load import load_db, run_overview_matrix
 
 
 def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
@@ -62,10 +62,127 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
         _assert_ensembl_to_symbol(conn)
         _assert_lookup_tables(conn)
         _assert_changelog(conn)
-        _assert_overview_matrix(conn)
         _assert_export_files(conn)
+        _assert_dataset_destinations(conn)
+        _assert_central_gene_usage(conn)
     finally:
         conn.close()
+
+    # The overview matrix (#222) is materialized into its own file by a separate
+    # command chain (`overview-matrix`), reading the dataset DB just built.
+    overview_db = config.overview_db
+    assert not overview_db.exists()
+    # min_groups=1 so the fixture's single-perturbation columns still materialize
+    # (the default floor is 2; the fixture is too small to exercise it).
+    run_overview_matrix(
+        out_db,
+        overview_db,
+        no_index=True,
+        min_groups=1,
+        panel_gene_list=config.sspsygene_gene_list,
+    )
+    assert overview_db.exists()
+    assert not overview_db.with_name(overview_db.name + ".new").exists()
+
+    overview_conn = sqlite3.connect(overview_db)
+    overview_conn.row_factory = sqlite3.Row
+    try:
+        _assert_overview_matrix(overview_conn)
+    finally:
+        overview_conn.close()
+
+
+def _assert_dataset_destinations(conn: sqlite3.Connection) -> None:
+    """`dataset_destinations` mirrors the fixtures' deployTo lists (#225)."""
+    rows = {
+        (r["dataset"], r["table_name"], r["destination"])
+        for r in conn.execute("SELECT * FROM dataset_destinations")
+    }
+    assert rows == {
+        ("mini_perturb", "mini_perturb_deg", "dev"),
+        ("mini_perturb", "mini_perturb_deg", "prod"),
+        ("mini_embargoed", "mini_embargoed_deg", "dev"),
+    }
+
+    # The destination set must agree exactly with data_tables — nothing
+    # labelled that wasn't built, nothing built that wasn't labelled.
+    labelled = {r[0] for r in conn.execute(
+        "SELECT DISTINCT table_name FROM dataset_destinations"
+    )}
+    built = {r[0] for r in conn.execute("SELECT table_name FROM data_tables")}
+    assert labelled == built
+
+    # data_tables.dataset carries the dataset directory name (#225).
+    assert {
+        (r["table_name"], r["dataset"])
+        for r in conn.execute("SELECT table_name, dataset FROM data_tables")
+    } == {
+        ("mini_perturb_deg", "mini_perturb"),
+        ("mini_embargoed_deg", "mini_embargoed"),
+    }
+
+
+def _assert_central_gene_usage(conn: sqlite3.Connection) -> None:
+    """`central_gene_usage` keeps the (gene, table, name) pairing that
+    central_gene's flattened columns throw away (#225)."""
+    usage = [
+        (r["central_gene_id"], r["table_name"], r["species"], r["matched_name"])
+        for r in conn.execute("SELECT * FROM central_gene_usage")
+    ]
+    assert usage, "central_gene_usage must not be empty"
+    assert {u[1] for u in usage} == {"mini_perturb_deg", "mini_embargoed_deg"}
+    assert {u[2] for u in usage} == {"mouse"}
+
+    # Every usage row points at a central_gene row that survived `used`.
+    gene_ids = {r[0] for r in conn.execute("SELECT id FROM central_gene")}
+    assert {u[0] for u in usage} <= gene_ids
+
+    # The flattened aggregates must be exactly re-derivable from the usage
+    # rows — that equivalence is what lets subset-db recompute them.
+    for row in conn.execute(
+        "SELECT id, dataset_names, num_datasets FROM central_gene"
+    ):
+        derived = {
+            r[0]
+            for r in conn.execute(
+                "SELECT DISTINCT table_name FROM central_gene_usage "
+                "WHERE central_gene_id = ?",
+                (row["id"],),
+            )
+        }
+        assert derived == set((row["dataset_names"] or "").split(",")) - {""}
+        assert len(derived) == row["num_datasets"]
+
+    # Genes reached only by the dev-only dataset exist and are attributable to
+    # it alone — these are the rows a prod subset must drop entirely.
+    pax6_only = conn.execute(
+        "SELECT DISTINCT table_name FROM central_gene_usage "
+        "WHERE matched_name = 'Pax6'"
+    ).fetchall()
+    assert [r[0] for r in pax6_only] == ["mini_embargoed_deg"]
+
+    # Tcf4 is shared: a prod subset must keep it but shrink num_datasets.
+    tcf4 = {
+        r[0]
+        for r in conn.execute(
+            "SELECT DISTINCT table_name FROM central_gene_usage "
+            "WHERE matched_name = 'Tcf4'"
+        )
+    }
+    assert tcf4 == {"mini_perturb_deg", "mini_embargoed_deg"}
+
+    # The non-resolving stub paths (record_values / control_values) record
+    # usages too, so manually-added entries drop cleanly when their table is
+    # not a subset member.
+    stub_names = {
+        r[0]
+        for r in conn.execute(
+            "SELECT matched_name FROM central_gene_usage u "
+            "JOIN central_gene g ON g.id = u.central_gene_id "
+            "WHERE g.manually_added = 1"
+        )
+    }
+    assert {"Gm99999", "NonTarget1", "Gm88888", "NonTarget2"} <= stub_names
 
 
 def _assert_data_tables_row(conn: sqlite3.Connection) -> None:
@@ -234,34 +351,23 @@ def _assert_changelog(conn: sqlite3.Connection) -> None:
 
 
 def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
-    """The overview matrix is materialized during load_db (#222).
+    """The overview matrix is materialized into its own DB by the separate
+    `overview-matrix` command (#222); `conn` is that overview DB.
 
     The fixture table is labeled `overview_matrix` + `overview_matrix_expand`
     with assay `perturbation`, which the fixture taxonomy maps to `perturb_seq`.
     Foxg1/Tbr1/Tcf4 are the perturbed genes; NonTarget1 is a control and must
-    not appear.
-    """
-    statuses = {
-        (row["human_symbol"], row["modality_key"]): (row["status"], row["count"])
-        for row in conn.execute(
-            "SELECT cg.human_symbol, c.modality_key, c.status, c.count "
-            "FROM overview_matrix_status_cells c "
-            "JOIN central_gene cg ON cg.id = c.central_gene_id"
-        )
-    }
-    # Foxg1 perturbs 4 rows, 3 of them significant (padj or pvalue < 0.05);
-    # Tbr1 2 rows, both significant; Tcf4 1 significant row.
-    assert statuses[("FOXG1", "perturb_seq")] == ("significant", 4)
-    assert statuses[("TBR1", "perturb_seq")] == ("significant", 2)
-    assert statuses[("TCF4", "perturb_seq")] == ("significant", 1)
-    assert not any(symbol == "NONTARGET1" for symbol, _ in statuses)
+    not appear. #213 removed the aggregated status columns — the rows are the
+    perturbed genes across the expanded tables.
 
+    mini_embargoed carries the same two flags but is dev-only, and the matrix
+    takes prod-labelled inputs only (#225) — so everything asserted here comes
+    from mini_perturb alone. Sox2 and Pax6 appear only in mini_embargoed, so
+    their absence below is what proves the prod filter actually ran.
+    """
     perturbed = {
         row["human_symbol"]
-        for row in conn.execute(
-            "SELECT cg.human_symbol FROM overview_matrix_genes g "
-            "JOIN central_gene cg ON cg.id = g.central_gene_id"
-        )
+        for row in conn.execute("SELECT human_symbol FROM overview_matrix_genes")
     }
     assert perturbed == {"FOXG1", "TBR1", "TCF4"}
 
@@ -269,9 +375,9 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
     # symbols here), strongest first: Tcf4 is significant under two
     # perturbations, the rest under one.
     columns = [
-        (row["column_value"], row["n_sig_regions"])
+        (row["column_value"], row["n_sig_groups"])
         for row in conn.execute(
-            "SELECT column_value, n_sig_regions FROM overview_matrix_expanded_columns "
+            "SELECT column_value, n_sig_groups FROM overview_matrix_expanded_columns "
             "ORDER BY sort_rank"
         )
     ]
@@ -280,16 +386,26 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
     assert not any(value == "Trp53" for value, _ in columns)
 
     cells = {
-        (row["human_symbol"], row["column_value"]): row["neg_log_p"]
+        (row["human_symbol"], row["column_value"]): row["value"]
         for row in conn.execute(
-            "SELECT cg.human_symbol, c.column_value, c.neg_log_p "
+            "SELECT g.human_symbol, c.column_value, c.value "
             "FROM overview_matrix_expanded_cells c "
-            "JOIN central_gene cg ON cg.id = c.central_gene_id"
+            "JOIN overview_matrix_genes g ON g.central_gene_id = c.central_gene_id"
         )
     }
     # -log10 of the most significant raw p for that (perturbed, measured) pair.
     assert cells[("TCF4", "Tcf4")] == round(-math.log10(7.1e-06), 3)
     assert cells[("TBR1", "Tcf4")] == round(-math.log10(0.00043), 3)
+    # mini_embargoed's Pax6 -> Sox2 rows are more significant than several of
+    # the above, so they would be columns/rows here if the prod-input filter
+    # were not applied.
+    assert "SOX2" not in perturbed
+    assert not any(value == "Pax6" for value, _ in columns)
+    info = dict(
+        (row["key"], row["value"])
+        for row in conn.execute("SELECT key, value FROM overview_matrix_info")
+    )
+    assert json.loads(info["expanded_source_tables"]) == ["mini_perturb_deg"]
     # Selenoo's other row is under the NonTarget1 control, which is excluded.
     assert set(cells) == {
         ("FOXG1", "Selenoo"),
@@ -298,6 +414,29 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
         ("TBR1", "Tcf4"),
         ("TCF4", "Tcf4"),
     }
+
+    # The collapsed per-dataset summary (#234) obeys the same prod-input filter:
+    # only mini_perturb_deg gets a column, never dev-only mini_embargoed.
+    summary_columns = [
+        (row["source_table"], row["modality_key"], row["n_readouts_total"])
+        for row in conn.execute(
+            "SELECT source_table, modality_key, n_readouts_total "
+            "FROM overview_matrix_summary_columns"
+        )
+    ]
+    assert summary_columns == [("mini_perturb_deg", "perturb_seq", 5)]
+    summary_cells = {
+        (row["human_symbol"], row["n_sig"], row["n_measured"])
+        for row in conn.execute(
+            "SELECT g.human_symbol, c.n_sig, c.n_measured "
+            "FROM overview_matrix_summary_cells c "
+            "JOIN overview_matrix_genes g ON g.central_gene_id = c.central_gene_id"
+        )
+    }
+    # Trp53 is measured under both Foxg1 and Tbr1 and clears FDR under neither,
+    # so it lifts n_measured without lifting n_sig — and it is not a column at
+    # all, which is exactly what a count taken over the columns would miss.
+    assert summary_cells == {("FOXG1", 3, 4), ("TBR1", 1, 2), ("TCF4", 1, 1)}
 
     info = dict(
         (row["key"], row["value"])

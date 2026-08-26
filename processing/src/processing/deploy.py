@@ -33,6 +33,21 @@ from pathlib import Path
 
 import click
 
+# Instance identity (names, /hive paths, labels, ports) lives in its own
+# dependency-free module so config.py can validate `deployTo:` against the same
+# list without importing the deploy stack (#225). Re-exported here because
+# callers and tests have always imported these names from `processing.deploy`.
+from processing.instances import (  # noqa: F401  (re-exported)
+    DEV_PATH,
+    INSTANCE_E2E_URLS,
+    INSTANCE_LABELS,
+    INSTANCE_ORDER,
+    INSTANCE_PATHS,
+    INSTANCE_PORTS,
+    INT_PATH,
+    PROD_PATH,
+)
+
 # ── Server / path configuration ──────────────────────────────────────────────
 
 PSYGENE = "psygene"
@@ -47,11 +62,6 @@ GIT_BRANCH = "main"
 # than failing with "host key verification failed" in non-interactive mode.
 PSYGENE_SSH_HOST = "psygene"
 PSYGENE_PROXY_JUMP = "hgwdev"
-
-PROD_PATH = "/hive/groups/SSPsyGene/sspsygene_website"
-DEV_PATH = "/hive/groups/SSPsyGene/sspsygene_website_dev"
-INT_PATH = "/hive/groups/SSPsyGene/sspsygene_website_int"
-
 
 def _site_env(path: str) -> dict[str, str]:
     env = {
@@ -79,23 +89,7 @@ PROD_ENV = _site_env(PROD_PATH)
 DEV_ENV = _site_env(DEV_PATH)
 INT_ENV = _site_env(INT_PATH)
 
-# Display/iteration order when --instances picks multiple. The three sites
-# are independent deploys (dev stages prod's public datasets; int is its own
-# parallel site for embargoed data, possibly disjoint from prod) — this
-# ordering is just for log readability, not a gating chain.
-INSTANCE_ORDER = ("dev", "int", "prod")
-INSTANCE_PATHS = {"dev": DEV_PATH, "int": INT_PATH, "prod": PROD_PATH}
 INSTANCE_ENVS = {"dev": DEV_ENV, "int": INT_ENV, "prod": PROD_ENV}
-INSTANCE_LABELS = {"dev": "Dev", "int": "Internal", "prod": "Production"}
-INSTANCE_E2E_URLS = {
-    "dev": "https://psypheno-dev.gi.ucsc.edu",
-    "int": "https://psypheno-int.gi.ucsc.edu",
-    "prod": "https://psypheno.gi.ucsc.edu",
-}
-# Ports each instance's `npm start` listens on (Apache reverse-proxies the
-# public URL to localhost:PORT). Used by _step_restart_psygene to target
-# only the deployed instance(s) rather than killing every Next.js process.
-INSTANCE_PORTS = {"dev": 3112, "int": 3111, "prod": 3110}
 
 CONDA_ENV = "sspsygene"
 # Source conda.sh from whichever common location exists for this user, so
@@ -765,6 +759,78 @@ def run_deploy_meta_analysis(
     click.secho("\nMeta-analysis deployment complete!", fg="green", bold=True)
 
 
+def _step_overview_matrix_site(
+    path: str,
+    *,
+    label: str,
+    min_sig_groups: int = 2,
+    env_vars: dict[str, str] | None = None,
+) -> None:
+    """Run `sspsygene overview-matrix` on one psygene site.
+
+    Reads that site's already-built sspsygene.db and writes its sibling
+    sspsygene-overview.db via atomic swap (#222). No build / restart needed: the
+    web process auto-detects the new overview DB file the same way it detects a
+    rebuilt sspsygene.db (web/lib/db.ts re-stats it). Multi-user-safe — it only
+    creates/replaces the overview DB file under the deployer's account (no
+    systemd / kill interaction), so unlike the restart step it works the same
+    for any wrangler in the protein group. Mirrors _step_meta_analysis_site."""
+    click.echo(f"\n  --- overview-matrix: {label} ({path}) ---")
+    env_prefix = ""
+    if env_vars:
+        env_prefix = " ".join(f"{k}={v}" for k, v in env_vars.items()) + " "
+    cmd = (
+        f"cd {path} && "
+        f"{CONDA_INIT} && "
+        f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} "
+        f"sspsygene overview-matrix --min-sig-groups {min_sig_groups}"
+    )
+    _run_ssh(
+        PSYGENE,
+        cmd,
+        desc="sspsygene overview-matrix",
+        timeout=LOAD_DB_TIMEOUT,
+        stream=True,
+    )
+
+
+def run_deploy_overview(
+    *,
+    no_push: bool = False,
+    instances: str | None = None,
+    min_sig_groups: int = 2,
+) -> None:
+    """Refresh sspsygene-overview.db on the selected psygene sites (#222).
+
+    The overview chain is independent of the dataset/deploy chain, exactly like
+    the meta-analysis chain (#176): it pushes + pulls code (so the server runs
+    the current materializer), then runs `sspsygene overview-matrix` on each
+    selected site against that site's existing sspsygene.db. It does NOT rebuild
+    datasets, build the web app, or restart services. Invoke on your own cadence
+    when the matrix needs refreshing (e.g. after adding a perturbation dataset
+    or retuning the expansion threshold)."""
+    selected = _resolve_instances(instances)
+    _preflight_checks()
+
+    if no_push:
+        click.secho("\n[1/3] Skipping git push (--no-push)", bold=True)
+    else:
+        _step_push()
+
+    _step_pull_all(selected)
+
+    click.secho("\n[3/3] Running overview-matrix on selected sites", bold=True)
+    for inst in selected:
+        _step_overview_matrix_site(
+            INSTANCE_PATHS[inst],
+            label=INSTANCE_LABELS[inst],
+            min_sig_groups=min_sig_groups,
+            env_vars=INSTANCE_ENVS[inst],
+        )
+
+    click.secho("\nOverview-matrix deployment complete!", fg="green", bold=True)
+
+
 def _step_restart_psygene(instances: list[str]) -> None:
     """Restart Next.js processes on psygene for the given instances.
 
@@ -818,27 +884,40 @@ def _step_restart_psygene(instances: list[str]) -> None:
         )
         click.echo("  Processes killed — systemd should restart them automatically.")
 
-    # Wait for each instance's public URL to come back. systemd respawn is
-    # usually quick (<5s) but the first request after restart can take a
-    # few seconds while Next.js warms up.
+    # Wait for each instance to come back. systemd respawn is usually quick
+    # (<5s) but the first request after restart can take a few seconds while
+    # Next.js warms up.
+    #
+    # Probe localhost on psygene rather than the public URL, mirroring
+    # `_wait_for_local_service`: the public hostnames sit behind Apache basic
+    # auth (int today, dev soon), and Apache answers 401 for *every* path
+    # without ever proxying to Next.js. An unauthenticated public probe
+    # therefore fails on a healthy instance — and treating its 401 as success
+    # would be worse, passing even when the service is dead. localhost hits the
+    # process we just respawned, needs no credentials, and so behaves the same
+    # for every wrangler.
+    #
+    # The retry loop runs remotely so waiting costs one SSH round-trip per
+    # instance instead of one per poll.
     for inst in instances:
-        url = f"{INSTANCE_E2E_URLS[inst]}/api/full-datasets"
-        click.echo(f"  Waiting for {INSTANCE_LABELS[inst]} ({url}) to respond...")
-        deadline = time.monotonic() + 60
-        while time.monotonic() < deadline:
-            probe = subprocess.run(
-                ["curl", "-fsS", "--max-time", "5", url],
-                capture_output=True,
-                text=True,
-            )
-            if probe.returncode == 0:
-                click.echo(f"    -> {INSTANCE_LABELS[inst]} is up.")
-                break
-            time.sleep(2)
-        else:
+        port = INSTANCE_PORTS[inst]
+        url = f"http://localhost:{port}/api/full-datasets"
+        click.echo(f"  Waiting for {INSTANCE_LABELS[inst]} ({url} on {PSYGENE})...")
+        probe = _run_ssh(
+            PSYGENE,
+            f'end=$(( $(date +%s) + 60 )); '
+            f'while [ "$(date +%s)" -lt "$end" ]; do '
+            f"curl -fsS --max-time 5 {url} >/dev/null 2>&1 && exit 0; "
+            f"sleep 2; done; exit 1",
+            desc=f"Polling {url} until it answers",
+            check=False,
+        )
+        if probe.returncode != 0:
             raise DeployError(
-                f"Timed out after 60s waiting for {INSTANCE_LABELS[inst]} to respond at {url}"
+                f"Timed out after 60s waiting for {INSTANCE_LABELS[inst]} to "
+                f"respond at {url} on {PSYGENE}"
             )
+        click.echo(f"    -> {INSTANCE_LABELS[inst]} is up.")
 
 
 # ── Standalone restart (run directly on psygene) ─────────────────────────────
@@ -950,12 +1029,30 @@ def run_restart(instances: list[str]) -> None:
 # no service restart is needed — which makes this multi-user-safe (no
 # systemd/kill interaction, unlike `deploy --restart`).
 #
-# Direction is asymmetric on purpose (issue #178): only dev → prod. There is no
-# copy-from-prod (no reason to overwrite dev with prod's older build) and int is
-# never a source or target (it carries its own, possibly-embargoed dataset set).
+# Direction is asymmetric on purpose (issue #178): only dev → prod, and now
+# also dev → int (#225). There is no copy-from-prod and no copy-from-int — dev
+# is the only source, because dev is the only site that builds. int used to be
+# neither a source nor a target; it is now a *target* of dev (still never a
+# source), because its dataset set is a declared subset of dev's rather than an
+# independently-built tree.
+#
+# Since #225 a promotion is no longer a straight file copy of the main DB. dev
+# builds the superset; `subset-db` derives the destination's DB from it on dev,
+# the destination guard checks the result before anything is copied and again
+# after the swap, and the `-meta` / `-overview` DBs are copied verbatim because
+# they are computed from prod-labelled inputs only and are therefore
+# destination-independent by construction.
 
 DB_FILENAME = "sspsygene.db"
 META_DB_FILENAME = "sspsygene-meta.db"
+# The overview DB was never promoted before #225, so prod's went stale after
+# every promote with no warning.
+OVERVIEW_DB_FILENAME = "sspsygene-overview.db"
+
+
+def _subset_db_filename(destination: str) -> str:
+    """Where `subset-db` stages a destination's DB, inside *dev's* db dir."""
+    return f"sspsygene-{destination}.db"
 
 
 def _db_file(site_path: str, filename: str) -> str:
@@ -1054,14 +1151,43 @@ def _sqlite_scalar(
         return None
 
 
-def _assert_source_db(
-    local: bool, db_path: str, *, label: str, min_data_tables: int
-) -> int:
-    """Refuse to promote unless dev's *db_path* exists and looks sane.
+def _sqlite_rows(
+    local: bool,
+    db_path: str,
+    query: str,
+    *,
+    desc: str,
+    check: bool = True,
+) -> list[str] | None:
+    """Like `_sqlite_scalar`, but for a single-column SELECT of strings.
 
-    Returns the `data_tables` row count so the caller can verify prod matches
-    it after the swap. Hard-fails (DeployError) if the file is missing or the
-    smoke count is below `min_data_tables`.
+    The exact-set source check needs table *names*, not a count, and shells out
+    the same way (`python3 -c`, read-only URI) so the local-transport tests
+    exercise the real command without SSH.
+    """
+    code = (
+        "import sqlite3;"
+        f"c=sqlite3.connect('file:{db_path}?mode=ro',uri=True);"
+        f"print('\\n'.join(str(r[0]) for r in c.execute({query!r})))"
+    )
+    cmd = f"python3 -c {shlex.quote(code)}"
+    result = _run_promote(local, cmd, desc=desc, check=check)
+    if result.returncode != 0:
+        return None
+    return [line for line in (result.stdout or "").splitlines() if line.strip()]
+
+
+def _assert_source_db(
+    local: bool, db_path: str, *, label: str, destination: str
+) -> set[str]:
+    """Refuse to promote unless dev's *db_path* exists and is complete.
+
+    Returns the set of tables labelled for `destination`, which the caller uses
+    as the expected content of the promoted DB.
+
+    Before #225 this was `count >= --min-data-tables`, which is fail-open: it
+    passes for any build that isn't empty, including one that silently dropped
+    half its datasets. The check is now the exact set the labels call for.
     """
     exists = _run_promote(
         local,
@@ -1074,62 +1200,155 @@ def _assert_source_db(
             f"Source {label} not found on dev at {db_path}. Build it on dev "
             "first (`sspsygene deploy --load-db --instances dev`)."
         )
-    count = _sqlite_scalar(
+
+    labelled = _sqlite_rows(
         local,
         db_path,
-        "SELECT count(*) FROM data_tables",
-        desc=f"Smoke-checking {label} (data_tables row count)",
+        "SELECT DISTINCT table_name FROM dataset_destinations "
+        f"WHERE destination = '{destination}'",
+        desc=f"Reading {label} destination labels for {destination}",
+        check=False,
     )
-    if count is None or count < min_data_tables:
+    if labelled is None:
         raise DeployError(
-            f"Source {label} smoke check failed: data_tables has "
-            f"{count if count is not None else 'an unreadable number of'} "
-            f"row(s), need at least {min_data_tables}. Refusing to promote a "
-            "stale/empty build to prod."
+            f"Source {label} has no readable `dataset_destinations` table. A "
+            f"DB built before #225 cannot have its contents attributed to a "
+            f"destination, so it must not be promoted. Rebuild dev with "
+            f"`sspsygene deploy --load-db --instances dev` first."
         )
-    click.echo(f"  -> {label}: {count} data_tables row(s) — OK")
-    return count
+    if not labelled:
+        raise DeployError(
+            f"No dataset in dev's {label} is labelled `deployTo: [{destination}]`. "
+            f"Refusing to promote an empty dataset set — check the deployTo "
+            f"lists in data/datasets/*/config.yaml."
+        )
+
+    built = _sqlite_rows(
+        local,
+        db_path,
+        "SELECT table_name FROM data_tables",
+        desc=f"Reading {label} data_tables",
+    )
+    missing = set(labelled) - set(built or [])
+    if missing:
+        raise DeployError(
+            f"Source {label} is missing {len(missing)} table(s) labelled for "
+            f"{destination}: {sorted(missing)}. Promoting would publish an "
+            f"incomplete dataset set. Rebuild dev (a partial build usually "
+            f"means `--skip-missing-datasets` hid a missing input file)."
+        )
+    click.echo(
+        f"  -> {label}: {len(built or [])} data_tables row(s), "
+        f"{len(labelled)} labelled for {destination} — OK"
+    )
+    return set(labelled)
 
 
-def run_promote_dev_to_prod(
+def _site_sspsygene_cmd(site_path: str, argv: list[str]) -> str:
+    """Shell command running `sspsygene <argv>` inside *site_path*'s checkout.
+
+    The single place that builds a conda invocation for the promote path. The
+    promote path otherwise uses plain `python3` (the `sspsygene` entry point
+    isn't on a bare psygene PATH), but subset-db and verify-destination are
+    real subcommands, so they need the env — the same shape `_step_deploy_site`
+    uses. Factored out so the promote tests can drive the real cp/mv transport
+    against temp dirs while substituting a locally-runnable invocation.
+    """
+    env_prefix = "".join(
+        f"{k}={shlex.quote(v)} " for k, v in sorted(INSTANCE_ENVS["dev"].items())
+    )
+    args = " ".join(shlex.quote(a) for a in argv)
+    return (
+        f"cd {site_path} && {CONDA_INIT} && "
+        f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} "
+        f"sspsygene {args}"
+    )
+
+
+def _remote_verify_destination(
+    local: bool, site_path: str, db_path: str, destination: str, *, when: str
+) -> None:
+    """Run `sspsygene verify-destination` against *db_path*, from *site_path*."""
+    cmd = _site_sspsygene_cmd(
+        site_path,
+        [
+            "verify-destination",
+            db_path,
+            "--destination",
+            destination,
+            "--config-root",
+            f"{site_path}/data/datasets",
+        ],
+    )
+    result = _run_promote(
+        local, cmd, desc=f"Verifying {destination} DB ({when})",
+        timeout=LOAD_DB_TIMEOUT, check=False,
+    )
+    if result.returncode != 0:
+        raise DeployError(
+            f"Destination check FAILED {when}:\n\n"
+            f"{result.stdout}\n{result.stderr}\n\n"
+            f"The promotion has been aborted and {destination} was left "
+            f"untouched."
+        )
+
+
+def run_promote_dev_to(
+    destination: str,
     *,
     include_meta_analysis: bool = True,
     local: bool | None = None,
     dry_run: bool = False,
-    min_data_tables: int = 1,
 ) -> None:
-    """Copy dev's built SQLite DB file(s) into prod and atomically swap them in.
+    """Derive `destination`'s DB from dev's superset build and swap it in.
 
-    Promotes a *verified* dev build to prod without re-running preprocess /
-    load-db on prod — dev becomes the source-of-truth build server, so prod
-    serves byte-identical bytes (issue #178). Copies the main dataset DB
-    (`sspsygene.db`) and, by default, the meta-analysis DB (`sspsygene-meta.db`)
-    when dev has one; pass `include_meta_analysis=False` to copy only the main
-    DB. Both files are copied into prod's db dir as `.new` siblings first, then
-    renamed back-to-back, minimising the window where prod's main and meta DBs
-    disagree. No restart: the web app re-opens on inode change.
+    dev is the only site that builds (issue #178, extended by #225). A
+    promotion:
 
-    `local=None` auto-detects whether to run the copy locally (on hgwdev/psygene)
-    or over SSH (from a laptop). int is never involved — neither source nor
-    target.
+      1. checks dev's build is complete for this destination — the exact set of
+         tables its `deployTo` labels call for, not merely "non-empty";
+      2. runs `subset-db` on dev to derive the destination's main DB, which
+         verifies its own output before writing it;
+      3. copies that file plus dev's `-meta` and `-overview` DBs into the
+         target's db dir as `.new` siblings;
+      4. verifies the staged `.new` main DB, then renames all three
+         back-to-back;
+      5. verifies again on the target, after the swap.
+
+    The meta and overview DBs are copied *verbatim* rather than subsetted: they
+    are computed from prod-labelled inputs only (#225), so the same bytes are
+    correct on every instance, and rebuilding them per site would miss the
+    entire R cache (it keys on the p-value bytes).
+
+    No restart: the web app re-opens on inode change, which is what makes this
+    multi-user-safe — no systemd/kill interaction, unlike `deploy --restart`.
     """
+    if destination not in ("int", "prod"):
+        raise DeployError(
+            f"promote target must be 'int' or 'prod', got {destination!r}. "
+            f"dev is the source, never a target."
+        )
+    target_path = INSTANCE_PATHS[destination]
     local = _resolve_promote_local(local)
     where = "locally" if local else "over SSH (proxy-jump hgwdev)"
     click.secho(
-        f"Promote dev → prod (copy built DB file{'s' if include_meta_analysis else ''}, "
+        f"Promote dev → {destination} (subset + copy built DB files, "
         f"running {where})",
         bold=True,
     )
 
     src_main = _db_file(DEV_PATH, DB_FILENAME)
-    dst_main = _db_file(PROD_PATH, DB_FILENAME)
+    subset_main = _db_file(DEV_PATH, _subset_db_filename(destination))
+    dst_main = _db_file(target_path, DB_FILENAME)
     src_meta = _db_file(DEV_PATH, META_DB_FILENAME)
-    dst_meta = _db_file(PROD_PATH, META_DB_FILENAME)
+    dst_meta = _db_file(target_path, META_DB_FILENAME)
+    src_overview = _db_file(DEV_PATH, OVERVIEW_DB_FILENAME)
+    dst_overview = _db_file(target_path, OVERVIEW_DB_FILENAME)
 
-    # ── 1. Sanity-check the source(s) on dev ─────────────────────────────────
-    click.secho("\n[1/3] Checking dev source build", bold=True)
-    dev_main_count = _assert_source_db(
-        local, src_main, label="main DB", min_data_tables=min_data_tables
+    # ── 1. Sanity-check the source build on dev ──────────────────────────────
+    click.secho("\n[1/5] Checking dev source build", bold=True)
+    expected = _assert_source_db(
+        local, src_main, label="main DB", destination=destination
     )
 
     copy_meta = include_meta_analysis
@@ -1142,30 +1361,74 @@ def run_promote_dev_to_prod(
         )
         if meta_exists.returncode != 0:
             click.secho(
-                "  No meta-analysis DB on dev — skipping the meta copy. Prod's "
-                "existing meta DB (if any) is left untouched; it may now be "
-                "stale relative to the promoted main DB. Run `sspsygene "
-                "deploy-meta-analysis --instances dev` then re-promote to "
-                "refresh it.",
+                "  No meta-analysis DB on dev — skipping the meta copy. The "
+                f"existing {destination} meta DB (if any) is left untouched; "
+                "it may now be stale relative to the promoted main DB. Run "
+                "`sspsygene deploy-meta-analysis --instances dev` then "
+                "re-promote to refresh it.",
                 fg="yellow",
             )
             copy_meta = False
 
-    # ── 2. Copy into prod and atomically swap ────────────────────────────────
-    click.secho("\n[2/3] Copying into prod and swapping", bold=True)
-    pairs = [(src_main, dst_main, "main DB")]
-    if copy_meta:
-        pairs.append((src_meta, dst_meta, "meta DB"))
+    overview_exists = _run_promote(
+        local,
+        f"test -f {shlex.quote(src_overview)}",
+        desc=f"Checking overview DB exists ({src_overview})",
+        check=False,
+    )
+    copy_overview = overview_exists.returncode == 0
+    if not copy_overview:
+        click.secho(
+            "  No overview-matrix DB on dev — skipping the overview copy. Run "
+            "`sspsygene deploy-overview --instances dev` then re-promote.",
+            fg="yellow",
+        )
 
     if dry_run:
-        for src, dst, lbl in pairs:
-            click.echo(f"  [dry-run] would copy {lbl}: {src} -> {dst} (atomic swap)")
+        click.echo(
+            f"  [dry-run] would subset {src_main} -> {subset_main} "
+            f"({len(expected)} tables), then copy:"
+        )
+        click.echo(f"  [dry-run]   {subset_main} -> {dst_main}")
+        if copy_meta:
+            click.echo(f"  [dry-run]   {src_meta} -> {dst_meta}")
+        if copy_overview:
+            click.echo(f"  [dry-run]   {src_overview} -> {dst_overview}")
         click.secho("\n[dry-run] No files were modified.", fg="yellow", bold=True)
         return
 
-    # Copy every file to a `.new` sibling first, then rename them all — so the
-    # two DBs flip in quick succession rather than leaving a long window where
-    # prod's main DB is new but its meta DB is still old.
+    # ── 2. Derive the destination's DB, on dev ───────────────────────────────
+    click.secho(f"\n[2/5] Building the {destination} subset on dev", bold=True)
+    subset_cmd = _site_sspsygene_cmd(
+        DEV_PATH,
+        [
+            "subset-db",
+            "--destination", destination,
+            "--from", src_main,
+            "--to", subset_main,
+            "--config-root", f"{DEV_PATH}/data/datasets",
+        ],
+    )
+    result = _run_promote(
+        local, subset_cmd,
+        desc=f"sspsygene subset-db --destination {destination}",
+        timeout=LOAD_DB_TIMEOUT, check=False,
+    )
+    if result.returncode != 0:
+        raise DeployError(
+            f"subset-db failed; {destination} was left untouched:\n\n"
+            f"{result.stdout}\n{result.stderr}"
+        )
+    click.echo(f"  -> wrote {subset_main}")
+
+    # ── 3. Copy into the target as `.new` siblings ───────────────────────────
+    click.secho(f"\n[3/5] Copying into {destination}", bold=True)
+    pairs = [(subset_main, dst_main, "main DB")]
+    if copy_meta:
+        pairs.append((src_meta, dst_meta, "meta DB"))
+    if copy_overview:
+        pairs.append((src_overview, dst_overview, "overview DB"))
+
     copy_lines = "\n".join(
         f"cp -f {shlex.quote(src)} {shlex.quote(dst + '.new')}\n"
         # Keep the staged file group-writable so the next wrangler to promote
@@ -1174,54 +1437,116 @@ def run_promote_dev_to_prod(
         f"chmod g+w {shlex.quote(dst + '.new')} 2>/dev/null || true"
         for src, dst, _ in pairs
     )
+    _run_promote(
+        local, "set -e\n" + copy_lines,
+        desc=f"cp dev DB(s) → {destination} .new",
+        timeout=LOAD_DB_TIMEOUT,
+    )
+    for _, dst, lbl in pairs:
+        click.echo(f"  -> staged {lbl} at {dst}.new")
+
+    # ── 4. Verify the staged file, then swap all three back-to-back ──────────
+    #
+    # The copy and the swap used to be one shell invocation, which kept the
+    # window where the DBs disagree as short as possible. #225 splits them so a
+    # bad file can be caught while it is still a `.new` sibling nothing serves.
+    # The swap itself is still a single invocation, so the files still flip in
+    # quick succession.
+    click.secho("\n[4/5] Verifying staged DB, then swapping", bold=True)
+    _remote_verify_destination(
+        local, DEV_PATH, dst_main + ".new", destination, when="before the swap"
+    )
     swap_lines = "\n".join(
         f"mv -f {shlex.quote(dst + '.new')} {shlex.quote(dst)}" for _, dst, _ in pairs
     )
     _run_promote(
-        local,
-        "set -e\n" + copy_lines + "\n" + swap_lines,
-        desc="cp dev DB(s) → prod .new, then atomic mv swap",
+        local, "set -e\n" + swap_lines,
+        desc=f"atomic mv swap into {destination}",
         timeout=LOAD_DB_TIMEOUT,
     )
     for _, _, lbl in pairs:
-        click.echo(f"  -> swapped {lbl} into prod")
+        click.echo(f"  -> swapped {lbl} into {destination}")
 
-    # ── 3. Verify prod now serves the promoted bytes ─────────────────────────
-    click.secho("\n[3/3] Verifying prod", bold=True)
-    prod_main_count = _sqlite_scalar(
-        local,
-        dst_main,
-        "SELECT count(*) FROM data_tables",
-        desc="Re-reading prod main DB (data_tables row count)",
+    # ── 5. Verify the target after the swap ──────────────────────────────────
+    click.secho(f"\n[5/5] Verifying {destination}", bold=True)
+    promoted = _sqlite_rows(
+        local, dst_main, "SELECT table_name FROM data_tables",
+        desc=f"Re-reading {destination} main DB (data_tables)",
     )
-    if prod_main_count != dev_main_count:
+    if set(promoted or []) != expected:
         raise DeployError(
-            f"Post-swap check failed: prod main DB has {prod_main_count} "
-            f"data_tables row(s) but dev had {dev_main_count}. The copy may "
-            "not have landed — inspect prod's data/db/ manually."
+            f"Post-swap check failed: {destination}'s main DB has "
+            f"{len(promoted or [])} data table(s) but {len(expected)} are "
+            f"labelled for {destination}. Unexpected: "
+            f"{sorted(set(promoted or []) - expected)}; missing: "
+            f"{sorted(expected - set(promoted or []))}. Inspect "
+            f"{target_path}/data/db/ manually."
         )
+    _remote_verify_destination(
+        local, DEV_PATH, dst_main, destination, when="after the swap"
+    )
     click.echo(
-        f"  -> prod main DB matches dev ({prod_main_count} data_tables rows)."
+        f"  -> {destination} main DB matches its labels "
+        f"({len(expected)} data tables)."
     )
     if copy_meta:
-        prod_meta_groups = _sqlite_scalar(
-            local,
-            dst_meta,
-            "SELECT count(*) FROM combined_pvalue_groups",
-            desc="Re-reading prod meta DB (combined_pvalue_groups)",
+        groups = _sqlite_scalar(
+            local, dst_meta, "SELECT count(*) FROM combined_pvalue_groups",
+            desc=f"Re-reading {destination} meta DB (combined_pvalue_groups)",
             check=False,
         )
         click.echo(
-            f"  -> prod meta DB present "
-            f"({prod_meta_groups if prod_meta_groups is not None else '?'} "
-            "combined_pvalue_groups)."
+            f"  -> {destination} meta DB present "
+            f"({groups if groups is not None else '?'} combined_pvalue_groups)."
+        )
+    if copy_overview:
+        cols = _sqlite_scalar(
+            local, dst_overview,
+            "SELECT count(*) FROM overview_matrix_expanded_columns",
+            desc=f"Re-reading {destination} overview DB",
+            check=False,
+        )
+        click.echo(
+            f"  -> {destination} overview DB present "
+            f"({cols if cols is not None else '?'} expanded columns)."
         )
 
     click.secho(
-        "\nPromotion complete! Prod now serves dev's build. The web process "
-        "picks up the new DB inode on its next request — no restart needed.",
+        f"\nPromotion complete! {destination} now serves dev's build, subsetted "
+        f"to its declared datasets. The web process picks up the new DB inode "
+        f"on its next request — no restart needed.",
         fg="green",
         bold=True,
+    )
+
+
+def run_promote_dev_to_prod(
+    *,
+    include_meta_analysis: bool = True,
+    local: bool | None = None,
+    dry_run: bool = False,
+) -> None:
+    """Promote dev's build to prod. See `run_promote_dev_to`."""
+    run_promote_dev_to(
+        "prod",
+        include_meta_analysis=include_meta_analysis,
+        local=local,
+        dry_run=dry_run,
+    )
+
+
+def run_promote_dev_to_int(
+    *,
+    include_meta_analysis: bool = True,
+    local: bool | None = None,
+    dry_run: bool = False,
+) -> None:
+    """Promote dev's build to int. See `run_promote_dev_to`."""
+    run_promote_dev_to(
+        "int",
+        include_meta_analysis=include_meta_analysis,
+        local=local,
+        dry_run=dry_run,
     )
 
 
@@ -1359,36 +1684,41 @@ def _confirm_prod_db_rebuild(
     load_db: bool,
     preprocess: bool,
 ) -> None:
-    """Warn + confirm before rebuilding the DB directly on prod.
+    """Refuse to rebuild the dataset DB directly on int or prod (#178, #225).
 
-    Rebuilding prod's DB in place (`--load-db` / `--preprocess` against prod)
-    is the thing `promote-dev-to-prod` exists to replace (issue #178): it
-    re-runs preprocess/load-db on prod independently of dev, which risks
-    serving different bytes than the verified dev build (gitignored-payload
-    skew, tool/version drift). The standard path is to promote dev's
-    already-built DB instead. Only fires when prod is actually a data-rebuild
-    target — a code-only deploy (`--build`, no DB rebuild) isn't covered by
-    promote and is left alone.
+    This used to be a warning plus `click.confirm`. It is now a hard refusal,
+    because since #225 an in-place rebuild on int or prod is not merely
+    non-standard — it cannot be correct. Building a site's DB inside that
+    site's checkout would require the checkout to hold every dev dataset's
+    gitignored payloads, which is precisely what this design exists to avoid;
+    and whatever it did build would bypass `subset-db` and the destination
+    guard, so nothing would ever check what ended up in the file.
+
+    Only fires when the site is actually a data-rebuild target. A code-only
+    deploy (`--build`, no `--load-db` / `--preprocess`) is untouched — that
+    still has to happen per site.
     """
-    if "prod" not in selected or not (load_db or preprocess):
+    targets = [inst for inst in selected if inst in ("int", "prod")]
+    if not targets or not (load_db or preprocess):
         return
-    click.secho(
-        "\nWARNING: this will rebuild the database directly on PRODUCTION.",
-        fg="yellow",
-        bold=True,
+    names = " and ".join(INSTANCE_LABELS[t].upper() for t in targets)
+    promote = "\n".join(
+        f"    sspsygene promote-dev-to-{t}" for t in targets
     )
-    click.echo(
-        "  The standard way to update prod is to promote a verified dev build\n"
-        "  rather than re-running preprocess/load-db on prod. Promoting copies\n"
-        "  dev's already-built DB so prod serves byte-identical bytes (no drift\n"
-        "  from gitignored-payload skew or tool/version differences); it's\n"
-        "  faster and multi-user-safe (no restart). See issue #178.\n"
-        "\n"
-        "  Standard path:  sspsygene promote-dev-to-prod\n"
+    raise DeployError(
+        f"Refusing to rebuild the dataset DB directly on {names}.\n\n"
+        f"  Since #225 the dataset DB is built once, on dev, and each other\n"
+        f"  instance's DB is derived from it by `subset-db` at promotion time,\n"
+        f"  restricted to the datasets whose `deployTo` names that instance.\n"
+        f"  Rebuilding in place would need this checkout to hold every dev\n"
+        f"  dataset's gitignored payloads — the exact thing that design\n"
+        f"  prevents — and would bypass the destination check entirely.\n\n"
+        f"  Build on dev, then promote:\n\n"
+        f"    sspsygene deploy --load-db --instances dev\n"
+        f"{promote}\n\n"
+        f"  A code-only deploy to {names.lower()} is still fine — just drop\n"
+        f"  --load-db / --preprocess."
     )
-    if not click.confirm("  Rebuild on prod directly anyway?"):
-        click.secho("  Aborted — use the promote path above instead.", fg="yellow")
-        raise SystemExit(0)
 
 
 def run_deploy(

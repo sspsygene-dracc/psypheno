@@ -1,16 +1,17 @@
 publication:
+  title: "Inferring and perturbing cell fate regulomes in human brain organoids"
   authors:
-    - Fleck, Jonas Simon
-    - Jansen, Sophie Martina Johanna
-    - Wollny, Damian
-    - Zenk, Fides
-    - Seimiya, Makiko
-    - Jain, Akanksha
-    - Okamoto, Ryoko
-    - Santel, Malgorzata
-    - He, Zhisong
-    - Camp, J. Gray
-    - Treutlein, Barbara
+    - Jonas Simon Fleck
+    - Sophie Martina Johanna Jansen
+    - Damian Wollny
+    - Fides Zenk
+    - Makiko Seimiya
+    - Akanksha Jain
+    - Ryoko Okamoto
+    - Malgorzata Santel
+    - Zhisong He
+    - J. Gray Camp
+    - Barbara Treutlein
   year: 2023
   journal: "Nature"
   doi: "10.1038/s41586-022-05279-8"
@@ -23,6 +24,13 @@ maintainers:
     date: "2026-05-07"
     comment: "Initial table creation (issue #13)."
 
+# Which site instances this dataset may be served on (#225). Mandatory;
+# `dev` is always required — dev is the build superset that prod and int are
+# subsetted from at promotion time.
+deployTo:
+  - dev
+  - int
+  - prod
 tables:
   - table: fleck_2023_organoid_grn
     shortLabel: fleck_2023_organoid_grn
