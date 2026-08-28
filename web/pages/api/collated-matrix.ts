@@ -57,6 +57,18 @@ function authorYearLabel(mediumLabel: string | null, fallback: string): string {
   return head || fallback;
 }
 
+/**
+ * Clip `text` to at most `max` characters, breaking on a word boundary and
+ * marking the cut with an ellipsis. Returns `text` unchanged when it already
+ * fits.
+ */
+function truncateOnWord(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.\u2013-]+$/, "")}…`;
+}
+
 interface ModalityRow {
   key: string;
   label: string;
@@ -151,25 +163,42 @@ function buildSummaryResponse(args: {
     )
     .all() as SummaryColumnRow[];
 
-  // Author-year alone stops being an identity once a whole dataset is one
-  // column: Zheng 2024 ships two tables and Gordon 2026 two more, so a bare
-  // author-year would label two adjacent columns identically. Fall back to the
-  // dataset's short label only for the ones that actually collide.
-  const authorYear = new Map<string, string>();
-  const collisions = new Map<string, number>();
-  for (const r of rows) {
-    const label = authorYearLabel(
+  const labelByModality = new Map(modalities.map((m) => [m.key, m.label]));
+
+  // Summary columns carry the same "<modality> · <author year>" heading the
+  // expanded bands use (CollatedMatrix's bandLayout), so switching modes doesn't
+  // rename the datasets out from under the reader.
+  //
+  // That pair is not always unique: Zheng 2024 ships two perturb-seq tables, and
+  // as one column each they would read identically. Those get the descriptive
+  // tail of `medium_label` ("<Author> <Year> - <description>") appended — the
+  // prose the curator already wrote, rather than a snake_case short-label slug.
+  const modalityLabelFor = (r: SummaryColumnRow): string =>
+    labelByModality.get(r.modality_key) ?? r.modality_key;
+  const headingFor = (r: SummaryColumnRow): string =>
+    `${modalityLabelFor(r)} · ${authorYearLabel(
       datasetMeta.get(r.source_table)?.mediumLabel ?? null,
       r.source_label ?? r.source_table
-    );
-    authorYear.set(r.source_table, label);
-    collisions.set(label, (collisions.get(label) ?? 0) + 1);
+    )}`;
+  const collisions = new Map<string, number>();
+  for (const r of rows) {
+    const heading = headingFor(r);
+    collisions.set(heading, (collisions.get(heading) ?? 0) + 1);
   }
   const labelFor = (r: SummaryColumnRow): string => {
-    const base = authorYear.get(r.source_table) ?? r.source_table;
-    if ((collisions.get(base) ?? 0) <= 1 || !r.source_label) return base;
-    // `short_label` is a snake_case slug; the header reads it as words.
-    return `${base} · ${r.source_label.replace(/_/g, " ")}`;
+    const heading = headingFor(r);
+    if ((collisions.get(heading) ?? 0) <= 1) return heading;
+    // These descriptions run long ("in vivo Perturb-seq Cell-Type Proportion
+    // Shifts in Mouse Cortex"), and every summary column is one narrow strip, so
+    // the whole header row grows to fit the tallest label. Clip at a word
+    // boundary — the hover title still carries the full medium label.
+    const detail = (datasetMeta.get(r.source_table)?.mediumLabel ?? "")
+      .split(" - ")
+      .slice(1)
+      .join(" - ")
+      .trim();
+    if (!detail) return heading;
+    return `${heading} · ${truncateOnWord(detail, 44)}`;
   };
 
   // Section order from the modality taxonomy; anything not in it renders after.
@@ -179,7 +208,6 @@ function buildSummaryResponse(args: {
     ...knownKeys.filter((k) => presentKeys.includes(k)),
     ...presentKeys.filter((k) => !knownKeys.includes(k)),
   ];
-  const labelByModality = new Map(modalities.map((m) => [m.key, m.label]));
 
   const columns: MatrixColumn[] = [];
   const sections: MatrixSection[] = [];
