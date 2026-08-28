@@ -1,0 +1,7 @@
+tables:
+  shi_2026_deseq2:
+    raw_file: shi_2026_deseq2.tsv
+    pipeline_used: false
+    expected_drops: []
+    raw_rows: 130409
+    db_rows: 130409
