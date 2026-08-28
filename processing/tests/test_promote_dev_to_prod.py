@@ -53,6 +53,7 @@ def _make_dataset_db(path: Path, labels: dict[str, list[str]]) -> None:
             link_tables TEXT, links TEXT, categories TEXT, source TEXT,
             assay TEXT, condition TEXT, field_labels TEXT, column_labels TEXT,
             organism TEXT, organism_key TEXT,
+            publication_title TEXT,
             publication_first_author TEXT, publication_last_author TEXT,
             publication_author_count INTEGER, publication_authors TEXT,
             publication_year INTEGER, publication_journal TEXT,
