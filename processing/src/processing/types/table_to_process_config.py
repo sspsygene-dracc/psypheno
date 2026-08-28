@@ -87,7 +87,6 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "meta_analysis",
         "why_excluded_from_meta_analysis",
         "overview_matrix",
-        "overview_matrix_expand",
         "overview_matrix_phenotype_column",
         "overview_matrix_phenotype_columns",
         "overview_matrix_metric",
@@ -308,16 +307,17 @@ class TableToProcessConfig:
     # perturbed), and observational postmortem cohorts (no molecular diagnosis).
     # The /api/collated-matrix rows come only from labeled tables, so this is the
     # single, self-documenting allowlist — no name/category heuristics.
+    #
+    # A labeled table *expands* into one sub-column per readout: the column axis
+    # (below) supplies the sub-columns, the perturbed-gene axis supplies the
+    # matrix rows, and each cell carries the metric for that (perturbed gene,
+    # readout) pair — for gene axes, -log10 of the most significant raw p-value,
+    # where a target qualifies when it is FDR-significant across at least N
+    # distinct perturbed-side groups. This used to be a second opt-in flag
+    # (`overview_matrix_expand`, #222) layered on top, back when an unexpanded
+    # modality rendered as a single status glyph; #213 deleted the status columns,
+    # which left the bare flag a no-op, so the two were merged back into this one.
     overview_matrix: bool = False
-    # Whether this table's modality column *expands* into one sub-column per
-    # measured (target) gene in the overview matrix (psypheno #222). Opt-in on
-    # top of `overview_matrix`. The sub-column axis is the table's target gene
-    # column; a target qualifies when it is FDR-significant across at least N
-    # distinct perturbed-side groups (for the ASD organoid table, N distinct CNV
-    # regions), and each cell carries -log10 of the most significant raw p-value
-    # for that (perturbed gene, target gene) pair. Requires both a perturbed and
-    # a target gene mapping plus pvalue_column and fdr_column.
-    overview_matrix_expand: bool = False
     # The expansion column axis for a non-gene modality (psypheno #213). Exactly
     # one axis must resolve: the table's `target` gene mapping (gene columns), OR
     # `overview_matrix_phenotype_column` (LONG: a text column whose distinct
@@ -412,10 +412,8 @@ class TableToProcessConfig:
         # gene mapping (genes), a phenotype text column (LONG), or a list of
         # phenotype value columns (WIDE). Without a resolvable axis the
         # materializer would silently emit nothing, so fail loudly at config load.
-        if self.overview_matrix_expand:
+        if self.overview_matrix:
             missing: list[str] = []
-            if not self.overview_matrix:
-                missing.append("overview_matrix: true")
             if num_perturbed == 0:
                 missing.append("a perturbed gene_mapping")
 
@@ -434,7 +432,7 @@ class TableToProcessConfig:
                 )
             elif n_axes > 1:
                 raise ValueError(
-                    f"table {self.table}: overview_matrix_expand needs exactly one "
+                    f"table {self.table}: overview_matrix needs exactly one "
                     f"column axis, but "
                     f"{', '.join(name for name, present in axes if present)} are all set."
                 )
@@ -468,7 +466,7 @@ class TableToProcessConfig:
                 )
             if missing:
                 raise ValueError(
-                    f"table {self.table}: overview_matrix_expand requires "
+                    f"table {self.table}: overview_matrix requires "
                     f"{', '.join(missing)}."
                 )
 
@@ -600,7 +598,6 @@ class TableToProcessConfig:
         # Overview-matrix inclusion flag (#212). Opt-in; defaults to False.
         overview_matrix = bool(json_data.get("overview_matrix", False))
         # Expanded-modality flag (#222). Opt-in on top of overview_matrix.
-        overview_matrix_expand = bool(json_data.get("overview_matrix_expand", False))
         # Non-gene expansion axis (#213). Phenotype column names are stored
         # normalized so they match the loaded table's DB column names; their raw
         # form is recovered for display from fieldLabels / prettified at render.
@@ -652,7 +649,6 @@ class TableToProcessConfig:
             meta_analysis=meta_analysis,
             why_excluded_from_meta_analysis=why_excluded,
             overview_matrix=overview_matrix,
-            overview_matrix_expand=overview_matrix_expand,
             overview_matrix_phenotype_column=overview_matrix_phenotype_column,
             overview_matrix_phenotype_columns=overview_matrix_phenotype_columns,
             overview_matrix_metric=overview_matrix_metric,

@@ -49,7 +49,6 @@ deployTo:
 tables:
   - table: mouse_perturb_deg
     overview_matrix: true  # #212 overview matrix source
-    overview_matrix_expand: true  # #213 perturb-seq target-gene sub-columns
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"
@@ -167,5 +166,4 @@ tables:
     effect_column: limma_coef
     # Overview matrix (#213): one column per cell subcluster (long format),
     # colored by -log10(p) (default metric).
-    overview_matrix_expand: true
     overview_matrix_phenotype_column: subcluster

@@ -944,8 +944,7 @@ def materialize_overview_matrix(
                    overview_matrix_phenotype_columns,
                    overview_matrix_metric, overview_matrix_metric_domain
              FROM {src_schema}.data_tables
-            WHERE include_in_overview_matrix = 1
-              AND expand_in_overview_matrix = 1{prod_clause}"""
+            WHERE include_in_overview_matrix = 1{prod_clause}"""
     ).fetchall()
 
     expanded_source_tables: list[str] = []

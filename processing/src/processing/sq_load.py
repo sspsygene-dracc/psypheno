@@ -328,7 +328,6 @@ def load_data_tables(
         include_in_meta_analysis INTEGER NOT NULL DEFAULT 1,
         why_excluded_from_meta_analysis TEXT,
         include_in_overview_matrix INTEGER NOT NULL DEFAULT 0,
-        expand_in_overview_matrix INTEGER NOT NULL DEFAULT 0,
         overview_matrix_phenotype_column TEXT,
         overview_matrix_phenotype_columns TEXT,
         overview_matrix_metric TEXT,
@@ -475,9 +474,6 @@ def load_data_tables(
             "include_in_meta_analysis": 1 if table_config.meta_analysis else 0,
             "why_excluded_from_meta_analysis": table_config.why_excluded_from_meta_analysis,
             "include_in_overview_matrix": 1 if table_config.overview_matrix else 0,
-            "expand_in_overview_matrix": 1
-            if table_config.overview_matrix_expand
-            else 0,
             "overview_matrix_phenotype_column": (
                 table_config.overview_matrix_phenotype_column
             ),

@@ -184,7 +184,6 @@ tables:
     # Overview matrix (#213): one column per behavior parameter (wide format).
     # Values are already signed -log10(p), so a diverging signed metric — no
     # p-value column of its own.
-    overview_matrix_expand: true
     overview_matrix_metric: signed_neglog_p
     overview_matrix_phenotype_columns:
       - ActivityD

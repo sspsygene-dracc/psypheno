@@ -42,7 +42,7 @@ GENES = [
 _DATA_TABLES_COLUMNS = (
     "table_name TEXT, assay TEXT, pvalue_column TEXT, fdr_column TEXT, "
     "link_tables TEXT, include_in_overview_matrix INTEGER NOT NULL DEFAULT 0, "
-    "expand_in_overview_matrix INTEGER NOT NULL DEFAULT 0, short_label TEXT, "
+    "short_label TEXT, "
     "overview_matrix_phenotype_column TEXT, overview_matrix_phenotype_columns TEXT, "
     "overview_matrix_metric TEXT, overview_matrix_metric_domain TEXT"
 )
@@ -85,24 +85,22 @@ def _register(
     *,
     pvalue_column: str | None = None,
     fdr_column: str | None = None,
-    expand: int = 1,
     phenotype_column: str | None = None,
     phenotype_columns: list[str] | None = None,
     metric: str | None = None,
 ) -> None:
     conn.execute(
         "INSERT INTO data_tables (table_name, assay, pvalue_column, fdr_column, "
-        "link_tables, include_in_overview_matrix, expand_in_overview_matrix, "
+        "link_tables, include_in_overview_matrix, "
         "short_label, overview_matrix_phenotype_column, "
         "overview_matrix_phenotype_columns, overview_matrix_metric) "
-        "VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)",
+        "VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)",
         (
             table_name,
             assay,
             pvalue_column,
             fdr_column,
             link_tables,
-            expand,
             table_name,
             phenotype_column,
             json.dumps(phenotype_columns) if phenotype_columns else None,

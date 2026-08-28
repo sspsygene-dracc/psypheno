@@ -354,8 +354,8 @@ def _assert_overview_matrix(conn: sqlite3.Connection) -> None:
     """The overview matrix is materialized into its own DB by the separate
     `overview-matrix` command (#222); `conn` is that overview DB.
 
-    The fixture table is labeled `overview_matrix` + `overview_matrix_expand`
-    with assay `perturbation`, which the fixture taxonomy maps to `perturb_seq`.
+    The fixture table is labeled `overview_matrix` with assay `perturbation`,
+    which the fixture taxonomy maps to `perturb_seq`.
     Foxg1/Tbr1/Tcf4 are the perturbed genes; NonTarget1 is a control and must
     not appear. #213 removed the aggregated status columns — the rows are the
     perturbed genes across the expanded tables.

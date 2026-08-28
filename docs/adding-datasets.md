@@ -560,16 +560,9 @@ gene that was perturbed and one for the gene whose expression was measured:
 #### Include the table in the cross-modality overview matrix (`overview_matrix`)
 
 The **collated cross-modality overview matrix** (the "red table" at
-`/overview`) shows one row per experimentally-perturbed gene and one column per
-experimental modality. Its rows come **only** from tables that explicitly opt
-in with the table-level flag:
-
-```yaml
-  - table: my_crispr_screen_degs
-    overview_matrix: true           # include this table as a matrix source
-    assay: perturbation_deg
-    # ...
-```
+`/matrix`) shows one row per experimentally-perturbed gene, grouped into
+sections by experimental modality. Its rows come **only** from tables that
+explicitly opt in with the table-level flag.
 
 Set `overview_matrix: true` on tables that are **genuine consortium
 perturbation experiments** — a known gene was experimentally perturbed
@@ -578,19 +571,17 @@ modality readout exists. Leave it **off** (the default) for curated/phenotype
 annotation databases, computationally *inferred* networks (e.g. GRN inference),
 and observational cohorts with no molecular diagnosis (e.g. postmortem
 disease-vs-control RNA-seq) — those have no experimentally-perturbed gene and
-must not become matrix rows. The column shown for a table is derived from its
+must not become matrix rows. The section a table lands in is derived from its
 `assay` via the modality taxonomy in `data/datasets/globals.yaml`.
 
-#### Expand a modality into per-target sub-columns (`overview_matrix_expand`)
-
-By default a modality is **one** column whose cell is a status glyph. A table can
-instead *expand* its modality into one sub-column per **measured (target) gene**,
-turning that section into a p-value heatmap:
+A flagged table always **expands** into one sub-column per readout, turning its
+section into a p-value heatmap. The usual axis is the table's **measured (target)
+gene** column:
 
 ```yaml
   - table: my_de_results
-    overview_matrix: true
-    overview_matrix_expand: true    # one sub-column per significant target gene
+    overview_matrix: true           # include this table as a matrix source
+    assay: perturbation_deg
     pvalue_column: P-Value
     fdr_column: Adjusted_P-Value
     gene_mappings:
@@ -603,6 +594,19 @@ turning that section into a p-value heatmap:
         perturbed_or_target: perturbed
         species: human
 ```
+
+Because expansion is mandatory, the flag has prerequisites and the config fails
+loudly at load time without them: a `perturbed` gene mapping, **exactly one**
+column axis (a `target` gene mapping, `overview_matrix_phenotype_column`, or
+`overview_matrix_phenotype_columns`), and a `pvalue_column`/`fdr_column` — or an
+explicit `overview_matrix_metric` for the wide-phenotype axis.
+
+> There used to be a second flag, `overview_matrix_expand`, opting a table into
+> the sub-column expansion on top of `overview_matrix`. It dated from a design
+> where an unexpanded modality rendered as a single status glyph; #213 removed the
+> status columns, which left the bare flag doing nothing at all, so the two were
+> merged back into `overview_matrix`. If you find `overview_matrix_expand` in an
+> old config, just delete the line.
 
 > **The perturbed column must name the gene you actually perturbed — one per row.**
 > It is tempting to point it at a column listing every gene at the affected locus
