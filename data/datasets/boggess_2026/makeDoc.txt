@@ -1,0 +1,23 @@
+# Boggess et al. 2026 — CRISPRi + CaMPARI2 neuronal depolarization screen
+# Source: Nature Communications, doi:10.1038/s41467-026-75882-0
+# Data downloaded from the Nature Communications supplementary files page.
+# Refresh: static publication — no refresh needed.
+
+# Supplementary Data 3 (sgRNA library sequences):
+# Downloaded manually from:
+#   https://www.nature.com/articles/s41467-026-75882-0#supplementary-information
+# Saved as: boggess_s3.xlsx
+
+# Supplementary Data 8 (gene-level phenotype scores, 389 hit genes, 12 conditions):
+# Downloaded manually from:
+#   https://www.nature.com/articles/s41467-026-75882-0#supplementary-information
+# Saved as: boggess_s5.xlsx
+# Note: the Nature Communications page labels this as "Supplementary Data 5"
+# but the internal sheet name is "Supplementary Data 8", reflecting a
+# renumbering during peer review.
+
+# Supplementary Data 9 (sgRNA-level phenotype scores):
+# Downloaded manually from:
+#   https://www.nature.com/articles/s41467-026-75882-0#supplementary-information
+# Saved as: boggess_s6.xlsx
+# Note: same renumbering as above (published as S6, internal sheet name S9).

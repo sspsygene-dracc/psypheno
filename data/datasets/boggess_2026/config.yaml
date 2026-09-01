@@ -1,0 +1,94 @@
+deployTo:
+  - dev
+
+publication:
+  authors:
+    - Boggess, S. C.
+    - Gandhi, V.
+    - Tsai, M.-C.
+    - Marzette, E.
+    - Teyssier, N.
+    - Chou, J. Y.-Y.
+    - Hu, X.
+    - Cramer, A.
+    - Yadanar, L.
+    - Shroff, K.
+    - Jeong, C. G.
+    - Eidenschenk, C.
+    - Hanson, J. E.
+    - Tian, R.
+    - Kampmann, M.
+  title: "A Massively Parallel CRISPR-Based Screening Platform for Modifiers of Neuronal Depolarization"
+  year: 2026
+  journal: "Nature Communications"
+  doi: "10.1038/s41467-026-75882-0"
+  pmid: null
+  sspsygene_grants: []
+
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-09-01"
+    comment: >
+      Initial draft — CRISPRi + CaMPARI2 primary screen hit genes across 7 conditions.
+      Note: only the 389 hit genes (FDR < 10% in primary glutamate screen) are available
+      from the published supplementary data. The full 1,343-gene primary screen has not
+      yet been deposited on CRISPRbrain as stated in the paper's data availability.
+
+tables:
+
+  - table: boggess_2026_screen
+    changelog:
+      - date: "2026-09-01"
+        message: "Initial data load — 389 hit genes across 7 screen conditions"
+
+    shortLabel: boggess_2026_screen
+    mediumLabel: "Boggess 2026 - CRISPRi Screen for Neuronal Depolarization Modifiers"
+    longLabel: "CRISPRi + CaMPARI2 pooled screen for genetic modifiers of neuronal depolarization in human iPSC-derived neurons (Boggess et al. 2026)"
+    description: >
+      CRISPRi knockdown screen of 1,343 disease-associated genes in human iPSC-derived
+      glutamatergic neurons, measuring neuronal depolarization via the fluorescent calcium
+      integrator CaMPARI2. Neurons were stimulated with glutamate and the CaMPARI2
+      red-to-green ratio was measured by flow cytometry as a readout of neuronal activity.
+      This table contains the 389 genes that were hits (FDR < 10%) in the primary
+      glutamate screen, each tested across 7 conditions including secondary validation
+      screens using glutamate, KCl, and TTX stimulation, co-culture, and a survival
+      screen. The full 1,343-gene primary screen data is not yet publicly available.
+
+    source: >
+      Supplementary Data 8 (published as file S5 on Nature Communications page),
+      Boggess et al. 2026, doi:10.1038/s41467-026-75882-0
+
+    in_path: boggess_2026_screen.tsv
+    separator: "\t"
+
+    organism: "Homo sapiens (iPSC-derived glutamatergic neurons)"
+    organism_key: human
+    assay: perturbation
+    condition:
+      - autism
+      - ndc
+    categories:
+      - CRISPRi screen
+      - neuronal depolarization
+      - CaMPARI2
+      - iPSC neurons
+      - human
+
+    gene_mappings:
+      - column_name: gene
+        link_table_name: perturbation_gene
+        species: human
+        perturbed_or_target: perturbed
+
+    pvalue_column: pvalue
+    fdr_column: fdr
+    effect_column: log2_fold_change
+
+    fieldLabels:
+      gene: "Human gene symbol of the gene knocked down by CRISPRi"
+      condition: "Screen condition (stimulation type and experiment)"
+      phenotype_score: "Gene Score: product of log2 fold change and -log10(p-value); summarizes effect size and significance"
+      log2_fold_change: "Log2 fold change in CaMPARI2 red/green ratio in knockdown cells vs non-targeting controls; positive = increased neuronal depolarization, negative = decreased"
+      fdr: "Empirical false discovery rate (iNC method, NTC sgRNAs as null); primary screen hit threshold was FDR < 10%"
+      pvalue: "Nominal p-value from comparison of knockdown sgRNAs vs non-targeting controls (iNC method)"
