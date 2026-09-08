@@ -1,0 +1,49 @@
+#! /bin/zsh
+
+# Zheng et al. 2024 - data provenance
+#
+# Paper: "Massively parallel in vivo Perturb-seq reveals cell-type-specific
+#         transcriptional networks in cortical development"
+# Journal: Cell 187, 3236-3248 (June 20, 2024)
+# DOI: 10.1016/j.cell.2024.04.050 ; PMID 38772369 ; PMC11193654
+# Corresponding author: Xin Jin (Scripps Research / HHMI)
+#
+# The paper has exactly four supplementary tables, S1-S4 (mmc1-mmc4.xlsx).
+# Both of our tables come from Table S4 (mmc4.xlsx, "Cell type classification
+# and downstream analysis for all scRNA-seq analysis"):
+#
+#   sheet DEG_perturb          -> deg.txt          (mouse_perturb_deg)
+#   sheet Clusterprop_perturb  -> clusterprop.txt  (mouse_perturb_clusterprop)
+#
+# (Older configs cited "Table S8"; that was a transcription error - there is no
+# S8. Corrected 2026-09-08 after re-downloading the supplement and diffing the
+# sheets against the committed raw files: identical up to Excel display
+# rounding of a few P.Value/FDR cells and three gene symbols that Excel had
+# already turned into dates upstream - Sept9/March4/March3 - which
+# preprocess.py's excel_demangle step repairs.)
+#
+# Refresh cadence: static (published paper; no further data releases expected).
+#
+# NOTE: cell.com returns 403 to non-browser clients, so the curl below will
+# usually fail from a script. The file was originally saved from a browser
+# (2025-10-02) and again on 2026-09-08 (kept as papers/zheng_2024_sm4.xlsx).
+# The Europe PMC copy is not open access either (author manuscript only).
+
+curl -L -o mmc4.xlsx \
+    "https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx"
+
+# Export the two sheets to tab-separated text, dropping each sheet's first row
+# (the "TableS4. ..." caption). The DEG table in the supplement lists
+# significant genes only (see the STAR Methods filter quoted in config.yaml).
+python3 - <<'PY'
+import csv, openpyxl
+wb = openpyxl.load_workbook("mmc4.xlsx", read_only=True)
+for sheet, out in [("DEG_perturb", "deg.txt"), ("Clusterprop_perturb", "clusterprop.txt")]:
+    rows = list(wb[sheet].iter_rows(values_only=True))[1:]   # drop caption row
+    with open(out, "w", newline="") as f:
+        w = csv.writer(f, delimiter="\t", lineterminator="\n")
+        for r in rows:
+            w.writerow(["" if c is None else c for c in r])
+PY
+
+# Then: python preprocess.py   (writes deg_cleaned.txt / clusterprop_cleaned.txt)

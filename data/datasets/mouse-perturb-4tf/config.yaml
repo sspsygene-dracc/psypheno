@@ -39,6 +39,10 @@ maintainers:
     email: jbirgmei@ucsc.edu
     date: "2026-05-05"
     comment: Standardized table titles, added column header tooltips, migrated off drop_values to the new patient_list filter, and migrated preprocessing to the Pipeline framework.
+  - name: Johannes Birgmeier
+    email: jbirgmei@ucsc.edu
+    date: "2026-09-08"
+    comment: Fixed the supplementary-table citation (S4, not S8) on both tables and documented the DE gene filter from the STAR Methods.
 # Which site instances this dataset may be served on (#225). Mandatory;
 # `dev` is always required — dev is the build superset that prod and int are
 # subsetted from at promotion time.
@@ -54,14 +58,19 @@ tables:
         message: "Initial data load"
       - date: "2026-05-05"
         message: "Standardized title and added column header tooltips."
+      - date: "2026-09-08"
+        message: "Corrected source citation: the data come from Table S4 (mmc4.xlsx), not Table S8 — the paper has only Tables S1–S4."
     shortLabel: 4tf_perturb_seq_degs
     mediumLabel: Zheng 2024 - in vivo Perturb-seq DEGs of 4 TFs in Mouse Cortex
     longLabel: Differential expression from in vivo Perturb-seq of four transcription factors
     description:
       Cell-type-specific differential expression results from massively parallel in vivo Perturb-seq
       targeting Foxg1, Nr2f1, Tbr1, and Tcf4 in developing mouse cortex. Captures transcriptional changes
-      across excitatory and inhibitory neuron subtypes.
-    source: "Table S8"
+      across excitatory and inhibitory neuron subtypes. Per the STAR Methods, only perturbation × cell-type
+      pairs with >50 cells were tested, lowly expressed genes (<10 supporting reads or <0.1 normalized
+      expression) were excluded from each comparison, and the table lists significant genes only — so
+      "not listed" cannot be distinguished from "tested, not significant".
+    source: "Table S4 (mmc4.xlsx), sheet DEG_perturb"
     assay: perturbation_deg
     fieldLabels:
       gene: "Mouse gene symbol (MGI) whose expression was measured (target gene)"
@@ -76,7 +85,7 @@ tables:
       perturbation_gene_idx: "gRNA replicate index — the suffix after the underscore in the perturbation column (e.g. '1' from 'Foxg1_1')."
     links:
       - url: https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
-        label: Supplementary Table S8 (mmc4.xlsx)
+        label: Supplementary Table S4 (mmc4.xlsx)
     categories:
       - in vivo Perturb-seq
       - transcription factors
@@ -117,6 +126,8 @@ tables:
         message: "Initial data load"
       - date: "2026-05-05"
         message: "Standardized title and added column header tooltips."
+      - date: "2026-09-08"
+        message: "Corrected source citation: the data come from Table S4 (mmc4.xlsx), not Table S8 — the paper has only Tables S1–S4."
     shortLabel: 4tf_cell_proportion_changes
     mediumLabel: Zheng 2024 - in vivo Perturb-seq Cell-Type Proportion Shifts in Mouse Cortex
     longLabel: Cell type proportion shifts from transcription factor perturbations
@@ -124,7 +135,7 @@ tables:
       Quantification of cell type and subcluster abundance changes resulting from CRISPR perturbations
       of four neurodevelopmental transcription factors in mouse cortex, revealing cell fate specification
       effects.
-    source: "Table S8"
+    source: "Table S4 (mmc4.xlsx), sheet Clusterprop_perturb"
     assay: perturbation
     fieldLabels:
       subcluster: "Cell-subcluster identity from scRNA-seq clustering of developing mouse cortex"
@@ -140,7 +151,7 @@ tables:
       fdr: "Benjamini–Hochberg FDR-adjusted p-value"
     links:
       - url: https://www.cell.com/cms/10.1016/j.cell.2024.04.050/attachment/c784afac-cbc4-481b-bbcd-3a6d00aa267b/mmc4.xlsx
-        label: Supplementary Table S8 (mmc4.xlsx)
+        label: Supplementary Table S4 (mmc4.xlsx)
     categories:
       - in vivo Perturb-seq
       - cell fate
