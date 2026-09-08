@@ -85,20 +85,21 @@ tables:
       perturbation: "Mouse NDD risk gene targeted by CRISPRi knockdown via AAV-delivered
         gRNAs in the developing mouse cortex (Zheng et al. 2026). These are mouse
         orthologs of human NDD risk genes selected for their disease relevance."
-      Gene: "Mouse gene symbol of the differentially expressed gene measured by
+      gene: "Mouse gene symbol of the differentially expressed gene measured by
         single-nucleus RNA-seq (Zheng et al. 2026, Supplementary Table 3)."
-      logFC: "EdgeR log2 fold change of the target gene in perturbed cells vs.
+      logfc: "EdgeR log2 fold change of the target gene in perturbed cells vs.
         NT2-g2 non-targeting controls, within the same cell type pseudobulk
         (Zheng et al. 2026, Methods). Positive = upregulated upon knockdown."
-      logCPM: "Average log2 counts-per-million expression of the target gene
-        across all samples (perturbed + controls) in this cell type, used
-        as a measure of overall expression level (EdgeR)."
-      LR: "EdgeR likelihood ratio test statistic from glmLRT, comparing
-        the perturbation model to the null model within the cell type pseudobulk."
-      PValue: "Nominal p-value from EdgeR glmLRT (Zheng et al. 2026, Methods)."
+      logcpm: "Average log2 counts-per-million expression of the target gene
+        across all samples (perturbed + controls) in this cell type — a measure
+        of baseline expression level (EdgeR)."
+      lr: "Likelihood ratio test statistic from EdgeR glmLRT, comparing the
+        perturbation model to the null model within the cell type pseudobulk.
+        Higher values indicate stronger evidence of differential expression."
+      pvalue: "Nominal p-value from EdgeR glmLRT (Zheng et al. 2026, Methods)."
       padj: "Benjamini-Hochberg FDR-adjusted p-value from EdgeR glmLRT.
         Table is pre-filtered to padj < 0.05 (Zheng et al. 2026, Methods)."
-      CT: "Cortical neuron cell type in which this DEG was detected.
+      cell_type: "Cortical neuron cell type in which this DEG was detected.
         Annotated using MapMyCells against the Allen Brain Institute
         10x Genomics Whole Mouse Brain reference (CCN20230722).
         Values: L4-5.IT, L5.ET, L5.IT, L6.CT, L6.IT, Pvalb, Sst."

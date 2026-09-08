@@ -45,6 +45,7 @@ def main() -> None:
     df = df[~mask].reset_index(drop=True)
 
     df = df[["perturbation", "Gene", "logFC", "logCPM", "LR", "PValue", "padj", "CT"]]
+    df = df.rename(columns={"CT": "cell_type"})
 
     df.to_csv(OUT, sep="\t", index=False)
     print(f"Wrote {len(df)} rows to {OUT.name}")
