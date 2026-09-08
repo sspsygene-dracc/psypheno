@@ -81,6 +81,10 @@ tables:
         species: mouse
         perturbed_or_target: target
 
+    columnLabels:
+      logCPM: "logCPM"
+      LR: "LR"
+
     fieldLabels:
       perturbation: "Mouse NDD risk gene targeted by CRISPRi knockdown via AAV-delivered
         gRNAs in the developing mouse cortex (Zheng et al. 2026). These are mouse
