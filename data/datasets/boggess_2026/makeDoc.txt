@@ -21,3 +21,9 @@
 #   https://www.nature.com/articles/s41467-026-75882-0#supplementary-information
 # Saved as: boggess_s6.xlsx
 # Note: same renumbering as above (published as S6, internal sheet name S9).
+
+# Source Data file (quantitative data behind all figure panels):
+# Downloaded manually from:
+#   https://www.nature.com/articles/s41467-026-75882-0#supplementary-information
+# Saved as: boggess_source_data.xlsx
+# Used for: CROP-seq DEG tables (Figures 6c = TRIP12, 6f = PTEN).

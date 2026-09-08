@@ -43,7 +43,7 @@ tables:
         message: "Initial data load — 389 hit genes across 7 screen conditions"
 
     shortLabel: boggess_2026_screen
-    mediumLabel: "Boggess 2026 - CRISPRi Screen for Neuronal Depolarization Modifiers"
+    mediumLabel: "Boggess 2026 - CRISPRi + CaMPARI2 Screen for Neuronal Depolarization Modifiers"
     longLabel: "CRISPRi + CaMPARI2 pooled screen for genetic modifiers of neuronal depolarization in human iPSC-derived neurons (Boggess et al. 2026)"
     description: >
       CRISPRi knockdown screen of 1,343 disease-associated genes in human iPSC-derived
@@ -92,3 +92,66 @@ tables:
       log2_fold_change: "Log2 fold change in CaMPARI2 red/green ratio in knockdown cells vs non-targeting controls; positive = increased neuronal depolarization, negative = decreased"
       fdr: "Empirical false discovery rate (iNC method, NTC sgRNAs as null); primary screen hit threshold was FDR < 10%"
       pvalue: "Nominal p-value from comparison of knockdown sgRNAs vs non-targeting controls (iNC method)"
+
+  - table: boggess_2026_cropseq_deg
+    changelog:
+      - date: "2026-09-01"
+        message: "Initial data load — CROP-seq DEGs for TRIP12 and PTEN knockdowns"
+
+    shortLabel: boggess_2026_cropseq_deg
+    mediumLabel: "Boggess 2026 - CROP-seq DEGs for TRIP12 and PTEN CRISPRi Knockdown"
+    longLabel: "Differentially expressed genes from CROP-seq CRISPRi knockdown of TRIP12 and PTEN (Boggess et al. 2026)"
+    description: >
+      DEG results from a CROP-seq experiment in which 45 transcriptional regulators
+      that were hits in the primary CaMPARI2 CRISPRi screen were knocked down with
+      2 sgRNAs each in human iPSC-derived glutamatergic neurons, with single-cell
+      RNA-seq used to link each cell's transcriptome to its sgRNA identity.
+      This table contains the full DEG results (DESeq2) for the two highlighted
+      knockdowns: TRIP12 (Clark-Baraister syndrome / intellectual disability risk gene)
+      and PTEN (ASD/NDD risk gene). DEGs for the remaining 43 knockdowns were not
+      released in the paper's source data. Each row is one tested gene per knockdown;
+      11,532 genes were tested per knockdown.
+
+    source: >
+      Source Data file, Figures 6c (TRIP12) and 6f (PTEN),
+      Boggess et al. 2026, doi:10.1038/s41467-026-75882-0
+
+    in_path: boggess_2026_cropseq_deg.tsv
+    separator: "\t"
+
+    organism: "Homo sapiens (iPSC-derived glutamatergic neurons)"
+    organism_key: human
+    assay: perturbation_deg
+    condition:
+      - autism
+      - ndc
+    categories:
+      - CROP-seq
+      - CRISPRi
+      - scRNA-seq
+      - iPSC neurons
+      - human
+
+    gene_mappings:
+      - column_name: knockdown
+        link_table_name: knockdown_gene
+        species: human
+        perturbed_or_target: perturbed
+      - column_name: gene
+        link_table_name: target_gene
+        species: human
+        perturbed_or_target: target
+
+    pvalue_column: pvalue
+    fdr_column: padj
+    effect_column: log2FoldChange
+
+    fieldLabels:
+      knockdown: "Gene knocked down by CRISPRi in the CROP-seq experiment (TRIP12 or PTEN). HGNC symbol."
+      gene: "Target gene whose expression was measured by scRNA-seq. HGNC symbol."
+      baseMean: "DESeq2 baseMean - mean of normalized counts across all cells (knockdown and non-targeting controls) for this gene."
+      log2FoldChange: "DESeq2 log2 fold change of the target gene in CRISPRi knockdown cells vs. non-targeting control cells. Positive = upregulated upon knockdown."
+      lfcSE: "Standard error of the DESeq2 log2FoldChange estimate."
+      stat: "DESeq2 Wald test statistic (log2FoldChange / lfcSE)."
+      pvalue: "DESeq2 Wald test nominal p-value."
+      padj: "Benjamini-Hochberg adjusted p-value (FDR) across all tested genes within this knockdown (Boggess et al. 2026, Fig. 6c/6f)."

@@ -1,7 +1,10 @@
 boggess_2026_screen.tsv
 boggess_2026_screen.tsv.preprocessing.yaml
+boggess_2026_cropseq_deg.tsv
+boggess_2026_cropseq_deg.tsv.preprocessing.yaml
 boggess_s3.xlsx
 boggess_s5.xlsx
 boggess_s6.xlsx
+boggess_source_data.xlsx
 boggess_2026.pdf
 boggess_suppl_info.pdf
