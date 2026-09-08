@@ -55,7 +55,7 @@ tables:
       - date: "2026-05-05"
         message: "Standardized title and added column header tooltips."
     shortLabel: 4tf_perturb_seq_degs
-    mediumLabel: Zheng 2024 - in vivo Perturb-seq DEGs of 4 TFs in Mouse Cortex
+    mediumLabel: "Zheng 2024 - In vivo Perturb-seq DEGs of 4 TFs in Mouse Cortex"
     longLabel: Differential expression from in vivo Perturb-seq of four transcription factors
     description:
       Cell-type-specific differential expression results from massively parallel in vivo Perturb-seq

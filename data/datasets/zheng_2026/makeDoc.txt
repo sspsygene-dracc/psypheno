@@ -1,0 +1,22 @@
+# Zheng et al. 2026 — In vivo multiomic Perturb-seq with enhanced nuclear gRNA capture
+# bioRxiv: https://doi.org/10.64898/2026.03.15.711739
+#
+# Source files downloaded manually from the bioRxiv supplementary information page.
+# Refresh cadence: update if/when a peer-reviewed version is published.
+#
+# Supplementary Table 1 (gRNA sequences, plasmids, quality control):
+# Downloaded from bioRxiv supplementary information.
+# Saved as: zheng_suppl_table1.xlsx
+#
+# Supplementary Table 2 (sn-multiome library metadata and quality metrics):
+# Downloaded from bioRxiv supplementary information.
+# Saved as: zheng_suppl_table2.xlsx
+#
+# Supplementary Table 3 (filtered DEGs and DARs at padj < 0.05):
+# Downloaded from bioRxiv supplementary information.
+# Saved as: zheng_suppl_table3.xlsx
+# Sheet used: filtered_DE_padj0.05 (1,714 rows including 1 safe-target control)
+#
+# Preprint PDF:
+# Downloaded from: https://doi.org/10.64898/2026.03.15.711739
+# Saved as: zheng_2026.pdf
