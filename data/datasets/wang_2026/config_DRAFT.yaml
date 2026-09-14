@@ -164,3 +164,99 @@ tables:
           record_values:
             - LOC100421372
     fdr_column: SAINT_BFDR
+
+  - table: wang_2026_mut_ppi
+    changelog:
+      - date: "2026-09-14"
+        message: "Initial data load"
+    shortLabel: asd_mut_ppi
+    mediumLabel: "Wang 2026 - ASD Patient Mutation Differential Protein Interactions"
+    longLabel: "Interaction changes driven by ASD patient missense mutations, measured by AP-MS vs. wild-type"
+    description: >
+      Differential protein-protein interactions for 54 patient-derived missense mutations across 30
+      hcASD bait proteins, measured by affinity purification–mass spectrometry (AP-MS) in HEK293T
+      cells and compared to wild-type baits using MSstats. Each row is one bait–prey pair for a
+      specific mutation, with a log2 fold change indicating whether the interaction was gained
+      (positive) or lost (negative) relative to wild-type.
+
+
+      log2FC values of exactly ±8 are a computational convention indicating complete gain or loss of
+      interaction (the prey was observed in only one condition); these represent the most extreme
+      rewiring events and are biologically meaningful.
+
+
+      SSPsyGene maps the mutant bait as the "perturbed" gene and the prey as the "target" gene.
+    source: "Table S6 (sheet: ASDmut-PPI)"
+    assay: perturbation
+    condition:
+      - autism
+    categories:
+      - protein-protein interactions
+      - affinity purification–mass spectrometry
+      - patient missense mutations
+      - ASD risk genes
+    organism: Homo sapiens (HEK293T cells)
+    organism_key: human
+    in_path: wang_2026_mut_ppi.tsv
+    separator: "\t"
+    columnLabels:
+      log2FC: "log2FC"
+      SE: "SE"
+      Tvalue: "T-value"
+      DF: "DF"
+      fdr_storey: "FDR (Storey)"
+      prey_uniprot: "UniProt ID"
+      obsCountWT: "WT Obs"
+      obsCountMut: "Mut Obs"
+    fieldLabels:
+      bait: >
+        hcASD gene used as bait, expressed with a patient-derived missense mutation in HEK293T cells.
+        30 hcASD proteins were profiled across 54 distinct mutations. Mapped as the "perturbed" gene
+        in SSPsyGene.
+      mutant: >
+        Patient-derived missense variant in the bait protein (e.g. L327P = leucine to proline at
+        position 327). Sourced from de novo damaging variants identified in ASD cohorts.
+      prey_gene: >
+        HGNC gene symbol of the interacting protein (prey) whose binding to the mutant bait was
+        quantified relative to wild-type. Mapped as the "target" gene in SSPsyGene.
+      prey_uniprot: >
+        UniProt accession of the prey protein.
+      log2fc: >
+        Log2 fold change of interaction strength: mutant bait vs. wild-type bait (MSstats). Positive
+        values indicate a gained or strengthened interaction in the mutant; negative values indicate
+        a lost or weakened interaction. Values of exactly ±8 are a convention for complete gain or
+        loss (prey observed in only one condition; true fold change is undefined).
+      se: >
+        Standard error of the log2FC estimate from MSstats.
+      tvalue: >
+        T-statistic from the MSstats comparison of mutant vs. wild-type interaction intensity.
+      df: >
+        Degrees of freedom for the MSstats t-test.
+      pvalue: >
+        Nominal p-value from MSstats for the mutant vs. wild-type interaction comparison. Not
+        available (blank) for rows where the prey was observed in only one condition (log2FC = ±8).
+      fdr_storey: >
+        Storey q-value (FDR) pooled across all p-values from all mutant–interactor comparisons.
+        Not available (blank) for rows where p-value could not be computed.
+      change: >
+        Direction and significance of interaction change: "up" = significantly gained or strengthened
+        (pvalue < 0.05 and log2FC > 1); "down" = significantly lost or weakened (pvalue < 0.05 and
+        log2FC < −1); "not significant" = all other rows.
+      obscountwt: >
+        Number of wild-type AP-MS replicates (out of 3) in which the prey was detected.
+      obscountmut: >
+        Number of mutant AP-MS replicates (out of 3) in which the prey was detected.
+    gene_mappings:
+      - column_name: bait
+        link_table_name: bait
+        species: human
+        perturbed_or_target: perturbed
+        # IRFBPL is renamed to IRF2BPL (current approved HGNC symbol) in
+        # preprocess.py before load-db runs.
+      - column_name: prey_gene
+        link_table_name: prey_gene
+        species: human
+        perturbed_or_target: target
+    pvalue_column: pvalue
+    fdr_column: fdr_storey
+    effect_column: log2FC

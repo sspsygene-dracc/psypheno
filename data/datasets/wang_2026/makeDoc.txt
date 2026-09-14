@@ -19,5 +19,6 @@ cd data/datasets/wang_2026
 # Download manually from the Science supplementary materials page
 # Output: wang_tables_S1-S8.zip
 
-# Extract Table S1 used for preprocessing
+# Extract tables used for preprocessing
 unzip -n wang_tables_S1-S8.zip science.ady4523_table_s1.xlsx
+unzip -n wang_tables_S1-S8.zip science.ady4523_table_s6.xlsx
