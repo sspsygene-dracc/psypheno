@@ -1,0 +1,166 @@
+publication:
+  title: "Autism mutations rewire protein interaction networks to drive neurodevelopmental pathology"
+  authors:
+    - Belinda Wang
+    - Rasika Vartak
+    - Kelsey M. Hennick
+    - Yefim Zaltsman
+    - Zun Zar Chi Naing
+    - Benjamin J. Polacco
+    - Ali Bashir
+    - Manon Eckhardt
+    - Mehdi Bouhaddou
+    - Jiewei Xu
+    - Nawei Sun
+    - Micaela C. Lasser
+    - Yuan Zhou
+    - Justin McKetney
+    - Keelan Z. Guiley
+    - Pawel Gniewek
+    - Una Chan
+    - Naufa Amiran
+    - Owen Griffiths
+    - Nishant Chadha
+    - Reshmi Tognatta
+    - Merve Cakir
+    - Martin Gordon
+    - Prachi Khare
+    - Sam Drake
+    - Vanessa Drury
+    - David F. Burke
+    - Silvano Gonzalez
+    - Sahar Alkhairy
+    - Reuben Thomas
+    - Stephanie Lam
+    - Montana Morris
+    - Ethel Bader
+    - Mélanie Dos Santos
+    - Anastassia V. Komarova
+    - Maxwell Bennett
+    - Craig Ennis
+    - Octavio Castillo
+    - Yvonne Lim
+    - Robert Martin
+    - Meghan Seyler
+    - Tierney Baum
+    - Rebecca Krasnoff
+    - George Wang
+    - Sagnik Middya
+    - Sheng Wang
+    - Prashay Pham
+    - Juan Arbelaez
+    - Dexter Pratt
+    - Sofia Bali
+    - Shivali Chag
+    - Julia A. Kaye
+    - Nadir Mahmood
+    - Lee Spraggon
+    - Thomas Rolland
+    - Shawn Hervey-Jumper
+    - James S. Fraser
+    - Thomas Bourgeron
+    - Steven Finkbeiner
+    - Caroline Demeret
+    - Danielle L. Swaney
+    - Sourav Bandyopadhyay
+    - Trey Ideker
+    - Pedro Beltrao
+    - Helen Rankin Willsey
+    - Luca Hüttenhain
+    - Kirsten Obernier
+    - Tomasz J. Nowakowski
+    - Matthew W. State
+    - A. Jeremy Willsey
+    - Nevan J. Krogan
+  year: 2026
+  journal: Science
+  doi: 10.1126/science.ady4523
+  sspsygene_grants: []
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-09-14"
+    comment: Initial table creation
+deployTo:
+  - dev
+tables:
+  - table: wang_2026_ppi
+    changelog:
+      - date: "2026-09-14"
+        message: "Initial data load"
+    shortLabel: asd_ppi_wt
+    mediumLabel: "Wang 2026 - ASD Protein-Protein Interaction Network"
+    longLabel: "Protein interactions of 100 high-confidence ASD risk proteins by affinity purification–mass spectrometry"
+    description: >
+      Wild-type protein-protein interaction (PPI) network for 100 high-confidence ASD risk genes,
+      mapped by affinity purification–mass spectrometry (AP-MS) in HEK293T cells. Each row is one
+      high-confidence interaction (SAINT BFDR ≤ 0.05) between a bait hcASD protein and an interactor.
+
+
+      SSPsyGene maps bait proteins as the "perturbed" gene and interactors as the "target" gene,
+      following the same convention used for CRISPR perturbation data: the bait is the gene being
+      actively manipulated (expressed and pulled down), while the interactor is the protein whose
+      association is being measured.
+    source: "Table S1 (sheet: ASD-PPI)"
+    assay: perturbation
+    condition:
+      - autism
+    categories:
+      - protein-protein interactions
+      - affinity purification–mass spectrometry
+      - ASD risk genes
+    organism: Homo sapiens (HEK293T cells)
+    organism_key: human
+    in_path: wang_2026_ppi.tsv
+    separator: "\t"
+    columnLabels:
+      SAINT_BFDR: "SAINT BFDR"
+      CompPASS_rank_WD: "CompPASS WD"
+      AvgSpec: "Avg Spec"
+      interactor_uniprot: "UniProt ID"
+      is_gold_standard: "Gold Standard"
+    fieldLabels:
+      bait: >
+        hcASD protein used as bait in affinity purification–mass spectrometry. The 100 bait proteins
+        are high-confidence ASD genes (Satterstrom et al. 2020, TADA FDR < 0.1), each expressed with
+        a 2×Strep tag in HEK293T cells. Mapped as the "perturbed" gene in SSPsyGene.
+      interactor_uniprot: >
+        UniProt accession of the interacting protein (prey) identified by mass spectrometry.
+      interactor: >
+        HGNC gene symbol of the protein that co-purified with the bait in AP-MS. Mapped as the
+        "target" gene in SSPsyGene. 1,074 unique interactors across all 100 baits.
+      interaction_type: >
+        Interaction category: bait_int = interactor is not itself one of the 100 hcASD baits;
+        bait_bait = both proteins are among the 100 hcASD baits (72 such pairs).
+      saint_bfdr: >
+        SAINT (Significance Analysis of INTeractome) Bayesian false discovery rate. Lower values
+        indicate higher confidence. All 1,881 interactions shown have BFDR ≤ 0.05. Scored against
+        six negative control pull-downs.
+      comppas_rank_wd: >
+        CompPASS weighted D score (0–1, higher = more confident). Measures reproducibility and
+        enrichment relative to background proteome, complementary to SAINT.
+      avgspec: >
+        Average spectral count for the interactor across the biological replicate pull-downs
+        (all baits were run in triplicate). Higher values indicate more abundant co-purification.
+      numreplicates: >
+        Number of biological replicate pull-down experiments. All bait proteins were profiled in
+        three biological replicates.
+      is_gold_standard: >
+        TRUE if this interaction is present in a compiled gold-standard PPI database (BioGRID,
+        InWeb, BioPlex, CORUM, or Hein et al. 2015). 220 of 1,881 interactions (11.7%) are
+        gold-standard-supported.
+    gene_mappings:
+      - column_name: bait
+        link_table_name: bait
+        species: human
+        perturbed_or_target: perturbed
+      - column_name: interactor
+        link_table_name: interactor
+        species: human
+        perturbed_or_target: target
+        # LOC100421372 is an uncharacterized locus (NCBI RefSeq provisional
+        # model) with no current HGNC symbol; keep the rows, record as a stub.
+        non_resolving:
+          record_values:
+            - LOC100421372
+    fdr_column: SAINT_BFDR

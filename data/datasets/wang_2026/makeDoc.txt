@@ -1,0 +1,23 @@
+#! /bin/zsh
+
+# Source: Wang et al. 2026, Science 393, eady4523
+# DOI: https://doi.org/10.1126/science.ady4523
+# Supplementary data downloaded from Science journal supplementary materials.
+# Refresh cadence: publication is final; no updates expected.
+
+cd data/datasets/wang_2026
+
+# Paper PDF
+# Download manually from: https://www.science.org/doi/10.1126/science.ady4523
+# Output: wang_2026.pdf
+
+# Supplementary materials PDF (methods, figure legends, supplementary figures)
+# Download manually from the Science supplementary materials page
+# Output: wang_suppl_material.pdf
+
+# Supplementary Tables S1–S8 (zip archive)
+# Download manually from the Science supplementary materials page
+# Output: wang_tables_S1-S8.zip
+
+# Extract Table S1 used for preprocessing
+unzip -n wang_tables_S1-S8.zip science.ady4523_table_s1.xlsx
