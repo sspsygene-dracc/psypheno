@@ -21,12 +21,15 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import subprocess
 from collections import deque
+from functools import lru_cache
 from pathlib import Path
 
 import click
+from tqdm import tqdm
 
 from processing.deploy import (
     PSYGENE,
@@ -61,6 +64,35 @@ def _ssh_prefix(host: str) -> list[str]:
 EXCLUDES = ("*~", "*.swp", "*.orig", ".DS_Store", "expected_drops.yaml*")
 
 
+# A transfer carrying at least one file this big gets a tqdm progress bar with
+# an ETA. Below it, rsync finishes before a bar would have told you anything,
+# and the per-file names it already streams are the more useful output.
+PROGRESS_MIN_FILE_BYTES = 50 * 1024 * 1024
+
+# `--info=progress2` emits a running "<bytes> <pct>% <rate> <eta>" chunk for the
+# transfer as a whole, separated by \r rather than \n. We only read the byte
+# count off it — tqdm derives rate and ETA itself, so a stalled connection shows
+# a decaying rate instead of rsync's last-known figure.
+_PROGRESS_RE = re.compile(r"^\s*([\d,]+)\s+\d+%\s+\S+\s+\d+:\d\d:\d\d")
+
+
+@lru_cache(maxsize=1)
+def _rsync_supports_progress() -> bool:
+    """Whether the local rsync understands ``--info=progress2``.
+
+    macOS ships openrsync, which doesn't have ``--info`` at all — passing it
+    there aborts the transfer. A wrangler on stock macOS therefore keeps the
+    old filename-streaming output instead of getting an error.
+    """
+    try:
+        result = subprocess.run(
+            ["rsync", "--info=help"], capture_output=True, text=True, timeout=10
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return result.returncode == 0 and "PROGRESS" in result.stdout
+
+
 def _rsync_transport(host: str) -> tuple[str, str]:
     """Return (``-e`` transport string, rsync hostname) for *host*."""
     transport = "ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
@@ -69,27 +101,94 @@ def _rsync_transport(host: str) -> tuple[str, str]:
     return transport, host
 
 
-def _rsync_one(cmd: list[str], name: str) -> int:
+def _rsync_one(
+    cmd: list[str],
+    name: str,
+    *,
+    progress_total: int | None = None,
+) -> int:
     """Run an rsync, streaming each transferred filename live; return the count.
 
     Streaming (rather than capturing) means a big dataset shows files ticking by
     instead of going silent until the whole transfer finishes.
+
+    When *progress_total* is given (the caller has decided this transfer carries
+    a file worth waiting on — see ``PROGRESS_MIN_FILE_BYTES``) the transfer also
+    gets a tqdm bar with an ETA, fed by rsync's own ``--info=progress2`` byte
+    counter. *progress_total* is an estimate: rsync skips files that are already
+    up to date, so the bar can finish short of its total. It's set `leave=False`
+    so it disappears on completion and the caller's "synced N file(s)" summary
+    is what remains on screen.
     """
+    bar = None
+    if progress_total and _rsync_supports_progress():
+        cmd = [*cmd, "--info=progress2"]
+        bar = tqdm(
+            total=progress_total,
+            desc=f"        {name}",
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            dynamic_ncols=True,
+            leave=False,
+            # disable=None auto-disables when stderr isn't a TTY, so deploy
+            # logs and CI capture don't fill up with redrawn bars.
+            disable=None,
+        )
+
+    def emit(line: str) -> None:
+        # tqdm.write keeps the bar pinned to the bottom instead of having the
+        # filename lines shred it.
+        if bar is not None:
+            tqdm.write(f"        {line}")
+        else:
+            click.echo(f"        {line}")
+
+    # Binary + unbuffered: rsync separates progress updates with \r, which
+    # text-mode line iteration would swallow into one enormous "line" that only
+    # flushes when the file finishes — exactly the case the bar exists for.
     proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0
     )
     count = 0
+    transferred = 0
     tail: deque[str] = deque(maxlen=30)
     assert proc.stdout is not None
-    for raw in proc.stdout:
-        line = raw.rstrip("\n")
-        tail.append(line)
-        # --out-format=%n emits one line per item; skip dirs + rsync's own
-        # status lines so we count (and echo) only real files.
-        if not line or line.endswith("/") or line.startswith("rsync"):
-            continue
-        count += 1
-        click.echo(f"        {line}")
+    buf = b""
+    try:
+        while True:
+            chunk = proc.stdout.read(65536)
+            if not chunk:
+                break
+            buf += chunk
+            pieces = re.split(rb"[\r\n]", buf)
+            # The last piece may be a partial line; hold it until more arrives.
+            buf = pieces.pop()
+            for raw in pieces:
+                line = raw.decode("utf-8", errors="replace").rstrip()
+                if not line:
+                    continue
+                match = _PROGRESS_RE.match(line)
+                if match:
+                    if bar is not None:
+                        done = int(match.group(1).replace(",", ""))
+                        # progress2's counter is cumulative for the whole
+                        # transfer, so advance by the delta.
+                        bar.update(max(0, min(done, progress_total) - transferred))
+                        transferred = done
+                    continue
+                tail.append(line)
+                # --out-format=%n emits one line per item; skip dirs + rsync's
+                # own status lines so we count (and echo) only real files.
+                if line.endswith("/") or line.startswith("rsync"):
+                    continue
+                count += 1
+                emit(line)
+        if buf.strip():
+            tail.append(buf.decode("utf-8", errors="replace").rstrip())
+    finally:
+        if bar is not None:
+            bar.close()
     if proc.wait() != 0:
         raise click.ClickException(
             f"rsync failed for '{name}':\n" + "\n".join(tail)
@@ -200,6 +299,9 @@ def _sync_shared_inputs(
     # abort the whole run; checking first lets us skip those cleanly.
     remote_paths = {rel: f"{remote_root}/data/{rel}" for rel in wanted}
     remote_present = _list_remote_files(host, list(remote_paths.values()))
+    remote_sizes: dict[str, int] = {}
+    if not dry_run and _rsync_supports_progress():
+        remote_sizes = _remote_sizes_of(host, sorted(remote_present))
 
     total_files = 0
     synced = 0
@@ -221,7 +323,16 @@ def _sync_shared_inputs(
             str(local_path),
         ]
         click.echo(f"  {rel}: {'checking' if dry_run else 'syncing'}…")
-        count = _rsync_one(cmd, rel)
+        # Homology tables are among the biggest files we move (MGI_EntrezGene
+        # and friends run past 50 MB), so they get a bar too.
+        size = remote_sizes.get(remote_paths[rel])
+        count = _rsync_one(
+            cmd,
+            rel,
+            progress_total=(
+                size if size and size >= PROGRESS_MIN_FILE_BYTES else None
+            ),
+        )
         if count:
             synced += 1
             total_files += count
@@ -230,6 +341,81 @@ def _sync_shared_inputs(
         else:
             click.echo("        → already up to date")
     return total_files, synced
+
+
+def _remote_file_sizes(host: str, remote_dir: str) -> dict[str, int]:
+    """``{path relative to remote_dir: size in bytes}`` for files under it.
+
+    One SSH round trip for the whole tree, used only to decide which datasets
+    warrant a progress bar and what to size it against. Best-effort: any failure
+    returns an empty mapping and the transfer runs without a bar rather than
+    failing over a cosmetic feature.
+    """
+    cmd = [
+        *_ssh_prefix(host),
+        f"find {shlex.quote(remote_dir)} -type f -printf '%s\\t%P\\n' "
+        f"2>/dev/null || true",
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    sizes: dict[str, int] = {}
+    for line in result.stdout.splitlines():
+        size, tab, rel = line.partition("\t")
+        if not tab or not rel:
+            continue
+        try:
+            sizes[rel] = int(size)
+        except ValueError:
+            continue
+    return sizes
+
+
+def _remote_sizes_of(host: str, paths: list[str]) -> dict[str, int]:
+    """``{path: size in bytes}`` for an explicit list of remote *paths*.
+
+    The shared-input counterpart of :func:`_remote_file_sizes` (which walks a
+    whole tree). Best-effort, same reasoning: a failure means no progress bar,
+    never a failed sync.
+    """
+    if not paths:
+        return {}
+    script = "; ".join(
+        f"stat -c '%s\t%n' {shlex.quote(path)} 2>/dev/null" for path in paths
+    )
+    try:
+        result = subprocess.run(
+            [*_ssh_prefix(host), script], capture_output=True, text=True, timeout=60
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    sizes: dict[str, int] = {}
+    for line in result.stdout.splitlines():
+        size, tab, path = line.partition("\t")
+        if not tab or not path:
+            continue
+        try:
+            sizes[path] = int(size)
+        except ValueError:
+            continue
+    return sizes
+
+
+def _progress_total(
+    sizes: dict[str, int],
+    wanted: list[str],
+) -> int | None:
+    """Bytes to size a progress bar against, or None if no bar is warranted.
+
+    A bar is warranted only when at least one file in *wanted* is at or above
+    ``PROGRESS_MIN_FILE_BYTES`` — the case where a transfer goes quiet for long
+    enough that an ETA is worth having.
+    """
+    present = [sizes[rel] for rel in wanted if rel in sizes]
+    if not present or max(present) < PROGRESS_MIN_FILE_BYTES:
+        return None
+    return sum(present)
 
 
 def _list_remote_files(host: str, paths: list[str]) -> set[str]:
@@ -306,6 +492,14 @@ def run_pull_data(
 
     remote_dirs = _list_remote_dirs(host, remote_datasets)
 
+    # Sizes for the whole remote datasets tree in one round trip, so each
+    # dataset's transfer knows whether it's carrying anything big enough to
+    # deserve a progress bar. Skipped when nothing will transfer (dry run) or
+    # the local rsync can't report progress anyway.
+    remote_sizes: dict[str, int] = {}
+    if not dry_run and _rsync_supports_progress():
+        remote_sizes = _remote_file_sizes(host, remote_datasets)
+
     total_files = 0
     synced = skipped = 0
     n = len(names)
@@ -325,8 +519,19 @@ def run_pull_data(
             f"{rsync_host}:{remote_datasets}/{name}/",
             f"{local_datasets}/{name}/",
         ]
+        # Without --overwrite rsync skips what's already here, so only the
+        # locally-missing files count toward the bar.
+        prefix = f"{name}/"
+        candidates = [
+            rel
+            for rel in remote_sizes
+            if rel.startswith(prefix)
+            and (overwrite or not (local_datasets / rel).exists())
+        ]
         click.echo(f"  [{i}/{n}] {name}: {'checking' if dry_run else 'syncing'}…")
-        count = _rsync_one(cmd, name)
+        count = _rsync_one(
+            cmd, name, progress_total=_progress_total(remote_sizes, candidates)
+        )
         if count:
             synced += 1
             total_files += count

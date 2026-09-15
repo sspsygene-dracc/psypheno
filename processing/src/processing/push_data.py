@@ -38,6 +38,7 @@ from processing.deploy import INSTANCE_PATHS
 from processing.pull_data import (
     EXCLUDES,
     _local_datasets_dir,
+    _progress_total,
     _rsync_one,
     _rsync_transport,
     _ssh_prefix,
@@ -256,7 +257,23 @@ def run_push_data(
                 f"{dataset_dir}/",
                 f"{rsync_host}:{remote_dataset_dir}/",
             ]
-            count = _rsync_one(cmd, name)
+            # Sizes are free on this side — we already hold the file list.
+            # rsync skips files the server already has, so this is an upper
+            # bound and the bar can finish short; it's `leave=False`, so a
+            # short bar disappears rather than lingering as a wrong number.
+            sizes = {}
+            for rel in files:
+                try:
+                    sizes[rel] = (dataset_dir / rel).stat().st_size
+                except OSError:
+                    continue
+            count = _rsync_one(
+                cmd,
+                name,
+                progress_total=(
+                    None if dry_run else _progress_total(sizes, files)
+                ),
+            )
 
         total_files += count
         verb = "would push" if dry_run else "pushed"
