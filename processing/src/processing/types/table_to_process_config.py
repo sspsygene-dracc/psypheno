@@ -684,6 +684,23 @@ class TableToProcessConfig:
             for gene_mapping in self.gene_mappings
             if gene_mapping.column_name is not None
         }
+        if not self.in_path.exists():
+            # pandas would raise a bare FileNotFoundError from six frames down
+            # a traceback. Data files are gitignored, so "the file isn't there"
+            # is the expected state of a fresh checkout, not a corrupt one —
+            # say which dataset is affected and how to get the file.
+            dataset_dir = self.in_path.parent
+            raise FileNotFoundError(
+                f"Input file for table '{self.table}' not found: "
+                f"{self.in_path}\n"
+                f"  Dataset data files (raw downloads and cleaned outputs) are "
+                f"gitignored, so a fresh checkout or a `git pull` won't have "
+                f"them. To get this one:\n"
+                f"      sspsygene pull-data --dataset {dataset_dir.name}\n"
+                f"  If it's a cleaned output that no instance has yet, "
+                f"regenerate it instead:\n"
+                f"      sspsygene preprocess --dataset {dataset_dir.name}"
+            )
         data = pd.read_csv(
             self.in_path, sep=self.separator, dtype=gene_column_dtypes
         ).convert_dtypes(**conversion_dict)

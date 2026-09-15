@@ -26,6 +26,7 @@ from processing.deploy import (
     PSYGENE,
     DeployError,
     _detect_missing_dependency,
+    _detect_missing_input_file,
     _run_ssh,
     _ssh_command,
 )
@@ -154,3 +155,33 @@ def test_detect_missing_dependency(output: str, expected: str | None) -> None:
     deploy can print an actionable install hint; unrelated errors return
     None so we don't mislabel them as install problems (#204)."""
     assert _detect_missing_dependency(output) == expected
+
+
+@pytest.mark.parametrize(
+    "output, expected",
+    [
+        # What pandas/openpyxl actually raise when a dataset's raw download
+        # isn't on the box — the case that sent a wrangler looking for a
+        # forgotten push-data.
+        (
+            "  File \"pandas/io/common.py\", line 873, in get_handle\n"
+            "FileNotFoundError: [Errno 2] No such file or directory: "
+            "'/hive/groups/SSPsyGene/x/data/datasets/sfari/genes.csv'",
+            "/hive/groups/SSPsyGene/x/data/datasets/sfari/genes.csv",
+        ),
+        (
+            "OSError: [Errno 2] No such file or directory: 'supp_table_1.xlsx'",
+            "supp_table_1.xlsx",
+        ),
+        # A missing *package* is a different remedy — don't conflate them.
+        ("ModuleNotFoundError: No module named 'xlrd'", None),
+        # Unrelated failures stay undiagnosed rather than getting a wrong hint.
+        ("KeyError: 'gene_symbol' column not found", None),
+        ("", None),
+    ],
+)
+def test_detect_missing_input_file(output: str, expected: str | None) -> None:
+    """A missing-input traceback is turned into the path preprocess.py tried
+    to open, so the deploy can tell the wrangler to push/pull the data files
+    instead of just reporting that N jobs failed."""
+    assert _detect_missing_input_file(output) == expected

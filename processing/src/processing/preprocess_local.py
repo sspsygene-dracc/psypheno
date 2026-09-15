@@ -25,6 +25,8 @@ from pathlib import Path
 import click
 import yaml
 
+from processing.deploy import _detect_missing_input_file
+
 PREPROCESS_TIMEOUT = 1800
 DEFAULT_WORKERS = 8
 
@@ -129,6 +131,8 @@ def run_local_preprocess(
     workers = max(1, min(max_workers, len(targets)))
     click.echo(f"\nExecuting with {workers} parallel worker(s)…\n")
     failures: list[str] = []
+    # dataset name -> the input file it couldn't open, for the summary below.
+    missing_inputs: dict[str, str] = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
         futures = [pool.submit(_run_one, d) for d in targets]
         for future in concurrent.futures.as_completed(futures):
@@ -137,13 +141,54 @@ def run_local_preprocess(
                 click.echo(f"  OK   {name}")
             else:
                 click.secho(f"  FAIL {name} (exit {rc})", fg="red")
+                missing_input = _detect_missing_input_file(output)
+                if missing_input:
+                    missing_inputs[name] = missing_input
+                    click.secho(
+                        f"    -> missing input file "
+                        f"'{Path(missing_input).name}' — raw data files are "
+                        f"gitignored, so a fresh checkout doesn't have them: "
+                        f"sspsygene pull-data --dataset {name}",
+                        fg="yellow",
+                    )
                 for line in output.strip().splitlines()[-25:]:
                     click.echo(f"    | {line}")
                 failures.append(name)
 
     if failures:
+        # Carry the remedy in the exception message itself — the per-failure
+        # hints above are buried under the captured tracebacks by the time the
+        # run ends.
+        detail = ""
+        if missing_inputs:
+            # pull-data's --dataset is single-valued (repeating it would
+            # silently keep only the last), so emit one command per dataset.
+            names = "\n      ".join(
+                f"sspsygene pull-data --dataset {n}" for n in sorted(missing_inputs)
+            )
+            affected = ", ".join(
+                f"{name} ({Path(path_).name})"
+                for name, path_ in sorted(missing_inputs.items())
+            )
+            detail += (
+                f"\n\n  {len(missing_inputs)} of them couldn't find their input "
+                f"data: {affected}."
+                f"\n  Raw downloads are gitignored, so `git pull` never brings "
+                f"them. Fetch them from dev:"
+                f"\n      {names}"
+                f"\n  (Then re-run this command. If dev doesn't have the file "
+                f"either, download it by hand — see the dataset's makeDoc.txt.)"
+            )
+        unexplained = [f for f in failures if f not in missing_inputs]
+        if unexplained and missing_inputs:
+            detail += (
+                f"\n\n  No automatic diagnosis for: "
+                f"{', '.join(sorted(unexplained))} — see the '|'-prefixed "
+                f"output above each FAIL line."
+            )
         raise click.ClickException(
             f"{len(failures)} of {len(targets)} preprocess run(s) failed: "
             + ", ".join(failures)
+            + detail
         )
     click.echo(f"\nDone. {len(targets)} dataset(s) preprocessed successfully.")

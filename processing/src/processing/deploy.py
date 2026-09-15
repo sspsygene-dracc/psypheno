@@ -404,11 +404,40 @@ def _detect_missing_dependency(output: str) -> str | None:
     return None
 
 
+# Patterns that mean "preprocess.py died because its input data file isn't
+# there". The capture group is the path it tried to open. This is the single
+# most common preprocess failure for a wrangler: raw downloads and cleaned
+# <table>.tsv outputs are gitignored, so `git pull` never brings them and the
+# tree looks complete while the data isn't. pandas/openpyxl both surface the
+# plain FileNotFoundError form.
+_MISSING_INPUT_PATTERNS = (
+    re.compile(
+        r"FileNotFoundError: \[Errno 2\] No such file or directory: "
+        r"['\"]([^'\"]+)['\"]"
+    ),
+    re.compile(
+        r"OSError: \[Errno 2\] No such file or directory: ['\"]([^'\"]+)['\"]"
+    ),
+)
+
+
+def _detect_missing_input_file(output: str) -> str | None:
+    """Return the path preprocess.py failed to open, if `output` looks like a
+    missing-input-file failure, else None. Turns a raw traceback into an
+    actionable "the data files never left your laptop" hint."""
+    for pattern in _MISSING_INPUT_PATTERNS:
+        match = pattern.search(output)
+        if match:
+            return match.group(1)
+    return None
+
+
 def _step_preprocess_site(
     path: str,
     *,
     label: str,
     env_vars: dict[str, str],
+    instance: str,
 ) -> None:
     """Run every dataset's preprocess.py in parallel under the conda env.
 
@@ -501,6 +530,8 @@ def _step_preprocess_site(
     failures: list[str] = []
     # dataset name -> missing package, for the actionable summary at the end.
     missing_deps: dict[str, str] = {}
+    # dataset name -> input file it couldn't open, same idea.
+    missing_inputs: dict[str, str] = {}
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
             futures = [pool.submit(run_one, d) for d in dataset_dirs]
@@ -530,6 +561,22 @@ def _step_preprocess_site(
                             f"and consider adding it to processing/pyproject.toml.",
                             fg="yellow",
                         )
+                    missing_input = _detect_missing_input_file(output)
+                    if missing_input:
+                        # Same idea as the dependency hint above: say what to
+                        # do, not just what broke. Data files are gitignored,
+                        # so a wrangler whose `git pull` succeeded has no
+                        # reason to suspect the files simply aren't there.
+                        missing_inputs[name] = missing_input
+                        click.secho(
+                            f"    -> missing input file "
+                            f"'{Path(missing_input).name}' — dataset data "
+                            f"files are gitignored, so `git pull` never "
+                            f"brings them. Push them from your laptop: "
+                            f"sspsygene push-data {name} "
+                            f"--instance {instance}",
+                            fg="yellow",
+                        )
                     for line in output.strip().splitlines():
                         click.echo(f"    | {line}")
                     failures.append(name)
@@ -538,6 +585,12 @@ def _step_preprocess_site(
         beat.join(timeout=1)
 
     if failures:
+        # Remediation lines are carried on the DeployError's `detail` so they
+        # print *with* the final "Error:" line. The per-failure hints above
+        # scroll away behind dozens of traceback lines, which is exactly how a
+        # wrangler ends up staring at "2 preprocess job(s) failed" with no idea
+        # what to do next.
+        detail: list[str] = []
         if missing_deps:
             # Group the missing-dependency failures into one install line so the
             # operator can fix them all at once before re-running the deploy.
@@ -545,16 +598,48 @@ def _step_preprocess_site(
             affected = ", ".join(
                 f"{name} ({pkg})" for name, pkg in sorted(missing_deps.items())
             )
-            click.secho(
-                f"\n  {len(missing_deps)} dataset(s) failed on a missing "
-                f"Python dependency: {affected}.\n"
-                f"  Install into the {CONDA_ENV} env, then re-deploy:\n"
-                f"      conda run -n {CONDA_ENV} pip install {pkgs}",
-                fg="yellow",
+            detail += [
+                f"{len(missing_deps)} dataset(s) failed on a missing Python "
+                f"dependency: {affected}.",
+                f"Install into the {CONDA_ENV} env on psygene, then re-deploy:",
+                f"    conda run -n {CONDA_ENV} pip install {pkgs}",
+                "",
+            ]
+        if missing_inputs:
+            names = " ".join(sorted(missing_inputs))
+            affected = ", ".join(
+                f"{name} ({Path(path_).name})"
+                for name, path_ in sorted(missing_inputs.items())
             )
+            detail += [
+                f"{len(missing_inputs)} dataset(s) failed because their input "
+                f"data files are missing on {instance}: {affected}.",
+                "Raw downloads and cleaned <table>.tsv files are gitignored, "
+                "so `git pull` never brings them — they have to be copied "
+                "separately. From your laptop:",
+                f"    sspsygene push-data {names} --instance {instance}",
+                "If your laptop doesn't have them either, pull them from an "
+                "instance that does first:",
+                f"    sspsygene pull-data --dataset {sorted(missing_inputs)[0]}"
+                f" --instance dev",
+                "",
+            ]
+        unexplained = [
+            f
+            for f in failures
+            if f not in missing_deps and f not in missing_inputs
+        ]
+        if unexplained:
+            detail += [
+                f"No automatic diagnosis for: {', '.join(sorted(unexplained))} "
+                "— scroll up for each one's captured output (the '|'-prefixed "
+                "lines above its FAIL line).",
+                "",
+            ]
         raise DeployError(
-            f"{len(failures)}/{len(dataset_dirs)} preprocess job(s) failed: "
-            + ", ".join(failures)
+            f"{len(failures)}/{len(dataset_dirs)} preprocess job(s) failed on "
+            f"{instance}: " + ", ".join(failures),
+            detail="\n".join(detail).rstrip(),
         )
 
 
@@ -1607,6 +1692,7 @@ def _run_build_pipeline(
                 INSTANCE_PATHS[inst],
                 label=INSTANCE_LABELS[inst],
                 env_vars=INSTANCE_ENVS[inst],
+                instance=inst,
             )
 
     click.secho("\n[3/5] Deploying sites on psygene", bold=True)
