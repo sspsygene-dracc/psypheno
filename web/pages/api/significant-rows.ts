@@ -2,7 +2,12 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
-import { sanitizeIdentifier, parseDisplayColumns, parseLinkTablesForDirection } from "@/lib/gene-query";
+import {
+  sanitizeIdentifier,
+  parseDisplayColumns,
+  parseLinkTablesForDirection,
+  buildBestOfColumnsExpr,
+} from "@/lib/gene-query";
 
 const bodySchema = z.object({
   centralGeneId: z.number().min(0),
@@ -102,17 +107,15 @@ export default async function handler(
       const filterWhere = filterCols
         .map((c) => `(b.${c} IS NOT NULL AND b.${c} < 0.05)`)
         .join(" OR ");
-      // Build ORDER BY: minimum across all sort columns
-      const sortExpr =
-        sortCols.length === 1
-          ? `b.${sortCols[0]}`
-          : `MIN(${sortCols.map((c) => `COALESCE(b.${c}, 1)`).join(", ")})`;
+      // Build ORDER BY: best (smallest) value across all sort columns, NULL
+      // when they're all blank so NULLS LAST can sink those rows.
+      const sortExpr = buildBestOfColumnsExpr(sortCols, "b");
 
       try {
         const query = `SELECT DISTINCT ${selectCols} FROM ${baseTable} b
           WHERE b.id IN (${idSubquery})
           AND (${filterWhere})
-          ORDER BY ${sortExpr} ASC
+          ORDER BY ${sortExpr} ASC NULLS LAST
           LIMIT 500`;
 
         const rows = db.prepare(query).all(...params) as Record<

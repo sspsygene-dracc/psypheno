@@ -6,6 +6,7 @@ import {
   sanitizeIdentifier,
   parseDisplayColumns,
   parseSourceColumnsForDirection,
+  buildBestOfColumnsExpr,
 } from "@/lib/gene-query";
 
 const bodySchema = z.object({
@@ -126,11 +127,9 @@ export default async function handler(
           : ` AND ${effectCol} < 0`;
     }
     const filterWhere = `(${pvalueWhere})${signClause}`;
-    // Build ORDER BY: minimum across all sort columns
-    const sortExpr =
-      sortCols.length === 1
-        ? sortCols[0]
-        : `MIN(${sortCols.map((c) => `COALESCE(${c}, 1)`).join(", ")})`;
+    // Build ORDER BY: best (smallest) value across all sort columns, NULL when
+    // they're all blank so NULLS LAST can sink those rows in both directions.
+    const sortExpr = buildBestOfColumnsExpr(sortCols);
 
     const selectCols = displayCols.map((c) => sanitizeIdentifier(c)).join(", ");
     const offset = (page - 1) * pageSize;
@@ -139,7 +138,7 @@ export default async function handler(
       .prepare(
         `SELECT ${selectCols} FROM ${baseTable}
          WHERE ${filterWhere}
-         ORDER BY ${sortExpr} ${sortDir === "desc" ? "DESC" : "ASC"} ${sortDir === "asc" ? "NULLS LAST" : "NULLS FIRST"}
+         ORDER BY ${sortExpr} ${sortDir === "desc" ? "DESC" : "ASC"} NULLS LAST
          LIMIT ? OFFSET ?`
       )
       .all(pageSize, offset) as Record<string, unknown>[];

@@ -75,7 +75,9 @@ export default async function handler(
     };
     const sortEntry = VALID_SORT_COLUMNS[sortByRaw];
     const sortDir = sortDirRaw === "asc" ? "ASC" : sortDirRaw === "desc" ? "DESC" : sortEntry.defaultDir;
-    const nullsLast = sortDir === "ASC" ? "NULLS LAST" : "NULLS FIRST";
+    // Blanks always sort to the bottom, in both directions (matches
+    // buildOrderByClause and DataTable's client-side sort).
+    const nullsLast = "NULLS LAST";
     const tiebreaker = sortByRaw === "human_symbol"
       ? ", cg.num_datasets DESC"
       : ", cg.human_symbol ASC";

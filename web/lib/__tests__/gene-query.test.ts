@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ALL_CONTROLS_SENTINEL_ID,
+  buildBestOfColumnsExpr,
   buildFilterClause,
   buildGeneQuery,
   buildOrderByClause,
@@ -89,9 +90,9 @@ describe("buildOrderByClause", () => {
     );
   });
 
-  it("builds desc clause with NULLS FIRST", () => {
+  it("builds desc clause with NULLS LAST too — blanks never lead", () => {
     expect(buildOrderByClause({ column: "x", mode: "desc" })).toBe(
-      "ORDER BY x DESC NULLS FIRST",
+      "ORDER BY x DESC NULLS LAST",
     );
   });
 
@@ -100,7 +101,7 @@ describe("buildOrderByClause", () => {
       "ORDER BY ABS(lfc) ASC NULLS LAST",
     );
     expect(buildOrderByClause({ column: "lfc", mode: "desc_abs" })).toBe(
-      "ORDER BY ABS(lfc) DESC NULLS FIRST",
+      "ORDER BY ABS(lfc) DESC NULLS LAST",
     );
   });
 
@@ -110,7 +111,28 @@ describe("buildOrderByClause", () => {
     ).toBe("ORDER BY b.x ASC NULLS LAST");
     expect(
       buildOrderByClause({ column: "x", mode: "desc_abs", tableAlias: "b" }),
-    ).toBe("ORDER BY ABS(b.x) DESC NULLS FIRST");
+    ).toBe("ORDER BY ABS(b.x) DESC NULLS LAST");
+  });
+});
+
+describe("buildBestOfColumnsExpr", () => {
+  it("returns the bare column reference for a single column", () => {
+    expect(buildBestOfColumnsExpr(["padj"])).toBe("padj");
+    expect(buildBestOfColumnsExpr(["padj"], "b")).toBe("b.padj");
+  });
+
+  it("returns NULL only when every column is blank", () => {
+    expect(buildBestOfColumnsExpr(["asd_fdr", "scz_fdr"])).toBe(
+      "CASE WHEN asd_fdr IS NULL AND scz_fdr IS NULL THEN NULL " +
+        "ELSE MIN(COALESCE(asd_fdr, 2), COALESCE(scz_fdr, 2)) END",
+    );
+  });
+
+  it("applies the tableAlias prefix to every reference", () => {
+    expect(buildBestOfColumnsExpr(["a", "b_2", "c"], "b")).toBe(
+      "CASE WHEN b.a IS NULL AND b.b_2 IS NULL AND b.c IS NULL THEN NULL " +
+        "ELSE MIN(COALESCE(b.a, 2), COALESCE(b.b_2, 2), COALESCE(b.c, 2)) END",
+    );
   });
 });
 

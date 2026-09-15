@@ -10,6 +10,15 @@ export interface OrderBySpec {
   tableAlias?: string; // e.g. "b"
 }
 
+/**
+ * Blank cells always sort to the bottom, in both directions. A missing
+ * p-value/FDR is "no result", not "a very large result", so leading a
+ * descending sort with blank rows (the old NULLS FIRST behavior) just buries
+ * the data. This also matches DataTable's client-side JS sort, which has
+ * always kept nulls last regardless of direction.
+ */
+const NULLS_LAST = "NULLS LAST";
+
 export function buildOrderByClause(spec: OrderBySpec | null): string {
   if (!spec) return "";
   const { column, mode, tableAlias } = spec;
@@ -17,9 +26,36 @@ export function buildOrderByClause(spec: OrderBySpec | null): string {
   const isAbs = mode === "asc_abs" || mode === "desc_abs";
   const isAsc = mode === "asc" || mode === "asc_abs";
   const dir = isAsc ? "ASC" : "DESC";
-  const nulls = isAsc ? "NULLS LAST" : "NULLS FIRST";
+  // ABS(NULL) is NULL, so the *_abs modes are covered by NULLS LAST too.
   const expr = isAbs ? `ABS(${prefix}${column})` : `${prefix}${column}`;
-  return `ORDER BY ${expr} ${dir} ${nulls}`;
+  return `ORDER BY ${expr} ${dir} ${NULLS_LAST}`;
+}
+
+/**
+ * Rank expression for tables whose pvalue_column/fdr_column names several
+ * columns: the best (smallest) value across them.
+ *
+ * Yields NULL when *every* column is blank, so `NULLS LAST` can push those
+ * rows to the bottom. The previous `MIN(COALESCE(c, 1))` form returned a
+ * non-NULL sentinel that collided with a genuine p = 1.0 and, because the
+ * expression was never NULL, led the table on DESC.
+ *
+ * A row with one blank column and one strong value still ranks by the strong
+ * value — that's the intended semantics of the significant-rows views.
+ *
+ * Column names must already be sanitized.
+ */
+export function buildBestOfColumnsExpr(
+  cols: string[],
+  tableAlias?: string,
+): string {
+  const prefix = tableAlias ? `${tableAlias}.` : "";
+  const refs = cols.map((c) => `${prefix}${c}`);
+  if (refs.length === 1) return refs[0];
+  // Sentinel above any real p-value, so a blank column never wins the MIN.
+  const mins = refs.map((r) => `COALESCE(${r}, 2)`).join(", ");
+  const allNull = refs.map((r) => `${r} IS NULL`).join(" AND ");
+  return `CASE WHEN ${allNull} THEN NULL ELSE MIN(${mins}) END`;
 }
 
 /**

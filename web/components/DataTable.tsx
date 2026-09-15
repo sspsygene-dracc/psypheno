@@ -3,26 +3,10 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import InfoTooltip from "@/components/InfoTooltip";
 import SignificanceLegend from "@/components/SignificanceLegend";
+import { formatCellValue } from "@/lib/format-number";
 
 function normalizeColName(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, "_");
-}
-
-/** Format a numeric value to avoid floating-point display artifacts. */
-function formatNumber(n: number): string {
-  if (!Number.isFinite(n)) return String(n);
-  if (n === 0) return "0";
-  const abs = Math.abs(n);
-  // Very small or very large: use exponential notation with 4 significant digits
-  if (abs < 0.001 || abs >= 1e6) return n.toExponential(3);
-  // Otherwise use toPrecision to avoid artifacts like 1.0999999999998
-  return n.toPrecision(4);
-}
-
-function formatCellValue(val: unknown): string {
-  if (val == null) return "";
-  if (typeof val === "number") return formatNumber(val);
-  return String(val);
 }
 
 function formatColumnHeader(col: string): string {
