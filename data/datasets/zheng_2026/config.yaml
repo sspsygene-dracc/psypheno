@@ -106,4 +106,7 @@ tables:
       cell_type: "Cortical neuron cell type in which this DEG was detected.
         Annotated using MapMyCells against the Allen Brain Institute
         10x Genomics Whole Mouse Brain reference (CCN20230722).
-        Values: L4-5.IT, L5.ET, L5.IT, L6.CT, L6.IT, Pvalb, Sst."
+        Values: Layer 4-5 IT, Layer 5 ET, Layer 5 IT, Layer 6 CT, Layer 6 IT,
+        Pvalb, Sst. IT = Intratelencephalic; ET = Extratelencephalic;
+        CT = Corticothalamic. Pvalb and Sst are GABAergic inhibitory interneuron
+        populations."

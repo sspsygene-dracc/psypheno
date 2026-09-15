@@ -46,6 +46,13 @@ def main() -> None:
 
     df = df[["perturbation", "Gene", "logFC", "logCPM", "LR", "PValue", "padj", "CT"]]
     df = df.rename(columns={"CT": "cell_type"})
+    df["cell_type"] = df["cell_type"].replace({
+        "L4-5.IT": "Layer 4-5 IT",
+        "L5.ET":   "Layer 5 ET",
+        "L5.IT":   "Layer 5 IT",
+        "L6.CT":   "Layer 6 CT",
+        "L6.IT":   "Layer 6 IT",
+    })
 
     df.to_csv(OUT, sep="\t", index=False)
     print(f"Wrote {len(df)} rows to {OUT.name}")
