@@ -50,7 +50,6 @@ KEEP_WT = [
     "SAINT_BFDR",
     "CompPASS_rank_WD",
     "AvgSpec",
-    "NumReplicates",
     "is_gold_standard",
 ]
 
@@ -112,14 +111,14 @@ def main() -> None:
     (
         Pipeline("wang_2026_ppi.tsv", tracker=tracker)
         .from_dataframe(raw_wt, label="science.ady4523_table_s1.xlsx:ASD-PPI")
-        .drop_columns(["Spec", "ctrlCounts"])
+        .drop_columns(["Spec", "ctrlCounts", "NumReplicates"])
         .rename(RENAME_WT)
-        .reorder(KEEP_WT)
         .transform_column(
-            "NumReplicates",
-            lambda s: s.astype(int),
-            description="Cast float NumReplicates to int",
+            "interaction_type",
+            lambda s: s.map({"bait_bait": "hcASD gene", "bait_int": "other interactor"}),
+            description="Map paper's bait_bait/bait_int to readable values",
         )
+        .reorder(KEEP_WT)
         .write_tsv(OUT_WT)
         .run()
     )
