@@ -1,0 +1,261 @@
+publication:
+  title: "Autism mutations rewire protein interaction networks to drive neurodevelopmental pathology"
+  authors:
+    - Belinda Wang
+    - Rasika Vartak
+    - Kelsey M. Hennick
+    - Yefim Zaltsman
+    - Zun Zar Chi Naing
+    - Benjamin J. Polacco
+    - Ali Bashir
+    - Manon Eckhardt
+    - Mehdi Bouhaddou
+    - Jiewei Xu
+    - Nawei Sun
+    - Micaela C. Lasser
+    - Yuan Zhou
+    - Justin McKetney
+    - Keelan Z. Guiley
+    - Pawel Gniewek
+    - Una Chan
+    - Naufa Amiran
+    - Owen Griffiths
+    - Nishant Chadha
+    - Reshmi Tognatta
+    - Merve Cakir
+    - Martin Gordon
+    - Prachi Khare
+    - Sam Drake
+    - Vanessa Drury
+    - David F. Burke
+    - Silvano Gonzalez
+    - Sahar Alkhairy
+    - Reuben Thomas
+    - Stephanie Lam
+    - Montana Morris
+    - Ethel Bader
+    - Mélanie Dos Santos
+    - Anastassia V. Komarova
+    - Maxwell Bennett
+    - Craig Ennis
+    - Octavio Castillo
+    - Yvonne Lim
+    - Robert Martin
+    - Meghan Seyler
+    - Tierney Baum
+    - Rebecca Krasnoff
+    - George Wang
+    - Sagnik Middya
+    - Sheng Wang
+    - Prashay Pham
+    - Juan Arbelaez
+    - Dexter Pratt
+    - Sofia Bali
+    - Shivali Chag
+    - Julia A. Kaye
+    - Nadir Mahmood
+    - Lee Spraggon
+    - Thomas Rolland
+    - Shawn Hervey-Jumper
+    - James S. Fraser
+    - Thomas Bourgeron
+    - Steven Finkbeiner
+    - Caroline Demeret
+    - Danielle L. Swaney
+    - Sourav Bandyopadhyay
+    - Trey Ideker
+    - Pedro Beltrao
+    - Helen Rankin Willsey
+    - Luca Hüttenhain
+    - Kirsten Obernier
+    - Tomasz J. Nowakowski
+    - Matthew W. State
+    - A. Jeremy Willsey
+    - Nevan J. Krogan
+  year: 2026
+  journal: Science
+  doi: 10.1126/science.ady4523
+  sspsygene_grants: []
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-09-14"
+    comment: Initial table creation
+deployTo:
+  - dev
+tables:
+  - table: wang_2026_ppi
+    changelog:
+      - date: "2026-09-14"
+        message: "Initial data load"
+    shortLabel: asd_ppi_wt
+    mediumLabel: "Wang 2026 - Autism Protein-Protein Interaction Network"
+    longLabel: "Protein interactions of 100 high-confidence autism risk proteins by affinity purification-mass spectrometry"
+    description: >
+      Wild-type protein-protein interaction (PPI) network for 100 high-confidence autism risk genes,
+      mapped by affinity purification-mass spectrometry (AP-MS) in HEK293T cells. Each row is one
+      high-confidence interaction (SAINT BFDR <= 0.05) between a bait hcASD protein and an interactor.
+
+
+      SSPsyGene maps bait proteins as the "perturbed" gene and interactors as the "target" gene,
+      following the same convention used for CRISPR perturbation data: the bait is the gene being
+      actively manipulated (expressed and pulled down), while the interactor is the protein whose
+      association is being measured.
+    source: "Table S1 (sheet: ASD-PPI)"
+    assay: perturbation
+    condition:
+      - autism
+    categories:
+      - protein-protein interactions
+      - affinity purification-mass spectrometry
+      - autism risk genes
+    organism: Homo sapiens (HEK293T cells)
+    organism_key: human
+    in_path: wang_2026_ppi.tsv
+    separator: "\t"
+    columnLabels:
+      SAINT_BFDR: "SAINT BFDR"
+      CompPASS_rank_WD: "CompPASS WD"
+      AvgSpec: "Avg Spec"
+      interaction_type: "Interactor Type"
+      interactor_uniprot: "UniProt ID"
+      is_gold_standard: "Gold Standard"
+    fieldLabels:
+      bait: >
+        hcASD protein used as bait in affinity purification-mass spectrometry. The 100 bait proteins
+        are hcASD genes (Satterstrom et al. 2020, TADA FDR < 0.1), each expressed with a 2xStrep
+        tag in HEK293T cells. Mapped as the "perturbed" gene in SSPsyGene.
+      interactor_uniprot: >
+        UniProt accession of the interacting protein (prey) identified by mass spectrometry.
+      interactor: >
+        HGNC gene symbol of the protein that co-purified with the bait in AP-MS. Mapped as the
+        "target" gene in SSPsyGene. 1,074 unique interactors across all 100 baits.
+      interaction_type: >
+        Whether the interactor is itself one of the 100 hcASD bait proteins profiled in this study.
+        "hcASD gene" = both the bait and interactor are hcASD genes (72 pairs); "other interactor" =
+        the interactor is not in the hcASD bait set. The bait is always an hcASD gene by definition.
+      saint_bfdr: >
+        SAINT (Significance Analysis of INTeractome) Bayesian false discovery rate. Lower values
+        indicate higher confidence. All 1,881 interactions shown have BFDR ≤ 0.05. Scored against
+        six negative control pull-downs.
+      comppas_rank_wd: >
+        CompPASS weighted D score (0-1, higher = more confident). Measures reproducibility and
+        enrichment relative to background proteome, complementary to SAINT.
+      avgspec: >
+        Average spectral count for the interactor across the biological replicate pull-downs
+        (all baits were run in triplicate). Higher values indicate more abundant co-purification.
+      is_gold_standard: >
+        TRUE if this interaction is present in a compiled gold-standard PPI database (BioGRID,
+        InWeb, BioPlex, CORUM, or Hein et al. 2015). 220 of 1,881 interactions (11.7%) are
+        gold-standard-supported.
+    gene_mappings:
+      - column_name: bait
+        link_table_name: bait
+        species: human
+        perturbed_or_target: perturbed
+      - column_name: interactor
+        link_table_name: interactor
+        species: human
+        perturbed_or_target: target
+        # LOC100421372 is an uncharacterized locus (NCBI RefSeq provisional
+        # model) with no current HGNC symbol; keep the rows, record as a stub.
+        non_resolving:
+          record_values:
+            - LOC100421372
+    fdr_column: SAINT_BFDR
+
+  - table: wang_2026_mut_ppi
+    changelog:
+      - date: "2026-09-14"
+        message: "Initial data load"
+    shortLabel: asd_mut_ppi
+    mediumLabel: "Wang 2026 - Autism Patient Mutation Differential Protein Interactions"
+    longLabel: "Interaction changes driven by autism patient missense mutations, measured by AP-MS vs. wild-type"
+    description: >
+      Differential protein-protein interactions for 54 patient-derived missense mutations across 30
+      hcASD bait proteins, measured by affinity purification-mass spectrometry (AP-MS) in HEK293T
+      cells and compared to wild-type baits using MSstats. Each row is one bait-prey pair for a
+      specific mutation, with a log2 fold change indicating whether the interaction was gained
+      (positive) or lost (negative) relative to wild-type.
+
+
+      log2FC values of exactly ±8 are a computational convention indicating complete gain or loss of
+      interaction (the prey was observed in only one condition); these represent the most extreme
+      rewiring events and are biologically meaningful.
+
+
+      SSPsyGene maps the mutant bait as the "perturbed" gene and the prey as the "target" gene.
+    source: "Table S6 (sheet: ASDmut-PPI)"
+    assay: perturbation
+    condition:
+      - autism
+    categories:
+      - protein-protein interactions
+      - affinity purification-mass spectrometry
+      - patient missense mutations
+      - autism risk genes
+    organism: Homo sapiens (HEK293T cells)
+    organism_key: human
+    in_path: wang_2026_mut_ppi.tsv
+    separator: "\t"
+    columnLabels:
+      log2FC: "log2FC"
+      SE: "Standard Error"
+      Tvalue: "T-value"
+      DF: "DF"
+      fdr_storey: "FDR (Storey)"
+      prey_uniprot: "UniProt ID"
+      obsCountWT: "WT Obs"
+      obsCountMut: "Mut Obs"
+    fieldLabels:
+      bait: >
+        hcASD gene used as bait, expressed with a patient-derived missense mutation in HEK293T cells.
+        30 hcASD proteins were profiled across 54 distinct mutations. Mapped as the "perturbed" gene
+        in SSPsyGene.
+      mutant: >
+        Patient-derived missense variant in the bait protein (e.g. L327P = leucine to proline at
+        position 327). Sourced from de novo damaging variants identified in autism cohorts.
+      prey_gene: >
+        HGNC gene symbol of the interacting protein (prey) whose binding to the mutant bait was
+        quantified relative to wild-type. Mapped as the "target" gene in SSPsyGene.
+      prey_uniprot: >
+        UniProt accession of the prey protein.
+      log2fc: >
+        Log2 fold change of interaction strength: mutant bait vs. wild-type bait (MSstats). Positive
+        values indicate a gained or strengthened interaction in the mutant; negative values indicate
+        a lost or weakened interaction. Values of exactly ±8 are a convention for complete gain or
+        loss (prey observed in only one condition; true fold change is undefined).
+      se: >
+        Standard error of the log2FC estimate from MSstats.
+      tvalue: >
+        T-statistic from the MSstats comparison of mutant vs. wild-type interaction intensity.
+      df: >
+        Degrees of freedom for the MSstats t-test.
+      pvalue: >
+        Nominal p-value from MSstats for the mutant vs. wild-type interaction comparison. Not
+        available (blank) for rows where the prey was observed in only one condition (log2FC = ±8).
+      fdr_storey: >
+        Storey q-value (FDR) pooled across all p-values from all mutant-interactor comparisons.
+        Not available (blank) for rows where p-value could not be computed.
+      change: >
+        Direction and significance of interaction change: "up" = significantly gained or strengthened
+        (pvalue < 0.05 and log2FC > 1); "down" = significantly lost or weakened (pvalue < 0.05 and
+        log2FC < -1); "not significant" = all other rows.
+      obscountwt: >
+        Number of wild-type AP-MS replicates (out of 3) in which the prey was detected.
+      obscountmut: >
+        Number of mutant AP-MS replicates (out of 3) in which the prey was detected.
+    gene_mappings:
+      - column_name: bait
+        link_table_name: bait
+        species: human
+        perturbed_or_target: perturbed
+        # IRFBPL is renamed to IRF2BPL (current approved HGNC symbol) in
+        # preprocess.py before load-db runs.
+      - column_name: prey_gene
+        link_table_name: prey_gene
+        species: human
+        perturbed_or_target: target
+    pvalue_column: pvalue
+    fdr_column: fdr_storey
+    effect_column: log2FC
