@@ -90,7 +90,12 @@ tables:
       condition: "Screen condition (stimulation type and experiment)"
       phenotype_score: "Gene Score: product of log2 fold change and -log10(p-value); summarizes effect size and significance"
       log2_fold_change: "Log2 fold change in CaMPARI2 red/green ratio in knockdown cells vs non-targeting controls; positive = increased neuronal depolarization, negative = decreased"
-      fdr: "Empirical false discovery rate (iNC method, NTC sgRNAs as null); primary screen hit threshold was FDR < 10%"
+      fdr: >
+        Empirical false discovery rate (iNC method, NTC sgRNAs as null); primary screen hit
+        threshold was FDR < 10%. Values of exactly 0 are reported as-is from the source data
+        and indicate that none of the permutation-based null iterations produced a false positive
+        as extreme as the observed score — the true FDR is greater than zero but below the
+        resolution of the permutation test.
       pvalue: "Nominal p-value from comparison of knockdown sgRNAs vs non-targeting controls (iNC method)"
 
   - table: boggess_2026_cropseq_deg
