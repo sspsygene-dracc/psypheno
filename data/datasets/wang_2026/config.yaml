@@ -89,12 +89,12 @@ tables:
       - date: "2026-09-14"
         message: "Initial data load"
     shortLabel: asd_ppi_wt
-    mediumLabel: "Wang 2026 - ASD Protein-Protein Interaction Network"
-    longLabel: "Protein interactions of 100 high-confidence ASD risk proteins by affinity purification–mass spectrometry"
+    mediumLabel: "Wang 2026 - Autism Protein-Protein Interaction Network"
+    longLabel: "Protein interactions of 100 high-confidence autism risk proteins by affinity purification-mass spectrometry"
     description: >
-      Wild-type protein-protein interaction (PPI) network for 100 high-confidence ASD risk genes,
-      mapped by affinity purification–mass spectrometry (AP-MS) in HEK293T cells. Each row is one
-      high-confidence interaction (SAINT BFDR ≤ 0.05) between a bait hcASD protein and an interactor.
+      Wild-type protein-protein interaction (PPI) network for 100 high-confidence autism risk genes,
+      mapped by affinity purification-mass spectrometry (AP-MS) in HEK293T cells. Each row is one
+      high-confidence interaction (SAINT BFDR <= 0.05) between a bait hcASD protein and an interactor.
 
 
       SSPsyGene maps bait proteins as the "perturbed" gene and interactors as the "target" gene,
@@ -107,8 +107,8 @@ tables:
       - autism
     categories:
       - protein-protein interactions
-      - affinity purification–mass spectrometry
-      - ASD risk genes
+      - affinity purification-mass spectrometry
+      - autism risk genes
     organism: Homo sapiens (HEK293T cells)
     organism_key: human
     in_path: wang_2026_ppi.tsv
@@ -117,34 +117,33 @@ tables:
       SAINT_BFDR: "SAINT BFDR"
       CompPASS_rank_WD: "CompPASS WD"
       AvgSpec: "Avg Spec"
+      interaction_type: "Interactor Type"
       interactor_uniprot: "UniProt ID"
       is_gold_standard: "Gold Standard"
     fieldLabels:
       bait: >
-        hcASD protein used as bait in affinity purification–mass spectrometry. The 100 bait proteins
-        are high-confidence ASD genes (Satterstrom et al. 2020, TADA FDR < 0.1), each expressed with
-        a 2×Strep tag in HEK293T cells. Mapped as the "perturbed" gene in SSPsyGene.
+        hcASD protein used as bait in affinity purification-mass spectrometry. The 100 bait proteins
+        are hcASD genes (Satterstrom et al. 2020, TADA FDR < 0.1), each expressed with a 2xStrep
+        tag in HEK293T cells. Mapped as the "perturbed" gene in SSPsyGene.
       interactor_uniprot: >
         UniProt accession of the interacting protein (prey) identified by mass spectrometry.
       interactor: >
         HGNC gene symbol of the protein that co-purified with the bait in AP-MS. Mapped as the
         "target" gene in SSPsyGene. 1,074 unique interactors across all 100 baits.
       interaction_type: >
-        Interaction category: bait_int = interactor is not itself one of the 100 hcASD baits;
-        bait_bait = both proteins are among the 100 hcASD baits (72 such pairs).
+        Whether the interactor is itself one of the 100 hcASD bait proteins profiled in this study.
+        "hcASD gene" = both the bait and interactor are hcASD genes (72 pairs); "other interactor" =
+        the interactor is not in the hcASD bait set. The bait is always an hcASD gene by definition.
       saint_bfdr: >
         SAINT (Significance Analysis of INTeractome) Bayesian false discovery rate. Lower values
         indicate higher confidence. All 1,881 interactions shown have BFDR ≤ 0.05. Scored against
         six negative control pull-downs.
       comppas_rank_wd: >
-        CompPASS weighted D score (0–1, higher = more confident). Measures reproducibility and
+        CompPASS weighted D score (0-1, higher = more confident). Measures reproducibility and
         enrichment relative to background proteome, complementary to SAINT.
       avgspec: >
         Average spectral count for the interactor across the biological replicate pull-downs
         (all baits were run in triplicate). Higher values indicate more abundant co-purification.
-      numreplicates: >
-        Number of biological replicate pull-down experiments. All bait proteins were profiled in
-        three biological replicates.
       is_gold_standard: >
         TRUE if this interaction is present in a compiled gold-standard PPI database (BioGRID,
         InWeb, BioPlex, CORUM, or Hein et al. 2015). 220 of 1,881 interactions (11.7%) are
@@ -170,12 +169,12 @@ tables:
       - date: "2026-09-14"
         message: "Initial data load"
     shortLabel: asd_mut_ppi
-    mediumLabel: "Wang 2026 - ASD Patient Mutation Differential Protein Interactions"
-    longLabel: "Interaction changes driven by ASD patient missense mutations, measured by AP-MS vs. wild-type"
+    mediumLabel: "Wang 2026 - Autism Patient Mutation Differential Protein Interactions"
+    longLabel: "Interaction changes driven by autism patient missense mutations, measured by AP-MS vs. wild-type"
     description: >
       Differential protein-protein interactions for 54 patient-derived missense mutations across 30
-      hcASD bait proteins, measured by affinity purification–mass spectrometry (AP-MS) in HEK293T
-      cells and compared to wild-type baits using MSstats. Each row is one bait–prey pair for a
+      hcASD bait proteins, measured by affinity purification-mass spectrometry (AP-MS) in HEK293T
+      cells and compared to wild-type baits using MSstats. Each row is one bait-prey pair for a
       specific mutation, with a log2 fold change indicating whether the interaction was gained
       (positive) or lost (negative) relative to wild-type.
 
@@ -192,16 +191,16 @@ tables:
       - autism
     categories:
       - protein-protein interactions
-      - affinity purification–mass spectrometry
+      - affinity purification-mass spectrometry
       - patient missense mutations
-      - ASD risk genes
+      - autism risk genes
     organism: Homo sapiens (HEK293T cells)
     organism_key: human
     in_path: wang_2026_mut_ppi.tsv
     separator: "\t"
     columnLabels:
       log2FC: "log2FC"
-      SE: "SE"
+      SE: "Standard Error"
       Tvalue: "T-value"
       DF: "DF"
       fdr_storey: "FDR (Storey)"
@@ -215,7 +214,7 @@ tables:
         in SSPsyGene.
       mutant: >
         Patient-derived missense variant in the bait protein (e.g. L327P = leucine to proline at
-        position 327). Sourced from de novo damaging variants identified in ASD cohorts.
+        position 327). Sourced from de novo damaging variants identified in autism cohorts.
       prey_gene: >
         HGNC gene symbol of the interacting protein (prey) whose binding to the mutant bait was
         quantified relative to wild-type. Mapped as the "target" gene in SSPsyGene.
@@ -236,12 +235,12 @@ tables:
         Nominal p-value from MSstats for the mutant vs. wild-type interaction comparison. Not
         available (blank) for rows where the prey was observed in only one condition (log2FC = ±8).
       fdr_storey: >
-        Storey q-value (FDR) pooled across all p-values from all mutant–interactor comparisons.
+        Storey q-value (FDR) pooled across all p-values from all mutant-interactor comparisons.
         Not available (blank) for rows where p-value could not be computed.
       change: >
         Direction and significance of interaction change: "up" = significantly gained or strengthened
         (pvalue < 0.05 and log2FC > 1); "down" = significantly lost or weakened (pvalue < 0.05 and
-        log2FC < −1); "not significant" = all other rows.
+        log2FC < -1); "not significant" = all other rows.
       obscountwt: >
         Number of wild-type AP-MS replicates (out of 3) in which the prey was detected.
       obscountmut: >
