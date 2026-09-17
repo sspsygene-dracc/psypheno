@@ -135,6 +135,34 @@ test("api: GET /api/dataset-data with valid tableName returns rows", async ({
   expect(Array.isArray(data.displayColumns)).toBe(true);
 });
 
+test("api: GET /api/dataset-data without sort params defaults to FDR ascending", async ({
+  request,
+}) => {
+  // No sortBy/sortMode → the API applies fdr_column (else pvalue_column)
+  // ascending with blanks last, and echoes the effective sort back.
+  const data = await getJson(
+    request,
+    "/api/dataset-data?tableName=brain_organoid_atlas_nebula_gene_0_05_FDR&page=1",
+  );
+  expect(data.fdrColumn).toBe("fdr");
+  expect(data.sortBy).toBe("fdr");
+  expect(data.sortMode).toBe("asc");
+  const fdrs = data.rows.map((r: Record<string, unknown>) => r.fdr);
+  for (const v of fdrs) expect(typeof v).toBe("number");
+  for (let i = 1; i < fdrs.length; i++) expect(fdrs[i]).toBeGreaterThanOrEqual(fdrs[i - 1]);
+});
+
+test("api: GET /api/dataset-data with explicit sort echoes that sort", async ({
+  request,
+}) => {
+  const data = await getJson(
+    request,
+    "/api/dataset-data?tableName=brain_organoid_atlas_nebula_gene_0_05_FDR&page=1&sortBy=logfc&sortMode=desc",
+  );
+  expect(data.sortBy).toBe("logfc");
+  expect(data.sortMode).toBe("desc");
+});
+
 test("api: GET /api/dataset-data with bad tableName returns 4xx", async ({
   request,
 }) => {

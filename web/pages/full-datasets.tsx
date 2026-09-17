@@ -41,6 +41,10 @@ type DatasetData = {
   totalRows?: number;
   page?: number;
   totalPages?: number;
+  // The sort the API actually applied — the requested one, or the default
+  // FDR/p-value ascending when none was requested.
+  sortBy?: string | null;
+  sortMode?: SortMode;
 };
 
 function slugFromLabel(label: string): string {
@@ -130,6 +134,14 @@ export default function FullDatasets() {
     }
   }, [selectedDataset, datasets, router.isReady]);
 
+  // Mirror the sort the API reports it applied, so the column header shows
+  // the default FDR/p-value sort (and "none" after cycling snaps back to it).
+  const adoptEffectiveSort = (data: DatasetData) => {
+    if (data.sortMode === undefined) return;
+    setSortBy(data.sortBy ?? null);
+    setSortMode(data.sortMode);
+  };
+
   // Reset sort + filters when dataset changes
   useEffect(() => {
     setSortBy(null);
@@ -152,6 +164,7 @@ export default function FullDatasets() {
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const data = await res.json();
         setDatasetData(data);
+        adoptEffectiveSort(data);
       } catch (e: any) {
         setError(e?.message || "Failed to load dataset data");
       } finally {
@@ -212,6 +225,7 @@ export default function FullDatasets() {
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const data = await res.json();
       setDatasetData(data);
+      adoptEffectiveSort(data);
     } catch (e: any) {
       if (e.name === "AbortError") return;
       setError(e?.message || "Failed to load page");

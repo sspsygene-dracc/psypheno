@@ -8,6 +8,7 @@ import {
   buildOrderByClause,
   buildFilterClause,
   parseSourceColumnsForDirection,
+  pickDefaultSortColumn,
   type ApiSortMode,
 } from "@/lib/gene-query";
 import { parseDatasetLinks } from "@/lib/links";
@@ -134,8 +135,14 @@ export default async function handler(
     const effectivePage = Math.min(page, totalPages);
     const offset = (effectivePage - 1) * DATASET_PAGE_LIMIT;
 
-    // Build ORDER BY clause if sort params provided
+    // Build ORDER BY clause. An explicit, valid sort request wins; otherwise
+    // fall back to FDR (or p-value) ascending, blanks last, so the unsorted
+    // view never leads with untested rows just because the source file
+    // happened to. Tables with neither column keep insertion order. The
+    // effective sort is echoed back so the client can render the indicator.
     let orderByClause = "";
+    let effectiveSortBy: string | null = null;
+    let effectiveSortMode: ApiSortMode | "none" = "none";
     if (parse.data.sortBy && parse.data.sortMode) {
       const validModes = new Set(["asc", "desc", "asc_abs", "desc_abs"]);
       if (validModes.has(parse.data.sortMode)) {
@@ -147,7 +154,23 @@ export default async function handler(
             mode = mode === "asc_abs" ? "asc" : "desc";
           }
           orderByClause = buildOrderByClause({ column: validCol, mode });
+          effectiveSortBy = validCol;
+          effectiveSortMode = mode;
         }
+      }
+    }
+    if (!orderByClause) {
+      const defaultSortCol = pickDefaultSortColumn({
+        fdr_column: metadata.fdr_column,
+        pvalue_column: metadata.pvalue_column,
+      });
+      const validCol = defaultSortCol
+        ? validateSortColumn(defaultSortCol, displayCols)
+        : null;
+      if (validCol) {
+        orderByClause = buildOrderByClause({ column: validCol, mode: "asc" });
+        effectiveSortBy = validCol;
+        effectiveSortMode = "asc";
       }
     }
 
@@ -223,6 +246,8 @@ export default async function handler(
       fdrColumn: metadata.fdr_column ?? null,
       rows,
       totalRows,
+      sortBy: effectiveSortBy,
+      sortMode: effectiveSortMode,
     });
   } catch (err) {
     console.error("dataset-data handler error", err);
