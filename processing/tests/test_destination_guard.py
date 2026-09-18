@@ -367,7 +367,7 @@ def test_stale_meta_gets_the_stale_banner_not_the_leak_banner(
         verify_destination(db, "prod", config_root=config_root)
     message = str(excinfo.value)
     assert "NOT a data leak" in message
-    assert "deploy-meta-analysis" in message
+    assert "Re-run the promotion" in message
     assert "possible embargoed-data leak" not in message
 
 

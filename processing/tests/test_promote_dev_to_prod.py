@@ -8,7 +8,9 @@ These tests drive the real LOCAL transport against temp dirs standing in for
 the /hive trees (no SSH, no network), so they exercise the actual cp/mv swap
 and the real guards. The one substitution is `_site_sspsygene_cmd`, which
 normally builds a `conda run -n sspsygene …` invocation inside a site checkout;
-here it runs the subcommand in-process against the temp tree instead.
+here it runs the subcommand in-process against the temp tree instead — except
+`meta-analysis` / `overview-matrix` (R, real data), which are replaced by a
+stand-in that writes a derived DB stamped with dev's current build UUID.
 """
 
 from __future__ import annotations
@@ -214,9 +216,48 @@ def hive(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
             f"{shlex.quote('from processing.click.main import cli; cli()')} {args}"
         )
 
-    monkeypatch.setattr(deploy, "_site_sspsygene_cmd", fake_cmd)
+    # The derived-DB rebuilds promotion triggers when dev's are stale. The
+    # stand-in stamps dev's current build UUID (as the real commands do) and a
+    # `rebuilt` marker table. `refresh` = "ok" | "fail" | "noop" (exits 0 but
+    # leaves the file as it was — the "still stale afterwards" case).
+    refresh = {"mode": "ok", "calls": []}
+    info_tables = {
+        "meta-analysis": ("sspsygene-meta.db", "meta_analysis_info"),
+        "overview-matrix": ("sspsygene-overview.db", "overview_matrix_info"),
+    }
+
+    def fake_derived_cmd(site_path: str, argv: list[str]) -> str:
+        refresh["calls"].append(argv[0])
+        if refresh["mode"] == "fail":
+            return "echo 'R job failed' >&2; exit 1"
+        if refresh["mode"] == "noop":
+            return "true"
+        filename, info_table = info_tables[argv[0]]
+        db_dir = f"{site_path}/data/db"
+        code = (
+            "import os, sqlite3\n"
+            f"u = sqlite3.connect({db_dir + '/sspsygene.db'!r}).execute("
+            "\"SELECT value FROM build_info WHERE key = 'build_uuid'\""
+            ").fetchone()[0]\n"
+            f"out = {db_dir + '/' + filename!r}\n"
+            "if os.path.exists(out): os.remove(out)\n"
+            "c = sqlite3.connect(out)\n"
+            f"c.execute('CREATE TABLE {info_table} (key TEXT PRIMARY KEY, value TEXT)')\n"
+            f"c.execute(\"INSERT INTO {info_table} VALUES ('source_build_uuid', ?)\", (u,))\n"
+            "c.execute('CREATE TABLE rebuilt (x)')\n"
+            "c.commit()\n"
+        )
+        return f"{shlex.quote(sys.executable)} -c {shlex.quote(code)}"
+
+    def dispatch(site_path: str, argv: list[str]) -> str:
+        if argv[0] in info_tables:
+            return fake_derived_cmd(site_path, argv)
+        return fake_cmd(site_path, argv)
+
+    monkeypatch.setattr(deploy, "_site_sspsygene_cmd", dispatch)
 
     return {
+        "refresh": refresh,  # type: ignore[dict-item]
         "dev": dev,
         "prod": prod,
         "int": internal,
@@ -254,19 +295,37 @@ def test_resolve_auto_detects_local(hive: dict[str, Path]) -> None:
     assert _resolve_promote_local(False) is False
 
 
+def _make_current_derived(path: Path, info_table: str, payload: str, n: int) -> None:
+    """A derived DB stamped with the fixture main DB's build UUID."""
+    _make_simple_db(path, payload, n)
+    conn = sqlite3.connect(path)
+    conn.execute(f"CREATE TABLE {info_table} (key TEXT PRIMARY KEY, value TEXT)")
+    conn.execute(
+        f"INSERT INTO {info_table} VALUES ('source_build_uuid', 'promote-test')"
+    )
+    conn.commit()
+    conn.close()
+
+
 def test_promote_subsets_to_prod_and_swaps_all_three(
     hive: dict[str, Path]
 ) -> None:
     """The headline behaviour: prod gets the subset, not dev's superset, and
-    the meta and overview DBs ride along verbatim."""
+    current meta and overview DBs ride along verbatim, without a rebuild."""
     _make_dataset_db(hive["dev_main"], LABELS)
-    _make_simple_db(hive["dev_meta"], "combined_pvalue_groups", 3)
-    _make_simple_db(hive["dev_overview"], "overview_matrix_expanded_columns", 7)
+    _make_current_derived(
+        hive["dev_meta"], "meta_analysis_info", "combined_pvalue_groups", 3
+    )
+    _make_current_derived(
+        hive["dev_overview"], "overview_matrix_info",
+        "overview_matrix_expanded_columns", 7,
+    )
     _make_dataset_db(hive["prod_main"], {"public": ["dev", "prod"]})  # stale
     inode_before = hive["prod_main"].stat().st_ino
 
     run_promote_dev_to_prod(local=True)
 
+    assert hive["refresh"]["calls"] == []  # type: ignore[index]
     assert _tables(hive["dev_main"]) == {PUBLIC, EMBARGOED}
     assert _tables(hive["prod_main"]) == {PUBLIC}
     assert _count(hive["prod_meta"], "combined_pvalue_groups") == 3
@@ -369,24 +428,29 @@ def test_promote_aborts_and_leaves_prod_untouched_when_the_guard_fails(
     assert not list(hive["prod_db_dir"].glob("*.new"))
 
 
-def test_promote_skips_meta_when_dev_lacks_it(hive: dict[str, Path]) -> None:
+def test_promote_builds_derived_dbs_dev_lacks(hive: dict[str, Path]) -> None:
+    """A missing meta / overview DB used to be skipped with a warning, leaving
+    the target's old one beside the new main DB. Now it is built first."""
     _make_dataset_db(hive["dev_main"], LABELS)
     _make_simple_db(hive["prod_meta"], "combined_pvalue_groups", 1)
 
     run_promote_dev_to_prod(local=True, include_meta_analysis=True)
 
+    assert hive["refresh"]["calls"] == ["meta-analysis", "overview-matrix"]  # type: ignore[index]
     assert _tables(hive["prod_main"]) == {PUBLIC}
-    # Prod's stale meta is left untouched (warned, not failed).
-    assert _count(hive["prod_meta"], "combined_pvalue_groups") == 1
+    assert _count(hive["prod_meta"], "rebuilt") == 0  # the table exists
+    assert _count(hive["prod_overview"], "rebuilt") == 0
 
 
 def test_promote_main_only_when_no_meta_flag(hive: dict[str, Path]) -> None:
+    """--no-meta-analysis neither rebuilds nor copies the meta DB."""
     _make_dataset_db(hive["dev_main"], LABELS)
     _make_simple_db(hive["dev_meta"], "combined_pvalue_groups", 4)
     _make_simple_db(hive["prod_meta"], "combined_pvalue_groups", 1)
 
     run_promote_dev_to_prod(local=True, include_meta_analysis=False)
 
+    assert hive["refresh"]["calls"] == ["overview-matrix"]  # type: ignore[index]
     assert _tables(hive["prod_main"]) == {PUBLIC}
     assert _count(hive["prod_meta"], "combined_pvalue_groups") == 1
 
@@ -398,6 +462,11 @@ def test_promote_dry_run_writes_nothing(hive: dict[str, Path]) -> None:
     prod_inode = hive["prod_main"].stat().st_ino
 
     run_promote_dev_to_prod(local=True, dry_run=True)
+
+    # dev's stale meta / missing overview are reported, not rebuilt.
+    assert hive["refresh"]["calls"] == []  # type: ignore[index]
+    assert _count(hive["dev_meta"], "combined_pvalue_groups") == 3
+    assert not hive["dev_overview"].exists()
 
     assert hive["prod_main"].stat().st_ino == prod_inode
     assert not list(hive["prod_db_dir"].glob("*.new"))
@@ -418,39 +487,63 @@ def _make_derived_db(path: Path, info_table: str, source_uuid: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("key", "info_table", "label"),
+    ("key", "info_table", "subcommand"),
     [
-        ("dev_meta", "meta_analysis_info", "meta DB"),
-        ("dev_overview", "overview_matrix_info", "overview DB"),
+        ("dev_meta", "meta_analysis_info", "meta-analysis"),
+        ("dev_overview", "overview_matrix_info", "overview-matrix"),
     ],
 )
-def test_promote_refuses_stale_derived_dbs_before_doing_anything(
-    hive: dict[str, Path], key: str, info_table: str, label: str
+def test_promote_rebuilds_only_the_stale_derived_db(
+    hive: dict[str, Path], key: str, info_table: str, subcommand: str
 ) -> None:
-    """dev's `load-db` was re-run without refreshing meta/overview. This used
-    to pass every check up to the post-swap one, leaving prod half-promoted."""
+    """dev's `load-db` was re-run without refreshing one derived DB. That used
+    to pass every check up to the post-swap one, leaving prod half-promoted;
+    now promotion rebuilds just that one and carries on."""
     _make_dataset_db(hive["dev_main"], LABELS)
+    _make_current_derived(
+        hive["dev_meta"], "meta_analysis_info", "combined_pvalue_groups", 3
+    )
+    _make_current_derived(
+        hive["dev_overview"], "overview_matrix_info",
+        "overview_matrix_expanded_columns", 7,
+    )
+    hive[key].unlink()
     _make_derived_db(hive[key], info_table, "an-older-build")
+
+    run_promote_dev_to_prod(local=True)
+
+    assert hive["refresh"]["calls"] == [subcommand]  # type: ignore[index]
+    assert _tables(hive["prod_main"]) == {PUBLIC}
+    prod_key = key.replace("dev_", "prod_")
+    assert _count(hive[prod_key], "rebuilt") == 0  # the rebuilt one was copied
+
+
+def test_promote_aborts_when_a_rebuild_fails(hive: dict[str, Path]) -> None:
+    _make_dataset_db(hive["dev_main"], LABELS)
     _make_dataset_db(hive["prod_main"], {"public": ["dev", "prod"]})
     prod_inode = hive["prod_main"].stat().st_ino
+    hive["refresh"]["mode"] = "fail"  # type: ignore[index]
 
-    with pytest.raises(DeployError, match=f"dev's {label} was built from an older"):
+    with pytest.raises(DeployError, match="Rebuilding dev's meta DB") as excinfo:
         run_promote_dev_to_prod(local=True)
 
+    assert "R job failed" in excinfo.value.format_message()
     assert hive["prod_main"].stat().st_ino == prod_inode
     assert not list(hive["prod_db_dir"].glob("*.new"))
-    # Fails before the minutes-long subset-db, not after it.
     assert not (hive["dev"] / "data/db/sspsygene-prod.db").exists()
 
 
-def test_promote_accepts_derived_dbs_from_the_current_build(
+def test_promote_aborts_when_a_rebuild_leaves_it_stale(
     hive: dict[str, Path],
 ) -> None:
     _make_dataset_db(hive["dev_main"], LABELS)
-    _make_derived_db(hive["dev_meta"], "meta_analysis_info", "promote-test")
-    _make_derived_db(hive["dev_overview"], "overview_matrix_info", "promote-test")
-    run_promote_dev_to_prod(local=True)
-    assert _tables(hive["prod_main"]) == {PUBLIC}
+    _make_derived_db(hive["dev_meta"], "meta_analysis_info", "an-older-build")
+    hive["refresh"]["mode"] = "noop"  # type: ignore[index]
+
+    with pytest.raises(DeployError, match="still don't match"):
+        run_promote_dev_to_prod(local=True)
+
+    assert not hive["prod_main"].exists()
 
 
 def test_promote_keeps_the_previous_db_as_prev(hive: dict[str, Path]) -> None:

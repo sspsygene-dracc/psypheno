@@ -1364,43 +1364,78 @@ def _read_build_uuid(
     return rows[0] if rows else None
 
 
-def _assert_derived_dbs_match_main(
-    local: bool, src_main: str, derived: list[tuple[str, str, str]]
-) -> None:
-    """Refuse to promote when dev's meta/overview DB is from an older main build.
+# (label, dev filename, info table, `sspsygene` subcommand that rebuilds it)
+_DERIVED_DBS = {
+    "meta": ("meta DB", META_DB_FILENAME, "meta_analysis_info", "meta-analysis"),
+    "overview": (
+        "overview DB", OVERVIEW_DB_FILENAME, "overview_matrix_info",
+        "overview-matrix",
+    ),
+}
+
+
+def _stale_derived_dbs(
+    local: bool, src_main: str, kinds: list[str]
+) -> list[str]:
+    """Which of dev's derived DBs (`kinds`) don't match dev's main-DB build.
 
     `load-db` stamps a fresh build UUID; `meta-analysis` and `overview-matrix`
-    record the UUID they were computed from. Re-running `load-db` on dev without
-    refreshing the other two leaves them stale, and the destination guard
-    rejects the pair. Checking here fails in seconds rather than after the
-    minutes-long `subset-db`.
-
-    `derived` holds `(label, path, info_table)` for each DB about to be copied.
+    record the UUID they were computed from. Re-running `load-db` on dev
+    without refreshing the other two leaves them stale, and the destination
+    guard rejects the pair. A derived DB that is missing, or records no source
+    UUID, counts as stale too — nothing proves it matches.
     """
     main_uuid = _read_build_uuid(
         local, src_main, "build_info", "build_uuid",
         desc="Reading main DB build UUID",
     )
     if main_uuid is None:
-        return  # pre-#225 main DB; _assert_source_db already refused it
+        return []  # pre-#225 main DB: nothing to compare against
     stale = []
-    for label, path, info_table in derived:
+    for kind in kinds:
+        label, filename, info_table, _ = _DERIVED_DBS[kind]
         source_uuid = _read_build_uuid(
-            local, path, info_table, "source_build_uuid",
-            desc=f"Reading {label} source build UUID",
+            local, _db_file(DEV_PATH, filename), info_table,
+            "source_build_uuid", desc=f"Reading {label} source build UUID",
         )
-        if source_uuid is not None and source_uuid != main_uuid:
-            stale.append(label)
-    if stale:
+        if source_uuid is None or source_uuid != main_uuid:
+            stale.append(kind)
+    return stale
+
+
+def _refresh_derived_dbs(local: bool, src_main: str, stale: list[str]) -> None:
+    """Rebuild dev's stale derived DBs in place, then confirm they now match.
+
+    The same `sspsygene meta-analysis` / `overview-matrix` that
+    `deploy-meta-analysis` / `deploy-overview` run on dev — each atomically
+    swaps its own file (group-writable, see `_checkpoint_and_swap`), so this
+    adds no new write path and is as multi-user-safe as those commands. It runs
+    dev's checked-out code, the code dev is serving.
+    """
+    for kind in stale:
+        label, _, _, subcommand = _DERIVED_DBS[kind]
+        result = _run_promote(
+            local,
+            _site_sspsygene_cmd(DEV_PATH, [subcommand]),
+            desc=f"sspsygene {subcommand} on dev (this may take a while)",
+            timeout=LOAD_DB_TIMEOUT,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise DeployError(
+                f"Rebuilding dev's {label} (`sspsygene {subcommand}`) failed; "
+                f"nothing was changed on the target.",
+                detail=(result.stderr or result.stdout or "").strip(),
+            )
+        click.echo(f"  -> rebuilt dev's {label}")
+    still = _stale_derived_dbs(local, src_main, stale)
+    if still:
+        labels = " and ".join(_DERIVED_DBS[k][0] for k in still)
         raise DeployError(
-            f"dev's {' and '.join(stale)} {'was' if len(stale) == 1 else 'were'} "
-            f"built from an older main DB (main is build {main_uuid}). Usually "
-            f"`load-db` was re-run on dev without refreshing them. Run "
-            f"`sspsygene deploy-meta-analysis --instances dev` and "
-            f"`sspsygene deploy-overview --instances dev`, then re-promote. "
-            f"Nothing was changed on the target."
+            f"dev's {labels} still don't match the main DB build after being "
+            f"rebuilt — was dev's main DB rebuilt meanwhile? Nothing was "
+            f"changed on the target; re-run the promotion."
         )
-    click.echo("  -> meta / overview DBs match the main DB build — OK")
 
 
 def _remote_verify_destination(
@@ -1516,7 +1551,8 @@ def run_promote_dev_to(
     promotion:
 
       1. checks dev's build is complete for this destination — the exact set of
-         tables its `deployTo` labels call for, not merely "non-empty";
+         tables its `deployTo` labels call for, not merely "non-empty" — and
+         rebuilds dev's meta / overview DBs if they are stale or missing;
       2. runs `subset-db` on dev to derive the destination's main DB, which
          verifies its own output before writing it;
       3. copies that file plus dev's `-meta` and `-overview` DBs into the
@@ -1562,45 +1598,31 @@ def run_promote_dev_to(
         local, src_main, label="main DB", destination=destination
     )
 
+    # The meta and overview DBs must come from the same main-DB build as the
+    # one being promoted, or the guard rejects the pair. When dev's are stale
+    # (`load-db` re-run without refreshing them) or missing, rebuild them here
+    # rather than fail; when they're current this costs two tiny reads.
     copy_meta = include_meta_analysis
-    if include_meta_analysis:
-        meta_exists = _run_promote(
-            local,
-            f"test -f {shlex.quote(src_meta)}",
-            desc=f"Checking meta DB exists ({src_meta})",
-            check=False,
-        )
-        if meta_exists.returncode != 0:
-            click.secho(
-                "  No meta-analysis DB on dev — skipping the meta copy. The "
-                f"existing {destination} meta DB (if any) is left untouched; "
-                "it may now be stale relative to the promoted main DB. Run "
-                "`sspsygene deploy-meta-analysis --instances dev` then "
-                "re-promote to refresh it.",
-                fg="yellow",
+    copy_overview = True
+    kinds = (["meta"] if copy_meta else []) + ["overview"]
+    stale = _stale_derived_dbs(local, src_main, kinds)
+    if not stale:
+        click.echo("  -> meta / overview DBs match the main DB build — OK")
+    elif dry_run:
+        for kind in stale:
+            label, _, _, subcommand = _DERIVED_DBS[kind]
+            click.echo(
+                f"  [dry-run] dev's {label} is stale or missing; would run "
+                f"`sspsygene {subcommand}` on dev"
             )
-            copy_meta = False
-
-    overview_exists = _run_promote(
-        local,
-        f"test -f {shlex.quote(src_overview)}",
-        desc=f"Checking overview DB exists ({src_overview})",
-        check=False,
-    )
-    copy_overview = overview_exists.returncode == 0
-    if not copy_overview:
+    else:
         click.secho(
-            "  No overview-matrix DB on dev — skipping the overview copy. Run "
-            "`sspsygene deploy-overview --instances dev` then re-promote.",
+            f"  dev's {' and '.join(_DERIVED_DBS[k][0] for k in stale)} "
+            f"{'is' if len(stale) == 1 else 'are'} stale or missing relative to "
+            f"its main DB — rebuilding on dev first.",
             fg="yellow",
         )
-
-    derived = []
-    if copy_meta:
-        derived.append(("meta DB", src_meta, "meta_analysis_info"))
-    if copy_overview:
-        derived.append(("overview DB", src_overview, "overview_matrix_info"))
-    _assert_derived_dbs_match_main(local, src_main, derived)
+        _refresh_derived_dbs(local, src_main, stale)
 
     if dry_run:
         click.echo(

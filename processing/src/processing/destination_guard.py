@@ -59,9 +59,9 @@ _DERIVED_DESTINATION = "prod"
 _STALE_BANNER = (
     "PROMOTION ABORTED — dev's meta / overview DB is out of date with its main "
     "DB (usually `load-db` was re-run on dev without refreshing them). This is "
-    "NOT a data leak. Refresh them on dev with `sspsygene deploy-meta-analysis "
-    "--instances dev` and `sspsygene deploy-overview --instances dev`, then "
-    "re-run the promotion."
+    "NOT a data leak. Re-run the promotion — it rebuilds dev's stale meta / "
+    "overview DBs before promoting. (With --no-meta-analysis, the target's "
+    "own meta DB is the stale one; drop that flag.)"
 )
 
 

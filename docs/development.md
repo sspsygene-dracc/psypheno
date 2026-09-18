@@ -312,9 +312,11 @@ Two deployment paths:
 
   1. checks dev's build is complete for the destination — the exact set of
      tables its labels call for, not merely "non-empty" — and that dev's meta
-     and overview DBs were computed from the *current* main-DB build (re-running
-     `load-db` on dev without `deploy-meta-analysis` / `deploy-overview`
-     afterwards fails here, in seconds);
+     and overview DBs were computed from the *current* main-DB build. If either
+     is stale (`load-db` was re-run on dev without `deploy-meta-analysis` /
+     `deploy-overview`) or missing, the promotion rebuilds it on dev first
+     (`sspsygene meta-analysis` / `overview-matrix` — slow, the meta-analysis
+     runs R). If both are current, nothing is rebuilt;
   2. runs `subset-db` on dev to derive the destination's main DB (which
      verifies its own output before writing it);
   3. copies that file plus dev's `sspsygene-meta.db` and

@@ -736,8 +736,12 @@ def _promote_options(fn):
                 default=True,
                 help="Also copy dev's meta-analysis DB (sspsygene-meta.db) "
                 "alongside the main dataset DB. On by default so the target's "
-                "meta stays consistent with the promoted main DB. If dev has "
-                "no meta DB the copy is skipped with a warning.",
+                "meta stays consistent with the promoted main DB. If dev's "
+                "meta or overview DB is stale or missing relative to dev's "
+                "main DB, it is rebuilt on dev first (slow: the meta-analysis "
+                "runs R). With --no-meta-analysis the target keeps its "
+                "current meta DB, and the destination check aborts the "
+                "promotion if that one is stale.",
             ),
             click.option(
                 "--local/--ssh",
