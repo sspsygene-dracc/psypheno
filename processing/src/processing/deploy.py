@@ -1350,10 +1350,73 @@ def _site_sspsygene_cmd(site_path: str, argv: list[str]) -> str:
     )
 
 
-def _remote_verify_destination(
-    local: bool, site_path: str, db_path: str, destination: str, *, when: str
+def _read_build_uuid(
+    local: bool, db_path: str, table: str, key: str, *, desc: str
+) -> str | None:
+    """Read one `key` from a build-info-shaped table; None if absent/unreadable."""
+    rows = _sqlite_rows(
+        local,
+        db_path,
+        f"SELECT value FROM {table} WHERE key = '{key}'",
+        desc=desc,
+        check=False,
+    )
+    return rows[0] if rows else None
+
+
+def _assert_derived_dbs_match_main(
+    local: bool, src_main: str, derived: list[tuple[str, str, str]]
 ) -> None:
-    """Run `sspsygene verify-destination` against *db_path*, from *site_path*."""
+    """Refuse to promote when dev's meta/overview DB is from an older main build.
+
+    `load-db` stamps a fresh build UUID; `meta-analysis` and `overview-matrix`
+    record the UUID they were computed from. Re-running `load-db` on dev without
+    refreshing the other two leaves them stale, and the destination guard
+    rejects the pair. Checking here fails in seconds rather than after the
+    minutes-long `subset-db`.
+
+    `derived` holds `(label, path, info_table)` for each DB about to be copied.
+    """
+    main_uuid = _read_build_uuid(
+        local, src_main, "build_info", "build_uuid",
+        desc="Reading main DB build UUID",
+    )
+    if main_uuid is None:
+        return  # pre-#225 main DB; _assert_source_db already refused it
+    stale = []
+    for label, path, info_table in derived:
+        source_uuid = _read_build_uuid(
+            local, path, info_table, "source_build_uuid",
+            desc=f"Reading {label} source build UUID",
+        )
+        if source_uuid is not None and source_uuid != main_uuid:
+            stale.append(label)
+    if stale:
+        raise DeployError(
+            f"dev's {' and '.join(stale)} {'was' if len(stale) == 1 else 'were'} "
+            f"built from an older main DB (main is build {main_uuid}). Usually "
+            f"`load-db` was re-run on dev without refreshing them. Run "
+            f"`sspsygene deploy-meta-analysis --instances dev` and "
+            f"`sspsygene deploy-overview --instances dev`, then re-promote. "
+            f"Nothing was changed on the target."
+        )
+    click.echo("  -> meta / overview DBs match the main DB build — OK")
+
+
+def _remote_verify_destination(
+    local: bool,
+    site_path: str,
+    db_path: str,
+    destination: str,
+    *,
+    when: str,
+    aftermath: str,
+) -> None:
+    """Run `sspsygene verify-destination` against *db_path*, from *site_path*.
+
+    `aftermath` says what state the target was left in; only the caller knows
+    whether a swap has already happened.
+    """
     cmd = _site_sspsygene_cmd(
         site_path,
         [
@@ -1373,9 +1436,71 @@ def _remote_verify_destination(
         raise DeployError(
             f"Destination check FAILED {when}:\n\n"
             f"{result.stdout}\n{result.stderr}\n\n"
-            f"The promotion has been aborted and {destination} was left "
-            f"untouched."
+            f"{aftermath}"
         )
+
+
+def _verify_promoted(
+    local: bool,
+    dst_main: str,
+    destination: str,
+    expected: set[str],
+    target_path: str,
+) -> None:
+    """Step 5 of a promotion: the live target DB, re-checked after the swap."""
+    promoted = _sqlite_rows(
+        local, dst_main, "SELECT table_name FROM data_tables",
+        desc=f"Re-reading {destination} main DB (data_tables)",
+    )
+    if set(promoted or []) != expected:
+        raise DeployError(
+            f"Post-swap check failed: {destination}'s main DB has "
+            f"{len(promoted or [])} data table(s) but {len(expected)} are "
+            f"labelled for {destination}. Unexpected: "
+            f"{sorted(set(promoted or []) - expected)}; missing: "
+            f"{sorted(expected - set(promoted or []))}."
+        )
+    _remote_verify_destination(
+        local, DEV_PATH, dst_main, destination, when="after the swap",
+        aftermath="",
+    )
+
+
+def _rollback_swap(
+    local: bool, pairs: list[tuple[str, str, str]], destination: str
+) -> str:
+    """Undo step 4's swap from the `.prev` backups; return what happened.
+
+    Never raises: this runs while another error is already propagating, and the
+    operator needs to hear about both.
+    """
+    click.secho(
+        f"  !! post-swap check failed — rolling {destination} back", fg="red"
+    )
+    restore_lines = "\n".join(
+        f"if [ -e {shlex.quote(dst + '.prev')} ]; then "
+        f"mv -f {shlex.quote(dst + '.prev')} {shlex.quote(dst)}; "
+        f"else rm -f {shlex.quote(dst)}; fi"
+        for _, dst, _ in pairs
+    )
+    try:
+        _run_promote(
+            local, "set -e\n" + restore_lines,
+            desc=f"roll back {destination} to its previous DB(s)",
+            timeout=LOAD_DB_TIMEOUT,
+        )
+    except DeployError as rollback_error:
+        dir_ = pairs[0][1].rsplit("/", 1)[0]
+        return (
+            f"ROLLBACK FAILED ({rollback_error.message}). {destination} may be "
+            f"serving the promoted DB(s). Restore by hand in {dir_}: "
+            f"`mv -f X.prev X` for each of "
+            f"{', '.join(dst.rsplit('/', 1)[1] for _, dst, _ in pairs)}."
+        )
+    return (
+        f"{destination} was rolled back to the DB(s) it served before this "
+        f"promotion."
+    )
 
 
 def run_promote_dev_to(
@@ -1396,9 +1521,10 @@ def run_promote_dev_to(
          verifies its own output before writing it;
       3. copies that file plus dev's `-meta` and `-overview` DBs into the
          target's db dir as `.new` siblings;
-      4. verifies the staged `.new` main DB, then renames all three
-         back-to-back;
-      5. verifies again on the target, after the swap.
+      4. verifies the staged `.new` main DB, keeps the live files as `.prev`,
+         then renames all three back-to-back;
+      5. verifies again on the target, after the swap, and restores the
+         `.prev` files if that fails.
 
     The meta and overview DBs are copied *verbatim* rather than subsetted: they
     are computed from prod-labelled inputs only (#225), so the same bytes are
@@ -1468,6 +1594,13 @@ def run_promote_dev_to(
             "`sspsygene deploy-overview --instances dev` then re-promote.",
             fg="yellow",
         )
+
+    derived = []
+    if copy_meta:
+        derived.append(("meta DB", src_meta, "meta_analysis_info"))
+    if copy_overview:
+        derived.append(("overview DB", src_overview, "overview_matrix_info"))
+    _assert_derived_dbs_match_main(local, src_main, derived)
 
     if dry_run:
         click.echo(
@@ -1539,13 +1672,33 @@ def run_promote_dev_to(
     # quick succession.
     click.secho("\n[4/5] Verifying staged DB, then swapping", bold=True)
     _remote_verify_destination(
-        local, DEV_PATH, dst_main + ".new", destination, when="before the swap"
+        local, DEV_PATH, dst_main + ".new", destination, when="before the swap",
+        aftermath=(
+            f"The promotion has been aborted before the swap; {destination} "
+            f"was left untouched (the staged .new files are not served)."
+        ),
+    )
+    # Keep each live file as `<name>.prev` so a failed post-swap check can roll
+    # back. A hardlink holds the old inode for free; `cp -p` is the fallback
+    # where linking is refused (protected_hardlinks on a file we can't write).
+    # A target with no live file gets its stale `.prev` removed instead, which
+    # rollback reads as "there was nothing here". All backups run before the
+    # first mv, and `set -e` stops before any mv if a backup fails.
+    backup_lines = "\n".join(
+        # Explicit `|| exit 1`: bash ignores `set -e` inside an `||` branch.
+        f"if [ -e {shlex.quote(dst)} ]; then "
+        f"if ! ln -f {shlex.quote(dst)} {shlex.quote(dst + '.prev')} "
+        f"2>/dev/null; then "
+        f"cp -p {shlex.quote(dst)} {shlex.quote(dst + '.prev')} || exit 1; "
+        f"chmod g+w {shlex.quote(dst + '.prev')} 2>/dev/null || true; fi; "
+        f"else rm -f {shlex.quote(dst + '.prev')}; fi"
+        for _, dst, _ in pairs
     )
     swap_lines = "\n".join(
         f"mv -f {shlex.quote(dst + '.new')} {shlex.quote(dst)}" for _, dst, _ in pairs
     )
     _run_promote(
-        local, "set -e\n" + swap_lines,
+        local, "set -e\n" + backup_lines + "\n" + swap_lines,
         desc=f"atomic mv swap into {destination}",
         timeout=LOAD_DB_TIMEOUT,
     )
@@ -1554,22 +1707,13 @@ def run_promote_dev_to(
 
     # ── 5. Verify the target after the swap ──────────────────────────────────
     click.secho(f"\n[5/5] Verifying {destination}", bold=True)
-    promoted = _sqlite_rows(
-        local, dst_main, "SELECT table_name FROM data_tables",
-        desc=f"Re-reading {destination} main DB (data_tables)",
-    )
-    if set(promoted or []) != expected:
+    try:
+        _verify_promoted(local, dst_main, destination, expected, target_path)
+    except DeployError as e:
+        rolled_back = _rollback_swap(local, pairs, destination)
         raise DeployError(
-            f"Post-swap check failed: {destination}'s main DB has "
-            f"{len(promoted or [])} data table(s) but {len(expected)} are "
-            f"labelled for {destination}. Unexpected: "
-            f"{sorted(set(promoted or []) - expected)}; missing: "
-            f"{sorted(expected - set(promoted or []))}. Inspect "
-            f"{target_path}/data/db/ manually."
-        )
-    _remote_verify_destination(
-        local, DEV_PATH, dst_main, destination, when="after the swap"
-    )
+            f"{e.message}\n\n{rolled_back}", detail=e.detail
+        ) from e
     click.echo(
         f"  -> {destination} main DB matches its labels "
         f"({len(expected)} data tables)."

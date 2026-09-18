@@ -57,8 +57,9 @@ is what decides where a dataset appears.
    dev → prod    verify-destination            → abort on any finding
                  cp main + meta + overview     → prod/*.new
                  verify staged main DB         → abort on any finding
+                 ln live files → *.prev        (rollback copies)
                  mv all three                  → atomic swap
-                 verify prod after the swap
+                 verify prod after the swap    → restore *.prev on failure
 
   promote        the same, with --destination int
    dev → int

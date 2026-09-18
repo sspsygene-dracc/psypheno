@@ -53,12 +53,28 @@ _ABORT_BANNER = (
 _DERIVED_DESTINATION = "prod"
 
 
+# A derived DB from a different main-DB build is stale, not leaked: it was
+# computed from prod-labelled inputs either way. Telling the operator "possible
+# leak, do not retry" for that sends them to email about a routine refresh.
+_STALE_BANNER = (
+    "PROMOTION ABORTED — dev's meta / overview DB is out of date with its main "
+    "DB (usually `load-db` was re-run on dev without refreshing them). This is "
+    "NOT a data leak. Refresh them on dev with `sspsygene deploy-meta-analysis "
+    "--instances dev` and `sspsygene deploy-overview --instances dev`, then "
+    "re-run the promotion."
+)
+
+
 class DestinationGuardError(RuntimeError):
     """A destination check failed. The message is meant to be printed whole."""
 
 
-def _fail(destination: str, db: Path, findings: list[str]) -> None:
-    detail = "\n".join(f"  - {f}" for f in findings)
+def _fail(
+    destination: str, db: Path, findings: list[str], stale: list[str]
+) -> None:
+    detail = "\n".join(f"  - {f}" for f in findings + stale)
+    # Any leak-class finding gets the leak banner, even alongside stale ones.
+    banner = _ABORT_BANNER if findings else _STALE_BANNER
     raise DestinationGuardError(
         f"\n{'=' * 78}\n"
         f"DESTINATION CHECK FAILED for {destination!r}\n"
@@ -66,9 +82,27 @@ def _fail(destination: str, db: Path, findings: list[str]) -> None:
         f"{'=' * 78}\n"
         f"{detail}\n"
         f"{'=' * 78}\n"
-        f"{_ABORT_BANNER}\n"
+        f"{banner}\n"
         f"{'=' * 78}"
     )
+
+
+def _derived_db_path(db: Path, kind: str) -> Path:
+    """The `-meta` / `-overview` DB that would be served beside `db`.
+
+    For a live `sspsygene.db` that is `sspsygene-<kind>.db`. For a promotion's
+    staged `sspsygene.db.new` it is the staged `sspsygene-<kind>.db.new` if
+    one was copied, else the live `sspsygene-<kind>.db` the swap leaves in
+    place. Naively splicing `-<kind>` before the suffix gives
+    `sspsygene.db-<kind>.new`, which never exists — so the pre-swap check
+    silently skipped both derived DBs and only the post-swap check saw them.
+    """
+    if db.suffix == ".new":
+        live = db.with_suffix("")
+        live_derived = live.with_name(f"{live.stem}-{kind}{live.suffix}")
+        staged = live_derived.with_name(live_derived.name + ".new")
+        return staged if staged.exists() else live_derived
+    return db.with_name(f"{db.stem}-{kind}{db.suffix}")
 
 
 def destinations_from_configs(config_root: Path) -> dict[str, set[str]]:
@@ -214,6 +248,7 @@ def _verify_derived_db(
     allowed: set[str],
     all_known: set[str],
     findings: list[str],
+    stale: list[str],
     main_uuid: str | None,
 ) -> None:
     """Check a `-meta` / `-overview` sibling, if present.
@@ -244,10 +279,10 @@ def _verify_derived_db(
                 if row:
                     derived_uuid = row[0]
         if main_uuid and derived_uuid and derived_uuid != main_uuid:
-            local.append(
-                f"built from main DB build {derived_uuid!r} but this main DB "
-                f"is build {main_uuid!r} — the two would be served together "
-                f"while describing different dataset sets"
+            stale.append(
+                f"{label}: built from main DB build {derived_uuid!r} but this "
+                f"main DB is build {main_uuid!r} — the two would be served "
+                f"together while describing different dataset sets"
             )
     finally:
         conn.close()
@@ -280,6 +315,7 @@ def verify_destination(
         raise DestinationGuardError(f"database not found: {db}")
 
     findings: list[str] = []
+    stale: list[str] = []
     conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     try:
         if "dataset_destinations" not in _table_names(conn):
@@ -401,18 +437,18 @@ def verify_destination(
             ).items()
             if _DERIVED_DESTINATION in d
         }
-        stem, suffix = db.stem, db.suffix
         _verify_derived_db(
-            db.with_name(f"{stem}-meta{suffix}"),
+            _derived_db_path(db, "meta"),
             "meta DB",
             [("combined_pvalue_groups", "source_table_names", True)],
             prod_allowed,
             all_known,
             findings,
+            stale,
             main_uuid,
         )
         _verify_derived_db(
-            db.with_name(f"{stem}-overview{suffix}"),
+            _derived_db_path(db, "overview"),
             "overview DB",
             [
                 ("overview_matrix_expansions", "source_tables", True),
@@ -424,11 +460,12 @@ def verify_destination(
             prod_allowed,
             all_known,
             findings,
+            stale,
             main_uuid,
         )
 
-    if findings:
-        _fail(destination, db, findings)
+    if findings or stale:
+        _fail(destination, db, findings, stale)
 
     logger.info(
         "%s: %s is valid for destination %r (%d data tables)",

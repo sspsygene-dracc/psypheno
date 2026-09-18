@@ -311,13 +311,23 @@ Two deployment paths:
   whose `deployTo` names that instance. A promotion:
 
   1. checks dev's build is complete for the destination — the exact set of
-     tables its labels call for, not merely "non-empty";
+     tables its labels call for, not merely "non-empty" — and that dev's meta
+     and overview DBs were computed from the *current* main-DB build (re-running
+     `load-db` on dev without `deploy-meta-analysis` / `deploy-overview`
+     afterwards fails here, in seconds);
   2. runs `subset-db` on dev to derive the destination's main DB (which
      verifies its own output before writing it);
   3. copies that file plus dev's `sspsygene-meta.db` and
      `sspsygene-overview.db` into the target's db dir as `.new` siblings;
-  4. verifies the staged main DB, then renames all three back-to-back;
-  5. verifies again on the target, after the swap.
+  4. verifies the staged main DB (against the staged meta/overview DBs it will
+     be served beside), keeps the live files as `<name>.prev` hardlinks, then
+     renames all three back-to-back;
+  5. verifies again on the target, after the swap — and if that fails, restores
+     the `.prev` files, so the target goes back to what it served before.
+
+  The `.prev` files stay after a successful promotion as a manual rollback
+  (`mv -f sspsygene.db.prev sspsygene.db`, likewise for `-meta` / `-overview`)
+  and are replaced by the next promotion.
 
   The meta and overview DBs are copied **verbatim** rather than subsetted: both
   are computed from `prod`-labelled inputs only, so the same bytes are correct

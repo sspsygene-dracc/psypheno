@@ -403,3 +403,95 @@ def test_promote_dry_run_writes_nothing(hive: dict[str, Path]) -> None:
     assert not list(hive["prod_db_dir"].glob("*.new"))
     # The subset is not built either — dry-run returns before that step.
     assert not (hive["dev"] / "data/db/sspsygene-prod.db").exists()
+
+
+def _make_derived_db(path: Path, info_table: str, source_uuid: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(path)
+    conn.execute(f"CREATE TABLE {info_table} (key TEXT PRIMARY KEY, value TEXT)")
+    conn.execute(
+        f"INSERT INTO {info_table} VALUES ('source_build_uuid', ?)",
+        (source_uuid,),
+    )
+    conn.commit()
+    conn.close()
+
+
+@pytest.mark.parametrize(
+    ("key", "info_table", "label"),
+    [
+        ("dev_meta", "meta_analysis_info", "meta DB"),
+        ("dev_overview", "overview_matrix_info", "overview DB"),
+    ],
+)
+def test_promote_refuses_stale_derived_dbs_before_doing_anything(
+    hive: dict[str, Path], key: str, info_table: str, label: str
+) -> None:
+    """dev's `load-db` was re-run without refreshing meta/overview. This used
+    to pass every check up to the post-swap one, leaving prod half-promoted."""
+    _make_dataset_db(hive["dev_main"], LABELS)
+    _make_derived_db(hive[key], info_table, "an-older-build")
+    _make_dataset_db(hive["prod_main"], {"public": ["dev", "prod"]})
+    prod_inode = hive["prod_main"].stat().st_ino
+
+    with pytest.raises(DeployError, match=f"dev's {label} was built from an older"):
+        run_promote_dev_to_prod(local=True)
+
+    assert hive["prod_main"].stat().st_ino == prod_inode
+    assert not list(hive["prod_db_dir"].glob("*.new"))
+    # Fails before the minutes-long subset-db, not after it.
+    assert not (hive["dev"] / "data/db/sspsygene-prod.db").exists()
+
+
+def test_promote_accepts_derived_dbs_from_the_current_build(
+    hive: dict[str, Path],
+) -> None:
+    _make_dataset_db(hive["dev_main"], LABELS)
+    _make_derived_db(hive["dev_meta"], "meta_analysis_info", "promote-test")
+    _make_derived_db(hive["dev_overview"], "overview_matrix_info", "promote-test")
+    run_promote_dev_to_prod(local=True)
+    assert _tables(hive["prod_main"]) == {PUBLIC}
+
+
+def test_promote_keeps_the_previous_db_as_prev(hive: dict[str, Path]) -> None:
+    _make_dataset_db(hive["dev_main"], LABELS)
+    _make_dataset_db(hive["prod_main"], {"public": ["dev", "prod"]})
+    old_inode = hive["prod_main"].stat().st_ino
+
+    run_promote_dev_to_prod(local=True, include_meta_analysis=False)
+
+    prev = hive["prod_db_dir"] / "sspsygene.db.prev"
+    assert prev.stat().st_ino == old_inode
+    assert hive["prod_main"].stat().st_ino != old_inode
+
+
+def test_promote_rolls_back_when_the_post_swap_check_fails(
+    hive: dict[str, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The swap has already happened when step 5 runs, so a failure there must
+    restore the previous files rather than claim prod was left untouched."""
+    _make_dataset_db(hive["dev_main"], LABELS)
+    _make_simple_db(hive["dev_meta"], "combined_pvalue_groups", 3)
+    _make_simple_db(hive["dev_overview"], "overview_matrix_expanded_columns", 7)
+    _make_dataset_db(hive["prod_main"], {"public": ["dev", "prod"]})
+    _make_simple_db(hive["prod_meta"], "combined_pvalue_groups", 1)
+    # No overview DB on prod before: rollback must remove the promoted one.
+    main_inode = hive["prod_main"].stat().st_ino
+    meta_inode = hive["prod_meta"].stat().st_ino
+
+    def fail(*args: object, **kwargs: object) -> None:
+        raise DeployError("Destination check FAILED after the swap")
+
+    monkeypatch.setattr(deploy, "_verify_promoted", fail)
+
+    with pytest.raises(DeployError) as excinfo:
+        run_promote_dev_to_prod(local=True)
+
+    message = str(excinfo.value)
+    assert "rolled back" in message
+    assert "left untouched" not in message
+    assert hive["prod_main"].stat().st_ino == main_inode
+    assert hive["prod_meta"].stat().st_ino == meta_inode
+    assert not hive["prod_overview"].exists()
+    assert not list(hive["prod_db_dir"].glob("*.new"))
+    assert not list(hive["prod_db_dir"].glob("*.prev"))

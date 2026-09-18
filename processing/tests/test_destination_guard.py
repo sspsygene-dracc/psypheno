@@ -354,3 +354,72 @@ def test_derived_check_can_be_skipped(clean: tuple[Path, Path]) -> None:
     db, config_root = clean
     _make_meta(db.with_name("prod-meta.db"), f"{MEMBER},{EMBARGOED}", "test-uuid")
     verify_destination(db, "prod", config_root=config_root, check_derived=False)
+
+
+def test_stale_meta_gets_the_stale_banner_not_the_leak_banner(
+    clean: tuple[Path, Path],
+) -> None:
+    """A build-UUID mismatch is a routine refresh, not a leak — telling the
+    operator "possible leak, do not retry" for it is wrong."""
+    db, config_root = clean
+    _make_meta(db.with_name("prod-meta.db"), MEMBER, "some-other-build")
+    with pytest.raises(DestinationGuardError) as excinfo:
+        verify_destination(db, "prod", config_root=config_root)
+    message = str(excinfo.value)
+    assert "NOT a data leak" in message
+    assert "deploy-meta-analysis" in message
+    assert "possible embargoed-data leak" not in message
+
+
+def test_leak_banner_wins_over_stale_banner(clean: tuple[Path, Path]) -> None:
+    db, config_root = clean
+    _make_meta(
+        db.with_name("prod-meta.db"), f"{MEMBER},{EMBARGOED}", "some-other-build"
+    )
+    with pytest.raises(DestinationGuardError) as excinfo:
+        verify_destination(db, "prod", config_root=config_root)
+    assert "possible embargoed-data leak" in str(excinfo.value)
+
+
+def _stage(db: Path) -> Path:
+    """Rename `db` to the `.new` name a promotion stages it under."""
+    staged = db.with_name(db.name + ".new")
+    db.rename(staged)
+    return staged
+
+
+def test_staged_main_db_is_checked_against_the_staged_meta_db(
+    clean: tuple[Path, Path],
+) -> None:
+    """The pre-swap check runs on `prod.db.new`. It used to look for
+    `prod.db-meta.new`, which never exists, so the derived DBs were skipped
+    until after the swap."""
+    db, config_root = clean
+    staged = _stage(db)
+    _make_meta(
+        staged.with_name("prod-meta.db.new"), MEMBER, "some-other-build"
+    )
+    with pytest.raises(DestinationGuardError, match="different dataset sets"):
+        verify_destination(staged, "prod", config_root=config_root)
+
+
+def test_staged_main_db_falls_back_to_the_live_meta_db(
+    clean: tuple[Path, Path],
+) -> None:
+    """When no meta DB is staged, the swap leaves the live one in place, so
+    that is the one the new main DB would be served beside."""
+    db, config_root = clean
+    staged = _stage(db)
+    _make_meta(staged.with_name("prod-meta.db"), MEMBER, "some-other-build")
+    with pytest.raises(DestinationGuardError, match="different dataset sets"):
+        verify_destination(staged, "prod", config_root=config_root)
+
+
+def test_staged_meta_db_is_preferred_over_the_live_one(
+    clean: tuple[Path, Path],
+) -> None:
+    db, config_root = clean
+    staged = _stage(db)
+    _make_meta(staged.with_name("prod-meta.db"), MEMBER, "some-other-build")
+    _make_meta(staged.with_name("prod-meta.db.new"), MEMBER, "test-uuid")
+    verify_destination(staged, "prod", config_root=config_root)
