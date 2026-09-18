@@ -1,5 +1,6 @@
 deployTo:
   - dev
+  - int
 
 publication:
   title: "In vivo multiomic Perturb-seq with enhanced nuclear gRNA capture"
