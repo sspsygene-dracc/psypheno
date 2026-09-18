@@ -38,10 +38,10 @@ from processing.deploy import INSTANCE_PATHS
 from processing.pull_data import (
     EXCLUDES,
     _local_datasets_dir,
-    _progress_total,
     _rsync_one,
     _rsync_transport,
     _ssh_prefix,
+    _transfer_bar,
 )
 
 
@@ -202,84 +202,94 @@ def run_push_data(
     )
 
     n = len(datasets)
-    total_files = 0
-    for i, name in enumerate(datasets, 1):
+
+    # Validate + list every dataset's files up front (#225 checks fail loudly
+    # before anything transfers), so the sizing pass below — and the one bar
+    # for the whole push — can see the complete picture across all of them.
+    batch: list[tuple[str, Path, list[str], str]] = []
+    for name in datasets:
         dataset_dir = local_datasets / name
         if not dataset_dir.is_dir():
             raise click.ClickException(
                 f"No local dataset directory '{name}' under {local_datasets}."
             )
-        # Before anything is created on the remote (#225).
         _assert_dataset_allowed(dataset_dir, name, instance)
-
         files = _gitignored_files(dataset_dir)
         remote_dataset_dir = f"{remote_datasets}/{name}"
+        batch.append((name, dataset_dir, files, remote_dataset_dir))
 
-        if not files:
-            click.echo(
-                f"  [{i}/{n}] {name}: no gitignored data files to push (skipping)"
-            )
-            _warn_missing_in_paths(dataset_dir, host, remote_dataset_dir)
-            continue
-
-        click.echo(
-            f"  [{i}/{n}] {name}: {'would push' if dry_run else 'pushing'} "
-            f"{len(files)} gitignored file(s)…"
-        )
-
-        _ensure_remote_dir(host, remote_dataset_dir, dry_run)
-
-        # Feed the explicit file list through --files-from. --no-relative keeps
-        # the paths relative to the dataset dir (source) rather than recreating
-        # data/datasets/<name>/ from the repo root, so nothing touches the perms
-        # of shared parent dirs we may not own. --chmod keeps group-write.
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".files-from", delete=True
-        ) as tf:
-            tf.write("\n".join(files) + "\n")
-            tf.flush()
-            cmd = [
-                "rsync",
-                "-a",
-                "--out-format=%n",
-                "--perms",
-                "--chmod=Dg+ws,Fg+w",
-                "--no-relative",
-                f"--files-from={tf.name}",
-                "-e",
-                transport,
-            ]
-            for pat in EXCLUDES:
-                cmd += ["--exclude", pat]
-            if dry_run:
-                cmd.append("-n")
-            cmd += [
-                f"{dataset_dir}/",
-                f"{rsync_host}:{remote_dataset_dir}/",
-            ]
-            # Sizes are free on this side — we already hold the file list.
-            # rsync skips files the server already has, so this is an upper
-            # bound and the bar can finish short; it's `leave=False`, so a
-            # short bar disappears rather than lingering as a wrong number.
-            sizes = {}
+    # Sizes are free on this side — we already hold the file list. rsync skips
+    # files the server already has, so this is an upper bound and the bar can
+    # finish short; it's `leave=False`, so it disappears rather than lingering
+    # as a wrong number.
+    sizes: dict[str, int] = {}
+    if not dry_run:
+        for _, dataset_dir, files, remote_dataset_dir in batch:
             for rel in files:
                 try:
-                    sizes[rel] = (dataset_dir / rel).stat().st_size
+                    sizes[f"{remote_dataset_dir}/{rel}"] = (
+                        dataset_dir / rel
+                    ).stat().st_size
                 except OSError:
                     continue
-            count = _rsync_one(
-                cmd,
-                name,
-                progress_total=(
-                    None if dry_run else _progress_total(sizes, files)
-                ),
+
+    total_files = 0
+    with _transfer_bar(
+        sizes,
+        list(sizes),
+        desc=f"        push to {instance}",
+    ) as bar:
+        for i, (name, dataset_dir, files, remote_dataset_dir) in enumerate(batch, 1):
+            if not files:
+                click.echo(
+                    f"  [{i}/{n}] {name}: no gitignored data files to push (skipping)"
+                )
+                _warn_missing_in_paths(dataset_dir, host, remote_dataset_dir)
+                continue
+
+            click.echo(
+                f"  [{i}/{n}] {name}: {'would push' if dry_run else 'pushing'} "
+                f"{len(files)} gitignored file(s)…"
             )
 
-        total_files += count
-        verb = "would push" if dry_run else "pushed"
-        click.echo(f"        → {verb} {count} file(s)")
+            _ensure_remote_dir(host, remote_dataset_dir, dry_run)
 
-        _warn_missing_in_paths(dataset_dir, host, remote_dataset_dir)
+            # Feed the explicit file list through --files-from. --no-relative
+            # keeps the paths relative to the dataset dir (source) rather
+            # than recreating data/datasets/<name>/ from the repo root, so
+            # nothing touches the perms of shared parent dirs we may not
+            # own. --chmod keeps group-write.
+            with tempfile.NamedTemporaryFile(
+                "w", suffix=".files-from", delete=True
+            ) as tf:
+                tf.write("\n".join(files) + "\n")
+                tf.flush()
+                cmd = [
+                    "rsync",
+                    "-a",
+                    "--out-format=%n",
+                    "--perms",
+                    "--chmod=Dg+ws,Fg+w",
+                    "--no-relative",
+                    f"--files-from={tf.name}",
+                    "-e",
+                    transport,
+                ]
+                for pat in EXCLUDES:
+                    cmd += ["--exclude", pat]
+                if dry_run:
+                    cmd.append("-n")
+                cmd += [
+                    f"{dataset_dir}/",
+                    f"{rsync_host}:{remote_dataset_dir}/",
+                ]
+                count = _rsync_one(cmd, name, bar=bar)
+
+            total_files += count
+            verb = "would push" if dry_run else "pushed"
+            click.echo(f"        → {verb} {count} file(s)")
+
+            _warn_missing_in_paths(dataset_dir, host, remote_dataset_dir)
 
     click.echo(
         f"\nDone. {total_files} file(s) across {n} dataset(s)"

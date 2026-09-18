@@ -1,0 +1,112 @@
+deployTo:
+  - dev
+
+publication:
+  title: "In vivo multiomic Perturb-seq with enhanced nuclear gRNA capture"
+  authors:
+    - Xinhe Zheng
+    - Jiwen Li
+    - Kwanho Kim
+    - Sean K. Simmons
+    - Ziyan Zhao
+    - Melodi Tastemel
+    - Nhan Huynh
+    - Huixian Qiu
+    - Juntong Ye
+    - Cassandra M. White
+    - Joshua Z. Levin
+    - Xin Jin
+  year: 2026
+  journal: "bioRxiv"
+  doi: "10.64898/2026.03.15.711739"
+  sspsygene_grants:
+    - "R01MH137042"
+
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-09-08"
+    comment: "Initial draft — 16-gene in vivo multiome Perturb-seq DEG table (#236)."
+
+tables:
+
+  - table: zheng_2026_deg
+    changelog:
+      - date: "2026-09-08"
+        message: "Initial data load"
+
+    shortLabel: zheng_2026_deg
+    mediumLabel: "Zheng 2026 - 16-Gene In vivo Multiome Perturb-seq DEGs in Mouse Developing Cortex"
+    longLabel: "Differentially expressed genes from In vivo multiome Perturb-seq of 16 NDD risk genes in mouse developing cortex (Zheng et al. 2026)"
+    description: >
+      Pseudobulk DEG results from an in vivo multiome Perturb-seq screen
+      targeting 16 transcription factors and chromatin regulators implicated
+      in neurodevelopmental disorders (NDDs) in the mouse developing cortex.
+      AAV libraries were delivered into lateral ventricles at E13.5; cortical
+      neuronal nuclei were profiled at P28 using single-nucleus RNA + ATAC
+      (BD Rhapsody sn-multiome). DEGs were computed per (perturbation,
+      cell type) pair using EdgeR glmLRT with Benjamini-Hochberg FDR
+      correction. Table contains only rows passing padj < 0.05.
+      11 of the 16 screened genes produced at least one significant DEG;
+      7 cortical neuron subtypes are represented.
+
+    source: "Zheng et al. 2026 bioRxiv, Supplementary Table 3 (filtered_DE_padj0.05)"
+    in_path: zheng_2026_deg.tsv
+    separator: "\t"
+
+    organism: "Mus musculus (developing cortex, P28)"
+    organism_key: mouse
+    assay: perturbation_deg
+    condition:
+      - autism
+      - ndc
+    categories:
+      - Perturb-seq
+      - in vivo
+      - multiome
+      - mouse cortex
+      - NDD risk genes
+
+    pvalue_column: PValue
+    fdr_column: padj
+    effect_column: logFC
+
+    gene_mappings:
+      - column_name: perturbation
+        link_table_name: perturbation_gene
+        species: mouse
+        perturbed_or_target: perturbed
+      - column_name: Gene
+        link_table_name: gene
+        species: mouse
+        perturbed_or_target: target
+
+    columnLabels:
+      logCPM: "logCPM"
+      LR: "LR"
+
+    fieldLabels:
+      perturbation: "Mouse NDD risk gene targeted by CRISPRi knockdown via AAV-delivered
+        gRNAs in the developing mouse cortex (Zheng et al. 2026). These are mouse
+        orthologs of human NDD risk genes selected for their disease relevance."
+      gene: "Mouse gene symbol of the differentially expressed gene measured by
+        single-nucleus RNA-seq (Zheng et al. 2026, Supplementary Table 3)."
+      logfc: "EdgeR log2 fold change of the target gene in perturbed cells vs.
+        NT2-g2 non-targeting controls, within the same cell type pseudobulk
+        (Zheng et al. 2026, Methods). Positive = upregulated upon knockdown."
+      logcpm: "Average log2 counts-per-million expression of the target gene
+        across all samples (perturbed + controls) in this cell type — a measure
+        of baseline expression level (EdgeR)."
+      lr: "Likelihood ratio test statistic from EdgeR glmLRT, comparing the
+        perturbation model to the null model within the cell type pseudobulk.
+        Higher values indicate stronger evidence of differential expression."
+      pvalue: "Nominal p-value from EdgeR glmLRT (Zheng et al. 2026, Methods)."
+      padj: "Benjamini-Hochberg FDR-adjusted p-value from EdgeR glmLRT.
+        Table is pre-filtered to padj < 0.05 (Zheng et al. 2026, Methods)."
+      cell_type: "Cortical neuron cell type in which this DEG was detected.
+        Annotated using MapMyCells against the Allen Brain Institute
+        10x Genomics Whole Mouse Brain reference (CCN20230722).
+        Values: Layer 4-5 IT, Layer 5 ET, Layer 5 IT, Layer 6 CT, Layer 6 IT,
+        Pvalb, Sst. IT = Intratelencephalic; ET = Extratelencephalic;
+        CT = Corticothalamic. Pvalb and Sst are GABAergic inhibitory interneuron
+        populations."

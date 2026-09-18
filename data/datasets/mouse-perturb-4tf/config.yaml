@@ -61,7 +61,7 @@ tables:
       - date: "2026-09-08"
         message: "Corrected source citation: the data come from Table S4 (mmc4.xlsx), not Table S8 — the paper has only Tables S1–S4."
     shortLabel: 4tf_perturb_seq_degs
-    mediumLabel: Zheng 2024 - in vivo Perturb-seq DEGs of 4 TFs in Mouse Cortex
+    mediumLabel: "Zheng 2024 - In vivo Perturb-seq DEGs of 4 TFs in Mouse Cortex"
     longLabel: Differential expression from in vivo Perturb-seq of four transcription factors
     description:
       Cell-type-specific differential expression results from massively parallel in vivo Perturb-seq
