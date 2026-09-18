@@ -84,6 +84,7 @@ maintainers:
 deployTo:
   - dev
   - int
+  - prod
 tables:
   - table: wang_2026_ppi
     changelog:
