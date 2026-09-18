@@ -13,5 +13,9 @@
 *.xlsx
 *.xls
 
+# Row-accounting suggestions the data-correspondence tests write for review
+# (#113). Only the reviewed `expected_drops.yaml` is committed.
+expected_drops.yaml.proposed
+
 # Editor / scratch backups.
 *~

@@ -60,9 +60,13 @@ is one of:
 
 ## First-run / new-dataset workflow
 
-When a new dataset is added (or a new table inside an existing one),
-`test_manifest_entry_exists` fails the first time it runs against the
-new table:
+Row accounting is **opt-in per dataset**: committing
+`expected_drops.yaml` is what opts a dataset in. A dataset with no manifest
+is *skipped* by `test_manifest_entry_exists` (a proposed manifest is still
+written for it), so adding a dataset never turns the suite red on its own.
+
+Once a dataset has a manifest, adding a new table to it without a manifest
+entry makes `test_manifest_entry_exists` fail:
 
 ```
 No manifest entry for table 'foo_bar' in foo/expected_drops.yaml.

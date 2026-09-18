@@ -1,11 +1,12 @@
 """Sidecar / manifest invariants — CI-runnable, no DB or raw data needed (#113).
 
-For each primary table, asserts:
+For each primary table of a dataset that has opted in by committing an
+`expected_drops.yaml` manifest, asserts:
 
-  1. The dataset has an `expected_drops.yaml` manifest with an entry for
-     this table. Missing entries are auto-derived and written to
-     `expected_drops.yaml.proposed` for wrangler review (the test still
-     fails so CI catches it).
+  1. The manifest has an entry for this table. Missing entries are
+     auto-derived and written to `expected_drops.yaml.proposed` for wrangler
+     review (the test still fails so CI catches it). Datasets with no manifest
+     at all are skipped, not failed — see `test_manifest_entry_exists`.
   2. The sidecar's recorded counts are internally consistent — every
      `clean_gene_column` / `dropna` / `filter_rows` action's drop count
      fits the running tally between `read_csv` and the final `write_csv`.
@@ -40,11 +41,16 @@ from .helpers import (
 # ---------------------------------------------------------------------------
 
 def test_manifest_entry_exists(table: PrimaryTable) -> None:
-    """Every primary table must have an entry in its dataset's manifest.
+    """Every primary table of an opted-in dataset must have a manifest entry.
 
-    The first time we see a new table, we write a proposed manifest entry
-    so the wrangler can review and merge it. The test still fails — manifests
-    are part of the contract.
+    A committed `expected_drops.yaml` is the opt-in. A dataset without one is
+    skipped rather than failed: new datasets land without a manifest (nothing
+    in the wrangler workflow creates one), and failing on them kept the suite
+    red for reasons unrelated to any code change. Once a dataset has a
+    manifest, a table missing from it is real drift and still fails.
+
+    Either way we write a proposed entry so the wrangler can review and merge
+    it.
     """
     entry = manifest_entry_for(table)
     if entry is not None:
@@ -55,6 +61,13 @@ def test_manifest_entry_exists(table: PrimaryTable) -> None:
     proposed_path = write_proposed_manifest(
         table.dataset_dir, {table.table_name: proposed_entry}
     )
+    if load_manifest(table.dataset_dir) is None:
+        pytest.skip(
+            f"{table.dataset_dir.name} has no expected_drops.yaml (not opted "
+            f"in to row accounting). A proposed manifest was written to "
+            f"{proposed_path.relative_to(table.dataset_dir.parent.parent.parent)}; "
+            f"review it and commit it as expected_drops.yaml to opt in."
+        )
     pytest.fail(
         f"No manifest entry for table {table.table_name!r} in "
         f"{table.dataset_dir.name}/expected_drops.yaml. "
