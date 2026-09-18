@@ -97,8 +97,8 @@ tables:
       high-confidence interaction (SAINT BFDR <= 0.05) between a bait hcASD protein and an interactor.
 
 
-      SSPsyGene maps bait proteins as the "perturbed" gene and interactors as the "target" gene,
-      following the same convention used for CRISPR perturbation data: the bait is the gene being
+      **This dataset is not perturbation data. SSPsyGene maps bait proteins as the "perturbed" gene and interactors as the "target" gene.**
+      Following the same convention used for CRISPR perturbation data: the bait is the gene being
       actively manipulated (expressed and pulled down), while the interactor is the protein whose
       association is being measured.
     source: "Table S1 (sheet: ASD-PPI)"
@@ -184,7 +184,9 @@ tables:
       rewiring events and are biologically meaningful.
 
 
-      SSPsyGene maps the mutant bait as the "perturbed" gene and the prey as the "target" gene.
+      **This dataset is not perturbation data. SSPsyGene maps the mutant bait as the "perturbed" gene and the prey as the "target" gene.**
+      Following the same convention used for CRISPR perturbation data: the mutant bait is the gene
+      being actively manipulated, while the prey is the protein whose association is being measured.
     source: "Table S6 (sheet: ASDmut-PPI)"
     assay: perturbation
     condition:

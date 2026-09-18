@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DatasetDescription from "@/components/DatasetDescription";
 import InfoTooltip from "@/components/InfoTooltip";
 import DatasetLinkAnchor from "@/components/DatasetLinkAnchor";
 import DestinationBadge from "@/components/DestinationBadge";
@@ -266,7 +267,7 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
                 lineHeight: 1.55,
               }}
             >
-              {dataset.description}
+              <DatasetDescription text={dataset.description} />
             </div>
           </div>
         )}

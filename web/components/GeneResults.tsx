@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import DataTable, { type SortMode } from "@/components/DataTable";
+import DatasetDescription from "@/components/DatasetDescription";
 import DatasetToc from "@/components/DatasetToc";
 import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
 import InfoTooltip from "@/components/InfoTooltip";
@@ -666,7 +667,7 @@ export default function GeneResults({
                         fontSize: 14,
                       }}
                     >
-                      {section.description}
+                      <DatasetDescription text={section.description} />
                     </div>
                   )}
                   {(section.publicationFirstAuthor ||

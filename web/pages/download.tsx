@@ -3,6 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import DatasetDescription from "@/components/DatasetDescription";
 import DatasetLinkAnchor from "@/components/DatasetLinkAnchor";
 import DatasetToc, { useAssayGroups, type TocItem } from "@/components/DatasetToc";
 import type { Dataset } from "@/components/DatasetItem";
@@ -423,7 +424,7 @@ function DatasetRow({ dataset }: { dataset: Dataset }) {
                 overflow: "hidden",
               }}
             >
-              {dataset.description}
+              <DatasetDescription text={dataset.description} />
             </div>
           )}
         </div>
