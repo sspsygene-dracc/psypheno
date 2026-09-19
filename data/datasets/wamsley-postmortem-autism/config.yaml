@@ -100,3 +100,5 @@ tables:
     changelog:
       - date: "2026-05-07"
         message: "Initial data load from Science Supplementary Table S1C."
+      - date: "2026-09-18"
+        message: "Gene names fixed: the sheet's first column carries Seurat make.unique suffixes (PPFIBP11, TOX2 for a second TOX row), so 9,936 of 12,787 rows were misnamed and 71 were attached to a different real gene. Now read from the plain-symbol gene2 column."

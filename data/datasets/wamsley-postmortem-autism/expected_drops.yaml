@@ -9,11 +9,8 @@ tables:
       column: gene
       dropped_rows: 0
       counts:
-        passed_through: 2948
-        non_symbol_contig: 233
-        rescued_gencode_clone_current_ensg: 2
-        unresolved: 9558
-        non_symbol_rna_family: 30
-        non_symbol_gencode_clone: 4
-        non_symbol_genbank_accession: 12
+        passed_through: 12522
+        non_symbol_contig: 221
+        rescued_gencode_clone_current_ensg: 8
+        unresolved: 36
     db_rows: 12787

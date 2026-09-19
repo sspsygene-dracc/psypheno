@@ -44,9 +44,13 @@ def main() -> None:
         sheet_name="(C)Cluster Marker genes",
         skiprows=2,
     )
-    # The sheet has a duplicate `gene2` column at the end — same content as
-    # `gene`. Drop it; the `gene` column is canonical.
-    s1c = s1c.drop(columns=["gene2"], errors="ignore")
+    # `gene` is Seurat's FindAllMarkers row name, which R's make.unique
+    # suffixes with a bare digit whenever a gene marks more than one cluster
+    # (PPFIBP1, PPFIBP11, PPFIBP12, …). Those suffixed names are not symbols,
+    # and some collide with real genes (TOX2/TOX3 are TOX, TRIM21 is TRIM2,
+    # SLC6A11 is SLC6A1). `gene2` at the end of the sheet is the plain symbol,
+    # so it replaces `gene`.
+    s1c["gene"] = s1c.pop("gene2")
 
     (
         Pipeline(OUT_FILE.name, tracker=tracker, normalizer=normalizer)
