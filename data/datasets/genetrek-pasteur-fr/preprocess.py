@@ -10,7 +10,10 @@ suitable for the SSPsyGene loader. Concretely:
   pvalue_column / effect_column wiring in config.yaml is straightforward
   (pandas' col-name sanitizer handles the messier ones);
 * runs `Gene` through the standard clean_gene step so HGNC resolution
-  happens at preprocess time (raw value preserved in `Gene_raw`).
+  happens at preprocess time (raw value preserved in `Gene_raw`). When the
+  symbol doesn't resolve, the row's own HGNC / NCBI / Ensembl IDs are tried
+  in that order — they rescue retired or ambiguous symbols (TAZ → TAFAZZIN,
+  COX1 → MT-CO1) that a symbol-only lookup can't.
 
 Issue: https://github.com/sspsygene-dracc/psypheno/issues/11
 
@@ -67,7 +70,16 @@ def main() -> None:
         .read_tsv(RAW_FILE)
         .drop_columns(COORD_COLS, errors="ignore")
         .rename(RENAMES)
-        .clean_gene("gene_symbol", species="human", resolve_via_ensembl_map=False)
+        .clean_gene(
+            "gene_symbol",
+            species="human",
+            resolve_via_ensembl_map=False,
+            id_columns={
+                "HGNC ID": "hgnc_id",
+                "NCBI ID": "entrez_id",
+                "Ensembl ID": "ensembl_id",
+            },
+        )
         .write_tsv(OUT_FILE)
         .run()
     )

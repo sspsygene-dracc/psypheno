@@ -88,3 +88,5 @@ tables:
     changelog:
       - date: "2026-05-07"
         message: "Initial data load from ClinVar gene_specific_summary.txt."
+      - date: "2026-09-18"
+        message: "Symbols now also resolve via ClinVar's GeneID (NCBI Entrez) when HGNC doesn't list the symbol itself: 44 more rows map to a gene (e.g. LOC105372576 -> WAKMAR1). GeneID is still not shown."

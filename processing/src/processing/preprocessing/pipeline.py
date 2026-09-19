@@ -44,7 +44,7 @@ import yaml
 
 from processing.preprocessing.ensembl_index import EnsemblToSymbolMapper
 from processing.preprocessing.gencode_clone_index import GencodeCloneIndex
-from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
+from processing.preprocessing.symbol_index import GeneSymbolNormalizer, IdKind, Species
 
 if TYPE_CHECKING:
     from processing.preprocessing.steps import Step
@@ -305,6 +305,7 @@ class Pipeline:
         drop_non_symbols: bool = False,
         resolve_via_ensembl_map: bool = True,
         resolve_gencode_clone: bool = True,
+        id_columns: dict[str, IdKind] | None = None,
     ) -> Pipeline:
         # Defaults mirror `clean_gene_column`'s opt-out behavior — call
         # sites override individual flags with `=False` when needed.
@@ -322,6 +323,7 @@ class Pipeline:
                 drop_non_symbols=drop_non_symbols,
                 resolve_via_ensembl_map=resolve_via_ensembl_map,
                 resolve_gencode_clone=resolve_gencode_clone,
+                id_columns=id_columns,
             )
         )
 

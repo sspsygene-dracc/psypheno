@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Callable, ClassVar, Literal, cast
 import pandas as pd
 
 from processing.preprocessing.dataframe import clean_gene_column
-from processing.preprocessing.symbol_index import Species
+from processing.preprocessing.symbol_index import IdKind, Species
 
 if TYPE_CHECKING:
     from processing.preprocessing.pipeline import Context
@@ -133,6 +133,7 @@ class CleanGeneColumnStep(Step):
     drop_non_symbols: bool = False
     resolve_via_ensembl_map: bool = True
     resolve_gencode_clone: bool = True
+    id_columns: dict[str, IdKind] | None = None
     sample_unresolved_size: int = 10
 
     def apply(self, df: pd.DataFrame | None, ctx: "Context") -> pd.DataFrame:
@@ -157,6 +158,7 @@ class CleanGeneColumnStep(Step):
             drop_non_symbols=self.drop_non_symbols,
             resolve_via_ensembl_map=self.resolve_via_ensembl_map,
             resolve_gencode_clone=self.resolve_gencode_clone,
+            id_columns=self.id_columns,
         )
 
         # Pull a small sample of unresolved values to make the YAML useful
@@ -186,6 +188,8 @@ class CleanGeneColumnStep(Step):
             flags_for_record["resolve_via_ensembl_map"] = False
         if not self.resolve_gencode_clone:
             flags_for_record["resolve_gencode_clone"] = False
+        if self.id_columns:
+            flags_for_record["id_columns"] = dict(self.id_columns)
         if self.manual_aliases is not None:
             # Stored by reference (not copied) so PyYAML emits a single
             # `&id001`/`*id001` anchor when the same dict is shared

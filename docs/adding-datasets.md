@@ -734,7 +734,18 @@ preprocessing script (Step 3) instead:
 - **Fix names that don't match the database** (the old `replace:`) → pass
   `clean_gene(column, species=..., manual_aliases={"OLD": "NEW"})`. For
   `R make.unique`-style `.1`/`.2` suffixes (`MATR3.1` → `MATR3`), the
-  default `strip_make_unique=True` already handles it.
+  default `strip_make_unique=True` already handles it. A *bare-digit* suffix
+  (`PPFIBP11` for a second `PPFIBP1` row, as in Seurat `FindAllMarkers` row
+  names) can't be stripped safely — `TOX2` is both "second TOX row" and a
+  real gene — so look for a plain-symbol column in the source instead (see
+  `wamsley-postmortem-autism/preprocess.py`).
+- **The table carries stable IDs next to the symbol** (HGNC ID, NCBI/Entrez
+  GeneID, Ensembl ID) → pass them as fallbacks:
+  `clean_gene(column, species="human", id_columns={"HGNC ID": "hgnc_id",
+  "GeneID": "entrez_id"})`. Rows whose symbol doesn't resolve are looked up
+  by ID in HGNC's cross-references, which rescues retired or ambiguous
+  symbols (`TAZ` → `TAFAZZIN`). Keep the ID columns until after
+  `clean_gene`, then drop them if you don't want them shown.
 - **Skip values that aren't real gene names** (the old `ignore_missing:`) →
   drop the rows with `.filter_rows(...)` / `.dropna(...)` in preprocess.py,
   or — for control labels and predicted-gene stubs you want to *keep* — use

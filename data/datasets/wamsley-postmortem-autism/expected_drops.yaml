@@ -12,5 +12,6 @@ tables:
         passed_through: 12522
         non_symbol_contig: 221
         rescued_gencode_clone_current_ensg: 8
-        unresolved: 36
+        rescued_excel: 26
+        unresolved: 10
     db_rows: 12787

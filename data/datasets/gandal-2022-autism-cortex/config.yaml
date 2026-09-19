@@ -164,6 +164,8 @@ tables:
     changelog:
       - date: "2026-05-07"
         message: "Initial data load from Nature Suppl. Data 3 (MOESM5) sheet 'DEGene_Statistics'."
+      - date: "2026-09-18"
+        message: "Excel-mangled gene names written back as timestamps (e.g. \"2018-09-03 00:00:00\" for SEPT3) now resolve to their current symbols (SEPTIN3, MARCHF2, ...)."
 
   - table: gandal_2022_singlecell_de
     shortLabel: gandal_2022_singlecell_de
@@ -211,3 +213,5 @@ tables:
     changelog:
       - date: "2026-05-07"
         message: "Initial data load from Nature Suppl. Data 8 (MOESM10) sheet 'DEA_ASDvCTL_sumstats'."
+      - date: "2026-09-18"
+        message: "Excel-mangled gene names written back as timestamps (e.g. \"2018-09-03 00:00:00\" for SEPT3) now resolve to their current symbols (SEPTIN3, MARCHF2, ...)."

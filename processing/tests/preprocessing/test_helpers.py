@@ -27,6 +27,9 @@ from processing.preprocessing import (
         ("2023-09-04", "SEPTIN4"),
         ("2023-09-09", "SEPTIN9"),
         ("2023-03-01", "MARCHF1"),
+        # pandas/openpyxl datetimes written back out with a midnight time
+        ("2023-09-04 00:00:00", "SEPTIN4"),
+        ("2023-03-01T00:00:00", "MARCHF1"),
     ],
 )
 def test_excel_demangle_classic_and_iso(
@@ -44,6 +47,7 @@ def test_excel_demangle_classic_and_iso(
         "",
         "2023-04-01",
         "1-Mar-extra",
+        "2023-09-04 12:30:00",
     ],
 )
 def test_excel_demangle_negative(

@@ -11,11 +11,13 @@ tables:
       dropped_rows: 0
       counts:
         passed_through: 42337
-        unresolved: 19294
-        non_symbol_gencode_clone: 9
+        rescued_id_hgnc_id: 597
+        unresolved: 17836
+        rescued_id_ensembl_id: 96
+        rescued_id_entrez_id: 772
+        non_symbol_gencode_clone: 8
         rescued_gencode_clone_current_ensg: 17
         rescued_make_unique: 1
-        non_symbol_genbank_accession: 3
-        rescued_gencode_clone_hgnc_symbol: 5
+        non_symbol_genbank_accession: 2
         non_symbol_rna_family: 3
     db_rows: 61669

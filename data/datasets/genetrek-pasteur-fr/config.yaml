@@ -175,3 +175,5 @@ tables:
         message: "Corrected mis-labeling of CI columns (CIs on empirical p-value, not on OR) per Rolland 2023 Methods. Backfilled comprehensive fieldLabels."
       - date: "2026-05-07"
         message: "Decoded Fu / Wang / SPARK categorical codes (AUTISMp / DDp / AUTISM|DD predominance classes) against papers/fu_2022.pdf Fig 5f. Promoted from DRAFT."
+      - date: "2026-09-18"
+        message: "Symbols that don't resolve by name now resolve via the row's own HGNC / NCBI / Ensembl IDs: 1,465 more rows map to a gene, including retired or ambiguous symbols (TAZ -> TAFAZZIN, COX1 -> MT-CO1)."

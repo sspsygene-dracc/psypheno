@@ -13,8 +13,10 @@ Source schema (tab-separated, two leading lines starting with `#`):
     Alleles_reported_Pathogenic_Likely_pathogenic  Gene_MIM_number
     Number_uncertain  Number_with_conflicts
 
-Per the issue, we drop GeneID and Gene_MIM_number; keep only the six
-clinical-summary counts plus the gene symbol. Missing-value placeholder in
+Per the issue, we drop GeneID and Gene_MIM_number from the output; keep only
+the six clinical-summary counts plus the gene symbol. GeneID (NCBI Entrez) is
+still used first, to resolve symbols HGNC doesn't list under that name (e.g.
+`LOC105372576` → `WAKMAR1`), and dropped after cleaning. Missing-value placeholder in
 the source is `-`, which we coerce to NaN at read time.
 
 Usage:
@@ -61,8 +63,13 @@ def main() -> None:
         )
         .rename({"#Symbol": "Symbol"})
         .dropna("Symbol")
+        .clean_gene(
+            "Symbol",
+            species="human",
+            resolve_via_ensembl_map=False,
+            id_columns={"GeneID": "entrez_id"},
+        )
         .drop_columns(["GeneID", "Gene_MIM_number"], errors="ignore")
-        .clean_gene("Symbol", species="human", resolve_via_ensembl_map=False)
         .write_tsv(OUT_FILE)
         .run()
     )

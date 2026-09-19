@@ -15,7 +15,9 @@ from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
 
 
 _EXCEL_CLASSIC_RE = re.compile(r"^(\d{1,2})-(Mar|Sep|Dec)$", re.IGNORECASE)
-_EXCEL_ISO_RE = re.compile(r"^\d{4}-(\d{2})-(\d{2})$")
+# The optional midnight time covers dates that went through pandas / openpyxl
+# as datetimes and were written back as `2023-09-07 00:00:00`.
+_EXCEL_ISO_RE = re.compile(r"^\d{4}-(\d{2})-(\d{2})(?:[ T]00:00:00)?$")
 
 _ISO_MONTH_TO_NAME = {"03": "Mar", "09": "Sep", "12": "Dec"}
 
@@ -80,7 +82,8 @@ def excel_demangle(
 
     Handles two forms:
       * Classic short form: `1-Mar`, `9-Sep`, `1-Dec` (number-month).
-      * ISO-date form: `2023-09-04` (year-month-day; gene number is day).
+      * ISO-date form: `2023-09-04` (year-month-day; gene number is day),
+        optionally with a midnight time (`2023-09-04 00:00:00`).
 
     Resolution is verified against `normalizer` so we never invent symbols.
     """

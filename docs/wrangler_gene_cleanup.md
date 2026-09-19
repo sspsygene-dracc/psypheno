@@ -96,6 +96,20 @@ def main() -> None:
 
 **Important:** the rescue target (`CCN3`, etc.) must resolve through the normalizer to a current approved HGNC symbol. If it doesn't, the call **raises `ValueError`** — guard against typos. So you cannot use `manual_aliases` for "fix a typo to a value that itself isn't a real symbol" (e.g. `ABALON. → ABALON` won't work because `ABALON` is itself retired). For those, use `.transform_column(col, func, description=...)` upstream of `clean_gene` — it's tracked so the YAML records the description.
 
+### `id_columns` (in preprocess.py)
+
+If the source carries stable IDs next to the symbol, pass them to `clean_gene` as fallbacks — they're checked (in the given order) only when the symbol itself doesn't resolve, and looked up in HGNC's own cross-references:
+
+```python
+.clean_gene(
+    "gene_symbol",
+    species="human",
+    id_columns={"HGNC ID": "hgnc_id", "NCBI ID": "entrez_id", "Ensembl ID": "ensembl_id"},
+)
+```
+
+IDs are accepted in the shapes spreadsheets produce (`HGNC:5`, `5`, `5.0`; `7157.0`; versioned `ENSG….12`). Rescued rows are tagged `rescued_id_<kind>`. Human only. See `genetrek-pasteur-fr/preprocess.py` and `clinvar/preprocess.py`.
+
 ---
 
 ## 3. Things to look at when running your next preprocess.py / load-db

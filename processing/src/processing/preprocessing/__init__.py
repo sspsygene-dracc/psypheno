@@ -74,7 +74,12 @@ from processing.preprocessing.steps import (
     TransformColumn,
     WriteCsv,
 )
-from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
+from processing.preprocessing.symbol_index import (
+    GeneSymbolNormalizer,
+    IdKind,
+    Species,
+    normalize_id,
+)
 
 __all__ = [
     # Gene-cleanup core
@@ -83,12 +88,14 @@ __all__ = [
     "EnsemblToSymbolMapper",
     "GencodeCloneIndex",
     "GeneSymbolNormalizer",
+    "IdKind",
     "NON_SYMBOL_CATEGORIES",
     "NonSymbolCategory",
     "Species",
     "clean_gene_column",
     "excel_demangle",
     "is_non_symbol_identifier",
+    "normalize_id",
     "resolve_gencode_clone",
     "split_symbol_ensg",
     "strip_make_unique_suffix",

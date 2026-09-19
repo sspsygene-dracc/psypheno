@@ -135,3 +135,5 @@ tables:
     changelog:
       - date: "2026-05-07"
         message: "Initial data load from Science Suppl. Table S1 sheet 'DGE'."
+      - date: "2026-09-18"
+        message: "Excel-mangled gene names written back as timestamps (e.g. \"2018-09-03 00:00:00\" for SEPT3) now resolve to their current symbols (SEPTIN3, MARCHF2, ...)."

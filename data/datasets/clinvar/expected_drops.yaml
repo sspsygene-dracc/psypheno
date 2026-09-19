@@ -13,9 +13,10 @@ tables:
       column: Symbol
       dropped_rows: 0
       counts:
-        unresolved: 64196
+        unresolved: 64152
         passed_through: 28582
         rescued_make_unique: 1
+        rescued_id_entrez_id: 44
         rescued_gencode_clone_current_ensg: 9
         non_symbol_genbank_accession: 2
         non_symbol_rna_family: 1

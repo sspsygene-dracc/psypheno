@@ -12,7 +12,12 @@ from processing.my_logger import get_sspsygene_logger
 from processing.preprocessing import helpers
 from processing.preprocessing.ensembl_index import EnsemblToSymbolMapper
 from processing.preprocessing.gencode_clone_index import GencodeCloneIndex
-from processing.preprocessing.symbol_index import GeneSymbolNormalizer, Species
+from processing.preprocessing.symbol_index import (
+    ID_KINDS,
+    GeneSymbolNormalizer,
+    IdKind,
+    Species,
+)
 
 
 @dataclass
@@ -61,6 +66,7 @@ def clean_gene_column(
     resolve_via_ensembl_map: bool = True,
     gencode_clone_index: GencodeCloneIndex | None = None,
     resolve_gencode_clone: bool = True,
+    id_columns: dict[str, IdKind] | None = None,
 ) -> tuple[pd.DataFrame, CleanReport]:
     """Resolve and annotate a gene-name column.
 
@@ -98,6 +104,15 @@ def clean_gene_column(
     through to the existing Tier B `non_symbol_gencode_clone`
     classification, identical to today's behavior.
 
+    `id_columns` names sibling columns holding stable IDs for the same gene
+    (`{"hgnc_id": "hgnc_id", "GeneID": "entrez_id"}`), tried in the given
+    order when the symbol itself doesn't resolve. The ID is looked up in
+    HGNC's own cross-references, so it rescues retired or ambiguous symbols
+    (`TAZ`, an alias of both TAFAZZIN and WWTR1) that no symbol-only rule
+    can. Tagged `rescued_id_<kind>`. Human only. It runs before the
+    heuristic rescues: an ID is stronger evidence than a symbol's shape. A
+    symbol that does resolve is kept even if an ID disagrees.
+
     All shape-gated resolvers default to True (they're cheap no-ops on
     inputs that don't match their patterns). The mapper-required ones
     (`resolve_via_ensembl_map`, `resolve_gencode_clone`) silently skip
@@ -118,6 +133,19 @@ def clean_gene_column(
 
     aliases = manual_aliases or {}
 
+    id_cols = dict(id_columns or {})
+    if id_cols and species != "human":
+        raise ValueError("id_columns resolves through HGNC and is human-only")
+    for id_col, kind in id_cols.items():
+        if id_col not in df.columns:
+            raise KeyError(f"id_columns: column {id_col!r} not in DataFrame")
+        if kind not in ID_KINDS:
+            raise ValueError(
+                f"id_columns: {id_col!r} has kind {kind!r}; expected one of "
+                f"{ID_KINDS}"
+            )
+    id_values = {id_col: df[id_col].tolist() for id_col in id_cols}
+
     out = df.copy()
     raw_values: list[object] = list(out[column].tolist())
     new_values: list[object] = []
@@ -125,7 +153,7 @@ def clean_gene_column(
     drop_idx: list[int] = []
     counts: Counter[str] = Counter()
 
-    for idx, raw in zip(out.index, raw_values):
+    for pos, (idx, raw) in enumerate(zip(out.index, raw_values)):
         if raw is None or (isinstance(raw, float) and math.isnan(raw)) or raw == "":
             new_values.append(raw)
             resolutions.append("passed_through")
@@ -147,6 +175,18 @@ def clean_gene_column(
                 resolutions.append("rescued_hgnc_id")
                 counts["rescued_hgnc_id"] += 1
                 continue
+
+        id_rescue = None
+        for id_col, kind in id_cols.items():
+            rescued = normalizer.resolve_id(id_values[id_col][pos], kind)
+            if rescued is not None:
+                id_rescue = (rescued, f"rescued_id_{kind}")
+                break
+        if id_rescue is not None:
+            new_values.append(id_rescue[0])
+            resolutions.append(id_rescue[1])
+            counts[id_rescue[1]] += 1
+            continue
 
         if excel_demangle:
             rescued = helpers.excel_demangle(name, normalizer, species)

@@ -11,8 +11,9 @@ tables:
       counts:
         passed_through: 19402
         non_symbol_contig: 570
-        unresolved: 99
+        unresolved: 74
         rescued_gencode_clone_current_ensg: 2609
+        rescued_excel: 25
         non_symbol_gencode_clone: 1399
         rescued_gencode_clone_hgnc_symbol: 736
         non_symbol_rna_family: 9
@@ -32,6 +33,7 @@ tables:
         passed_through: 78085
         non_symbol_contig: 8017
         rescued_gencode_clone_current_ensg: 331
-        unresolved: 206
+        rescued_excel: 116
+        unresolved: 90
         rescued_gencode_clone_hgnc_symbol: 29
     db_rows: 86668

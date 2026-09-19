@@ -6,6 +6,7 @@ from processing.preprocessing import (
     GencodeCloneIndex,
     GeneSymbolNormalizer,
     clean_gene_column,
+    normalize_id,
 )
 
 
@@ -468,3 +469,84 @@ def test_clean_gene_column_resolve_gencode_clone_ordering(
     )
     assert out["target_gene"].tolist() == ["BRCA1"]
     assert report.resolutions == ["passed_through"]
+
+
+# ---------------------------------------------------------------------------
+# id_columns: rescue via stable IDs carried next to the symbol
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("value", "kind", "expected"),
+    [
+        ("HGNC:1100", "hgnc_id", "HGNC:1100"),
+        ("1100", "hgnc_id", "HGNC:1100"),
+        (1100.0, "hgnc_id", "HGNC:1100"),
+        ("672.0", "entrez_id", "672"),
+        (672, "entrez_id", "672"),
+        ("ENSG00000012048.23", "ensembl_id", "ENSG00000012048"),
+        ("", "entrez_id", None),
+        (float("nan"), "hgnc_id", None),
+        ("-", "entrez_id", None),
+        ("LOC123", "entrez_id", None),
+        ("12345", "ensembl_id", None),
+    ],
+)
+def test_normalize_id(value: object, kind: str, expected: str | None) -> None:
+    assert normalize_id(value, kind) == expected  # type: ignore[arg-type]
+
+
+def test_clean_gene_column_id_columns(normalizer: GeneSymbolNormalizer) -> None:
+    df = pd.DataFrame(
+        {
+            "symbol": ["BRCA1", "OLDNAME", "LOC999", "OTHER", "NOPE", "MATR3"],
+            "hgnc_id": [1100.0, None, None, "HGNC:18790", None, 1100.0],
+            "GeneID": [None, "55016", None, "672", "99999", None],
+            "ensembl": [None, None, "ENSG00000015479.2", None, None, None],
+        }
+    )
+    out, report = clean_gene_column(
+        df,
+        "symbol",
+        species="human",
+        normalizer=normalizer,
+        id_columns={"hgnc_id": "hgnc_id", "GeneID": "entrez_id", "ensembl": "ensembl_id"},
+    )
+    assert out["symbol"].tolist() == [
+        "BRCA1",    # resolves as a symbol; the ID is not consulted
+        "MARCHF1",  # via Entrez
+        "MATR3",    # via Ensembl
+        "GATD3A",   # hgnc_id wins over GeneID (column order)
+        "NOPE",     # no ID resolves
+        "MATR3",    # a resolving symbol is kept even when the ID disagrees
+    ]
+    assert report.resolutions == [
+        "passed_through",
+        "rescued_id_entrez_id",
+        "rescued_id_ensembl_id",
+        "rescued_id_hgnc_id",
+        "unresolved",
+        "passed_through",
+    ]
+    assert out["symbol_raw"].tolist()[1] == "OLDNAME"
+
+
+def test_clean_gene_column_id_columns_validation(
+    normalizer: GeneSymbolNormalizer,
+) -> None:
+    df = pd.DataFrame({"symbol": ["BRCA1"], "hgnc_id": ["HGNC:1100"]})
+    with pytest.raises(KeyError, match="missing"):
+        clean_gene_column(
+            df, "symbol", species="human", normalizer=normalizer,
+            id_columns={"missing": "hgnc_id"},
+        )
+    with pytest.raises(ValueError, match="expected one of"):
+        clean_gene_column(
+            df, "symbol", species="human", normalizer=normalizer,
+            id_columns={"hgnc_id": "omim"},  # type: ignore[dict-item]
+        )
+    with pytest.raises(ValueError, match="human-only"):
+        clean_gene_column(
+            df, "symbol", species="mouse", normalizer=normalizer,
+            id_columns={"hgnc_id": "hgnc_id"},
+        )
