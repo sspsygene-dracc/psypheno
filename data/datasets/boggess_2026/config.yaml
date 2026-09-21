@@ -1,5 +1,7 @@
 deployTo:
   - dev
+  - int
+  - prod
 
 publication:
   authors:
