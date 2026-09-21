@@ -46,8 +46,8 @@ def make_screen() -> None:
         chunk["condition"] = cond_label
         chunk["phenotype_score"] = df[f"{cond_key}.phenotype_score"]
         chunk["log2_fold_change"] = df[f"{cond_key}.log_fold_change"]
-        chunk["fdr"] = df[f"{cond_key}.fdr"]
         chunk["pvalue"] = df[f"{cond_key}.pvalue"]
+        chunk["fdr"] = df[f"{cond_key}.fdr"]
         rows.append(chunk)
 
     out = pd.concat(rows, ignore_index=True)
