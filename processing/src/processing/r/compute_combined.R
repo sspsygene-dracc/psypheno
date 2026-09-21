@@ -66,9 +66,16 @@ raw_file       <- file.path(temp_dir, "raw_pvalues.csv")
 if (!file.exists(collapsed_file)) stop(paste("Missing:", collapsed_file))
 if (!file.exists(raw_file))       stop(paste("Missing:", raw_file))
 
-# Read input
-collapsed <- read.csv(collapsed_file, colClasses = c("integer", "numeric"))
-raw       <- read.csv(raw_file,       colClasses = c("integer", "numeric"))
+# Read input.
+#
+# gene_id is read as character, not integer: central_gene ids are hash-derived
+# for reference loci and stubs (#113) and run past R's 2^31 integer ceiling —
+# `scan() expected 'an integer', got '34221243742963'`. The id is only ever a
+# key here (split() names, and written back verbatim), so character is both
+# safe and exact — unlike numeric, which would round-trip through a double and
+# could come back in scientific notation.
+collapsed <- read.csv(collapsed_file, colClasses = c("character", "numeric"))
+raw       <- read.csv(raw_file,       colClasses = c("character", "numeric"))
 
 # Get unique gene IDs (union of both files)
 gene_ids <- sort(unique(c(collapsed$gene_id, raw$gene_id)))

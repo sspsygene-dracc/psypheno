@@ -920,6 +920,24 @@ class TestIntegrationWithR:
         assert result[1].fisher_p == pytest.approx(2.99715102020775949e-03, rel=1e-6)
 
     @requires_r
+    def test_hash_derived_gene_id_survives_the_r_roundtrip(self):
+        """central_gene ids are hash-derived for reference loci and stubs
+        (#113) and run past R's 2^31 integer ceiling. Reading them as R
+        integers failed the whole job with `scan() expected 'an integer', got
+        '34221243742963'`, which silently emptied the meta DB."""
+        gene_id = 34221243742963
+        per_table = {gene_id: {"tbl_a": [0.01], "tbl_b": [0.05], "tbl_c": [0.1]}}
+        all_pvals = {gene_id: [0.01, 0.05, 0.1]}
+        result = call_r_combine(
+            CollectedPvalues.from_dicts(per_table, all_pvals), use_cache=False
+        )
+        assert result is not None
+        assert list(result) == [gene_id]
+        assert result[gene_id].fisher_p == pytest.approx(
+            2.99715102020775949e-03, rel=1e-6
+        )
+
+    @requires_r
     def test_known_pvalues_cct_hmp(self):
         """CCT and HMP on [0.01, 0.05, 0.1] raw p-values."""
         per_table = {
