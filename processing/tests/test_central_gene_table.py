@@ -146,3 +146,59 @@ def test_add_used_name_validates_species() -> None:
 
     with pytest.raises(ValueError, match="Invalid species"):
         entry.add_used_name("zebrafish", "X", "ds1")  # type: ignore[arg-type]
+
+
+def test_stub_row_ids_survive_a_rebuild_with_different_load_order() -> None:
+    """The bug this fixes: stub row_ids used to be `len(entries)`, so one new
+    stub early in the build renumbered every stub after it — and the meta /
+    overview DBs, which store central_gene ids and are rebuilt on their own
+    cadence, then pointed at different genes."""
+    first = CentralGeneTable()
+    for symbol in ("AAA", "BBB", "CCC"):
+        first.add_manual_human_entry(symbol, dataset="ds1")
+    before = {e.human_symbol: e.row_id for e in first.entries}
+
+    # Next build: a new stub lands first and the rest arrive in another order.
+    second = CentralGeneTable()
+    for symbol in ("NEW", "CCC", "AAA", "BBB"):
+        second.add_manual_human_entry(symbol, dataset="ds1")
+    after = {e.human_symbol: e.row_id for e in second.entries}
+
+    assert {s: after[s] for s in before} == before
+
+
+def test_stub_row_ids_are_species_scoped_and_unique() -> None:
+    table = CentralGeneTable()
+    human = table.add_manual_human_entry("FOO", dataset="ds")
+    mouse = table.add_manual_mouse_entry("FOO", dataset="ds")
+    assert human.row_id != mouse.row_id
+
+
+def test_reference_entry_is_shared_and_not_manually_added() -> None:
+    """A reference locus is one gene however a dataset spells it — the
+    cross-dataset identity a per-value stub never had."""
+    from processing.reference_loci import ReferenceLociIndex, ReferenceLocus
+
+    locus = ReferenceLocus(
+        key="ensg:ENSG00000236106",
+        display="AC010729.2",
+        ensembl_id="ENSG00000236106",
+        entrez_id=105372576,
+        names={"AC010729.2", "ENSG00000236106", "LOC105372576"},
+    )
+    table = CentralGeneTable()
+    table.reference_loci = ReferenceLociIndex(
+        by_name={name: locus for name in locus.names}
+    )
+
+    entry = table.add_reference_entry("LOC105372576", dataset="clinvar")
+    assert entry is not None
+    assert entry.manually_added is False
+    assert entry.human_symbol == "AC010729.2"
+    assert entry.human_ensembl_gene == EnsemblGene("ENSG00000236106")
+    assert entry.human_entrez_gene is not None
+    assert entry.human_entrez_gene.entrez_id == 105372576
+    # Reachable under every name of the locus, so the next dataset finds it.
+    assert set(table.get_human_map()) >= locus.names
+    assert table.get_human_map()["ENSG00000236106"] == [entry]
+    assert table.add_reference_entry("NOT_A_LOCUS", dataset="ds") is None

@@ -15,6 +15,12 @@ wget 'https://humantfs.ccbr.utoronto.ca/download/v_1.01/DatabaseExtract_v_1.01.c
 wget 'https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.long_noncoding_RNAs.gtf.gz'
 wget 'https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.basic.annotation.gtf.gz'
 
+# NCBI's human gene catalogue. Feeds the reference-loci index: every gene
+# whose GeneID / HGNC xref HGNC does not list (LOC... placeholders, RefSeq
+# functional elements) becomes a real central_gene entry instead of a
+# per-dataset stub. Refreshed daily upstream; re-pull when refreshing HGNC.
+wget 'https://ftp.ncbi.nlm.nih.gov/gene/DATA/GENE_INFO/Mammalia/Homo_sapiens.gene_info.gz'
+
 SSPSYGENE_DATA_DIR="$(cd ../.. && pwd)/data" \
 PYTHONPATH=../../processing/src \
     ../../processing/.venv-claude/bin/python \

@@ -91,6 +91,15 @@ def test_non_resolving_value_overlap_raises() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _entry_by_row_id(table: CentralGeneTable, row_id: int):
+    """Look an entry up by row_id.
+
+    row_id used to equal the list index; stub and reference entries now carry
+    hash-derived IDs (stable across builds), so indexing no longer works.
+    """
+    return next(e for e in table.entries if e.row_id == row_id)
+
+
 def _base_mapping() -> dict[str, Any]:
     return {
         "column_name": "target_gene",
@@ -273,7 +282,7 @@ def test_dispatch_control_values_creates_kind_control_stub(
     assert cg_id is not None
     # Control stub is created with kind='control' so per-gene aggregates
     # can filter it out.
-    new_entry = central_gene_stub.entries[cg_id]
+    new_entry = _entry_by_row_id(central_gene_stub, cg_id)
     assert new_entry.kind == "control"
     assert new_entry.manually_added is True
     assert new_entry.human_symbol == "GFP"
@@ -291,7 +300,7 @@ def test_dispatch_record_values_creates_stub(
     assert row_id == 1
     assert cg_id is not None
     # Stub is `manually_added=True`, kind='gene' (not a control).
-    new_entry = central_gene_stub.entries[cg_id]
+    new_entry = _entry_by_row_id(central_gene_stub, cg_id)
     assert new_entry.manually_added is True
     assert new_entry.kind == "gene"
     assert new_entry.human_symbol == "SGK494"
@@ -318,8 +327,8 @@ def test_dispatch_fallback_warns_and_records(
     link = gm.resolve_to_central_gene_table("t", df, Path("/tmp/in.csv"))
     [(_, cg_id)] = link.central_gene_table_links
     assert cg_id is not None
-    assert central_gene_stub.entries[cg_id].human_symbol == "WEIRDGENE"
-    assert central_gene_stub.entries[cg_id].manually_added is True
+    assert _entry_by_row_id(central_gene_stub, cg_id).human_symbol == "WEIRDGENE"
+    assert _entry_by_row_id(central_gene_stub, cg_id).manually_added is True
 
     [warning] = _fallback_warnings(caplog)
     assert "t.target_gene" in warning.message

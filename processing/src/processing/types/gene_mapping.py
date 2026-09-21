@@ -248,6 +248,7 @@ class GeneMapping:
         # multi_gene_separator row can contribute several). Logged at
         # INFO so users see what each column did, not just what failed.
         n_recognized = 0
+        n_reference = 0
         n_recorded = 0
         n_control = 0
         n_fallback = 0
@@ -284,6 +285,21 @@ class GeneMapping:
                         )
                     continue
 
+                # A locus GENCODE / NCBI names but HGNC doesn't (an unnamed
+                # lncRNA, a LOC placeholder). It gets a real entry keyed by its
+                # ENSG / GeneID, shared with any other dataset naming it, and
+                # not a per-dataset stub. Human only, and only ever reached
+                # when the value resolved against nothing else.
+                if self.species == "human":
+                    ref_entry = get_central_gene_table().add_reference_entry(
+                        gene_val, primary_table_name
+                    )
+                    if ref_entry is not None:
+                        n_reference += 1
+                        species_map.setdefault(gene_val, []).append(ref_entry)
+                        data_id_to_central_gene_id.append((row_id, ref_entry.row_id))
+                        continue
+
                 disposition = self.non_resolving.classify(gene_val)
 
                 if disposition == "fallback":
@@ -312,6 +328,7 @@ class GeneMapping:
             primary_table_name=primary_table_name,
             total_rows=total_rows,
             n_recognized=n_recognized,
+            n_reference=n_reference,
             n_recorded=n_recorded,
             n_control=n_control,
             n_fallback=n_fallback,
@@ -348,6 +365,7 @@ class GeneMapping:
         primary_table_name: str,
         total_rows: int,
         n_recognized: int,
+        n_reference: int,
         n_recorded: int,
         n_control: int,
         n_fallback: int,
@@ -356,7 +374,9 @@ class GeneMapping:
         """One INFO line per gene_mapping with the resolution breakdown.
 
         `recognized` = resolved via central_gene's existing symbol map
-        (the happy path). `recorded` = auto-silenced non-symbol or
+        (the happy path). `reference` = a GENCODE / NCBI locus HGNC does
+        not name, given a real entry keyed by its ENSG / GeneID.
+        `recorded` = auto-silenced non-symbol or
         explicit record_value (`is_non_symbol_identifier` match,
         record_values, record_patterns). `control` = perturbation
         control via control_values. `fallback` = unrecognized symbol
@@ -364,6 +384,8 @@ class GeneMapping:
         that still emits a WARNING below).
         """
         parts = [f"recognized {n_recognized}"]
+        if n_reference:
+            parts.append(f"reference {n_reference}")
         if n_recorded:
             parts.append(f"recorded {n_recorded}")
         if n_control:

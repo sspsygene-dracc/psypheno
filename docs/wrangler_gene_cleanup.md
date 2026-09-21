@@ -58,6 +58,17 @@ gene_mappings:
 
 > **Placeholder rows** (`not_available`, `none identified`, etc.) — drop them in `preprocess.py` via a tracked `.filter_rows(...)` step, NOT in `config.yaml`. The dropped count gets recorded in `preprocessing.yaml`. See `data/datasets/brain_organoid_atlas/preprocess.py` for an example.
 
+### Reference loci: values HGNC doesn't name
+
+Before a value becomes a stub, load-db checks the **reference-loci index** — every gene in GENCODE (`gencode.v38.*.gtf.gz`) and NCBI (`Homo_sapiens.gene_info.gz`) that HGNC has no symbol for: unnamed Ensembl lncRNAs (`AC010729.2`, bare `ENSG…`), NCBI `LOC…` placeholders, RefSeq functional elements. A value that names one of those gets a **real central_gene entry** (`manually_added=0`) keyed by the locus's ENSG / GeneID, not a per-dataset stub. Consequences for wranglers:
+
+- **The same locus is one gene across datasets**, however each dataset spells it — ClinVar's `LOC105369850`, GeneTrek's ENSG and a DEG table's `AC010729.2` all land on one row with one dataset count.
+- **Its ID survives a rebuild**, which per-dataset stubs never did. Both these entries and the remaining stubs now get hash-derived IDs (large numbers like `28620350147222` — that's expected, not corruption).
+- **Nothing is guessed.** A name HGNC already uses, or one that two loci share, is never a lookup key; those values still become stubs. A locus whose catalogue name belongs to a different HGNC gene displays under its ENSG instead.
+- The per-column log line reports these as `reference N`, between `recognized` and `unresolved`.
+
+Both catalogue files come down with `sspsygene pull-data`. Without them the index is empty and these values fall back to stubs, as before — nothing breaks.
+
 **Default behavior with no `non_resolving:` block:** unresolved values trigger a warning AND get a stub. Previously the loader silently swallowed warnings for values that looked like ENSG IDs / GENCODE clones / contigs / GenBank accessions; that implicit silencing is gone. To suppress those warnings without losing the rows, opt in explicitly via `record_patterns:` per dataset (see §4.5).
 
 ### `manual_aliases` (in preprocess.py)

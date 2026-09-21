@@ -47,6 +47,19 @@ class GeneMapConfig:
         self.tf_list_file: Path | None = (
             self.super_base_dir / tf if tf else None
         )
+        # Reference catalogues for loci HGNC doesn't name (GENCODE lncRNAs,
+        # NCBI LOC placeholders). Optional: without them those values fall back
+        # to per-dataset stubs, which is what happened before #113's follow-up.
+        gencode = gene_map_config.get("gencode_gtf_files") or []
+        if isinstance(gencode, str):
+            gencode = [gencode]
+        self.gencode_gtf_files: list[Path] = [
+            self.super_base_dir / rel for rel in gencode
+        ]
+        ncbi = gene_map_config.get("ncbi_gene_info")
+        self.ncbi_gene_info_file: Path | None = (
+            self.super_base_dir / ncbi if ncbi else None
+        )
 
 
 class GlobalConfig(TypedDict, total=False):

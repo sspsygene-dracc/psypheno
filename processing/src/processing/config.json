@@ -5,7 +5,12 @@
     "hgnc": "homology/hgnc_complete_set.txt",
     "alliance_homology_file": "homology/HGNC_AllianceHomology.rpt",
     "nimh_gene_list": "NIMH_gene_list_version01_2023-09-21.csv",
-    "tf_list": "homology/DatabaseExtract_v_1.01.csv"
+    "tf_list": "homology/DatabaseExtract_v_1.01.csv",
+    "gencode_gtf_files": [
+      "homology/gencode.v38.basic.annotation.gtf.gz",
+      "homology/gencode.v38.long_noncoding_RNAs.gtf.gz"
+    ],
+    "ncbi_gene_info": "homology/Homo_sapiens.gene_info.gz"
   },
   "table_config_root": "datasets",
   "global_config": "datasets/globals.yaml"

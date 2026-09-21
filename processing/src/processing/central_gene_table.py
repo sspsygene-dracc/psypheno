@@ -7,6 +7,11 @@ from pathlib import Path
 from typing import Literal
 
 from processing.config import get_sspsygene_config
+from processing.reference_loci import (
+    ReferenceLociIndex,
+    build_reference_loci_index,
+    stable_row_id,
+)
 from processing.shared_inputs import require_shared_input
 from processing.types.ensembl_gene import EnsemblGene
 from processing.types.entrez_gene import EntrezGene
@@ -114,6 +119,31 @@ class CentralGeneTable:
     _cached_mouse_map: dict[str, list[CentralGeneTableEntry]] | None = field(
         default=None, repr=False
     )
+    # Loci that exist in GENCODE / NCBI but not HGNC, looked up lazily: there
+    # are ~250k of them and a build uses a few thousand, so materializing all
+    # of them as entries would be wasted work (only `used` entries are written).
+    reference_loci: ReferenceLociIndex = field(
+        default_factory=ReferenceLociIndex, repr=False
+    )
+    _assigned_row_ids: set[int] = field(default_factory=set, repr=False)
+
+    def _stable_row_id(self, key: str) -> int:
+        """A hash-derived row_id for `key`, unique within this build.
+
+        Positional IDs (`len(self.entries)`) shift whenever anything earlier in
+        the build changes — adding one dataset-only stub renumbered ~103k of
+        them in a single day, silently repointing every stored central_gene_id
+        in the meta / overview DBs at a different gene. Hashing the gene's own
+        stable key removes that coupling.
+
+        Collisions are astronomically rare (~1e-4 per build at this scale)
+        but not impossible, so probe rather than assume.
+        """
+        row_id = stable_row_id(key)
+        while row_id in self._assigned_row_ids:
+            row_id = stable_row_id(f"{key}#{row_id}")
+        self._assigned_row_ids.add(row_id)
+        return row_id
 
     def get_mouse_map(
         self,
@@ -161,7 +191,7 @@ class CentralGeneTable:
         self, symbol: str, dataset: str, *, kind: EntryKind = "gene"
     ) -> CentralGeneTableEntry:
         entry = CentralGeneTableEntry(
-            row_id=len(self.entries),
+            row_id=self._stable_row_id(f"stub:mouse:{symbol}"),
             human_symbol=None,
             human_entrez_gene=None,
             human_ensembl_gene=None,
@@ -187,7 +217,7 @@ class CentralGeneTable:
         self, symbol: str, dataset: str, *, kind: EntryKind = "gene"
     ) -> CentralGeneTableEntry:
         entry = CentralGeneTableEntry(
-            row_id=len(self.entries),
+            row_id=self._stable_row_id(f"stub:human:{symbol}"),
             human_symbol=symbol,
             human_entrez_gene=None,
             human_ensembl_gene=None,
@@ -220,6 +250,57 @@ class CentralGeneTable:
         else:
             raise ValueError(f"Invalid species: {species}")
 
+    def add_reference_entry(
+        self, name: str, dataset: str
+    ) -> CentralGeneTableEntry | None:
+        """Materialize the GENCODE / NCBI locus `name` refers to, if any.
+
+        Returns None when no locus claims the name, which leaves the caller on
+        its existing stub path. Unlike a stub, the entry carries the locus's
+        stable identifiers, is shared by every dataset naming it under *any* of
+        its names, and is not `manually_added`.
+        """
+        locus = self.reference_loci.get(name)
+        if locus is None:
+            return None
+        entry = CentralGeneTableEntry(
+            row_id=self._stable_row_id(locus.key),
+            human_symbol=locus.display,
+            human_entrez_gene=(
+                EntrezGene(locus.entrez_id) if locus.entrez_id is not None else None
+            ),
+            human_ensembl_gene=(
+                EnsemblGene(locus.ensembl_id) if locus.ensembl_id else None
+            ),
+            hgnc_id=None,
+            mouse_symbols=set(),
+            mouse_ensembl_genes=set(),
+            mouse_mgi_accession_ids=set(),
+            # The locus's other names (an NCBI symbol for the same locus)
+            # become synonyms, so a second dataset naming it differently
+            # reaches the same entry — that is the cross-dataset identity a
+            # stub never had. The ENSG is excluded: get_human_map already keys
+            # on human_ensembl_gene, and listing it twice would link a row to
+            # this entry twice.
+            human_synonyms={
+                n
+                for n in locus.names
+                if n not in (locus.display, locus.ensembl_id)
+            },
+            mouse_synonyms=set(),
+            manually_added=False,
+        )
+        entry.add_used_name(species="human", name=name, dataset_name=dataset)
+        self.entries.append(entry)
+        # Register every name of the locus so later values reach this entry
+        # without going through add_reference_entry again.
+        if self._cached_human_map is not None:
+            for locus_name in locus.names | {locus.display}:
+                bucket = self._cached_human_map.setdefault(locus_name, [])
+                if entry not in bucket:
+                    bucket.append(entry)
+        return entry
+
     def get_hgnc_id_to_human_entrez_id(self) -> dict[str, EntrezGene]:
         rv_entrez: dict[str, EntrezGene] = {}
         for entry in self.entries:
@@ -248,6 +329,34 @@ class CentralGeneTable:
             hgnc_to_human_entrez=hgnc_to_human_entrez,
             mgi_accession_id_to_hgnc=mgi_accession_id_to_hgnc,
             mgi_accession_id_to_ensembl=mgi_accession_id_to_ensembl,
+        )
+        self.build_reference_loci(gene_map)
+
+    def build_reference_loci(self, gene_map) -> None:
+        """Index the GENCODE / NCBI loci HGNC doesn't name.
+
+        Runs after HGNC and MGI so `claimed_names` is the full set of names the
+        existing entries already answer to — a reference locus never shadows a
+        real symbol or synonym.
+        """
+        claimed_names = set(self.get_human_map()) | set(self.get_mouse_map())
+        self.reference_loci = build_reference_loci_index(
+            gencode_paths=list(gene_map.gencode_gtf_files),
+            ncbi_gene_info_path=gene_map.ncbi_gene_info_file,
+            hgnc_ensembl_ids={
+                entry.human_ensembl_gene.ensembl_id
+                for entry in self.entries
+                if entry.human_ensembl_gene is not None
+            },
+            hgnc_ids={
+                entry.hgnc_id for entry in self.entries if entry.hgnc_id is not None
+            },
+            hgnc_entrez_ids={
+                entry.human_entrez_gene.entrez_id
+                for entry in self.entries
+                if entry.human_entrez_gene is not None
+            },
+            claimed_names=claimed_names,
         )
 
     def parse_hgnc(self, fname: Path) -> None:
@@ -295,6 +404,7 @@ class CentralGeneTable:
                     mouse_synonyms=set(),
                 )
             )
+            self._assigned_row_ids.add(self.entries[-1].row_id)
 
     def parse_mgi_homology(
         self,
@@ -412,6 +522,7 @@ class CentralGeneTable:
                     mouse_synonyms=synonyms,
                 )
                 self.entries.append(entry)
+                self._assigned_row_ids.add(entry.row_id)
 
         mouse_symbol_to_central_entry: dict[str, list[CentralGeneTableEntry]] = (
             defaultdict(list)
