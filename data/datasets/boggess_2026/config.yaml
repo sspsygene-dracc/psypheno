@@ -85,13 +85,13 @@ tables:
 
     pvalue_column: pvalue
     fdr_column: fdr
-    effect_column: log2_fold_change
+    effect_column: log2FC
 
     fieldLabels:
       gene: "Human gene symbol of the gene knocked down by CRISPRi"
       condition: "Screen condition (stimulation type and experiment)"
+      log2FC: "Log2 fold change in CaMPARI2 red/green ratio in knockdown cells vs non-targeting controls; positive = increased neuronal depolarization, negative = decreased"
       phenotype_score: "Gene Score: product of log2 fold change and -log10(p-value); summarizes effect size and significance"
-      log2_fold_change: "Log2 fold change in CaMPARI2 red/green ratio in knockdown cells vs non-targeting controls; positive = increased neuronal depolarization, negative = decreased"
       fdr: >
         Empirical false discovery rate (iNC method, NTC sgRNAs as null); primary screen hit
         threshold was FDR < 10%. Values of exactly 0 are reported as-is from the source data
@@ -151,14 +151,14 @@ tables:
 
     pvalue_column: pvalue
     fdr_column: padj
-    effect_column: log2FoldChange
+    effect_column: log2FC
 
     fieldLabels:
       knockdown: "Gene knocked down by CRISPRi in the CROP-seq experiment (TRIP12 or PTEN). HGNC symbol."
       gene: "Target gene whose expression was measured by scRNA-seq. HGNC symbol."
-      baseMean: "DESeq2 baseMean - mean of normalized counts across all cells (knockdown and non-targeting controls) for this gene."
-      log2FoldChange: "DESeq2 log2 fold change of the target gene in CRISPRi knockdown cells vs. non-targeting control cells. Positive = upregulated upon knockdown."
-      lfcSE: "Standard error of the DESeq2 log2FoldChange estimate."
-      stat: "DESeq2 Wald test statistic (log2FoldChange / lfcSE)."
+      log2FC: "DESeq2 log2 fold change of the target gene in CRISPRi knockdown cells vs. non-targeting control cells. Positive = upregulated upon knockdown."
+      log2FC_SE: "Standard error of the DESeq2 log2FC estimate."
+      stat: "DESeq2 Wald test statistic (log2FC / log2FC_SE)."
+      baseMean: "DESeq2 baseMean — mean of normalized counts across all cells (knockdown and non-targeting controls) for this gene."
       pvalue: "DESeq2 Wald test nominal p-value."
       padj: "Benjamini-Hochberg adjusted p-value (FDR) across all tested genes within this knockdown (Boggess et al. 2026, Fig. 6c/6f)."

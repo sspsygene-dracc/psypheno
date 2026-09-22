@@ -44,13 +44,14 @@ def make_screen() -> None:
     for cond_key, cond_label in CONDITIONS.items():
         chunk = df[["gene"]].copy()
         chunk["condition"] = cond_label
-        chunk["phenotype_score"] = df[f"{cond_key}.phenotype_score"]
-        chunk["log2_fold_change"] = df[f"{cond_key}.log_fold_change"]
+        chunk["log2FC"] = df[f"{cond_key}.log_fold_change"]
         chunk["pvalue"] = df[f"{cond_key}.pvalue"]
         chunk["fdr"] = df[f"{cond_key}.fdr"]
+        chunk["phenotype_score"] = df[f"{cond_key}.phenotype_score"]
         rows.append(chunk)
 
     out = pd.concat(rows, ignore_index=True)
+    out = out[["gene", "condition", "log2FC", "pvalue", "fdr", "phenotype_score"]]
     out = out.sort_values(["gene", "condition"]).reset_index(drop=True)
 
     out.to_csv(DIR / "boggess_2026_screen.tsv", sep="\t", index=False)
@@ -63,7 +64,8 @@ def make_cropseq_deg() -> None:
     pten = pd.read_excel(xl, sheet_name="Figure6f")
 
     out = pd.concat([trip12, pten], ignore_index=True)
-    out = out[["knockdown", "gene", "baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"]]
+    out = out.rename(columns={"log2FoldChange": "log2FC", "lfcSE": "log2FC_SE"})
+    out = out[["knockdown", "gene", "log2FC", "pvalue", "padj", "log2FC_SE", "stat", "baseMean"]]
     # Drop rows without a resolvable gene symbol (DESeq2 outputs unnamed transcripts as "nan-INDEX")
     out = out[~out["gene"].astype(str).str.startswith("nan-")]
     # Drop self-referential rows where the knockdown gene is also the target gene
