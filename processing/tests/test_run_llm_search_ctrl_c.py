@@ -169,34 +169,6 @@ class CtrlCPipelineIntegrationTest(unittest.TestCase):
             self.assertIn("Second Ctrl-C received. Aborting run", output)
             self.assertGreaterEqual(FakePopen.kill_count, 1)
 
-    def test_generate_config_uses_symbol_only_jobs(self):
-        with TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            fake_db = tmp / "sspsygene.db"
-            fake_db.write_text("")
-            output_yaml = tmp / "llm_jobs.yaml"
-
-            fake_config = type("Cfg", (), {"out_db": fake_db})()
-            fake_genes = [
-                {"central_gene_id": 123, "human_symbol": "GENE1"},
-                {"central_gene_id": 456, "human_symbol": "GENE2"},
-            ]
-
-            with (
-                patch.object(
-                    run_llm_search, "get_sspsygene_config", return_value=fake_config
-                ),
-                patch.object(run_llm_search, "get_top_genes", return_value=fake_genes),
-                patch.object(run_llm_search, "GENE_RESULTS_DIR", tmp / "results"),
-            ):
-                rc = run_llm_search.generate_config(top_n=2, output=str(output_yaml))
-
-            self.assertEqual(rc, 0)
-            contents = output_yaml.read_text()
-            self.assertIn("symbol: GENE1", contents)
-            self.assertIn("symbol: GENE2", contents)
-            self.assertNotIn("central_gene_id:", contents)
-
     def test_run_pipeline_resolves_ids_from_symbol_and_skips_unknown(self):
         ImmediateSuccessPopen.reset()
         jobs = [

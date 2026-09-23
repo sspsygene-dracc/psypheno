@@ -28,7 +28,6 @@ from processing.llm_search import (
     build_update_prompt,
     build_verify_prompt,
     build_verify_update_prompt,
-    get_top_genes,
     load_gene_result,
 )
 
@@ -448,64 +447,3 @@ def run_pipeline(
         return 130
     return 0 if not failed else 1
 
-
-def generate_config(
-    top_n: int = 50,
-    output: str | None = None,
-) -> int:
-    """Generate a YAML config from the database.
-
-    Returns 0 on success, 1 on error.
-    """
-    GENE_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-
-    config = get_sspsygene_config()
-    db_path = config.out_db
-    if not db_path.exists():
-        print(f"ERROR: Database not found at {db_path}")
-        print("Run 'sspsygene load-db' first.")
-        return 1
-
-    print(f"Querying top {top_n} genes from {db_path}...")
-    genes = get_top_genes(db_path, top_n)
-    print(f"Found {len(genes)} unique genes across 4 ranking methods.")
-
-    # Determine mode for each gene
-    jobs = []
-    for gene in genes:
-        symbol = gene["human_symbol"]
-        gene_file = GENE_RESULTS_DIR / f"{symbol}.json"
-        mode = "verify" if gene_file.exists() else "new"
-        job: dict[str, Any] = {"symbol": symbol, "mode": mode}
-        jobs.append(job)
-
-    new_count = sum(1 for j in jobs if j["mode"] == "new")
-    verify_count = sum(1 for j in jobs if j["mode"] == "verify")
-    print(f"  new: {new_count}, verify: {verify_count}")
-
-    # Build YAML output
-    yaml_data = {"jobs": jobs}
-    yaml_str = (
-        "# Auto-generated LLM gene search config\n"
-        f"# Generated: {datetime.now().isoformat()}\n"
-        f"# Top-N: {top_n} ({len(genes)} unique genes)\n"
-        "#\n"
-        "# Usage:\n"
-        "#   sspsygene run-llm-search llm_jobs.yaml\n"
-        "#   sspsygene run-llm-search llm_jobs.yaml --dry-run\n"
-        "#   sspsygene run-llm-search llm_jobs.yaml --model opus\n"
-        "#\n"
-        "# Modes: new, verify, update, verify_update\n"
-        "\n"
-    )
-    yaml_str += yaml.dump(yaml_data, default_flow_style=False, sort_keys=False)
-
-    if output:
-        with open(output, "w") as f:
-            f.write(yaml_str)
-        print(f"Config written to {output}")
-    else:
-        print()
-        print(yaml_str)
-
-    return 0

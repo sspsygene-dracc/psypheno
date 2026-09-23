@@ -15,7 +15,6 @@ from processing.run_llm_search import (
     DEFAULT_MODEL,
     DEFAULT_TIMEOUT,
     VALID_MODELS,
-    generate_config,
     run_pipeline,
 )
 
@@ -1078,57 +1077,3 @@ def push_data(
         host=host,
         dry_run=dry_run,
     )
-
-
-@cli.command(name="notify-wranglers")
-@click.option(
-    "--since",
-    type=str,
-    default=None,
-    help="ISO date (YYYY-MM-DD) to look for changes from. "
-    "Defaults to last notification date, or fails if no prior run.",
-)
-@click.option(
-    "--output-dir",
-    type=click.Path(path_type=Path),
-    default=Path("notify-output"),
-    show_default=True,
-    help="Directory to write email draft and doc suggestions.",
-)
-@click.option(
-    "--timeout",
-    type=int,
-    default=300,
-    show_default=True,
-    help="Timeout in seconds per Claude agent.",
-)
-def notify_wranglers(since: str | None, output_dir: Path, timeout: int) -> None:
-    """Draft a wrangler notification email and doc updates using Claude agents."""
-    from processing.notify_wranglers import run_notify
-
-    try:
-        run_notify(since=since, output_dir=output_dir, timeout=timeout)
-    except ValueError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
-@cli.command(name="generate-llm-config")
-@click.option(
-    "--top-n",
-    type=int,
-    default=50,
-    show_default=True,
-    help="Number of top-ranked genes to include in the generated job file.",
-)
-@click.option(
-    "--output",
-    type=click.Path(dir_okay=False, path_type=str),
-    default=None,
-    help="Write YAML config to this file path. If omitted, print to stdout.",
-)
-def generate_llm_config(top_n: int, output: str | None) -> None:
-    """Generate an LLM search YAML config from the database."""
-    rc = generate_config(top_n=top_n, output=output)
-    if rc != 0:
-        raise click.exceptions.Exit(rc)

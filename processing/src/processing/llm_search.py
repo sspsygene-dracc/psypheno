@@ -1,8 +1,7 @@
-"""LLM-powered literature search for top-ranked SSPsyGene genes.
+"""LLM-powered literature search for SSPsyGene genes.
 
-For each of the top genes (union of top-N from each of 4 combined p-value
-ranking methods), we search for neuropsychiatric-relevant papers and generate
-a brief summary with novelty classification.
+For each gene listed in a YAML job file, we search for neuropsychiatric-relevant
+papers and generate a brief summary with novelty classification.
 
 Results are stored as individual JSON files in data/llm_gene_results/{SYMBOL}.json
 and loaded into the llm_gene_results SQLite table during load-db.
@@ -13,27 +12,14 @@ parallel Claude CLI agents based on a YAML job config. Each agent researches
 one gene and writes its result file directly.
 
 This module provides:
-  - _get_top_genes(): identify which genes to search
   - build_*_prompt(): mode-specific prompt builders for agents
   - gene_results_dir() / load_gene_result(): per-gene file I/O helpers
 """
 
 import json
-import sqlite3
 from pathlib import Path
 from typing import Any
 
-
-# Default flag filters matching the web UI defaults
-_DEFAULT_HIDE_FLAGS = [
-    "heat_shock",
-    "mitochondrial_rna",
-    "no_hgnc",
-    "non_coding",
-    "pseudogene",
-    "ribosomal",
-    "ubiquitin",
-]
 
 # Valid operation modes
 VALID_MODES = ("new", "verify", "update", "verify_update")
@@ -48,52 +34,6 @@ def load_gene_result(path: Path) -> dict[str, Any]:
     """Load a single per-gene result file."""
     with open(path) as f:
         return json.load(f)
-
-
-def get_top_genes(db_path: Path, top_n: int) -> list[dict[str, Any]]:
-    """Query DB for top genes across all 4 ranking methods.
-
-    Returns list of {central_gene_id, human_symbol} dicts.
-    """
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
-
-    # Build WHERE clause to exclude flagged genes
-    flag_conditions = " OR ".join(
-        f"cp.gene_flags LIKE '%{flag}%'" for flag in _DEFAULT_HIDE_FLAGS
-    )
-    flag_where = f"WHERE (cp.gene_flags IS NULL OR NOT ({flag_conditions}))"
-
-    # Get union of top-N from each method
-    methods = ["fisher_pvalue", "cauchy_pvalue", "hmp_pvalue"]
-    all_gene_ids: set[int] = set()
-    for method in methods:
-        rows = conn.execute(
-            f"SELECT cp.central_gene_id "
-            f"FROM gene_combined_pvalues cp "
-            f"JOIN central_gene cg ON cg.id = cp.central_gene_id "
-            f"{flag_where} "
-            f"ORDER BY cp.{method} ASC NULLS LAST "
-            f"LIMIT ?",
-            (top_n,),
-        ).fetchall()
-        for row in rows:
-            all_gene_ids.add(row["central_gene_id"])
-
-    # Get symbols for all selected genes
-    genes = []
-    for gene_id in sorted(all_gene_ids):
-        row = conn.execute(
-            "SELECT id, human_symbol FROM central_gene WHERE id = ?",
-            (gene_id,),
-        ).fetchone()
-        if row and row["human_symbol"]:
-            genes.append(
-                {"central_gene_id": row["id"], "human_symbol": row["human_symbol"]}
-            )
-
-    conn.close()
-    return genes
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +63,8 @@ in parentheses: (well-established), (emerging evidence), or (novel candidate).
 If no relevant papers exist for this gene in neuropsychiatric research, \
 set pubmed_links and summary to null and status to "no_results".
 
-Write ONLY the JSON file. No other output or files."""
+Write only this one file. Your stdout only goes to a log file, so no \
+summary or other output is needed."""
 
 _EXISTING_DATA_BLOCK = """\
 The gene currently has the following information on file:
@@ -207,7 +148,8 @@ Update the existing neuropsychiatric research information for the gene \
     status=existing_data.get("status", "unknown"),
 )}
 
-Take the existing information at face value — do NOT re-verify it.
+Take the existing information as correct and don't re-verify it — that is \
+what verify mode is for. Spend this run on finding newer papers.
 
 Your task:
 1. Search for additional or more recent PubMed papers linking {symbol} to \
