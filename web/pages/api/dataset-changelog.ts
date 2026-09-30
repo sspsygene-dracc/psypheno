@@ -15,9 +15,17 @@ export default async function handler(
 
     const entries = db
       .prepare(
+        // `is_initial` (#243): the entry is part of the table's addition —
+        // dated on the table's earliest changelog date. Same-day follow-ups
+        // (a fix found while loading) count as part of the addition too;
+        // anything dated later is an update.
         `SELECT c.date, c.message, c.table_name,
-                d.short_label, d.medium_label, d.long_label, d.description,
+                COALESCE(c.date = (SELECT MIN(c2.date) FROM changelog_entries c2
+                                    WHERE c2.table_name = c.table_name), 0)
+                  AS is_initial,
+                d.dataset, d.short_label, d.medium_label, d.long_label, d.description,
                 d.organism, d.source,
+                d.publication_title,
                 d.publication_first_author, d.publication_last_author, d.publication_author_count,
                 d.publication_year, d.publication_journal, d.publication_doi
          FROM changelog_entries c
@@ -28,12 +36,15 @@ export default async function handler(
       date: string | null;
       message: string | null;
       table_name: string;
+      is_initial: number;
+      dataset: string | null;
       short_label: string | null;
       medium_label: string | null;
       long_label: string | null;
       description: string | null;
       organism: string | null;
       source: string | null;
+      publication_title: string | null;
       publication_first_author: string | null;
       publication_last_author: string | null;
       publication_author_count: number | null;
