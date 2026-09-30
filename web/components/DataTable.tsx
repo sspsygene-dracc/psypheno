@@ -213,30 +213,11 @@ export default function DataTable({
     sigCols.length > 0 &&
     rowsToDisplay.some((row) => isRowSignificant(row, sigCols));
 
-  // Priority-based render-side column reorder:
-  //   tier 1 = gene columns, tier 2 = significance columns, tier 3 = the rest.
-  // Source order is preserved within each tier. Row data is keyed by name,
-  // so cell lookups don't depend on column order.
-  const effectiveColumns = useMemo(() => {
-    const t1Names = new Set((geneColumns ?? []).map(normalizeColName));
-    const sigNamesAll = [
-      ...parseSignificanceColumns(pvalueColumn),
-      ...parseSignificanceColumns(fdrColumn),
-    ].map(normalizeColName);
-    const t2Names = new Set(
-      sigNamesAll.filter((c) => !t1Names.has(c)),
-    );
-    const inT1: string[] = [];
-    const inT2: string[] = [];
-    const inT3: string[] = [];
-    for (const c of columns) {
-      const n = normalizeColName(c);
-      if (t1Names.has(n)) inT1.push(c);
-      else if (t2Names.has(n)) inT2.push(c);
-      else inT3.push(c);
-    }
-    return [...inT1, ...inT2, ...inT3];
-  }, [columns, geneColumns, pvalueColumn, fdrColumn]);
+  // Columns render in the order given. The loader decides that order once
+  // (gene columns first, then file order, or the table's `columnOrder` —
+  // order_display_columns in table_to_process_config.py, #240), so every view
+  // and every download agrees on it.
+  const effectiveColumns = columns;
 
   const isActive = (col: string) =>
     col === effectiveSortColumn && effectiveSortMode !== "none";

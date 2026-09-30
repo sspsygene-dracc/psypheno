@@ -76,6 +76,7 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "organism_key",
         "fieldLabels",
         "columnLabels",
+        "columnOrder",
         "categories",
         "links",
         "in_path",
@@ -133,6 +134,38 @@ def normalize_column_name(name: str) -> str:
 
 def get_sql_friendly_columns(df: pd.DataFrame) -> list[str]:
     return [normalize_column_name(col) for col in df.columns]
+
+
+def order_display_columns(
+    display_columns: list[str],
+    gene_columns: list[str],
+    column_order: list[str],
+    *,
+    table: str,
+) -> list[str]:
+    """The left-to-right column order the site shows for a table (#240).
+
+    Default: gene columns first, then every other column in file order, so a
+    wrangler reorders a table by reordering the TSV its preprocess.py writes.
+    `columnOrder` in config.yaml overrides: the listed columns come first, in
+    the listed order, and every unlisted column follows in its default position.
+    The web renders `display_columns` as stored, so this is the only place the
+    order is decided.
+    """
+    gene_set = set(gene_columns)
+    default = [c for c in display_columns if c in gene_set] + [
+        c for c in display_columns if c not in gene_set
+    ]
+    if not column_order:
+        return default
+    unknown = [c for c in column_order if c not in set(display_columns)]
+    if unknown:
+        raise ValueError(
+            f"table {table}: columnOrder names {unknown}, which are not columns "
+            f"of the data file: {display_columns}"
+        )
+    listed = set(column_order)
+    return list(column_order) + [c for c in default if c not in listed]
 
 
 def normalize_field_labels(
@@ -284,6 +317,10 @@ class TableToProcessConfig:
     # display header. Distinct from field_labels (the "?" tooltip). No global
     # base merge — the global acronym map is per-token, applied at load time.
     column_labels: dict[str, str] = field(default_factory=dict)
+    # Optional explicit left-to-right column order (#240): normalized column
+    # names that come first, in this order; every unlisted column follows in its
+    # default position. See order_display_columns.
+    column_order: list[str] = field(default_factory=list)
     organism: str | None = None
     organism_key: list[str] = field(default_factory=list)
     pvalue_column: str | None = None
@@ -559,6 +596,23 @@ class TableToProcessConfig:
             label_kind="columnLabels",
         )
 
+        # Column order override (#240). Names are normalized like every other
+        # column reference; existence is checked at load time, once the data's
+        # columns are known (order_display_columns).
+        raw_column_order = json_data.get("columnOrder") or []
+        if not isinstance(raw_column_order, list) or not all(
+            isinstance(c, str) for c in raw_column_order
+        ):
+            raise ValueError(
+                f"table {table_name}: columnOrder must be a list of column names"
+            )
+        column_order = [normalize_column_name(c) for c in raw_column_order]
+        duplicated = sorted({c for c in column_order if column_order.count(c) > 1})
+        if duplicated:
+            raise ValueError(
+                f"table {table_name}: columnOrder lists {duplicated} more than once"
+            )
+
         # P-value and FDR column names: normalize to match SQL column names.
         # Accepts a single string or a list of strings in config YAML.
         # Stored as comma-separated string internally.
@@ -641,6 +695,7 @@ class TableToProcessConfig:
             condition=condition,
             field_labels=merged_field_labels,
             column_labels=column_labels,
+            column_order=column_order,
             organism=json_data.get("organism"),
             organism_key=organism_key,
             pvalue_column=pvalue_column,
@@ -734,6 +789,9 @@ class TableToProcessConfig:
             len(species_set) == 1
         ), "No or multiple species in the same table: " + str(species_list)
         species = species_set.pop()
+        display_columns = order_display_columns(
+            display_columns, gene_columns, self.column_order, table=self.table
+        )
         data.columns = get_sql_friendly_columns(data)
         # Validate pvalue/fdr columns exist (may be comma-separated list)
         col_set = set(data.columns)
