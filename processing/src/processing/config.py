@@ -11,6 +11,7 @@ from processing.instances import INSTANCE_ORDER, REQUIRED_DESTINATION
 
 if TYPE_CHECKING:
     # Imported only for type checking to avoid circular import at runtime
+    from processing.types.link_only_publication import LinkOnlyPublication
     from processing.types.table_to_process_config import TableToProcessConfig
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,9 @@ _KNOWN_DATASET_KEYS = frozenset(
         "maintainers",
         "tables",
         "deployTo",
+        # Link-only datasets (#242): a paper with no data table, only links.
+        "links",
+        "description",
     }
 )
 
@@ -145,8 +149,14 @@ def _parse_deploy_to(loaded: dict[str, Any], yaml_path: Path) -> list[str]:
 
 
 class TablesConfig:
-    def __init__(self, tables: list["TableToProcessConfig"]):
+    def __init__(
+        self,
+        tables: list["TableToProcessConfig"],
+        link_only: list["LinkOnlyPublication"] | None = None,
+    ):
         self.tables = tables
+        # Datasets with a publication + links and no tables (#242).
+        self.link_only = link_only or []
 
     @classmethod
     def from_yaml_root(
@@ -172,6 +182,7 @@ class TablesConfig:
             raise FileNotFoundError(f"tables_root directory does not exist: {root_dir}")
 
         # Local import to avoid circular dependency with central_gene_table
+        from processing.types.link_only_publication import LinkOnlyPublication
         from processing.types.table_to_process_config import TableToProcessConfig
 
         global_field_labels: dict[str, str] = (global_config or {}).get("fieldLabels", {})
@@ -187,6 +198,7 @@ class TablesConfig:
             yaml_paths = sorted(root_dir.rglob("config.yaml"))
 
         tables: list[TableToProcessConfig] = []
+        link_only: list[LinkOnlyPublication] = []
         for yaml_path in yaml_paths:
             try:
                 with open(yaml_path, "r") as f:
@@ -217,13 +229,32 @@ class TablesConfig:
             # silently because the loop body never runs.
             deploy_to = _parse_deploy_to(loaded, yaml_path)
 
-            table_entries = loaded.get("tables", [])
+            table_entries = loaded.get("tables") or []
             publication = loaded.get("publication")
             # The dataset directory name. Stamped onto every table so the table
             # knows which dataset it came from — nothing else in the config
             # carries this today, which is why central_gene.dataset_names
             # actually holds *table* names (#225).
             dataset_name = yaml_path.parent.name
+
+            # Dataset-level `links:` / `description:` define a link-only paper
+            # (#242). A dataset that has tables keeps its links per table, where
+            # the page shows them next to the data they belong to.
+            if "links" in loaded or "description" in loaded:
+                if table_entries:
+                    raise ValueError(
+                        f"{yaml_path}: dataset-level `links:` / `description:` "
+                        f"are only for datasets without tables (link-only "
+                        f"papers). Put links under the table they belong to."
+                    )
+                link_only.append(
+                    LinkOnlyPublication.from_yaml(
+                        loaded,
+                        dataset=dataset_name,
+                        deploy_to=deploy_to,
+                        yaml_path=yaml_path,
+                    )
+                )
 
             # For each YAML file, in_path values are interpreted relative
             # to the directory containing that YAML file.
@@ -249,7 +280,7 @@ class TablesConfig:
                         f"Error loading table '{table_name}' from {yaml_path}: {e}"
                     ) from e
 
-        return cls(tables)
+        return cls(tables, link_only)
 
     @classmethod
     def from_legacy_tables_list(

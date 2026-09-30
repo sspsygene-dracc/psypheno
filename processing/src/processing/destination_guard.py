@@ -130,6 +130,81 @@ def destinations_from_configs(config_root: Path) -> dict[str, set[str]]:
     return out
 
 
+def link_only_destinations_from_configs(config_root: Path) -> dict[str, set[str]]:
+    """`deployTo` of every link-only dataset (#242), keyed by dataset directory.
+
+    A link-only dataset has dataset-level `links:` and no tables, so it never
+    shows up in `destinations_from_configs`. Same independent parse."""
+    out: dict[str, set[str]] = {}
+    for yaml_path in sorted(config_root.rglob("config.yaml")):
+        loaded = yaml.safe_load(yaml_path.read_text())
+        if not loaded or loaded.get("tables") or "links" not in loaded:
+            continue
+        deploy_to = loaded.get("deployTo")
+        if not isinstance(deploy_to, list):
+            raise DestinationGuardError(
+                f"{yaml_path}: missing or malformed `deployTo`; cannot verify a "
+                f"destination against configs that do not declare one."
+            )
+        out[yaml_path.parent.name] = {d for d in deploy_to if d in INSTANCE_ORDER}
+    return out
+
+
+def _check_link_only(
+    conn: sqlite3.Connection,
+    destination: str,
+    config_root: Path | None,
+    findings: list[str],
+) -> None:
+    """Every link-only row must be labelled for `destination`, in the DB and in
+    the checkout's configs; every link-only dataset labelled for it must be
+    present (#242)."""
+    rows: dict[str, set[str]] = {}
+    if "link_only_publications" in _table_names(conn):
+        rows = {
+            dataset: set((deploy_to or "").split(","))
+            for dataset, deploy_to in conn.execute(
+                "SELECT dataset, deploy_to FROM link_only_publications"
+            )
+        }
+    config_labels = (
+        link_only_destinations_from_configs(config_root)
+        if config_root is not None
+        else None
+    )
+    for dataset, in_db in sorted(rows.items()):
+        if destination not in in_db:
+            findings.append(
+                f"link_only_publications contains dataset {dataset!r}, labelled "
+                f"deployTo={sorted(in_db)} — NOT labelled for {destination}"
+            )
+        if config_labels is None:
+            continue
+        in_cfg = config_labels.get(dataset)
+        if in_cfg is None:
+            findings.append(
+                f"link_only_publications names dataset {dataset!r}, which no "
+                f"link-only config.yaml in {config_root} declares — the DB was "
+                f"built from different configs than this checkout"
+            )
+        elif in_cfg != in_db:
+            findings.append(
+                f"link-only dataset {dataset!r}: DB says deployTo="
+                f"{sorted(in_db)} but {config_root} says {sorted(in_cfg)} — the "
+                f"DB was built from different configs than this checkout"
+            )
+    if config_labels is not None:
+        missing = sorted(
+            d for d, dests in config_labels.items()
+            if destination in dests and d not in rows
+        )
+        if missing:
+            findings.append(
+                f"link_only_publications is MISSING {len(missing)} dataset(s) "
+                f"labelled for {destination}: {missing}"
+            )
+
+
 def _table_names(conn: sqlite3.Connection, schema: str = "main") -> set[str]:
     return {
         row[0]
@@ -421,6 +496,8 @@ def verify_destination(
             )
             _scan_substring(conn, "export_files", "path", forbidden, findings)
             _scan_export_zip(conn, forbidden, findings)
+
+        _check_link_only(conn, destination, config_root, findings)
 
         main_uuid = read_build_uuid(conn)
     finally:

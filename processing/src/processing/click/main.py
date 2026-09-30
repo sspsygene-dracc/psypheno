@@ -187,6 +187,7 @@ def load_db(
             data_dir=config.base_dir,
             skip_gene_descriptions=skip_gene_descriptions,
             test_central_gene_ids=test_central_gene_ids,
+            link_only_publications=config.tables_config.link_only,
         )
         _echo_sspsygene_env("end")
     except ValueError as e:

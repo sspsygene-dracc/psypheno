@@ -252,3 +252,60 @@ def test_config_global_config_loaded(mini_fixture: Path) -> None:
     assert config.global_config.get("assayTypes", {}).get("perturbation") == (
         "Perturbation Screen"
     )
+
+
+# --- link-only datasets (#242) ------------------------------------------------
+
+def _write_link_only(root: Path, name: str, body: dict) -> Path:
+    dataset_dir = root / "datasets" / name
+    dataset_dir.mkdir(parents=True)
+    yaml_path = dataset_dir / "config.yaml"
+    yaml_path.write_text(yaml.safe_dump(body))
+    return yaml_path
+
+
+_LINK_ONLY = {
+    "deployTo": ["dev", "prod"],
+    "publication": {
+        "title": "Putamen ASD",
+        "authors": ["A, B.", "C, D."],
+        "year": 2025,
+        "doi": "10.1101/2025.11.05.686845",
+    },
+    "description": "  Cell Browser only.  ",
+    "links": [
+        {"url": "https://putamen-asd.cells.ucsc.edu", "label": "UCSC Cell Browser"}
+    ],
+}
+
+
+def test_link_only_dataset_loads_without_tables(tmp_path: Path) -> None:
+    _write_link_only(tmp_path, "putamen_asd", _LINK_ONLY)
+    cfg = TablesConfig.from_yaml_root(tmp_path, Path("datasets"))
+    assert cfg.tables == []
+    [entry] = cfg.link_only
+    assert entry.dataset == "putamen_asd"
+    assert entry.deploy_to == frozenset({"dev", "prod"})
+    assert entry.publication.doi == "10.1101/2025.11.05.686845"
+    assert entry.publication.first_author == "A, B."
+    assert entry.description == "Cell Browser only."
+    assert entry.links[0].label == "UCSC Cell Browser"
+
+
+def test_link_only_requires_a_doi(tmp_path: Path) -> None:
+    body = {**_LINK_ONLY, "publication": {"title": "no doi"}}
+    _write_link_only(tmp_path, "d1", body)
+    with pytest.raises(ValueError, match="publication.doi"):
+        TablesConfig.from_yaml_root(tmp_path, Path("datasets"))
+
+
+def test_link_only_requires_links(tmp_path: Path) -> None:
+    _write_link_only(tmp_path, "d1", {**_LINK_ONLY, "links": []})
+    with pytest.raises(ValueError, match="non-empty list"):
+        TablesConfig.from_yaml_root(tmp_path, Path("datasets"))
+
+
+def test_dataset_level_links_rejected_when_tables_exist(tmp_path: Path) -> None:
+    _write_dataset(tmp_path, "d1", "d1_table", links=["https://example.org"])
+    with pytest.raises(ValueError, match="only for datasets without tables"):
+        TablesConfig.from_yaml_root(tmp_path, Path("datasets"))

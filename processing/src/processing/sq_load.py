@@ -23,7 +23,9 @@ from processing.overview_matrix import (
     materialize_overview_matrix,
     resolve_panel_gene_ids,
 )
+from processing.instances import INSTANCE_ORDER
 from processing.sql_utils import sanitize_identifier
+from processing.types.link_only_publication import LinkOnlyPublication
 from processing.types.table_to_process_config import (
     TableToProcessConfig,
     resolve_column_headers,
@@ -610,6 +612,58 @@ def load_dataset_destinations(
     conn.commit()
 
 
+def load_link_only_publications(
+    conn: sqlite3.Connection, link_only: list[LinkOnlyPublication]
+) -> None:
+    """One row per link-only dataset (#242): a paper with links, no table.
+
+    Always created, even empty, so every DB built from now on has it. The row
+    keeps the dataset's full `deployTo` (normalized to INSTANCE_ORDER, comma
+    separated) — the subsetter filters on it and the destination guard checks
+    it, the same way `dataset_destinations` scopes the data tables."""
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE link_only_publications (
+        dataset TEXT PRIMARY KEY,
+        deploy_to TEXT NOT NULL,
+        description TEXT,
+        links TEXT NOT NULL,
+        publication_title TEXT,
+        publication_first_author TEXT,
+        publication_last_author TEXT,
+        publication_author_count INTEGER,
+        publication_authors TEXT,
+        publication_year INTEGER,
+        publication_journal TEXT,
+        publication_doi TEXT NOT NULL,
+        publication_pmid TEXT,
+        publication_sspsygene_grants TEXT)"""
+    )
+    for entry in link_only:
+        pub = entry.publication
+        cur.execute(
+            "INSERT INTO link_only_publications VALUES "
+            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                entry.dataset,
+                ",".join(i for i in INSTANCE_ORDER if i in entry.deploy_to),
+                entry.description,
+                json.dumps([link.to_json_dict() for link in entry.links]),
+                pub.title,
+                pub.first_author,
+                pub.last_author,
+                pub.author_count,
+                json.dumps(pub.authors) if pub.authors else None,
+                pub.year,
+                pub.journal,
+                pub.doi,
+                pub.pmid,
+                json.dumps(pub.sspsygene_grants) if pub.sspsygene_grants else None,
+            ),
+        )
+    conn.commit()
+
+
 def load_assay_types(conn: sqlite3.Connection, assay_types: dict[str, str]) -> None:
     cur = conn.cursor()
     cur.execute(
@@ -794,6 +848,7 @@ def load_db(
     data_dir: Path | None = None,
     skip_gene_descriptions: bool = False,
     test_central_gene_ids: set[int] | None = None,
+    link_only_publications: list[LinkOnlyPublication] | None = None,
 ) -> None:
     """Build the dataset SQLite DB (sspsygene.db) and atomically swap it in.
 
@@ -829,6 +884,7 @@ def load_db(
         load_dataset_destinations(conn, table_configs, no_index=no_index)
         load_gene_tables(conn, no_index=no_index)
         compute_ensembl_to_symbol(conn, no_index=no_index)
+        load_link_only_publications(conn, link_only_publications or [])
         load_assay_types(conn, assay_types or {})
         load_condition_types(conn, condition_types or {})
         load_organism_types(conn, organism_types or {})

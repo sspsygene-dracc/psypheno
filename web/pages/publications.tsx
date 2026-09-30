@@ -465,11 +465,10 @@ export default function PublicationsPage() {
                 {/* Shown filtered or not — the count alone left the ordering
                     unexplained, and the list is neither alphabetical by title
                     nor grouped by dataset, so readers assumed it was arbitrary.
-                    The order is whatever /api/publications returns: the SQL
-                    orders by publication_year DESC, publication_first_author
-                    ASC, and papers appear in first-row order after the
-                    group-by-DOI pass. Keep this sentence in sync with that
-                    ORDER BY. */}
+                    The order is whatever /api/publications returns: year
+                    DESC, then first author ASC — the SQL ORDER BY, re-applied
+                    after link-only papers (#242) are merged in. Keep this
+                    sentence in sync with that ordering. */}
                 <div
                   style={{
                     color: "#6b7280",
@@ -570,7 +569,9 @@ function PublicationCard({
               — flagging the whole paper would overstate it. */}
           {pub.restricted && (
             <DestinationBadge
-              destinations={pub.tables[0]?.dataset?.destinations}
+              destinations={
+                pub.tables[0]?.dataset?.destinations ?? pub.linkOnlyDestinations
+              }
             />
           )}
         </div>
@@ -608,7 +609,22 @@ function PublicationCard({
         </div>
       </header>
 
-      {(pub.organisms.length > 0 || pub.sspsygeneGrants.length > 0) && (
+      {pub.description && (
+        <p
+          style={{
+            margin: "0 0 12px",
+            fontSize: 14,
+            color: "#374151",
+            lineHeight: 1.5,
+          }}
+        >
+          {pub.description}
+        </p>
+      )}
+
+      {(pub.organisms.length > 0 ||
+        pub.sspsygeneGrants.length > 0 ||
+        pub.tables.length === 0) && (
         <div
           style={{
             display: "flex",
@@ -617,6 +633,21 @@ function PublicationCard({
             marginBottom: 12,
           }}
         >
+          {pub.tables.length === 0 && (
+            <span
+              title="This paper is listed for its links; no data table from it is loaded into the knowledge base."
+              style={{
+                fontSize: 12,
+                color: "#4b5563",
+                background: "#f3f4f6",
+                border: "1px solid #e5e7eb",
+                borderRadius: 9999,
+                padding: "1px 10px",
+              }}
+            >
+              No data table
+            </span>
+          )}
           {pub.sspsygeneGrants.length > 0 && (
             <span
               title="Funded by SSPsyGene"
@@ -649,28 +680,64 @@ function PublicationCard({
         </div>
       )}
 
-      <div style={{ marginBottom: distinctTableLinks.length > 0 ? 10 : 0 }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "#374151",
-            marginBottom: 8,
-          }}
-        >
-          Datasets ({pub.tables.length})
+      {pub.links.length > 0 && (
+        <div style={{ marginBottom: pub.tables.length > 0 ? 12 : 0 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#374151",
+              marginBottom: 6,
+            }}
+          >
+            Links
+          </div>
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: 18,
+              color: "#1f2937",
+              fontSize: 13,
+            }}
+          >
+            {pub.links.map((link) => (
+              <li key={link.url}>
+                <DatasetLinkAnchor link={link} tooltipSize={13} />
+                {link.label && (
+                  <span style={{ color: "#9ca3af", fontSize: 12 }}>
+                    {" "}— {hostFromUrl(link.url)}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {pub.tables.map((t) => (
-            <CollapsibleDatasetCard
-              key={t.tableName}
-              entry={t}
-              assayTypeLabels={assayTypeLabels}
-              onOpenDataset={onOpenDataset}
-            />
-          ))}
+      )}
+
+      {pub.tables.length > 0 && (
+        <div style={{ marginBottom: distinctTableLinks.length > 0 ? 10 : 0 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#374151",
+              marginBottom: 8,
+            }}
+          >
+            Datasets ({pub.tables.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {pub.tables.map((t) => (
+              <CollapsibleDatasetCard
+                key={t.tableName}
+                entry={t}
+                assayTypeLabels={assayTypeLabels}
+                onOpenDataset={onOpenDataset}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {distinctTableLinks.length > 0 && (
         <div>

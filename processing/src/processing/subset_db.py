@@ -68,12 +68,20 @@ _GENE_SCOPED_TABLES = (
     "llm_gene_results",
 )
 
+# Scoped by the row's own `deploy_to` column: dataset-owned rows that belong to
+# no data table (#242 link-only papers), so neither table_name nor gene scoping
+# applies. A row survives only if its deployTo names the destination.
+_DEPLOY_TO_SCOPED_TABLES = ("link_only_publications",)
+
 # Tables `load-db` only creates when their optional inputs are present
-# (--skip-gene-descriptions, no llm_gene_results directory). A source without
-# them is a normal build, not a broken one, so they are skipped rather than
-# treated as a missing-table error. Every *other* table is required: refusing
-# to subset a source that is missing one is the fail-closed choice.
-_OPTIONAL_TABLES = frozenset({"gene_descriptions", "llm_gene_results"})
+# (--skip-gene-descriptions, no llm_gene_results directory), or that predate
+# some source DBs (link_only_publications, #242). A source without them is a
+# normal build, not a broken one, so they are skipped rather than treated as a
+# missing-table error. Every *other* table is required: refusing to subset a
+# source that is missing one is the fail-closed choice.
+_OPTIONAL_TABLES = frozenset(
+    {"gene_descriptions", "llm_gene_results", "link_only_publications"}
+)
 
 # Rebuilt rather than filtered, because their contents are aggregates over the
 # set of tables that used each gene.
@@ -155,6 +163,7 @@ def _classify_source_tables(
         *_GLOBAL_TABLES,
         *_MEMBER_SCOPED_TABLES,
         *_GENE_SCOPED_TABLES,
+        *_DEPLOY_TO_SCOPED_TABLES,
         *_RECOMPUTED_TABLES,
         *_REGENERATED_TABLES,
         *_INTERNAL_TABLES,
@@ -429,6 +438,18 @@ def subset_db(
             conn.execute(
                 f"INSERT INTO {name} SELECT * FROM src.{name} "
                 f"WHERE central_gene_id IN (SELECT id FROM central_gene)"
+            )
+            _copy_indexes(conn, name)
+
+        for name in _DEPLOY_TO_SCOPED_TABLES:
+            if not _source_has(conn, name):
+                logger.info("  source has no %s — skipping (optional)", name)
+                continue
+            _copy_schema(conn, name)
+            conn.execute(
+                f"INSERT INTO {name} SELECT * FROM src.{name} "
+                f"WHERE ',' || deploy_to || ',' LIKE '%,' || ? || ',%'",
+                (destination,),
             )
             _copy_indexes(conn, name)
 

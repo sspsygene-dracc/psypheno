@@ -349,3 +349,93 @@ def test_leaves_no_staging_file_behind(
     assert out.exists()
     for suffix in (".new", ".new-wal", ".new-shm", "-wal", "-shm"):
         assert not out.with_name(out.name + suffix).exists(), suffix
+
+
+# --- link-only papers (#242) --------------------------------------------------
+
+def _add_link_only(src: Path, config_root: Path, tmp_path: Path) -> Path:
+    """Two link-only datasets — one public, one dev-only — in a copy of the
+    config root and in the superset. Returns the new config root."""
+    import shutil
+
+    import yaml
+
+    from processing.sq_load import load_link_only_publications
+    from processing.types.link_only_publication import LinkOnlyPublication
+
+    root = tmp_path / "datasets"
+    shutil.copytree(config_root, root)
+    entries = []
+    for dataset, deploy_to in (
+        ("public_browser", ["dev", "int", "prod"]),
+        ("embargoed_browser", ["dev"]),
+    ):
+        body = {
+            "deployTo": deploy_to,
+            "publication": {"doi": f"10.1/{dataset}", "title": dataset},
+            "links": [{"url": f"https://{dataset}.cells.ucsc.edu"}],
+        }
+        (root / dataset).mkdir()
+        (root / dataset / "config.yaml").write_text(yaml.safe_dump(body))
+        entries.append(
+            LinkOnlyPublication.from_yaml(
+                body, dataset=dataset, deploy_to=deploy_to, yaml_path=root
+            )
+        )
+    conn = sqlite3.connect(src)
+    try:
+        conn.execute("DROP TABLE link_only_publications")
+        load_link_only_publications(conn, entries)
+    finally:
+        conn.close()
+    return root
+
+
+def test_link_only_rows_are_scoped_by_their_deploy_to(
+    superset: tuple[Path, Path], tmp_path: Path
+) -> None:
+    src, config_root = superset
+    root = _add_link_only(src, config_root, tmp_path)
+    out = tmp_path / "prod.db"
+    subset_db(src, out, "prod", config_root=root)
+    assert _rows(out, "SELECT dataset FROM link_only_publications") == {
+        ("public_browser",)
+    }
+    verify_destination(out, "prod", config_root=root)
+
+
+def test_guard_rejects_a_leaked_link_only_row(
+    superset: tuple[Path, Path], tmp_path: Path
+) -> None:
+    src, config_root = superset
+    root = _add_link_only(src, config_root, tmp_path)
+    out = tmp_path / "prod.db"
+    subset_db(src, out, "prod", config_root=root)
+    conn = sqlite3.connect(out)
+    try:
+        conn.execute(
+            "INSERT INTO link_only_publications (dataset, deploy_to, links, "
+            "publication_doi) VALUES ('embargoed_browser', 'dev', '[]', '10.1/x')"
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    with pytest.raises(DestinationGuardError, match="NOT labelled for prod"):
+        verify_destination(out, "prod", config_root=root)
+
+
+def test_guard_rejects_a_missing_link_only_row(
+    superset: tuple[Path, Path], tmp_path: Path
+) -> None:
+    src, config_root = superset
+    root = _add_link_only(src, config_root, tmp_path)
+    out = tmp_path / "prod.db"
+    subset_db(src, out, "prod", config_root=root)
+    conn = sqlite3.connect(out)
+    try:
+        conn.execute("DELETE FROM link_only_publications")
+        conn.commit()
+    finally:
+        conn.close()
+    with pytest.raises(DestinationGuardError, match="MISSING 1 dataset"):
+        verify_destination(out, "prod", config_root=root)

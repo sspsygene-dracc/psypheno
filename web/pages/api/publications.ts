@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { columnExists, getDb } from "@/lib/db";
+import { columnExists, getDb, tableExists } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 import type { Dataset } from "@/components/DatasetItem";
 import { parseDatasetLinks, type DatasetLink } from "@/lib/links";
@@ -29,6 +29,15 @@ export type PublicationEntry = {
   assays: string[];
   sspsygeneGrants: string[];
   tables: PublicationTableEntry[];
+  /**
+   * Paper-level links and blurb from a link-only dataset (#242) — a paper
+   * listed for its links (e.g. a UCSC Cell Browser) with no data table. Empty /
+   * null for papers that only have tables; their links live on each table.
+   */
+  links: DatasetLink[];
+  description: string | null;
+  /** deployTo of the link-only dataset, for the badge when `tables` is empty. */
+  linkOnlyDestinations: string[];
   /**
    * True when NOT ONE of this publication's tables is cleared for prod (#225),
    * i.e. the paper is entirely absent from the public site. Deliberately
@@ -129,6 +138,9 @@ export default async function handler(
           assays: [],
           sspsygeneGrants: parseStringArray(r.publication_sspsygene_grants),
           tables: [],
+          links: [],
+          description: null,
+          linkOnlyDestinations: [],
           // Narrowed to false as soon as any table turns out to be prod-bound.
           restricted: true,
         };
@@ -180,8 +192,83 @@ export default async function handler(
       }
     }
 
+    // Link-only papers (#242). Merged by DOI, so a paper that also has tables
+    // elsewhere gains its links rather than appearing twice.
+    if (tableExists(db, "link_only_publications")) {
+      const linkOnly = db
+        .prepare(
+          `SELECT dataset, deploy_to, description, links, publication_title,
+                  publication_first_author, publication_last_author,
+                  publication_author_count, publication_authors, publication_year,
+                  publication_journal, publication_doi, publication_pmid,
+                  publication_sspsygene_grants
+             FROM link_only_publications`,
+        )
+        .all() as Array<{
+        dataset: string;
+        deploy_to: string;
+        description: string | null;
+        links: string;
+        publication_title: string | null;
+        publication_first_author: string | null;
+        publication_last_author: string | null;
+        publication_author_count: number | null;
+        publication_authors: string | null;
+        publication_year: number | null;
+        publication_journal: string | null;
+        publication_doi: string;
+        publication_pmid: string | null;
+        publication_sspsygene_grants: string | null;
+      }>;
+      for (const r of linkOnly) {
+        const existing = byDoi.get(r.publication_doi);
+        const entry: PublicationEntry = existing ?? {
+          doi: r.publication_doi,
+          pmid: r.publication_pmid,
+          title: r.publication_title,
+          year: r.publication_year,
+          journal: r.publication_journal,
+          firstAuthor: r.publication_first_author,
+          lastAuthor: r.publication_last_author,
+          authorCount: r.publication_author_count,
+          authors: parseStringArray(r.publication_authors),
+          organisms: [],
+          assays: [],
+          sspsygeneGrants: parseStringArray(r.publication_sspsygene_grants),
+          tables: [],
+          links: [],
+          description: null,
+          linkOnlyDestinations: [],
+          restricted: true,
+        };
+        if (!existing) byDoi.set(r.publication_doi, entry);
+        const destinationsForRow = r.deploy_to.split(",").filter(Boolean);
+        for (const link of parseDatasetLinks(r.links)) {
+          if (!entry.links.some((l) => l.url === link.url)) entry.links.push(link);
+        }
+        entry.description = entry.description ?? r.description;
+        entry.linkOnlyDestinations = destinationsForRow;
+        if (!isRestricted(destinationsForRow)) entry.restricted = false;
+      }
+    }
+
+    // Year (newest first, unknown last), then first author — the same order
+    // the SQL above produces for table-backed papers, re-applied so merged-in
+    // link-only papers land in place rather than at the end. Plain `<` matches
+    // SQLite's binary collation; Array.sort is stable, so ties keep SQL order.
+    const publications = Array.from(byDoi.values()).sort((a, b) => {
+      if (a.year !== b.year) {
+        if (a.year == null) return 1;
+        if (b.year == null) return -1;
+        return b.year - a.year;
+      }
+      const fa = a.firstAuthor ?? "";
+      const fb = b.firstAuthor ?? "";
+      return fa < fb ? -1 : fa > fb ? 1 : 0;
+    });
+
     setReadCacheHeaders(res);
-    return res.status(200).json({ publications: Array.from(byDoi.values()) });
+    return res.status(200).json({ publications });
   } catch (err) {
     console.error("publications handler error", err);
     return res.status(500).json({ error: "Internal server error" });

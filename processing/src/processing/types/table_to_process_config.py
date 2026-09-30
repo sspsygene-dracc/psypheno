@@ -298,6 +298,54 @@ def _filter_to_test_genes(
 
 
 @dataclass
+class PublicationInfo:
+    """A dataset's `publication:` block, parsed once for every consumer (the
+    per-table copy on TableToProcessConfig, and link-only papers, #242)."""
+
+    title: str | None = None
+    authors: list[str] = field(default_factory=list)
+    year: int | None = None
+    journal: str | None = None
+    doi: str | None = None
+    pmid: str | None = None
+    sspsygene_grants: list[str] = field(default_factory=list)
+
+    @property
+    def first_author(self) -> str | None:
+        return self.authors[0] if self.authors else None
+
+    @property
+    def last_author(self) -> str | None:
+        return self.authors[-1] if self.authors else None
+
+    @property
+    def author_count(self) -> int | None:
+        return len(self.authors) if self.authors else None
+
+    @classmethod
+    def from_yaml(cls, publication: dict[str, Any]) -> "PublicationInfo":
+        raw_authors = publication.get("authors", [])
+        authors = list(raw_authors) if isinstance(raw_authors, list) else []
+        year_val = publication.get("year")
+        year: int | None
+        try:
+            year = int(year_val) if year_val is not None else None
+        except (TypeError, ValueError):
+            year = None
+        raw_grants = publication.get("sspsygene_grants", [])
+        grants = [str(g) for g in raw_grants] if isinstance(raw_grants, list) else []
+        return cls(
+            title=publication.get("title"),
+            authors=authors,
+            year=year,
+            journal=publication.get("journal"),
+            doi=publication.get("doi"),
+            pmid=publication.get("pmid"),
+            sspsygene_grants=grants,
+        )
+
+
+@dataclass
 class TableToProcessConfig:
     table: str
     description: str
@@ -530,25 +578,13 @@ class TableToProcessConfig:
         # INSTANCE_ORDER with the offending config.yaml path in the message.
         deploy_to = frozenset(json_data.get("_deploy_to") or ())
         dataset = str(json_data.get("_dataset") or "")
-        authors: list[str] = (
-            list(publication.get("authors", []))
-            if isinstance(publication.get("authors", []), list)
-            else []
-        )
-        first_author = authors[0] if authors else None
-        last_author = authors[-1] if authors else None
-        author_count = len(authors) if authors else None
-        year_val = publication.get("year")
-        year_int: int | None
-        try:
-            year_int = int(year_val) if year_val is not None else None
-        except (TypeError, ValueError):
-            year_int = None
-
-        raw_grants = publication.get("sspsygene_grants", [])
-        sspsygene_grants: list[str] = (
-            [str(g) for g in raw_grants] if isinstance(raw_grants, list) else []
-        )
+        pub = PublicationInfo.from_yaml(publication)
+        authors = pub.authors
+        first_author = pub.first_author
+        last_author = pub.last_author
+        author_count = pub.author_count
+        year_int = pub.year
+        sspsygene_grants = pub.sspsygene_grants
 
         # Assay: normalize string to list
         raw_assay = json_data.get("assay", [])
