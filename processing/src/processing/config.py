@@ -310,6 +310,18 @@ class Config:
             self.overview_db = self.out_db.with_name(
                 f"{self.out_db.stem}-overview{self.out_db.suffix}"
             )
+        # dev's all-destinations preview of the matrix (#241), built by
+        # `overview-matrix --all-destinations`: every flagged table, dev- and
+        # int-only ones included. dev's web app prefers it over overview_db;
+        # int and prod never see it (promotion copies overview_db only).
+        # `-all` sibling of overview_db, overridable like the others.
+        overview_all_override = os.environ.get("SSPSYGENE_OVERVIEW_ALL_DB")
+        if overview_all_override:
+            self.overview_all_db: Path = Path(overview_all_override)
+        else:
+            self.overview_all_db = self.overview_db.with_name(
+                f"{self.overview_db.stem}-all{self.overview_db.suffix}"
+            )
         # The canonical 259-gene SSPsyGene consortium panel. Never used to filter
         # *ingestion* (psypheno#23: "we always add all the genes") — it is a
         # display/filter concern. Today its one consumer is the overview matrix,

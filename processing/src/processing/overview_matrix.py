@@ -892,6 +892,7 @@ def materialize_overview_matrix(
     min_groups: int = ELIGIBILITY_MIN_GROUPS,
     src_schema: str = "main",
     panel_gene_ids: set[int] | None = None,
+    all_destinations: bool = False,
 ) -> None:
     """Precompute the overview matrix (#222, #213).
 
@@ -909,14 +910,19 @@ def materialize_overview_matrix(
     (#228). It also gates which perturbed groups count toward a column's
     convergence, so columns are scored over the genes actually displayed. Pass
     ``None`` to keep every non-control perturbed gene, the pre-#228 behaviour.
+
+    `all_destinations` drops the prod-only input filter (below) so every flagged
+    table in the source DB contributes, dev- and int-only ones included (#241).
+    That file is dev's wrangler preview and is never promoted.
     """
     min_groups = max(1, min_groups)
+    scope = "all" if all_destinations else "prod"
     _create_schema(conn)
     _create_panel_filter(conn, panel_gene_ids, src_schema)
 
     modality_keys, assay_to_modalities = _load_modalities(conn, src_schema)
     if not modality_keys:
-        _write_info(conn, min_groups, [], panel_gene_ids, src_schema)
+        _write_info(conn, min_groups, [], panel_gene_ids, src_schema, scope)
         conn.commit()
         return
 
@@ -927,9 +933,10 @@ def materialize_overview_matrix(
     # Restricting to prod makes the file destination-independent, which is what
     # lets it be built once on dev and copied verbatim to prod and int.
     # Guarded on the table existing so pre-#225 DBs and the in-memory test
-    # fixtures still materialize every flagged table.
+    # fixtures still materialize every flagged table. Skipped entirely for the
+    # all-destinations build (#241), which stays on dev.
     prod_clause = ""
-    if conn.execute(
+    if not all_destinations and conn.execute(
         f"SELECT 1 FROM {src_schema}.sqlite_master "
         f"WHERE type='table' AND name='dataset_destinations'"
     ).fetchone():
@@ -1033,7 +1040,8 @@ def materialize_overview_matrix(
         )
 
     _write_info(
-        conn, min_groups, expanded_source_tables, panel_gene_ids, src_schema
+        conn, min_groups, expanded_source_tables, panel_gene_ids, src_schema,
+        scope,
     )
     conn.commit()
 
@@ -1044,9 +1052,13 @@ def _write_info(
     expanded_source_tables: list[str],
     panel_gene_ids: set[int] | None = None,
     src_schema: str = "main",
+    scope: str = "prod",
 ) -> None:
     rows = [
         ("schema_version", SCHEMA_VERSION),
+        # "prod": prod-labelled inputs only, copied to every instance. "all":
+        # dev's preview including dev/int-only tables (#241).
+        ("destination_scope", scope),
         ("built_at", datetime.now(timezone.utc).isoformat()),
         ("min_groups_floor", str(min_groups)),
         ("materialize_top_m", str(MATERIALIZE_TOP_M)),

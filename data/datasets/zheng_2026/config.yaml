@@ -71,6 +71,7 @@ tables:
     pvalue_column: PValue
     fdr_column: padj
     effect_column: logFC
+    overview_matrix: true
 
     gene_mappings:
       - column_name: perturbation

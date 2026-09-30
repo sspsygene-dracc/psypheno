@@ -56,12 +56,34 @@ function metaDbPathFor(mainDbPath: string): string {
  * default derivation in processing/config.py.
  */
 function overviewDbPathFor(mainDbPath: string): string {
+  const prodOnly = prodOverviewDbPathFor(mainDbPath);
+  const all = overviewAllDbPathFor(prodOnly);
+  return statOrNull(all) ? all : prodOnly;
+}
+
+function prodOverviewDbPathFor(mainDbPath: string): string {
   const fromEnv = process.env.SSPSYGENE_OVERVIEW_DB;
   if (fromEnv) return path.resolve(fromEnv);
   const dir = path.dirname(mainDbPath);
   const ext = path.extname(mainDbPath); // ".db"
   const stem = path.basename(mainDbPath, ext); // "sspsygene"
   return path.join(dir, `${stem}-overview${ext}`);
+}
+
+/**
+ * dev's all-destinations preview of the matrix (#241): `-all` sibling of the
+ * overview DB (sspsygene-overview-all.db), or SSPSYGENE_OVERVIEW_ALL_DB. It
+ * also carries dev- and int-only datasets and wins whenever it exists. Only
+ * dev builds it (`deploy-overview` runs `overview-matrix --all-destinations`
+ * there alone) and promotion never copies it, so int and prod keep serving the
+ * prod-only file. Mirrors processing/config.py.
+ */
+function overviewAllDbPathFor(overviewDbPath: string): string {
+  const fromEnv = process.env.SSPSYGENE_OVERVIEW_ALL_DB;
+  if (fromEnv) return path.resolve(fromEnv);
+  const ext = path.extname(overviewDbPath);
+  const stem = path.basename(overviewDbPath, ext);
+  return path.join(path.dirname(overviewDbPath), `${stem}-all${ext}`);
 }
 
 /**

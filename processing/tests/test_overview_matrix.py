@@ -557,3 +557,37 @@ def test_load_panel_symbols_rejects_an_empty_list(tmp_path) -> None:
     path.write_text("# only comments\n\n")
     with pytest.raises(ValueError, match="no symbols"):
         load_panel_symbols(path)
+
+
+# --- destination scope (#225, #241) -----------------------------------------
+
+def _label_destinations(conn: sqlite3.Connection, table: str, *dests: str) -> None:
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS dataset_destinations "
+        "(dataset TEXT, table_name TEXT, destination TEXT)"
+    )
+    conn.executemany(
+        "INSERT INTO dataset_destinations VALUES (?, ?, ?)",
+        [("ds", table, d) for d in dests],
+    )
+
+
+def test_default_build_uses_prod_labelled_tables_only(
+    conn: sqlite3.Connection,
+) -> None:
+    _label_destinations(conn, "expr", "dev", "int")
+    materialize_overview_matrix(conn, min_groups=1)
+    assert _columns(conn, "expr") == []
+    info = dict(conn.execute("SELECT key, value FROM overview_matrix_info"))
+    assert info["destination_scope"] == "prod"
+
+
+def test_all_destinations_build_includes_non_prod_tables(
+    conn: sqlite3.Connection,
+) -> None:
+    _label_destinations(conn, "expr", "dev", "int")
+    materialize_overview_matrix(conn, min_groups=1, all_destinations=True)
+    assert [c[0] for c in _columns(conn, "expr")] == ["T1", "T3"]
+    info = dict(conn.execute("SELECT key, value FROM overview_matrix_info"))
+    assert info["destination_scope"] == "all"
+    assert json.loads(info["expanded_source_tables"]) == ["expr"]

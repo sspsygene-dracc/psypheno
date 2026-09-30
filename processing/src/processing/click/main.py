@@ -271,7 +271,18 @@ def meta_analysis(no_index: bool, no_r_cache: bool) -> None:
     "~200 most-convergent columns per dataset are materialized; the web app "
     "serves the top K (columns per dataset) the user picks.",
 )
-def overview_matrix(no_index: bool, min_sig_groups: int) -> None:
+@click.option(
+    "--all-destinations",
+    is_flag=True,
+    default=False,
+    help="Include every flagged table, not only those whose deployTo names "
+    "prod, and write sspsygene-overview-all.db instead of "
+    "sspsygene-overview.db (#241). This is dev's preview matrix; dev's web app "
+    "serves it when present. int and prod always use the prod-only file.",
+)
+def overview_matrix(
+    no_index: bool, min_sig_groups: int, all_destinations: bool
+) -> None:
     """Materialize the collated overview matrix into sspsygene-overview.db.
 
     Reads the already-built dataset DB (sspsygene.db) and writes a separate
@@ -286,10 +297,11 @@ def overview_matrix(no_index: bool, min_sig_groups: int) -> None:
         config = get_sspsygene_config()
         run_overview_matrix(
             config.out_db,
-            config.overview_db,
+            config.overview_all_db if all_destinations else config.overview_db,
             no_index=no_index,
             min_groups=min_sig_groups,
             panel_gene_list=config.sspsygene_gene_list,
+            all_destinations=all_destinations,
         )
         _echo_sspsygene_env("end")
     except ValueError as e:
@@ -710,7 +722,10 @@ def deploy_overview(
     site against that site's existing sspsygene.db. Does not rebuild datasets,
     build the web app, or restart services — the web process auto-detects the
     new overview DB the same way it detects a rebuilt sspsygene.db. Multi-user
-    safe (no systemd/kill interaction), mirroring `deploy-meta-analysis` (#222)."""
+    safe (no systemd/kill interaction), mirroring `deploy-meta-analysis` (#222).
+
+    On dev it also builds sspsygene-overview-all.db (`--all-destinations`, #241),
+    the preview that includes dev- and int-only datasets; dev serves that one."""
     from processing.deploy import run_deploy_overview
 
     run_deploy_overview(

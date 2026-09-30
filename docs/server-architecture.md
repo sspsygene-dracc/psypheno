@@ -52,6 +52,9 @@ is what decides where a dataset appears.
   dev            sspsygene load-db          → sspsygene.db          (superset)
                  sspsygene meta-analysis    → sspsygene-meta.db     ┐ prod-labelled
                  sspsygene overview-matrix  → sspsygene-overview.db ┘ inputs only
+                 overview-matrix --all-destinations
+                                            → sspsygene-overview-all.db (dev's
+                                              preview; never promoted, #241)
 
   promote        subset-db --destination prod  → sspsygene-prod.db  (on dev)
    dev → prod    verify-destination            → abort on any finding
@@ -77,8 +80,14 @@ Why it is shaped this way:
   computed from `prod`-labelled inputs only, so the same bytes are correct on
   every instance. Rebuilding them per site would also miss the entire R cache,
   which keys on the p-value bytes.
-- **A dev-only dataset does not appear in dev's `/most-significant` or
-  `/matrix`.** Accepted tradeoff: it is the price of computing those once.
+- **A dev- or int-only dataset does not appear in `/most-significant` on any
+  instance, nor in int's `/matrix`.** Accepted tradeoff: it is the price of
+  computing those once. dev's `/matrix` is the exception
+  ([#241](https://github.com/sspsygene-dracc/psypheno/issues/241)): dev also
+  builds `sspsygene-overview-all.db` from every flagged table, and its web app
+  serves that file whenever it exists (it wins over `sspsygene-overview.db`
+  beside it). Promotion never copies it, and `deploy-overview` only builds it
+  on dev, so int and prod keep the prod-only matrix.
 - **`verify-destination` is an independent check.** It re-reads `deployTo` from
   the target checkout's configs, cross-checks that against the DB's own
   `dataset_destinations`, and deny-scans every place a table name can hide
@@ -114,7 +123,8 @@ unused leftover from an earlier configuration.
     web/                          ← Next.js web application
   sspsygene_website_dev/          ← Dev — the build server; same structure,
                                     plus the sspsygene-{int,prod}.db files
-                                    subset-db stages before a promotion
+                                    subset-db stages before a promotion, and
+                                    sspsygene-overview-all.db (dev's matrix)
   sspsygene_website_int/          ← Internal (separate copy, same structure)
 ```
 

@@ -72,6 +72,11 @@ def test_load_db_against_mini_dataset(mini_fixture: Path) -> None:
     # command chain (`overview-matrix`), reading the dataset DB just built.
     overview_db = config.overview_db
     assert not overview_db.exists()
+    # dev's all-destinations preview (#241) is the `-all` sibling, the name the
+    # web app looks for.
+    assert config.overview_all_db == overview_db.with_name(
+        f"{overview_db.stem}-all{overview_db.suffix}"
+    )
     # min_groups=1 so the fixture's single-perturbation columns still materialize
     # (the default floor is 2; the fixture is too small to exercise it).
     run_overview_matrix(

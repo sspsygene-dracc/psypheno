@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb, tableExists } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
+import { loadDestinations, restrictionLabel } from "@/lib/destinations";
 import {
   compareGeneRows,
   type CollatedMatrixResponse,
@@ -141,12 +142,25 @@ interface SummaryColumnRow {
  * clustering and the dataset hide/unhide all keep working on a `MatrixColumn`
  * without knowing which view produced it.
  */
+// `restriction` is the "Internal only" / "Dev only" marker for a table not
+// cleared for prod. Only dev's all-destinations matrix (#241) contains such
+// tables; their column labels carry the marker so a preview column is never
+// mistaken for public data.
+type DatasetMeta = {
+  mediumLabel: string | null;
+  citation: string | null;
+  restriction: string | null;
+};
+
+const withRestriction = (label: string, meta: DatasetMeta | undefined) =>
+  meta?.restriction ? `${label} (${meta.restriction})` : label;
+
 function buildSummaryResponse(args: {
   db: ReturnType<typeof getDb>;
   genes: MatrixGeneRow[];
   byId: Map<number, MatrixGeneRow>;
   modalities: ModalityRow[];
-  datasetMeta: Map<string, { mediumLabel: string | null; citation: string | null }>;
+  datasetMeta: Map<string, DatasetMeta>;
   floor: number;
   topM: number;
   builtAt: string | null;
@@ -185,7 +199,9 @@ function buildSummaryResponse(args: {
     const heading = headingFor(r);
     collisions.set(heading, (collisions.get(heading) ?? 0) + 1);
   }
-  const labelFor = (r: SummaryColumnRow): string => {
+  const labelFor = (r: SummaryColumnRow): string =>
+    withRestriction(baseLabelFor(r), datasetMeta.get(r.source_table));
+  const baseLabelFor = (r: SummaryColumnRow): string => {
     const heading = headingFor(r);
     if ((collisions.get(heading) ?? 0) <= 1) return heading;
     // These descriptions run long ("in vivo Perturb-seq Cell-Type Proportion
@@ -218,6 +234,7 @@ function buildSummaryResponse(args: {
       const dsMeta = datasetMeta.get(r.source_table) ?? {
         mediumLabel: null,
         citation: null,
+        restriction: null,
       };
       const label = labelFor(r);
       columns.push({
@@ -366,10 +383,8 @@ export default async function handler(
     const labelByModality = new Map(modalities.map((m) => [m.key, m.label]));
 
     // Fuller dataset identity for the author-year label + band tooltip.
-    const datasetMeta = new Map<
-      string,
-      { mediumLabel: string | null; citation: string | null }
-    >();
+    const datasetMeta = new Map<string, DatasetMeta>();
+    const destinations = loadDestinations(db);
     for (const r of db
       .prepare("SELECT table_name, medium_label, source FROM data_tables")
       .all() as Array<{
@@ -380,6 +395,7 @@ export default async function handler(
       datasetMeta.set(r.table_name, {
         mediumLabel: r.medium_label,
         citation: r.source,
+        restriction: restrictionLabel(destinations.get(r.table_name)),
       });
     }
 
@@ -453,10 +469,11 @@ export default async function handler(
         const dsMeta = datasetMeta.get(st.source_table) ?? {
           mediumLabel: null,
           citation: null,
+          restriction: null,
         };
-        const sourceLabel = authorYearLabel(
-          dsMeta.mediumLabel,
-          st.source_label ?? st.source_table
+        const sourceLabel = withRestriction(
+          authorYearLabel(dsMeta.mediumLabel, st.source_label ?? st.source_table),
+          dsMeta
         );
         for (const row of colRows) {
           const domain = parseDomain(row.metric_domain);

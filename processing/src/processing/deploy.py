@@ -850,6 +850,7 @@ def _step_overview_matrix_site(
     label: str,
     min_sig_groups: int = 2,
     env_vars: dict[str, str] | None = None,
+    all_destinations: bool = False,
 ) -> None:
     """Run `sspsygene overview-matrix` on one psygene site.
 
@@ -860,7 +861,8 @@ def _step_overview_matrix_site(
     creates/replaces the overview DB file under the deployer's account (no
     systemd / kill interaction), so unlike the restart step it works the same
     for any wrangler in the protein group. Mirrors _step_meta_analysis_site."""
-    click.echo(f"\n  --- overview-matrix: {label} ({path}) ---")
+    scope = " (all destinations)" if all_destinations else ""
+    click.echo(f"\n  --- overview-matrix{scope}: {label} ({path}) ---")
     env_prefix = ""
     if env_vars:
         env_prefix = " ".join(f"{k}={v}" for k, v in env_vars.items()) + " "
@@ -869,6 +871,7 @@ def _step_overview_matrix_site(
         f"{CONDA_INIT} && "
         f"{env_prefix}conda run --no-capture-output -n {CONDA_ENV} "
         f"sspsygene overview-matrix --min-sig-groups {min_sig_groups}"
+        + (" --all-destinations" if all_destinations else "")
     )
     _run_ssh(
         PSYGENE,
@@ -912,6 +915,16 @@ def run_deploy_overview(
             min_sig_groups=min_sig_groups,
             env_vars=INSTANCE_ENVS[inst],
         )
+        # dev also gets its all-destinations preview (#241), which its web app
+        # serves; the prod-only file above is what promotion copies onward.
+        if inst == "dev":
+            _step_overview_matrix_site(
+                INSTANCE_PATHS[inst],
+                label=INSTANCE_LABELS[inst],
+                min_sig_groups=min_sig_groups,
+                env_vars=INSTANCE_ENVS[inst],
+                all_destinations=True,
+            )
 
     click.secho("\nOverview-matrix deployment complete!", fg="green", bold=True)
 

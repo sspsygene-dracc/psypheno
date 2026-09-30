@@ -106,6 +106,43 @@ describe("getDb", () => {
     ).toBe("B");
   });
 
+  it("prefers dev's all-destinations overview DB when it exists (#241)", async () => {
+    const src = makeTmpDb("A");
+    created.push(src);
+    fs.copyFileSync(src, target);
+    process.env.SSPSYGENE_DATA_DB = target;
+
+    const stem = target.replace(/\.db$/, "");
+    const writeOverview = (p: string, scope: string) => {
+      const d = new Database(p);
+      d.exec("CREATE TABLE overview_matrix_info (key TEXT, value TEXT)");
+      d.prepare("INSERT INTO overview_matrix_info VALUES (?, ?)").run(
+        "destination_scope",
+        scope,
+      );
+      d.close();
+      created.push(p);
+    };
+    writeOverview(`${stem}-overview.db`, "prod");
+    writeOverview(`${stem}-overview-all.db`, "all");
+
+    const { getDb } = await import("@/lib/db");
+    const scope = () =>
+      (
+        getDb()
+          .prepare(
+            "SELECT value FROM overview.overview_matrix_info " +
+              "WHERE key = 'destination_scope'",
+          )
+          .get() as { value: string }
+      ).value;
+    expect(scope()).toBe("all");
+
+    // Without the preview file (int / prod) the prod-only file is served.
+    fs.unlinkSync(`${stem}-overview-all.db`);
+    expect(scope()).toBe("prod");
+  });
+
   it("smoke: confirm sentinel readback helper works", () => {
     const p = makeTmpDb("hello");
     created.push(p);

@@ -1023,6 +1023,7 @@ def run_overview_matrix(
     no_index: bool = False,
     min_groups: int = 2,
     panel_gene_list: Path | None = None,
+    all_destinations: bool = False,
 ) -> None:
     """Materialize the collated overview matrix into a standalone DB (#222).
 
@@ -1071,6 +1072,7 @@ def run_overview_matrix(
             min_groups=min_groups,
             src_schema="src",
             panel_gene_ids=panel_gene_ids,
+            all_destinations=all_destinations,
         )
         # Detach before the context manager's PRAGMA optimize / commit so those
         # never reach across into the read-only source DB.
