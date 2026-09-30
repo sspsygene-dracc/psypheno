@@ -307,10 +307,16 @@ export default function CollatedMatrix({
   // much longer than a plain gene/phenotype name in banded mode.
   const labelStripH = useMemo(() => {
     if (summary) {
-      const perLine = Math.max(1, Math.floor(colW / SUMMARY_LABEL_CHAR_PX));
+      // 8px: the label's 4px side padding. Word-aware, like the band headings —
+      // a plain length / perLine undercounts wrapped lines and clipped the top
+      // of long labels ("Protein interactions · Wang 2026 · …").
+      const perLine = Math.max(
+        1,
+        Math.floor((colW - 8) / SUMMARY_LABEL_CHAR_PX)
+      );
       let maxLines = 1;
       for (const c of columns) {
-        maxLines = Math.max(maxLines, Math.ceil(c.label.length / perLine));
+        maxLines = Math.max(maxLines, wrappedLineCount(c.label, perLine));
       }
       return maxLines * SUMMARY_LABEL_LINE_H + SUMMARY_LABEL_PAD;
     }

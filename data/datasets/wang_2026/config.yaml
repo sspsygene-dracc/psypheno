@@ -104,7 +104,7 @@ tables:
       actively manipulated (expressed and pulled down), while the interactor is the protein whose
       association is being measured.
     source: "Table S1 (sheet: ASD-PPI)"
-    assay: perturbation
+    assay: ppi
     condition:
       - autism
     categories:
@@ -165,6 +165,7 @@ tables:
           record_values:
             - LOC100421372
     fdr_column: SAINT_BFDR
+    overview_matrix: true
 
   - table: wang_2026_mut_ppi
     changelog:
@@ -190,7 +191,7 @@ tables:
       Following the same convention used for CRISPR perturbation data: the mutant bait is the gene
       being actively manipulated, while the prey is the protein whose association is being measured.
     source: "Table S6 (sheet: ASDmut-PPI)"
-    assay: perturbation
+    assay: ppi
     condition:
       - autism
     categories:
@@ -263,3 +264,4 @@ tables:
     pvalue_column: pvalue
     fdr_column: fdr_storey
     effect_column: log2FC
+    overview_matrix: true

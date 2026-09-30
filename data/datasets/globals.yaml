@@ -81,6 +81,7 @@ assayTypes:
   perturbation_deg: "Perturbation Differential Expression (DEG)"
   curated: "Curated Database"
   phenotype: "Phenotype Annotation"
+  ppi: "Protein-Protein Interaction"
 
 # Assay types whose per-study p-values are comparable enough to combine in the
 # cross-study meta-analysis (/most-significant). Restricting the combination to
@@ -130,6 +131,9 @@ organismTypes:
 #     non-DEG, non-spatial) folds into Perturb-seq, so every perturbation table
 #     shows somewhere. Net: `spatial` -> perturb-FISH, every other perturbation
 #     assay -> perturb-seq.
+#   - `ppi` (AP-MS protein-protein interactions) is its own modality: the bait is
+#     the "perturbed" gene and the interactor the "target", but it is not a
+#     perturbation readout, so it must not fold into Perturb-seq.
 modalities:
   - key: expression
     label: "RNA expression"
@@ -157,3 +161,7 @@ modalities:
     label: "Perturb-FISH"
     assayTypes:
       - spatial
+  - key: ppi
+    label: "Protein interactions"
+    assayTypes:
+      - ppi

@@ -750,6 +750,37 @@ def load_llm_search_results(
     )
 
 
+def validate_assay_keys(
+    table_configs: list[TableToProcessConfig],
+    assay_types: dict[str, str],
+    modalities: list[dict[str, Any]],
+) -> None:
+    """Every `assay:` a table declares, and every assay a matrix modality maps,
+    must be a key of `assayTypes` in globals.yaml. An unknown key would load
+    without a label, never reach the matrix, and fall through every assay
+    filter — a typo nobody notices. Adding a new experiment type starts with
+    adding its key to `assayTypes`."""
+    known = set(assay_types)
+    problems = [
+        f"table {t.table}: assay '{a}'"
+        for t in table_configs
+        for a in t.assay
+        if a not in known
+    ] + [
+        f"modality {m.get('key')}: assayTypes entry '{a}'"
+        for m in modalities
+        for a in m.get("assayTypes", []) or []
+        if a not in known
+    ]
+    if problems:
+        raise ValueError(
+            "Unknown assay type(s), not defined under assayTypes in "
+            "data/datasets/globals.yaml:\n  "
+            + "\n  ".join(problems)
+            + f"\nKnown assay types: {sorted(known)}"
+        )
+
+
 def load_db(
     db_name: Path,
     table_configs: list[TableToProcessConfig],
@@ -772,6 +803,8 @@ def load_db(
     write their own files (`sspsygene meta-analysis` → sspsygene-meta.db;
     `sspsygene overview-matrix` → sspsygene-overview.db)."""
     logger = logging.getLogger(__name__)
+    if assay_types:
+        validate_assay_keys(table_configs, assay_types, modalities or [])
     db_name.parent.mkdir(parents=True, exist_ok=True)
 
     # Build a fresh DB at `{db_name}.new` and atomically swap it into place.
