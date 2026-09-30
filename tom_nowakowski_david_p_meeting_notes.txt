@@ -1,0 +1,43 @@
+  * Tom:
+    * 1 table with p-values
+    * 1 table with effect sizes/fold change (want to see directionality of effects)
+    * split squares along diagonal
+    * sspsygene: get table for all the genes, ask groups
+    * Group phenotypes according to Catharina's table
+    * get rid of the current matrix? Or add a view for the compiled data?
+    * integrate an anatomical user interface
+    * links in genome browser to sspsygene knowledgebase
+      * genome browser has expandability, which David likes
+      * need APIs that allows us to manipulate data
+      * genome browser -> get perturbed or target genes (where gene is expressed like Allen Institute)
+        * starting from the middle -> have a coordinate framework -> want to know where gene is expressed; doesn't have to be genome browser)
+        * genome browser can tell me in contrast: where the gene is perturbed
+      * look at effects of perturbation specifically in respect to the genes
+      * for people who do perturbseq, should record positioning of the guide in genome browser (e.g., for crispri) --- xin jin, sami farhi
+    * access features based on anatomical features on other features
+
+    * collated table (matrix) x/y have to be specific to the cell type that stuff was measured in
+      * allen common coordinate framework using merfish data
+    * take whatever data are generating, cluster into phenotypes -> cluster into cell type taxonomy
+    * leaves out source of data (inducible neurons, cultures)
+    * for the time being, let's capture these under iNeurons
+    * once join analysis group reanalyses data, they can take data and map them onto taxonomy
+    * bicann is working on taxonomy for developing human brain
+    * perhaps we can map organoids better to developing brain
+    * most tables will be completely empty
+    * over time, the idea is that as the project goes and and literature gets bigger, we can register all the measured phenotypes in that taxonomy
+    * david p: there will be organoid data that will map better to human postmortem data
+    * iNeuron data is going to be plumbed somewhere eventually
+    * maybe we can map it later as the analysis gets further
+    * would like for human data to be map to an anatomical corelet in the same way that mouse data is being mapped
+
+    * study-to-study, lab to lab correlation almost there
+    * once you do restrict to FDR genes, you do find concordant genes across studies
+    * hard to know how much is just genetic background
+    * fact that there is no correlation genome wide
+    * there are set of genes that have concordant effect sizes FDR corrected
+    * should be up to this group to prove that there is a biological signal
+    * that's why we need this meta analysis
+
+    * for now focus on filling out the iNeurons, that's where a lot of the next data is going to come from
+
