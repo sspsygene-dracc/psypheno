@@ -86,8 +86,9 @@ Why it is shaped this way:
   ([#241](https://github.com/sspsygene-dracc/psypheno/issues/241)): dev also
   builds `sspsygene-overview-all.db` from every flagged table, and its web app
   serves that file whenever it exists (it wins over `sspsygene-overview.db`
-  beside it). Promotion never copies it, and `deploy-overview` only builds it
-  on dev, so int and prod keep the prod-only matrix.
+  beside it). Promotion never copies it, and `deploy-overview` (like
+  `deploy --include-overview-matrix`) only builds it on dev, so int and prod
+  keep the prod-only matrix.
 - **`verify-destination` is an independent check.** It re-reads `deployTo` from
   the target checkout's configs, cross-checks that against the DB's own
   `dataset_destinations`, and deny-scans every place a table name can hide

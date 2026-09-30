@@ -908,6 +908,16 @@ def run_deploy_overview(
     _step_pull_all(selected)
 
     click.secho("\n[3/3] Running overview-matrix on selected sites", bold=True)
+    _step_overview_matrix_sites(selected, min_sig_groups=min_sig_groups)
+
+    click.secho("\nOverview-matrix deployment complete!", fg="green", bold=True)
+
+
+def _step_overview_matrix_sites(
+    selected: list[str], *, min_sig_groups: int = 2
+) -> None:
+    """Run `sspsygene overview-matrix` on each selected site — the body shared
+    by `deploy-overview` and `deploy --include-overview-matrix`."""
     for inst in selected:
         _step_overview_matrix_site(
             INSTANCE_PATHS[inst],
@@ -925,8 +935,6 @@ def run_deploy_overview(
                 env_vars=INSTANCE_ENVS[inst],
                 all_destinations=True,
             )
-
-    click.secho("\nOverview-matrix deployment complete!", fg="green", bold=True)
 
 
 def _step_restart_psygene(instances: list[str]) -> None:
@@ -1851,6 +1859,7 @@ def _run_build_pipeline(
     preprocess: bool,
     run_tests: bool,
     include_meta_analysis: bool = False,
+    include_overview_matrix: bool = False,
 ) -> None:
     """Steps 2–5 of a deploy (pull → preprocess/load-db/build → restart →
     tests) on the selected psygene sites.
@@ -1900,6 +1909,19 @@ def _run_build_pipeline(
                 label=INSTANCE_LABELS[inst],
                 env_vars=INSTANCE_ENVS[inst],
             )
+
+    # Step 3d — optional convenience: rebuild the overview matrix on the same
+    # sites (#222). Off by default; equivalent to following this deploy with
+    # `sspsygene deploy-overview` on the same instances. Runs after load-db so
+    # it reads the freshly-built datasets; it doesn't read the meta DB, so its
+    # order relative to 3c doesn't matter.
+    if include_overview_matrix:
+        click.secho(
+            "\n[3d/5] Rebuilding the overview matrix on selected sites "
+            "(--include-overview-matrix)",
+            bold=True,
+        )
+        _step_overview_matrix_sites(selected)
 
     # Step 4 — restart web servers BEFORE tests so e2e hits the new build.
     # Default tracks --build: a build mints a new Next.js build ID that
@@ -1996,6 +2018,7 @@ def run_deploy(
     preprocess: bool = False,
     run_tests: bool = False,
     include_meta_analysis: bool = False,
+    include_overview_matrix: bool = False,
 ) -> None:
     """Run the full deployment pipeline from a laptop (SSHes into psygene).
 
@@ -2004,7 +2027,8 @@ def run_deploy(
     defaults to true because the new build mints a fresh Next.js build ID
     that invalidates the running service's served HTML; pass `restart=False`
     explicitly to opt out. `include_meta_analysis` additionally refreshes the
-    separate meta DB on each site (off by default; issue #176).
+    separate meta DB on each site (off by default; issue #176), and
+    `include_overview_matrix` the overview DB (off by default; #222).
     """
     if restart is None:
         restart = build
@@ -2028,4 +2052,5 @@ def run_deploy(
         preprocess=preprocess,
         run_tests=run_tests,
         include_meta_analysis=include_meta_analysis,
+        include_overview_matrix=include_overview_matrix,
     )

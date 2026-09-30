@@ -874,6 +874,9 @@ Useful `sspsygene deploy` flags:
 - `--run-tests` — after each site's build, run server tests on
   psygene plus `scripts/test.sh e2e` against the deployed URL from
   your laptop. Hard-aborts on first failure.
+- `--include-overview-matrix` — also rebuild the `/matrix` overview
+  after `load-db`. Needed whenever a table flagged
+  `overview_matrix: true` is added or changed.
 
 Full reference: [docs/development.md](../development.md) → "CLI Reference".
 

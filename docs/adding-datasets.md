@@ -646,13 +646,26 @@ genuinely interesting readout.
 
 #### Getting a flagged table onto `/matrix`: which command, which sites
 
-The matrix is **not** rebuilt by `load-db` or `deploy --load-db`. It lives in
-its own file, `sspsygene-overview.db`, built by a separate command. After you
-add or change a flagged table and have deployed it:
+The matrix lives in its own file, `sspsygene-overview.db`, built by a separate
+command, so a plain `load-db` or `deploy --load-db` does **not** rebuild it.
+When you add or change a flagged table, ask the deploy for it:
+
+```bash
+sspsygene deploy --instances dev --load-db --include-overview-matrix
+```
+
+If the table is already deployed, rebuild just the matrix instead (no dataset
+rebuild):
 
 ```bash
 sspsygene deploy-overview --instances dev
 ```
+
+If you forget, a promotion still ships a current matrix: `promote-dev-to-prod` /
+`promote-dev-to-int` notice when dev's matrix was built from an older dataset
+DB and rebuild it on dev before copying it
+([development.md](development.md#deployment)). dev's own `/matrix` stays out
+of date until one of the two commands above runs.
 
 Which datasets each site's matrix shows:
 
@@ -966,8 +979,8 @@ grouped under in gene search results, the assay filters, and — through a
    if it belongs on the matrix (with the prerequisites described above — a
    `perturbed` mapping, one column axis, a p-value/FDR column).
 
-4. **Rebuild**: `sspsygene deploy --instances dev --load-db`, then
-   `sspsygene deploy-overview --instances dev` for the matrix.
+4. **Rebuild**: `sspsygene deploy --instances dev --load-db
+   --include-overview-matrix` (the flag rebuilds the matrix too).
 
 `load-db` refuses a table whose `assay` isn't under `assayTypes`, and a modality
 that names one, so a typo fails loudly instead of loading an unlabelled table.
@@ -1296,6 +1309,10 @@ Useful `deploy` flags:
 - `--run-tests` — after each site's build, run `scripts/test.sh server` on
   psygene plus `scripts/test.sh e2e` against the deployed URL. Aborts on
   first failure.
+- `--include-overview-matrix` — also rebuild the `/matrix` overview after
+  `load-db`. Use it whenever you add or change a table flagged
+  `overview_matrix: true` (see
+  [Getting a flagged table onto `/matrix`](#getting-a-flagged-table-onto-matrix-which-command-which-sites)).
 
 Full reference: `sspsygene deploy --help` and `docs/development.md`.
 

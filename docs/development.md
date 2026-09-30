@@ -75,7 +75,9 @@ feature isn't materialized yet, never a 500. Their paths default to the `-meta` 
 `-overview` siblings of `$SSPSYGENE_DATA_DB`; override with `SSPSYGENE_META_DB` /
 `SSPSYGENE_OVERVIEW_DB` (the same variables the web app reads). Deploy them to the
 servers with `sspsygene deploy-meta-analysis` / `sspsygene deploy-overview`
-(push+pull code, then run the build on each site — no dataset rebuild or restart).
+(push+pull code, then run the build on each site — no dataset rebuild or restart),
+or fold them into a dataset deploy with `sspsygene deploy --load-db
+--include-meta-analysis` / `--include-overview-matrix`.
 
 **Both take `prod`-labelled inputs only (#225)**, whichever main DB they read.
 Each records the table names that contributed to it, and derives its numbers
@@ -418,6 +420,15 @@ Commands:
                                          whose systemd unit owns the npm
                                          process — currently jbirgmei. Other
                                          wranglers' restart silently no-ops.
+    --include-meta-analysis            After load-db, also run
+                                         `meta-analysis` on each selected
+                                         site (= `deploy-meta-analysis`).
+                                         Default OFF; slow (R).
+    --include-overview-matrix          After load-db, also run
+                                         `overview-matrix` on each selected
+                                         site, plus dev's all-destinations
+                                         preview (= `deploy-overview`).
+                                         Default OFF.
 
   subset-db                          Derive an int/prod dataset DB from the
                                        dev superset (#225). Fail-closed: builds

@@ -622,6 +622,15 @@ def run_llm_search(
     "deploy and the meta-analysis are on independent cadences. Equivalent to "
     "running `sspsygene deploy-meta-analysis` on the same instances afterward.",
 )
+@click.option(
+    "--include-overview-matrix",
+    is_flag=True,
+    default=False,
+    help="Also rebuild the overview matrix (sspsygene-overview.db, #222) on "
+    "each selected site after load-db — on dev including the all-destinations "
+    "preview that dev's /matrix serves (#241). Off by default. Equivalent to "
+    "running `sspsygene deploy-overview` on the same instances afterward.",
+)
 def deploy(
     load_db: bool,
     no_push: bool,
@@ -631,6 +640,7 @@ def deploy(
     preprocess: bool,
     run_tests: bool,
     include_meta_analysis: bool,
+    include_overview_matrix: bool,
 ) -> None:
     """Deploy to production, dev, and internal sites on psygene."""
     from processing.deploy import run_deploy
@@ -644,6 +654,7 @@ def deploy(
         preprocess=preprocess,
         run_tests=run_tests,
         include_meta_analysis=include_meta_analysis,
+        include_overview_matrix=include_overview_matrix,
     )
 
 

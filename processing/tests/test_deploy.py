@@ -185,3 +185,73 @@ def test_detect_missing_input_file(output: str, expected: str | None) -> None:
     to open, so the deploy can tell the wrangler to push/pull the data files
     instead of just reporting that N jobs failed."""
     assert _detect_missing_input_file(output) == expected
+
+
+def _record_overview_steps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[tuple[str, bool]]:
+    """Stub every server step of the build pipeline; record overview builds as
+    (site path, all_destinations)."""
+    built: list[tuple[str, bool]] = []
+    monkeypatch.setattr(deploy, "_step_pull_all", lambda *a, **k: None)
+    monkeypatch.setattr(deploy, "_step_deploy_site", lambda *a, **k: None)
+    monkeypatch.setattr(deploy, "_step_restart_psygene", lambda *a, **k: None)
+    monkeypatch.setattr(
+        deploy,
+        "_step_overview_matrix_site",
+        lambda path, **k: built.append((path, k.get("all_destinations", False))),
+    )
+    return built
+
+
+def test_include_overview_matrix_rebuilds_after_load_db(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`deploy --include-overview-matrix` does what a follow-up
+    `deploy-overview` would: the prod-only matrix on every selected site, plus
+    dev's all-destinations preview (#241) — the file dev's /matrix serves."""
+    built = _record_overview_steps(monkeypatch)
+    deploy._run_build_pipeline(
+        ["dev", "int"],
+        load_db=True,
+        build=False,
+        restart=False,
+        preprocess=False,
+        run_tests=False,
+        include_overview_matrix=True,
+    )
+    dev, int_ = deploy.INSTANCE_PATHS["dev"], deploy.INSTANCE_PATHS["int"]
+    assert built == [(dev, False), (dev, True), (int_, False)]
+
+
+def test_overview_matrix_is_off_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    built = _record_overview_steps(monkeypatch)
+    deploy._run_build_pipeline(
+        ["dev"],
+        load_db=True,
+        build=False,
+        restart=False,
+        preprocess=False,
+        run_tests=False,
+    )
+    assert built == []
+
+
+def test_deploy_cli_passes_include_overview_matrix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from click.testing import CliRunner
+
+    from processing.click.main import cli
+
+    seen: dict[str, object] = {}
+    monkeypatch.setattr(deploy, "run_deploy", lambda **k: seen.update(k))
+    result = CliRunner().invoke(
+        cli,
+        ["deploy", "--instances", "dev", "--load-db", "--include-overview-matrix"],
+    )
+    assert result.exit_code == 0, result.output
+    assert seen["include_overview_matrix"] is True
+    assert seen["load_db"] is True
