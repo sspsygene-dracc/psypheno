@@ -329,16 +329,23 @@ tables:
                                     # organismTypes.
 
     assay: expression               # What type of assay produced this data.
-                                    # Must be one of these exact values:
-                                    #   expression    — Gene Expression (RNA-seq)
-                                    #   spatial       — Spatial Transcriptomics
-                                    #   behavior      — Behavioral Assays
-                                    #   perturbation  — Perturbation Screen
-                                    #   curated       — Curated Database
-                                    #   phenotype     — Phenotype Annotation
+                                    # Must be a key of `assayTypes` in
+                                    # data/datasets/globals.yaml — load-db
+                                    # refuses anything else. Currently:
+                                    #   expression       — Gene Expression (RNA-seq)
+                                    #   spatial          — Spatial Transcriptomics
+                                    #   behavior         — Behavioral Assays
+                                    #   perturbation     — Perturbation Screen
+                                    #   perturbation_deg — Perturbation Differential
+                                    #                      Expression (DEG)
+                                    #   curated          — Curated Database
+                                    #   phenotype        — Phenotype Annotation
+                                    #   ppi              — Protein-Protein Interaction
                                     #
                                     # You can also use a list for multiple types:
                                     #   assay: [spatial, perturbation]
+                                    # New types: see "Adding a new experiment
+                                    # type" below.
 
     condition:                      # Which conditions this data relates to.
       - autism                      # Must be from this list:
@@ -637,6 +644,40 @@ Expanding a table is not free: the materialization stores one row per
 (perturbed gene, qualifying target) pair. Only expand tables whose target axis is a
 genuinely interesting readout.
 
+#### Getting a flagged table onto `/matrix`: which command, which sites
+
+The matrix is **not** rebuilt by `load-db` or `deploy --load-db`. It lives in
+its own file, `sspsygene-overview.db`, built by a separate command. After you
+add or change a flagged table and have deployed it:
+
+```bash
+sspsygene deploy-overview --instances dev
+```
+
+Which datasets each site's matrix shows:
+
+| Site | Matrix contains |
+| --- | --- |
+| dev | **every** flagged table, dev- and int-only ones included ([#241](https://github.com/sspsygene-dracc/psypheno/issues/241)). Columns from a table not cleared for prod are labelled `(Internal only)` / `(Dev only)`. |
+| int, prod | flagged tables whose `deployTo` includes **prod** only |
+
+The reason for the split: dev also builds a prod-only copy of the matrix, and
+promotion copies that same file to int and prod unchanged. A flagged
+preprint that is `deployTo: [dev, int]` therefore shows on dev's matrix but not
+on int's until its `deployTo` gains `prod`. (On dev the preview is the
+separate file `sspsygene-overview-all.db`, built by
+`sspsygene overview-matrix --all-destinations`; `deploy-overview` builds both.)
+
+Two more filters, so "flagged but missing" has a reason:
+
+- **Rows are the 259 SSPsyGene consortium genes only**
+  (`data/sspsygene_genes.txt`). A table whose perturbed genes are all outside
+  that list contributes nothing. Ingestion is never filtered by it — the table is
+  still fully browsable everywhere else on the site.
+- **Inclusion is the `overview_matrix` flag, nothing else.** A paper's
+  `publication.sspsygene_grants` (the "SSPsyGene" funding tag) does not affect
+  the matrix; a paper without SSPsyGene funding can be flagged too.
+
 #### The collapsed Summary column
 
 Every expanded table *also* gets a single collapsed column, served by the matrix
@@ -811,6 +852,129 @@ Datasets with multiple tables from one paper share the author/year prefix and
 differentiate by the Assay/Medium half — see e.g. `data/datasets/zebra-autism/`
 (`Mendes 2023 - in vivo Functional Screen …` vs
 `Mendes 2023 - Sleep-Wake and Visual-Startle Behavior …`).
+
+### Column order
+
+The website shows a table's columns in this order
+([#240](https://github.com/sspsygene-dracc/psypheno/issues/240)):
+
+1. the gene columns (every `gene_mappings` `column_name`), in file order;
+2. every other column, **in the order of the TSV/CSV header**.
+
+So to reorder a table, reorder the columns your `preprocess.py` writes (e.g.
+`out = out[["gene", "condition", "log2FC", "pvalue", "fdr"]]`), re-run it, push
+the data and rebuild the DB. There is no separate display order to keep in sync.
+
+If you need an order the file can't give you, list it explicitly:
+
+```yaml
+    columnOrder:                    # optional; these columns come first, in
+      - perturbation                # this order. Every column not listed
+      - gene                        # follows in its default position.
+      - log2FC
+      - padj
+```
+
+Names are matched case-insensitively (like `fieldLabels`); a name that isn't a
+column of the file fails the load.
+
+### Links: Cell Browser and other outbound URLs
+
+**For a table.** Add a `links:` list to the table (see the annotated example
+above). The links show on the table's dataset card and on its paper on
+`/publications`. A UCSC Cell Browser link looks like this
+(`data/datasets/velmeshev_2019/config.yaml` has a live one):
+
+```yaml
+    links:
+      - url: https://autism.cells.ucsc.edu
+        label: UCSC Cell Browser
+        description: Browse the single-nucleus data by cell type and gene
+```
+
+**For a paper with no data table** — the paper belongs in the knowledge base
+but the only thing to show is a link out, typically a Cell Browser
+([#242](https://github.com/sspsygene-dracc/psypheno/issues/242)). Create a
+dataset directory with a `config.yaml` that has `deployTo`, `publication` (a
+`doi` is required), an optional `description`, a dataset-level `links:` list,
+and **no `tables:` key**:
+
+```yaml
+deployTo:
+  - dev
+  - int
+  - prod
+
+publication:
+  authors:
+    - Doe, J.
+    - Roe, R.
+  title: "Title of the paper"
+  year: 2025
+  journal: bioRxiv
+  doi: 10.1101/2025.01.01.000000
+  sspsygene_grants: []
+
+description: >
+  One or two sentences on what the linked resource shows.
+
+links:
+  - url: https://my-dataset.cells.ucsc.edu
+    label: UCSC Cell Browser
+    description: Single-cell multiome of …
+```
+
+It appears on `/publications` as a normal paper card with its links and a "No
+data table" marker, and follows `deployTo` like any other dataset. There is
+nothing to preprocess or push — `sspsygene deploy --instances dev --load-db` is
+enough. If the same DOI also has tables in another dataset directory, the two
+merge into one paper card. Dataset-level `links:` are only for datasets without
+tables; on a dataset that has tables, put the links on the table.
+
+### Adding a new experiment type (assay)
+
+An experiment type is an **assay** key. It decides the section a table is
+grouped under in gene search results, the assay filters, and — through a
+**modality** — the section it lands in on `/matrix`. Both lists live in
+`data/datasets/globals.yaml`. Worked example: protein-protein interactions
+(`ppi`, Wang 2026, `data/datasets/wang_2026/`).
+
+1. **Add the assay key and its label** under `assayTypes:`:
+
+   ```yaml
+   assayTypes:
+     ...
+     ppi: "Protein-Protein Interaction"
+   ```
+
+2. **Map it to a matrix section** under `modalities:`. Either add it to an
+   existing modality's `assayTypes` list, or add a new modality; list order is
+   the order of the sections on `/matrix`:
+
+   ```yaml
+   modalities:
+     ...
+     - key: ppi
+       label: "Protein interactions"
+       assayTypes:
+         - ppi
+   ```
+
+   Skip this step if the new type should never appear on the matrix.
+
+3. **Use it in the table's config**: `assay: ppi`, plus `overview_matrix: true`
+   if it belongs on the matrix (with the prerequisites described above — a
+   `perturbed` mapping, one column axis, a p-value/FDR column).
+
+4. **Rebuild**: `sspsygene deploy --instances dev --load-db`, then
+   `sspsygene deploy-overview --instances dev` for the matrix.
+
+`load-db` refuses a table whose `assay` isn't under `assayTypes`, and a modality
+that names one, so a typo fails loudly instead of loading an unlabelled table.
+The combined p-values on `/most-significant` only use the assays listed under
+`metaAnalysisAssays` (differential expression); a new type stays out of them
+unless you add it there too — only do that for genuine per-gene DE p-values.
+No web code changes are needed for any of this.
 
 ### Common mistakes
 
