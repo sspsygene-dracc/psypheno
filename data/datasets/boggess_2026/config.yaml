@@ -90,7 +90,7 @@ tables:
     fieldLabels:
       gene: "Human gene symbol of the gene knocked down by CRISPRi"
       condition: "Screen condition (stimulation type and experiment)"
-      log2FC: "Log2 fold change in CaMPARI2 red/green ratio in knockdown cells vs non-targeting controls; positive = increased neuronal depolarization, negative = decreased"
+      log2fc: "Log2 fold change in CaMPARI2 red/green ratio in knockdown cells vs non-targeting controls; positive = increased neuronal depolarization, negative = decreased"
       phenotype_score: "Gene Score: product of log2 fold change and -log10(p-value); summarizes effect size and significance"
       fdr: >
         Empirical false discovery rate (iNC method, NTC sgRNAs as null); primary screen hit
@@ -154,15 +154,15 @@ tables:
     effect_column: log2FC
 
     columnLabels:
-      log2FC_SE: "log2FC SE"
-      baseMean: "baseMean"
+      log2fc_se: "log2FC SE"
+      basemean: "baseMean"
 
     fieldLabels:
       knockdown: "Gene knocked down by CRISPRi in the CROP-seq experiment (TRIP12 or PTEN). HGNC symbol."
       gene: "Target gene whose expression was measured by scRNA-seq. HGNC symbol."
-      log2FC: "DESeq2 log2 fold change of the target gene in CRISPRi knockdown cells vs. non-targeting control cells. Positive = upregulated upon knockdown."
-      log2FC_SE: "Standard error of the DESeq2 log2FC estimate."
+      log2fc: "DESeq2 log2 fold change of the target gene in CRISPRi knockdown cells vs. non-targeting control cells. Positive = upregulated upon knockdown."
+      log2fc_se: "Standard error of the DESeq2 log2FC estimate."
       stat: "DESeq2 Wald test statistic (log2FC / log2FC_SE)."
-      baseMean: "DESeq2 baseMean — mean of normalized counts across all cells (knockdown and non-targeting controls) for this gene."
+      basemean: "DESeq2 baseMean — mean of normalized counts across all cells (knockdown and non-targeting controls) for this gene."
       pvalue: "DESeq2 Wald test nominal p-value."
       padj: "Benjamini-Hochberg adjusted p-value (FDR) across all tested genes within this knockdown (Boggess et al. 2026, Fig. 6c/6f)."
