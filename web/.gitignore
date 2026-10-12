@@ -8,3 +8,6 @@ next-env.d.ts
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Request-duration log (lib/request-log.ts)
+logs/
