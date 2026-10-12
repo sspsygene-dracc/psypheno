@@ -15,6 +15,23 @@ import { parseDatasetLinks } from "@/lib/links";
 
 const DATASET_PAGE_LIMIT = 10;
 
+// Unfiltered row count per table, keyed on the Database instance so a
+// load-db swap (new connection) invalidates it.
+const rowCounts = new WeakMap<object, Map<string, number>>();
+function cachedRowCount(db: object, tableName: string, count: () => number): number {
+  let byTable = rowCounts.get(db);
+  if (!byTable) {
+    byTable = new Map();
+    rowCounts.set(db, byTable);
+  }
+  let n = byTable.get(tableName);
+  if (n === undefined) {
+    n = count();
+    byTable.set(tableName, n);
+  }
+  return n;
+}
+
 const querySchema = z.object({
   tableName: z.string().min(1),
   page: z.coerce.number().min(1).optional(),
@@ -126,11 +143,17 @@ export default async function handler(
     const whereClause = filterSpec.clause ? `WHERE ${filterSpec.clause}` : "";
     const filterParams = filterSpec.params;
 
-    // Get total row count (after filtering)
-    const totalRowResult = db
-      .prepare(`SELECT COUNT(*) as count FROM ${tableName} ${whereClause}`)
-      .get(...filterParams) as { count: number };
-    const totalRows = totalRowResult?.count ?? 0;
+    // Get total row count (after filtering). The unfiltered count is a full
+    // scan on big tables and never changes for a given DB, so cache it.
+    const countRows = () =>
+      (
+        db
+          .prepare(`SELECT COUNT(*) as count FROM ${tableName} ${whereClause}`)
+          .get(...filterParams) as { count: number } | undefined
+      )?.count ?? 0;
+    const totalRows = whereClause
+      ? countRows()
+      : cachedRowCount(db, tableName, countRows);
     const totalPages = Math.max(1, Math.ceil(totalRows / DATASET_PAGE_LIMIT));
     const effectivePage = Math.min(page, totalPages);
     const offset = (effectivePage - 1) * DATASET_PAGE_LIMIT;
