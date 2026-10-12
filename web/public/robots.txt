@@ -1,0 +1,5 @@
+# The API endpoints serve the pages' data (and multi-hundred-MB downloads);
+# crawlers get everything they need from the pages themselves.
+User-agent: *
+Disallow: /api/
+Crawl-delay: 10

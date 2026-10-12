@@ -2,13 +2,8 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
-import {
-  sanitizeIdentifier,
-  parseDisplayColumns,
-  parseLinkTablesForDirection,
-  buildGeneQuery,
-  ALL_CONTROLS_SENTINEL_ID,
-} from "@/lib/gene-query";
+import { buildGeneQuery, ALL_CONTROLS_SENTINEL_ID } from "@/lib/gene-query";
+import { getVolcanoBackground } from "@/lib/volcano-background";
 
 // IDs are non-negative auto-increment ints in central_gene, plus the
 // reserved sentinel for "all controls" — accept either, reject anything
@@ -18,31 +13,6 @@ const bodySchema = z.object({
   perturbedCentralGeneId: z.number().int().min(ALL_CONTROLS_SENTINEL_ID).optional(),
   targetCentralGeneId: z.number().int().min(ALL_CONTROLS_SENTINEL_ID).optional(),
 });
-
-// Volcano sample shape: ~100 always-included top-by-p rows + a hash-sorted
-// bulk sample. Numbers chosen to match the previous Python precompute so the
-// frontend's cloud density looks the same.
-const TOP_BY_P_LIMIT = 100;
-const BULK_LIMIT = 1000;
-const PVALUE_FLOOR = 1e-300;
-
-type VolcanoPoint = {
-  effect: number;
-  negLog10P: number;
-  fdr: number | null;
-  topByP: boolean;
-  // Gene symbol for this row, resolved via the table's label-direction link
-  // table (target if present, else perturbed). null when the row doesn't
-  // resolve to a central gene. Drives the hoverable tooltip link (#189).
-  symbol: string | null;
-};
-
-type SampleRow = {
-  id: number;
-  effect: number | null;
-  pvalue: number | null;
-  fdr: number | null;
-};
 
 type GeneRow = {
   effect: number | null;
@@ -67,198 +37,14 @@ export default async function handler(
   try {
     const db = getDb();
 
-    const tableMeta = db
-      .prepare(
-        `SELECT effect_column, pvalue_column, fdr_column,
-                display_columns, link_tables, field_labels
-         FROM data_tables WHERE table_name = ?`,
-      )
-      .get(tableName) as
-      | {
-          effect_column: string | null;
-          pvalue_column: string | null;
-          fdr_column: string | null;
-          display_columns: string;
-          link_tables: string | null;
-          field_labels: string | null;
-        }
-      | undefined;
-
-    // The volcano plot needs an effect column and a y-axis significance
-    // column. Prefer raw p-value when available; fall back to FDR when the
-    // dataset only ships FDR (e.g. perturb_fish_astro publishes qval but no
-    // raw pvalue). The frontend renders `-log10(<column-name>)` from
-    // `pvalueColumn`, so it'll say `-log10(qval)` automatically.
-    if (
-      !tableMeta ||
-      !tableMeta.effect_column ||
-      (!tableMeta.pvalue_column && !tableMeta.fdr_column)
-    ) {
-      return res
-        .status(404)
-        .json({ error: "Table has no effect or significance columns" });
+    // Everything except the orange-dot gene rows is independent of the
+    // target gene and cached per table (lib/volcano-background.ts).
+    const result = getVolcanoBackground(db, tableName, perturbedCentralGeneId);
+    if (!result.ok) {
+      return res.status(404).json({ error: result.error });
     }
-
-    const baseTable = sanitizeIdentifier(tableName);
-    const displayCols = parseDisplayColumns(tableMeta.display_columns);
-    const effectCol = sanitizeIdentifier(tableMeta.effect_column);
-    const pvalueSource = tableMeta.pvalue_column || tableMeta.fdr_column!;
-    const pvalueCol = sanitizeIdentifier(pvalueSource.split(",")[0]);
-    const fdrCol = tableMeta.fdr_column
-      ? sanitizeIdentifier(tableMeta.fdr_column.split(",")[0])
-      : null;
-
-    if (!displayCols.includes(effectCol) || !displayCols.includes(pvalueCol)) {
-      return res
-        .status(404)
-        .json({ error: "effect/significance columns not in display_columns" });
-    }
-
-    let fieldLabels: Record<string, string> = {};
-    if (tableMeta.field_labels) {
-      try {
-        const parsed = JSON.parse(tableMeta.field_labels);
-        if (parsed && typeof parsed === "object") {
-          for (const [k, v] of Object.entries(parsed)) {
-            if (typeof v === "string") fieldLabels[k.toLowerCase()] = v;
-          }
-        }
-      } catch {
-        fieldLabels = {};
-      }
-    }
-
-    // Background sample. When a perturbed gene is given AND this table has a
-    // perturbed link direction, restrict the sample to that perturbation's
-    // rows — the natural "experiment context" for a volcano. Otherwise sample
-    // the whole table. The target gene never restricts the background (it
-    // would shrink to 1–2 rows, just the orange dot).
-    const linkTablesRaw = tableMeta.link_tables || "";
-    const perturbedLTs = parseLinkTablesForDirection(linkTablesRaw, "perturbed");
-
-    // Per-point gene labels (#189): label every background dot with the gene
-    // that row is "about". Prefer the target direction (the gene whose
-    // effect/p-value the row reports); fall back to perturbed for tables that
-    // only carry a perturbed link (e.g. patient/variant lists). Only usable
-    // when there's exactly one link table in that direction — otherwise a row
-    // could map ambiguously and we leave points unlabeled.
-    const targetLTs = parseLinkTablesForDirection(linkTablesRaw, "target");
-    let labelDirection: "target" | "perturbed" | null = null;
-    let labelLinkTable: string | null = null;
-    if (targetLTs.length === 1) {
-      labelDirection = "target";
-      labelLinkTable = targetLTs[0];
-    } else if (perturbedLTs.length === 1) {
-      labelDirection = "perturbed";
-      labelLinkTable = perturbedLTs[0];
-    }
-    let backgroundFilter = "";
-    const backgroundParams: unknown[] = [];
-    const isAllControls = perturbedCentralGeneId === ALL_CONTROLS_SENTINEL_ID;
-    if (perturbedCentralGeneId && perturbedLTs.length === 1) {
-      if (isAllControls) {
-        // "All controls" → restrict the background to control-perturbation
-        // rows. Inverse of the default-exclusion below; users searching
-        // for controls actively want them.
-        backgroundFilter = `AND b.id IN (SELECT lt.id FROM ${perturbedLTs[0]} lt JOIN central_gene cg ON cg.id = lt.central_gene_id WHERE cg.kind = 'control')`;
-      } else {
-        backgroundFilter = `AND b.id IN (SELECT id FROM ${perturbedLTs[0]} WHERE central_gene_id = ?)`;
-        backgroundParams.push(perturbedCentralGeneId);
-      }
-    }
-
-    // Exclude rows whose perturbed-gene link points at a kind='control'
-    // entry (NonTarget1, SafeTarget, GFP, …). Without this, the volcano
-    // background in the unrestricted case (no perturbedCentralGeneId, or
-    // multiple perturbed link tables) would include control rows and
-    // bias the distribution toward "no biological perturbation." Skip
-    // when the user is explicitly searching for controls.
-    if (!isAllControls) {
-      for (const lt of perturbedLTs) {
-        backgroundFilter +=
-          ` AND b.id NOT IN (` +
-          `SELECT lt.id FROM ${lt} lt ` +
-          `JOIN central_gene cg ON cg.id = lt.central_gene_id ` +
-          `WHERE cg.kind = 'control')`;
-      }
-    }
-
-    const fdrSelect = fdrCol ? `b.${fdrCol}` : "NULL";
-    const baseWhere = `b.${effectCol} IS NOT NULL AND b.${pvalueCol} IS NOT NULL ${backgroundFilter}`;
-
-    // Always include the most-significant rows so the volcano's tails are
-    // present regardless of the bulk sample.
-    const topSql = `
-      SELECT b.id AS id, b.${effectCol} AS effect, b.${pvalueCol} AS pvalue,
-             ${fdrSelect} AS fdr
-      FROM ${baseTable} b
-      WHERE ${baseWhere}
-      ORDER BY b.${pvalueCol} ASC
-      LIMIT ${TOP_BY_P_LIMIT}
-    `;
-    // Stable pseudo-random sample: order by Knuth's multiplicative hash of
-    // the row id. Deterministic per-DB; breaks insertion-order correlation
-    // with effect/pvalue. The mask keeps the value in 31 bits so we never
-    // overflow SQLite's int64 expression evaluator.
-    const bulkSql = `
-      SELECT b.id AS id, b.${effectCol} AS effect, b.${pvalueCol} AS pvalue,
-             ${fdrSelect} AS fdr
-      FROM ${baseTable} b
-      WHERE ${baseWhere}
-      ORDER BY ((b.id * 2654435761) & 2147483647)
-      LIMIT ${BULK_LIMIT}
-    `;
-    const topRows = db.prepare(topSql).all(...backgroundParams) as SampleRow[];
-    const bulkRows = db.prepare(bulkSql).all(...backgroundParams) as SampleRow[];
-
-    // Dedup by id; top-by-p wins. Compute negLog10P here so SQLite stays
-    // free of math.h.
-    const seen = new Set<number>();
-    const volcanoPoints: VolcanoPoint[] = [];
-    // Parallel array of the source row id for each volcanoPoints entry, so we
-    // can attach gene symbols after the fact (one batched lookup, below).
-    const volcanoIds: number[] = [];
-    const addRow = (row: SampleRow, topByP: boolean) => {
-      if (seen.has(row.id)) return;
-      if (row.effect == null || row.pvalue == null) return;
-      const effect = Number(row.effect);
-      const pvalue = Number(row.pvalue);
-      if (!Number.isFinite(effect) || !Number.isFinite(pvalue)) return;
-      seen.add(row.id);
-      volcanoPoints.push({
-        effect,
-        negLog10P: -Math.log10(Math.max(pvalue, PVALUE_FLOOR)),
-        fdr: row.fdr == null ? null : Number(row.fdr),
-        topByP,
-        symbol: null,
-      });
-      volcanoIds.push(row.id);
-    };
-    for (const r of topRows) addRow(r, true);
-    for (const r of bulkRows) addRow(r, false);
-
-    // Resolve a gene symbol per sampled row via the label-direction link
-    // table. One batched query (chunked to stay under SQLite's bind-param
-    // cap), preferring the HGNC human symbol, then a mouse symbol — mirrors
-    // the identifier preference used across the app (#189).
-    if (labelLinkTable && volcanoIds.length > 0) {
-      const symbolById = resolveRowSymbols(db, labelLinkTable, volcanoIds);
-      volcanoPoints.forEach((p, i) => {
-        p.symbol = symbolById.get(volcanoIds[i]) ?? null;
-      });
-    }
-
-    // n_nonnull is the number of rows that *would* contribute to the
-    // background — i.e. the size of the (possibly-filtered) population the
-    // sample is drawn from. Cheap on filtered queries; on unfiltered ones
-    // it's a single scan over rows the sample queries already touched.
-    const nNonNull = (
-      db
-        .prepare(
-          `SELECT COUNT(*) AS cnt FROM ${baseTable} b WHERE ${baseWhere}`,
-        )
-        .get(...backgroundParams) as { cnt: number }
-    ).cnt;
+    const bg = result.background;
+    const { baseTable, displayCols, linkTablesRaw, effectCol, pvalueCol, fdrCol } = bg;
 
     // Orange-dot rows highlight the *target* gene (per #152). When only a
     // perturbed gene is given, the background already represents that
@@ -296,84 +82,24 @@ export default async function handler(
 
     setReadCacheHeaders(res);
     return res.status(200).json({
-      effectColumn: tableMeta.effect_column,
+      effectColumn: bg.effectColumn,
       // pvalueColumn names the y-axis source — when the table only ships
       // FDR, that's `qval`/etc., and the frontend renders `-log10(qval)`.
       pvalueColumn: pvalueCol,
-      fdrColumn: tableMeta.fdr_column,
-      nTotal: nNonNull,
-      nNonNull,
+      fdrColumn: bg.fdrColumn,
+      nTotal: bg.nNonNull,
+      nNonNull: bg.nNonNull,
       // Which gene a tooltip link should search by: "target" → /?target=SYM,
       // "perturbed" → /?perturbed=SYM. null when the table has no single
       // labelling link table (#189).
-      labelDirection,
-      volcanoPoints,
+      labelDirection: bg.labelDirection,
+      volcanoPoints: bg.volcanoPoints,
       geneRows,
-      fieldLabels,
+      fieldLabels: bg.fieldLabels,
     });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("effect-distribution handler error", err);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
-
-// SQLite's default SQLITE_MAX_VARIABLE_NUMBER is 999; chunk the id list well
-// under that so the IN (...) bind never overflows.
-const ID_CHUNK = 500;
-
-/**
- * Resolve one display gene symbol per row id via a link table. `linkTable`
- * is already a sanitized identifier (it came from parseLinkTablesForDirection).
- * For a row that maps to several central genes we prefer the one carrying an
- * HGNC human symbol, then a mouse symbol — matching the app-wide
- * HGNC > … identifier preference; ties broken by central_gene_id for
- * determinism. Rows with no resolvable symbol are simply absent from the map.
- */
-function resolveRowSymbols(
-  db: ReturnType<typeof getDb>,
-  linkTable: string,
-  ids: number[],
-): Map<number, string> {
-  const out = new Map<number, string>();
-  for (let i = 0; i < ids.length; i += ID_CHUNK) {
-    const chunk = ids.slice(i, i + ID_CHUNK);
-    const placeholders = chunk.map(() => "?").join(", ");
-    const sql = `
-      SELECT lt.id AS id, cg.human_symbol AS human_symbol,
-             cg.mouse_symbols AS mouse_symbols
-      FROM ${linkTable} lt
-      JOIN central_gene cg ON cg.id = lt.central_gene_id
-      WHERE lt.id IN (${placeholders})
-      ORDER BY (cg.human_symbol IS NULL), cg.id
-    `;
-    const rows = db.prepare(sql).all(...chunk) as Array<{
-      id: number;
-      human_symbol: string | null;
-      mouse_symbols: string | null;
-    }>;
-    for (const r of rows) {
-      // ORDER BY puts the preferred gene first, so keep the first symbol seen.
-      if (out.has(r.id)) continue;
-      const symbol = pickDisplaySymbol(r.human_symbol, r.mouse_symbols);
-      if (symbol) out.set(r.id, symbol);
-    }
-  }
-  return out;
-}
-
-/** human_symbol if present, else the first comma-separated mouse symbol. */
-function pickDisplaySymbol(
-  humanSymbol: string | null,
-  mouseSymbols: string | null,
-): string | null {
-  if (humanSymbol) return humanSymbol;
-  if (mouseSymbols) {
-    const first = mouseSymbols
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)[0];
-    return first ?? null;
-  }
-  return null;
 }
