@@ -1,0 +1,121 @@
+deployTo:
+  - dev
+
+publication:
+  authors:
+    - Li, C.
+    - Fleck, J. S.
+    - Martins-Costa, C.
+    - Burkard, T. R.
+    - Bhanu, J.
+    - Stuempflen, M.
+    - Peer, A. M.
+    - Vertesy, A.
+    - Littleboy, J. B.
+    - Esk, C.
+    - Elling, U.
+    - Kasprian, G.
+    - Corsini, N. S.
+    - Treutlein, B.
+    - Knoblich, J. A.
+  title: "Single-cell brain organoid screening identifies developmental defects in autism"
+  year: 2023
+  journal: "Nature"
+  doi: "10.1038/s41586-023-06473-y"
+  pmid: "37704728"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-09-18"
+    comment: >
+      Initial draft — DEGs from CRISPR KO of 36 autism risk genes in human
+      brain organoids (CHOOSE system), Supplementary Data 2.
+
+tables:
+
+  - table: li_2023_deg
+    changelog:
+      - date: "2026-09-18"
+        message: "Initial data load — 429,307 DEG rows across 36 autism risk gene KOs"
+
+    shortLabel: li_2023_deg
+    mediumLabel: "Li 2023 - CHOOSE Brain Organoid CRISPR KO DEGs"
+    longLabel: "Differentially expressed genes from CRISPR knockout of 36 autism risk genes in human brain organoids (Li et al. 2023)"
+    description: >
+      Differentially expressed genes (DEGs) from the CHOOSE (CRISPR–Human
+      Organoids–Single-cell RNA Sequencing) system, which uses pooled
+      loss-of-function screening in mosaic human telencephalic brain
+      organoids. Each of 36 high-confidence autism risk genes (SFARI) was
+      knocked out by CRISPR and compared to non-targeting gRNA controls
+      using scRNA-seq at 4 months of organoid development. DEGs were
+      computed separately for excitatory (dorsal telencephalon) and
+      inhibitory (ventral telencephalon) neural trajectories using logistic
+      regression (Seurat FindMarkers, test.use = 'LR'), with
+      Benjamini-Hochberg FDR correction.
+
+    source: >
+      Supplementary Data 2, Li et al. 2023, Nature 621:373,
+      doi:10.1038/s41586-023-06473-y
+
+    in_path: li_2023_deg.tsv
+    separator: "\t"
+
+    organism: "Homo sapiens (iPSC-derived brain organoids)"
+    organism_key: human
+    assay: perturbation_deg
+    condition:
+      - autism
+    categories:
+      - CRISPR KO
+      - brain organoid
+      - scRNA-seq
+      - CHOOSE
+      - human
+
+    gene_mappings:
+      - column_name: perturbed_gene
+        link_table_name: perturbed_gene
+        species: human
+        perturbed_or_target: perturbed
+      - column_name: gene
+        link_table_name: target_gene
+        species: human
+        perturbed_or_target: target
+
+    pvalue_column: pvalue
+    fdr_column: padj
+    effect_column: log2FC
+
+    fieldLabels:
+      perturbed_gene: >
+        CRISPR loss-of-function gene (one of 36 high-confidence autism risk
+        genes from the SFARI database, selected for transcriptional
+        regulation function). HGNC symbol. Li et al. 2023, Supplementary
+        Table 1.
+      gene: >
+        Target gene whose expression was measured by scRNA-seq. HGNC symbol.
+      lineage: >
+        Neural trajectory group in which DEG was computed: "excitatory" =
+        dorsal telencephalon trajectory (radial glia, IPCs, and excitatory
+        neurons Layers 2/3–6); "inhibitory" = ventral telencephalon
+        trajectory (interneuron precursors, CGE/LGE interneurons, OPCs).
+        Li et al. 2023, Fig. 1f.
+      log2FC: >
+        Average log2 fold change in normalized gene expression in KO cells
+        vs. non-targeting gRNA control cells within the trajectory group
+        (Seurat logistic regression, Li et al. 2023 Methods).
+      pvalue: >
+        Nominal p-value from logistic regression test (Seurat FindMarkers,
+        test.use = "LR"), treating library, cell type, and n_UMI as
+        covariates. Li et al. 2023, Methods.
+      padj: >
+        Benjamini-Hochberg adjusted p-value (FDR) across all tested genes
+        within each gRNA × trajectory group. Li et al. 2023, Methods.
+      pct_perturbed: >
+        Fraction of KO cells (perturbed_gene knockout) expressing this
+        target gene (detection threshold: UMI > 0).
+      pct_control: >
+        Fraction of non-targeting gRNA control cells expressing this target
+        gene (detection threshold: UMI > 0).
