@@ -1,0 +1,32 @@
+# Li et al. 2023 — CHOOSE brain organoid CRISPR KO
+# Source: Nature 621, 373–380 (2023)
+# DOI: 10.1038/s41586-023-06473-y
+# Supplementary Data files downloaded from the Nature article page.
+# Refresh cadence: static (published paper, no expected updates).
+
+# Supplementary Data 1 (cell counts metadata):
+# https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-023-06473-y/MediaObjects/41586_2023_6473_MOESM3_ESM.xlsx
+curl -L -o li_suppl_data1.xlsx "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-023-06473-y/MediaObjects/41586_2023_6473_MOESM3_ESM.xlsx"
+
+# Supplementary Data 2 (DEGs — primary table used):
+# https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-023-06473-y/MediaObjects/41586_2023_6473_MOESM4_ESM.txt
+curl -L -o li_suppl_data2.txt "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-023-06473-y/MediaObjects/41586_2023_6473_MOESM4_ESM.txt"
+
+# Supplementary Data 3 (GO enrichment, all perturbations):
+curl -L -o li_suppl_data3.txt "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-023-06473-y/MediaObjects/41586_2023_6473_MOESM5_ESM.txt"
+
+# Supplementary Data 4 (GO enrichment per gRNA per lineage):
+curl -L -o li_suppl_data4.txt "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-023-06473-y/MediaObjects/41586_2023_6473_MOESM6_ESM.txt"
+
+# Supplementary Data 5 (GRN data):
+curl -L -o li_suppl_data5.txt "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-023-06473-y/MediaObjects/41586_2023_6473_MOESM7_ESM.txt"
+
+# Supplementary Data 6 (TF modules enriched in SFARI genes):
+curl -L -o li_suppl_data6.txt "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-023-06473-y/MediaObjects/41586_2023_6473_MOESM8_ESM.txt"
+
+# Supplementary Data 7 (TF modules enriched in CHOOSE DEGs):
+curl -L -o li_suppl_data7.txt "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-023-06473-y/MediaObjects/41586_2023_6473_MOESM9_ESM.txt"
+
+# NOTE: The above URLs follow the Springer Nature ESM naming convention
+# but were not verified by running curl — confirm URLs match the actual
+# download links on the article page before re-downloading.
