@@ -1,0 +1,135 @@
+deployTo:
+  - dev
+
+publication:
+  authors:
+    - Liang, L.
+    - Zhang, S.
+    - Wang, Z.
+    - Zhang, H.
+    - Li, C.
+    - Thapa, C.
+    - Oh, E. K.
+    - Sirkin, D.
+    - Sun, X.
+    - Barishman, A.
+    - McCarroll, A.
+    - Duhe, A. C.
+    - Qian, S.
+    - Zhong, X.
+    - Jamison, B.
+    - Wood, W.
+    - Kozlova, A.
+    - Pang, Z. P.
+    - Sanders, A. R.
+    - He, X.
+    - Duan, J.
+  title: "Single-cell multiomics of neuron activation reveals context-specific genetics of brain disorders"
+  year: 2026
+  journal: "Science"
+  doi: "10.1126/science.adw3949"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-10-13"
+    comment: >
+      Initial draft — CRISPR KO DEGs for RORB, MEF2C, and TCF4 in
+      GABAergic and Glutamatergic iPSC-derived neurons at 0hr, 1hr,
+      and 6hr KCl stimulation. Data provided directly by Jubao Duan.
+
+tables:
+
+  - table: liang_2026_ko_deg
+    changelog:
+      - date: "2026-10-13"
+        message: "Initial data load — 278,910 DEG rows across 3 TF KOs, 2 cell types, 3 time points"
+
+    shortLabel: liang_2026_ko_deg
+    mediumLabel: "Liang 2026 - TF KO DEGs in KCl-Stimulated iPSC Neurons"
+    longLabel: "Differentially expressed genes from CRISPR knockout of RORB, MEF2C, and TCF4 in KCl-stimulated iPSC-derived neurons (Liang et al. 2026)"
+    description: >
+      Differentially expressed genes (DEGs) from CRISPR knockout of three
+      autism/NPD-associated transcription factors (RORB, MEF2C, TCF4) in
+      human iPSC-derived glutamatergic (excitatory) and GABAergic
+      (inhibitory) neurons, assayed at three KCl stimulation time points
+      (0hr baseline, 1hr early response, 6hr late response). Co-cultures
+      of 100 iPSC lines (Glut+ and GABA+) were stimulated with 53 mM KCl
+      to model neuronal activation. DEGs were computed using Seurat
+      FindMarkers with Wilcoxon rank-sum test and Benjamini-Hochberg FDR
+      correction. Part of a large-scale single-nucleus multiomics (snRNA-seq
+      + snATAC-seq) study identifying context-specific NPD risk variants
+      and genes in stimulation-specific contexts.
+
+    source: >
+      CSV files provided directly by Jubao Duan (co-corresponding author),
+      Liang et al. 2026, Science 392, eadw3949,
+      doi:10.1126/science.adw3949
+
+    in_path: liang_2026_ko_deg.tsv
+    separator: "\t"
+
+    organism: "Homo sapiens (iPSC-derived neurons)"
+    organism_key: human
+    assay: perturbation_deg
+    condition:
+      - autism
+    categories:
+      - CRISPR KO
+      - iPSC neurons
+      - neuronal activation
+      - scRNA-seq
+      - human
+
+    gene_mappings:
+      - column_name: perturbed_gene
+        link_table_name: perturbed_gene
+        species: human
+        perturbed_or_target: perturbed
+      - column_name: gene
+        link_table_name: target_gene
+        species: human
+        perturbed_or_target: target
+
+    pvalue_column: pvalue
+    fdr_column: padj
+    effect_column: log2FC
+
+    fieldLabels:
+      perturbed_gene: >
+        Autism/NPD-associated transcription factor knocked out by CRISPR in
+        iPSC-derived neurons: RORB (autism risk TF), MEF2C (autism/NDD risk TF),
+        or TCF4 (Pitt-Hopkins syndrome/NDD risk TF). HGNC symbol.
+        Liang et al. 2026, Supplementary Table 5.
+      gene: >
+        Target gene whose expression was measured by single-nucleus RNA-seq.
+        HGNC symbol. Liang et al. 2026.
+      cell_type: >
+        iPSC-derived neuron subtype: "Glutamatergic" = excitatory neurons
+        (Glut+, vGlut1+); "GABAergic" = inhibitory neurons (GABA+, GAD1+).
+        Co-cultured with rat astrocytes and differentiated for 35 days before
+        KCl stimulation. Liang et al. 2026, Fig. 1A.
+      time_point: >
+        KCl stimulation time point: "0hr" = baseline (unstimulated);
+        "1hr" = 1 hour post-KCl (early response genes, ERGs);
+        "6hr" = 6 hours post-KCl (late response genes, LRGs).
+        KCl concentration: 53 mM. Liang et al. 2026, Fig. 1A.
+      log2FC: >
+        Average log2 fold change in normalized gene expression in KO cells
+        vs. non-targeting gRNA control cells within the same cell type and
+        time point (Seurat FindMarkers, Wilcoxon rank-sum test).
+        Liang et al. 2026.
+      pvalue: >
+        Nominal p-value from Wilcoxon rank-sum test (Seurat FindMarkers).
+        Liang et al. 2026.
+      padj: >
+        Benjamini-Hochberg adjusted p-value (FDR) within each
+        (perturbed_gene × cell_type × time_point) group.
+        Liang et al. 2026.
+      pct_perturbed: >
+        Fraction of KO cells (perturbed_gene knockout) expressing this
+        target gene (detection threshold: UMI > 0).
+      pct_control: >
+        Fraction of non-targeting gRNA control cells expressing this
+        target gene (detection threshold: UMI > 0).
