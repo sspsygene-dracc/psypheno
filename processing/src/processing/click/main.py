@@ -566,6 +566,15 @@ def run_llm_search(
     help="Skip the local git push step.",
 )
 @click.option(
+    "--allow-undeployed-commits",
+    is_flag=True,
+    default=False,
+    help="Only matters when your branch doesn't push to the repository the "
+    "servers pull from (sspsygene-dracc/psypheno): deploy that repository's "
+    "main as-is even though HEAD has commits it doesn't. Those commits are NOT "
+    "deployed; a warning is printed at the start and end of the run.",
+)
+@click.option(
     "--instances",
     type=str,
     default=None,
@@ -641,6 +650,7 @@ def deploy(
     run_tests: bool,
     include_meta_analysis: bool,
     include_overview_matrix: bool,
+    allow_undeployed_commits: bool,
 ) -> None:
     """Deploy to production, dev, and internal sites on psygene."""
     from processing.deploy import run_deploy
@@ -655,6 +665,7 @@ def deploy(
         run_tests=run_tests,
         include_meta_analysis=include_meta_analysis,
         include_overview_matrix=include_overview_matrix,
+        allow_undeployed_commits=allow_undeployed_commits,
     )
 
 
@@ -664,6 +675,15 @@ def deploy(
     is_flag=True,
     default=False,
     help="Skip the local git push step.",
+)
+@click.option(
+    "--allow-undeployed-commits",
+    is_flag=True,
+    default=False,
+    help="Only matters when your branch doesn't push to the repository the "
+    "servers pull from (sspsygene-dracc/psypheno): deploy that repository's "
+    "main as-is even though HEAD has commits it doesn't. Those commits are NOT "
+    "deployed; a warning is printed at the start and end of the run.",
 )
 @click.option(
     "--instances",
@@ -682,6 +702,7 @@ def deploy(
 )
 def deploy_meta_analysis(
     no_push: bool,
+    allow_undeployed_commits: bool,
     instances: str | None,
     no_r_cache: bool,
 ) -> None:
@@ -697,6 +718,7 @@ def deploy_meta_analysis(
         no_push=no_push,
         instances=instances,
         no_r_cache=no_r_cache,
+        allow_undeployed_commits=allow_undeployed_commits,
     )
 
 
@@ -706,6 +728,15 @@ def deploy_meta_analysis(
     is_flag=True,
     default=False,
     help="Skip the local git push step.",
+)
+@click.option(
+    "--allow-undeployed-commits",
+    is_flag=True,
+    default=False,
+    help="Only matters when your branch doesn't push to the repository the "
+    "servers pull from (sspsygene-dracc/psypheno): deploy that repository's "
+    "main as-is even though HEAD has commits it doesn't. Those commits are NOT "
+    "deployed; a warning is printed at the start and end of the run.",
 )
 @click.option(
     "--instances",
@@ -725,6 +756,7 @@ def deploy_meta_analysis(
 )
 def deploy_overview(
     no_push: bool,
+    allow_undeployed_commits: bool,
     instances: str | None,
     min_sig_groups: int,
 ) -> None:
@@ -744,6 +776,7 @@ def deploy_overview(
         no_push=no_push,
         instances=instances,
         min_sig_groups=min_sig_groups,
+        allow_undeployed_commits=allow_undeployed_commits,
     )
 
 

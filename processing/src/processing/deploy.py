@@ -10,7 +10,9 @@ but they don't gate each other.
 All steps run on psygene, which has /hive access just like hgwdev and is
 also where the systemd-managed web servers live, so the restart step is
 local rather than cross-host:
-  1. git push (local)
+  1. git push (local) — or, if the branch pushes to a remote other than the
+     repo the servers pull (DEPLOY_REPO), refuse when HEAD has commits not on
+     it; the servers' pull is verified to contain the expected commit
   2. git pull on each selected site (psygene)
   3. Per-site preprocess.py (optional, --preprocess), load-db (optional,
      --load-db), npm install + npm run build (psygene)
@@ -22,6 +24,7 @@ local rather than cross-host:
 from __future__ import annotations
 
 import concurrent.futures
+import dataclasses
 import getpass
 import os
 import re
@@ -52,6 +55,14 @@ from processing.instances import (  # noqa: F401  (re-exported)
 
 PSYGENE = "psygene"
 GIT_BRANCH = "main"
+
+# The GitHub repository every server checkout `git pull`s from (`owner/repo`).
+# A deploy ships whatever is on this repo's GIT_BRANCH, so step 1 locates the
+# local remote pointing here rather than trusting the current branch's upstream
+# — the two can differ (a fork, a second remote), and a bare `git push` to the
+# wrong one would leave the servers pulling stale code while the deploy still
+# reported success.
+DEPLOY_REPO = "sspsygene-dracc/psypheno"
 
 # psygene isn't reachable directly from off-campus. Always proxy SSH through
 # hgwdev so deploys work without each developer having to add
@@ -310,12 +321,168 @@ def _preflight_checks() -> None:
 # ── Deployment steps ────────────────────────────────────────────────────────
 
 
-def _step_push() -> None:
-    click.secho("\n[1/5] Pushing local changes", bold=True)
-    _run_local(["git", "push"], desc="git push")
+@dataclasses.dataclass(frozen=True)
+class PushResult:
+    """Outcome of step 1: what the servers must end up on after their pull.
+
+    `expected_sha` is the commit each server checkout must contain after
+    `git pull` (None = unknown, skip the check). `warning` is set when the
+    deploy knowingly ships without some local commits; callers repeat it at
+    the end of the run so it isn't lost in the scrollback.
+    """
+
+    expected_sha: str | None = None
+    warning: str | None = None
 
 
-def _step_pull_all(instances: list[str]) -> None:
+def _git(*args: str) -> subprocess.CompletedProcess[str]:
+    """Run a local git command quietly and return the result (never raises)."""
+    return subprocess.run(
+        ["git", *args], capture_output=True, text=True, timeout=LOCAL_TIMEOUT
+    )
+
+
+def _git_out(*args: str) -> str:
+    """Run a local git command; return stripped stdout or raise DeployError."""
+    result = _git(*args)
+    if result.returncode != 0:
+        raise DeployError(
+            f"Failed: git {' '.join(args)}",
+            detail=(result.stderr or result.stdout or "").strip(),
+        )
+    return result.stdout.strip()
+
+
+def _github_repo_slug(url: str) -> str | None:
+    """`owner/repo` (lowercased) for a GitHub remote URL, else None.
+
+    Accepts the scp-like ssh form (`git@github.com:owner/repo.git`), ssh:// and
+    https:// URLs, with or without the `.git` suffix or a trailing slash.
+    """
+    m = re.match(
+        r"^(?:[\w.-]+@github\.com:|(?:ssh|https?|git)://(?:[^@/]+@)?github\.com/)"
+        r"([^/]+/[^/]+?)(?:\.git)?/?$",
+        url.strip(),
+    )
+    return m.group(1).lower() if m else None
+
+
+def _find_deploy_remote() -> str | None:
+    """Name of the local remote pointing at DEPLOY_REPO, if any."""
+    for name in _git_out("remote").split():
+        url = _git_out("remote", "get-url", name)
+        if _github_repo_slug(url) == DEPLOY_REPO.lower():
+            return name
+    return None
+
+
+def _branch_upstream_remote(branch: str) -> str | None:
+    """The remote `git push` would push *branch* to, or None if unset."""
+    result = _git("config", "--get", f"branch.{branch}.remote")
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+def _step_push(
+    *,
+    step: str = "1/5",
+    no_push: bool = False,
+    allow_undeployed_commits: bool = False,
+) -> PushResult:
+    """Step 1: make sure the commit the servers will pull is the one intended.
+
+    The servers pull GIT_BRANCH from DEPLOY_REPO. Three layouts:
+
+    * The current branch pushes to the DEPLOY_REPO remote (the normal case):
+      push as always; the servers must then contain HEAD.
+    * The branch pushes somewhere else: never push on the deploy's behalf.
+      Fetch the DEPLOY_REPO remote and refuse if HEAD has commits missing from
+      its GIT_BRANCH — they would silently not be deployed. With
+      `allow_undeployed_commits`, deploy that remote's GIT_BRANCH as-is, loudly.
+    * No local remote points at DEPLOY_REPO: fall back to a bare `git push`.
+    """
+    deploy_remote = _find_deploy_remote()
+    branch = _git_out("rev-parse", "--abbrev-ref", "HEAD")
+    pushes_to_deploy_remote = (
+        deploy_remote is not None
+        and _branch_upstream_remote(branch) == deploy_remote
+    )
+
+    if deploy_remote is None or pushes_to_deploy_remote:
+        if no_push:
+            click.secho(f"\n[{step}] Skipping git push (--no-push)", bold=True)
+            if deploy_remote is None:
+                return PushResult()
+            _run_local(
+                ["git", "fetch", deploy_remote, GIT_BRANCH],
+                desc=f"git fetch {deploy_remote} {GIT_BRANCH}",
+            )
+            return PushResult(
+                expected_sha=_git_out("rev-parse", f"{deploy_remote}/{GIT_BRANCH}")
+            )
+        click.secho(f"\n[{step}] Pushing local changes", bold=True)
+        _run_local(["git", "push"], desc="git push")
+        return PushResult(expected_sha=_git_out("rev-parse", "HEAD"))
+
+    remote_ref = f"{deploy_remote}/{GIT_BRANCH}"
+    click.secho(
+        f"\n[{step}] Checking {remote_ref} (what the servers pull) — not pushing",
+        bold=True,
+    )
+    click.echo(
+        f"  -> '{branch}' pushes to "
+        f"'{_branch_upstream_remote(branch) or '(no upstream)'}', but the servers "
+        f"pull {DEPLOY_REPO} ('{deploy_remote}'); the deploy won't push there."
+    )
+    _run_local(
+        ["git", "fetch", deploy_remote, GIT_BRANCH],
+        desc=f"git fetch {deploy_remote} {GIT_BRANCH}",
+    )
+    expected_sha = _git_out("rev-parse", remote_ref)
+    undeployed = _git_out(
+        "log", "--format=%h %s", f"{remote_ref}..HEAD"
+    ).splitlines()
+    remote_only = int(_git_out("rev-list", "--count", f"HEAD..{remote_ref}"))
+    if remote_only:
+        click.echo(
+            f"  -> {remote_ref} has {remote_only} commit(s) not in your checkout; "
+            "the servers will get them too."
+        )
+    if not undeployed:
+        click.echo(f"  -> HEAD is on {remote_ref}; deploying {expected_sha[:10]}")
+        return PushResult(expected_sha=expected_sha)
+
+    listing = "\n".join(undeployed[:20])
+    if len(undeployed) > 20:
+        listing += f"\n… and {len(undeployed) - 20} more"
+    if not allow_undeployed_commits:
+        raise DeployError(
+            f"{len(undeployed)} local commit(s) are not on {remote_ref}, which is "
+            f"what the servers pull — they would not be deployed. Push them to "
+            f"{deploy_remote} first (rebase onto {remote_ref} if it has moved), "
+            f"or pass --allow-undeployed-commits to deploy {remote_ref} without "
+            "them.",
+            detail=listing,
+        )
+    warning = (
+        f"WARNING: deploying {remote_ref} ({expected_sha[:10]}) WITHOUT "
+        f"{len(undeployed)} local commit(s) (--allow-undeployed-commits):\n"
+        f"{listing}"
+    )
+    click.secho(warning, fg="yellow", bold=True)
+    return PushResult(expected_sha=expected_sha, warning=warning)
+
+
+def _echo_push_warning(push: PushResult | None) -> None:
+    """Repeat step 1's warning at the end of a run (see PushResult)."""
+    if push is not None and push.warning:
+        click.secho(f"\n{push.warning}", fg="yellow", bold=True)
+
+
+def _step_pull_all(
+    instances: list[str], *, expected_sha: str | None = None
+) -> None:
     """Pull latest code on the selected sites before any build/load-db steps.
 
     This ensures shared resources (e.g. the processing package installed
@@ -362,6 +529,8 @@ def _step_pull_all(instances: list[str]) -> None:
             f"cd {path} && git -c safe.directory='*' pull",
             desc=f"git pull ({path})",
         )
+        if expected_sha:
+            _verify_site_has_commit(path, expected_sha)
         # Step two: best-effort group-write backstop, scoped to source + data
         # and pruning the npm dep/build trees (the slow, unimportant part).
         # check=False so a chmod hiccup (files owned by another wrangler, etc.)
@@ -375,6 +544,31 @@ def _step_pull_all(instances: list[str]) -> None:
             f"-o -type f -exec chmod g+w {{}} + \\) 2>/dev/null; true",
             desc=f"group-write backstop ({path})",
             check=False,
+        )
+
+
+def _verify_site_has_commit(path: str, expected_sha: str) -> None:
+    """Fail unless the site checkout contains *expected_sha* after its pull.
+
+    "Contains" (ancestor-or-equal) rather than "equals": a wrangler pushing to
+    the same branch between step 1 and this pull legitimately moves the server
+    past the expected commit. Exit 1 (not an ancestor) and 128 (unknown commit)
+    both mean the server is missing what step 1 said it would get.
+    """
+    result = _run_ssh(
+        PSYGENE,
+        f"cd {path} && git -c safe.directory='*' merge-base --is-ancestor "
+        f"{shlex.quote(expected_sha)} HEAD",
+        desc=f"verify {expected_sha[:10]} is deployed ({path})",
+        check=False,
+    )
+    if result.returncode != 0:
+        raise DeployError(
+            f"{path} does not contain {expected_sha[:10]} after git pull — the "
+            f"servers pull {GIT_BRANCH} of {DEPLOY_REPO}, and that commit isn't "
+            f"there. Make sure it is pushed to {DEPLOY_REPO} {GIT_BRANCH} "
+            "(not another branch or remote), then re-run.",
+            detail=(result.stderr or result.stdout or "").strip(),
         )
 
 
@@ -813,6 +1007,7 @@ def run_deploy_meta_analysis(
     no_push: bool = False,
     instances: str | None = None,
     no_r_cache: bool = False,
+    allow_undeployed_commits: bool = False,
 ) -> None:
     """Refresh sspsygene-meta.db on the selected psygene sites (issue #176).
 
@@ -825,12 +1020,13 @@ def run_deploy_meta_analysis(
     selected = _resolve_instances(instances)
     _preflight_checks()
 
-    if no_push:
-        click.secho("\n[1/3] Skipping git push (--no-push)", bold=True)
-    else:
-        _step_push()
+    push = _step_push(
+        step="1/3",
+        no_push=no_push,
+        allow_undeployed_commits=allow_undeployed_commits,
+    )
 
-    _step_pull_all(selected)
+    _step_pull_all(selected, expected_sha=push.expected_sha)
 
     click.secho("\n[3/3] Running meta-analysis on selected sites", bold=True)
     for inst in selected:
@@ -842,6 +1038,7 @@ def run_deploy_meta_analysis(
         )
 
     click.secho("\nMeta-analysis deployment complete!", fg="green", bold=True)
+    _echo_push_warning(push)
 
 
 def _step_overview_matrix_site(
@@ -887,6 +1084,7 @@ def run_deploy_overview(
     no_push: bool = False,
     instances: str | None = None,
     min_sig_groups: int = 2,
+    allow_undeployed_commits: bool = False,
 ) -> None:
     """Refresh sspsygene-overview.db on the selected psygene sites (#222).
 
@@ -900,17 +1098,19 @@ def run_deploy_overview(
     selected = _resolve_instances(instances)
     _preflight_checks()
 
-    if no_push:
-        click.secho("\n[1/3] Skipping git push (--no-push)", bold=True)
-    else:
-        _step_push()
+    push = _step_push(
+        step="1/3",
+        no_push=no_push,
+        allow_undeployed_commits=allow_undeployed_commits,
+    )
 
-    _step_pull_all(selected)
+    _step_pull_all(selected, expected_sha=push.expected_sha)
 
     click.secho("\n[3/3] Running overview-matrix on selected sites", bold=True)
     _step_overview_matrix_sites(selected, min_sig_groups=min_sig_groups)
 
     click.secho("\nOverview-matrix deployment complete!", fg="green", bold=True)
+    _echo_push_warning(push)
 
 
 def _step_overview_matrix_sites(
@@ -1860,6 +2060,7 @@ def _run_build_pipeline(
     run_tests: bool,
     include_meta_analysis: bool = False,
     include_overview_matrix: bool = False,
+    expected_sha: str | None = None,
 ) -> None:
     """Steps 2–5 of a deploy (pull → preprocess/load-db/build → restart →
     tests) on the selected psygene sites.
@@ -1870,7 +2071,7 @@ def _run_build_pipeline(
     # Step 2 — git pull selected sites first (the processing package may be
     # installed from one site but used by others, so all selected must be
     # current before any runs load-db or npm build).
-    _step_pull_all(selected)
+    _step_pull_all(selected, expected_sha=expected_sha)
 
     # Step 3 — build/load-db per site (iterated in INSTANCE_ORDER for log clarity)
     if preprocess:
@@ -2019,6 +2220,7 @@ def run_deploy(
     run_tests: bool = False,
     include_meta_analysis: bool = False,
     include_overview_matrix: bool = False,
+    allow_undeployed_commits: bool = False,
 ) -> None:
     """Run the full deployment pipeline from a laptop (SSHes into psygene).
 
@@ -2038,11 +2240,11 @@ def run_deploy(
     _preflight_checks()
     _confirm_prod_db_rebuild(selected, load_db=load_db, preprocess=preprocess)
 
-    # Step 1 — git push
-    if no_push:
-        click.secho("\n[1/5] Skipping git push (--no-push)", bold=True)
-    else:
-        _step_push()
+    # Step 1 — git push (or, when the branch pushes elsewhere, check what the
+    # servers will pull)
+    push = _step_push(
+        no_push=no_push, allow_undeployed_commits=allow_undeployed_commits
+    )
 
     _run_build_pipeline(
         selected,
@@ -2053,4 +2255,6 @@ def run_deploy(
         run_tests=run_tests,
         include_meta_analysis=include_meta_analysis,
         include_overview_matrix=include_overview_matrix,
+        expected_sha=push.expected_sha,
     )
+    _echo_push_warning(push)
