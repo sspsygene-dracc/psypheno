@@ -35,7 +35,8 @@ publication:
   year: 2026
   journal: "bioRxiv"
   doi: "10.64898/2026.02.18.706588"
-  sspsygene_grants: []
+  sspsygene_grants:
+    - RM1MH132648
 
 maintainers:
   - name: Brittney Wick

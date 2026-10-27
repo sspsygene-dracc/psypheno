@@ -30,7 +30,8 @@ publication:
   year: 2026
   journal: "Science"
   doi: "10.1126/science.adw3949"
-  sspsygene_grants: []
+  sspsygene_grants:
+    - RM1MH133065
 
 maintainers:
   - name: Brittney Wick
