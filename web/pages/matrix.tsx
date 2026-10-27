@@ -16,6 +16,7 @@ import type {
 } from "@/lib/collated-matrix-types";
 
 const COLS_PER_DATASET_OPTIONS = [5, 25, 50, 100, 200];
+const READOUT_OPTIONS = [50, 100, 200, 500];
 
 function ToggleButton({
   active,
@@ -260,6 +261,30 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             mean different things.
           </dd>
 
+          <dt style={METHODS_TERM}>The &ldquo;by readout, across studies&rdquo; view</dt>
+          <dd style={METHODS_DEF}>
+            Pools the RNA readouts (Perturb-seq, perturb-FISH and expression
+            datasets) by readout gene, matched across species, so each column is
+            one gene measured downstream of a perturbation in any study. The unit
+            is the <strong>study</strong>{" "}(a paper&rsquo;s datasets count once).
+            A study counts as <strong>significant</strong>{" "}for a pair if any of
+            its tests &mdash; any cell type, condition or method &mdash; has FDR
+            &lt; 0.05; a cell-type-specific hit is a real hit. Studies that test
+            a pair in many cell types therefore get more chances; each
+            study&rsquo;s number of tests is shown when you click a cell. The
+            cell&rsquo;s upper-left triangle is{" "}<em>k</em>/<em>n</em>{" "}(of{" "}
+            <em>n</em>{" "}studies that measured the pair,{" "}<em>k</em>{" "}found it
+            significant); the lower-right is direction agreement among those{" "}
+            <em>k</em>, from the effect sign at each study&rsquo;s most significant
+            test. Cells measured by a single study are faded, since 1 of 1 is not
+            convergence. Studies that publish only their hits contribute their
+            inferred tested-but-not-significant pairs to <em>n</em>{" "}(below).
+            Columns are ranked by how many perturbed genes are significant for
+            them in two or more studies, then by total significant studies.
+            Phenotype readouts aren&rsquo;t pooled yet: they have no shared
+            vocabulary across studies.
+          </dd>
+
           <dt style={METHODS_TERM}>Sources that publish only significant results</dt>
           <dd style={METHODS_DEF}>
             Some screens publish only their hits, so an absent result could mean
@@ -314,6 +339,10 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
 export default function MatrixPage() {
   const [mode, setMode] = useState<MatrixMode>("expanded");
   const [colsPerDataset, setColsPerDataset] = useState(25);
+  const [readouts, setReadouts] = useState(100);
+  // The per-study views remember which one was last shown, so toggling the
+  // collated view off returns to it.
+  const [lastStudyMode, setLastStudyMode] = useState<MatrixMode>("expanded");
   const [data, setData] = useState<CollatedMatrixResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -332,7 +361,10 @@ export default function MatrixPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/collated-matrix?colsPerDataset=${colsPerDataset}&mode=${mode}`)
+    fetch(
+      `/api/collated-matrix?colsPerDataset=${colsPerDataset}&mode=${mode}` +
+        `&readouts=${readouts}`
+    )
       .then((res) => {
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         return res.json() as Promise<CollatedMatrixResponse>;
@@ -352,7 +384,7 @@ export default function MatrixPage() {
     return () => {
       cancelled = true;
     };
-  }, [colsPerDataset, mode]);
+  }, [colsPerDataset, mode, readouts]);
 
   const genes = data?.genes ?? [];
   const sections = data?.sections ?? [];
@@ -434,9 +466,19 @@ export default function MatrixPage() {
               maxWidth: 840,
             }}
           >
-            Every experimentally perturbed SSPsyGene target gene (rows) against
-            each experimental dataset (columns).{" "}
-            {mode === "summary" ? (
+            Every experimentally perturbed SSPsyGene target gene (rows) against{" "}
+            {mode === "collated" ? "the genes measured downstream of it" : "each experimental dataset"}{" "}
+            (columns).{" "}
+            {mode === "collated" ? (
+              <>
+                Columns are <strong>readout genes pooled across studies</strong>.
+                Each cell asks: of the studies that measured this readout after
+                perturbing this gene, how many found a significant change? The
+                upper-left triangle is that share; the lower-right shows whether
+                the significant studies agree on the direction. Click a cell for
+                the studies behind it.
+              </>
+            ) : mode === "summary" ? (
               <>
                 Each dataset is collapsed to a single column, colored by{" "}
                 <strong>how many of its readouts</strong>{" "}came back significant
@@ -458,6 +500,39 @@ export default function MatrixPage() {
           {data && <MatrixMethods data={data} />}
 
           {data && <MetricLegend data={data} />}
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+              marginBottom: 10,
+            }}
+          >
+            <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
+              View:
+            </span>
+            <ToggleButton
+              active={mode !== "collated"}
+              disabled={loading}
+              onClick={() => setMode(lastStudyMode)}
+            >
+              By study
+            </ToggleButton>
+            <ToggleButton
+              active={mode === "collated"}
+              /* Overview DBs built before the collated tables existed. */
+              disabled={loading || (data != null && !data.meta.collatedAvailable)}
+              onClick={() => {
+                if (mode !== "collated") setLastStudyMode(mode);
+                setHidden(new Set());
+                setMode("collated");
+              }}
+            >
+              By readout, across studies
+            </ToggleButton>
+          </div>
 
           <div
             style={{
@@ -503,6 +578,24 @@ export default function MatrixPage() {
               marginBottom: 10,
             }}
           >
+            {mode === "collated" ? (
+              <>
+                <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
+                  Readout columns:
+                </span>
+                {READOUT_OPTIONS.map((k) => (
+                  <ToggleButton
+                    key={k}
+                    active={k === readouts}
+                    disabled={loading}
+                    onClick={() => setReadouts(k)}
+                  >
+                    {k}
+                  </ToggleButton>
+                ))}
+              </>
+            ) : (
+              <>
             <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
               Columns per dataset:
             </span>
@@ -528,6 +621,8 @@ export default function MatrixPage() {
                 {k}
               </ToggleButton>
             ))}
+              </>
+            )}
           </div>
 
           {loading && !data && (
@@ -557,7 +652,11 @@ export default function MatrixPage() {
               <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 6 }}>
                 {orderedGenes.length.toLocaleString()} perturbed genes &times;{" "}
                 {orderedColumns.length.toLocaleString()}{" "}
-                {mode === "summary" ? "datasets" : "columns"}
+                {mode === "summary"
+                  ? "datasets"
+                  : mode === "collated"
+                    ? `readout genes, pooled over ${meta?.collatedStudies?.length ?? 0} studies`
+                    : "columns"}
                 {hidden.size > 0 && (
                   <span style={{ color: "#9ca3af" }}>
                     {" "}

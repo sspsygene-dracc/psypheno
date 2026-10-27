@@ -43,8 +43,14 @@ import {
 
 const querySchema = z.object({
   colsPerDataset: z.coerce.number().int().min(1).max(200).default(25),
-  mode: z.enum(["expanded", "summary"]).default("expanded"),
+  mode: z.enum(["expanded", "summary", "collated"]).default("expanded"),
+  /** Collated mode: how many readout columns (most convergent first). */
+  readouts: z.coerce.number().int().min(1).max(500).default(100),
 });
+
+/** Color-scale ids of a collated cell's two triangles. */
+const COLLATED_METRIC = "frac_sig";
+const DIRECTION_METRIC = "direction_agreement";
 
 /** Color-scale id for a summary column — see web/lib/matrix-color-scales.ts. */
 const SUMMARY_METRIC = "sig_readouts";
@@ -111,6 +117,7 @@ function emptyResponse(K: number, mode: MatrixMode): CollatedMatrixResponse {
     meta: {
       mode,
       summaryAvailable: false,
+      collatedAvailable: false,
       colsPerDataset: K,
       expandedColumnCount: 0,
       expandedColumnsAvailable: 0,
@@ -309,6 +316,7 @@ function buildSummaryResponse(args: {
     meta: {
       mode: "summary",
       summaryAvailable: true,
+      collatedAvailable: true,
       colsPerDataset: K,
       expandedColumnCount: columns.length,
       expandedColumnsAvailable: columns.length,
@@ -318,6 +326,128 @@ function buildSummaryResponse(args: {
       materialized: true,
       builtAt,
       metrics: [{ id: SUMMARY_METRIC, domain: null }],
+    },
+  };
+}
+
+interface CollatedColumnRow {
+  collate_group: string;
+  target_gene_id: number;
+  label: string;
+  sum_k: number;
+  n_studies: number;
+}
+
+/**
+ * Collated mode: one column per readout gene, pooled across studies. Cells are
+ * k/n (studies significant / studies that measured the pair); the per-study
+ * breakdown is fetched lazily from /api/collated-cell on click.
+ */
+function buildCollatedResponse(args: {
+  db: ReturnType<typeof getDb>;
+  genes: MatrixGeneRow[];
+  byId: Map<number, MatrixGeneRow>;
+  readouts: number;
+  floor: number;
+  topM: number;
+  builtAt: string | null;
+  K: number;
+}): CollatedMatrixResponse {
+  const { db, genes, byId, readouts, floor, topM, builtAt, K } = args;
+  const groups = db
+    .prepare(
+      "SELECT collate_group, label, studies FROM overview.overview_matrix_collated_groups " +
+        "ORDER BY collate_group"
+    )
+    .all() as Array<{ collate_group: string; label: string; studies: string }>;
+
+  const sections: MatrixSection[] = [];
+  const columns: MatrixColumn[] = [];
+  const studies: Array<{ study: string; label: string }> = [];
+  const colStmt = db.prepare(
+    "SELECT collate_group, target_gene_id, label, sum_k, n_studies " +
+      "FROM overview.overview_matrix_collated_columns " +
+      "WHERE collate_group = ? ORDER BY sort_rank ASC LIMIT ?"
+  );
+  const cellStmt = db
+    .prepare(
+      `SELECT c.target_gene_id, c.central_gene_id, c.k, c.n, c.n_up, c.n_down,
+              c.n_inferred
+         FROM (SELECT target_gene_id FROM overview.overview_matrix_collated_columns
+                WHERE collate_group = ? ORDER BY sort_rank ASC LIMIT ?) kept
+         CROSS JOIN overview.overview_matrix_collated_cells c
+           ON c.collate_group = ? AND c.target_gene_id = kept.target_gene_id`
+    )
+    .raw();
+
+  for (const g of groups) {
+    let groupStudies: Array<{ study: string; label: string }> = [];
+    try {
+      groupStudies = JSON.parse(g.studies);
+    } catch {
+      groupStudies = [];
+    }
+    studies.push(...groupStudies);
+    const studyNames = groupStudies.map((st) => st.label).join(", ");
+    const rows = colStmt.all(g.collate_group, readouts) as CollatedColumnRow[];
+    if (rows.length === 0) continue;
+    const keyOf = (target: number) => `col:${g.collate_group}:${target}`;
+    for (const r of rows) {
+      columns.push({
+        section: g.collate_group,
+        key: keyOf(r.target_gene_id),
+        label: r.label,
+        metric: COLLATED_METRIC,
+        columnIsGene: true,
+        nSigGroups: r.sum_k,
+        // One pseudo-"dataset" per collate group, so bands / hiding work as in
+        // the per-study view.
+        sourceTable: `collated:${g.collate_group}`,
+        sourceLabel: `${groupStudies.length} studies`,
+        sourceMediumLabel: studyNames || null,
+        sourceCitation: null,
+      });
+    }
+    sections.push({ key: g.collate_group, label: g.label, span: rows.length });
+    for (const [target, geneId, k, n, nUp, nDown, nInferred] of cellStmt.all(
+      g.collate_group,
+      readouts,
+      g.collate_group
+    ) as Array<[number, number, number, number, number, number, number]>) {
+      const gene = byId.get(geneId);
+      if (!gene) continue;
+      gene.cells[keyOf(target)] = {
+        value: n > 0 ? Math.round((k / n) * 1000) / 1000 : 0,
+        k,
+        n,
+        nUp,
+        nDown,
+        ...(nInferred > 0 ? { nInferred } : {}),
+      };
+    }
+  }
+
+  return {
+    sections,
+    columns,
+    genes,
+    meta: {
+      mode: "collated",
+      summaryAvailable: true,
+      collatedAvailable: true,
+      collatedStudies: studies,
+      colsPerDataset: K,
+      expandedColumnCount: columns.length,
+      expandedColumnsAvailable: columns.length,
+      expandedColumnsTruncated: false,
+      minSigGroupsFloor: floor,
+      materializeTopM: topM,
+      materialized: true,
+      builtAt,
+      metrics: [
+        { id: COLLATED_METRIC, domain: null },
+        { id: DIRECTION_METRIC, domain: null },
+      ],
     },
   };
 }
@@ -336,6 +466,7 @@ export default async function handler(
   }
   const K = parsed.data.colsPerDataset;
   const mode = parsed.data.mode;
+  const readouts = parsed.data.readouts;
 
   try {
     const db = getDb();
@@ -355,6 +486,18 @@ export default async function handler(
     if (mode === "summary" && !summaryAvailable) {
       setReadCacheHeaders(res);
       return res.status(200).json(emptyResponse(K, mode));
+    }
+    const collatedAvailable = tableExists(
+      db,
+      "overview_matrix_collated_columns",
+      "overview"
+    );
+    if (mode === "collated" && !collatedAvailable) {
+      setReadCacheHeaders(res);
+      return res.status(200).json({
+        ...emptyResponse(K, mode),
+        meta: { ...emptyResponse(K, mode).meta, summaryAvailable, materialized: true },
+      });
     }
 
     const genes: MatrixGeneRow[] = (
@@ -466,6 +609,21 @@ export default async function handler(
           )
           .raw()
       : null;
+
+    if (mode === "collated") {
+      const body = buildCollatedResponse({
+        db,
+        genes,
+        byId,
+        readouts,
+        floor,
+        topM,
+        builtAt: info.get("built_at") ?? null,
+        K,
+      });
+      setReadCacheHeaders(res);
+      return res.status(200).json(body);
+    }
 
     if (mode === "summary") {
       const body = buildSummaryResponse({
@@ -590,6 +748,7 @@ export default async function handler(
       meta: {
         mode,
         summaryAvailable,
+        collatedAvailable,
         colsPerDataset: K,
         expandedColumnCount,
         expandedColumnsAvailable,

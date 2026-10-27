@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EyeOff } from "lucide-react";
 import {
+  type CollatedCellResponse,
+  type CollatedContribution,
   type MatrixCell,
   type MatrixColumn,
   type MatrixGeneRow,
@@ -189,6 +191,101 @@ function inferredValueText(cell: MatrixCell): string {
     : "Not reported — inferred tested, not significant. The source lists only " +
         "significant results; this readout was a hit for another perturbation in " +
         "a cell type where this gene was also tested, so it was measured here too.";
+}
+
+/** Popover headline for a collated (by-readout) cell. */
+function collatedValueText(cell: MatrixCell): string {
+  const k = cell.k ?? 0;
+  const n = cell.n ?? 0;
+  let text = `${k} of ${n} ${n === 1 ? "study" : "studies"} significant (FDR < 0.05)`;
+  if (k > 0) {
+    const parts: string[] = [];
+    if (cell.nUp) parts.push(`${cell.nUp} up`);
+    if (cell.nDown) parts.push(`${cell.nDown} down`);
+    if (parts.length) text += ` · ${parts.join(", ")}`;
+  }
+  if (cell.nInferred) {
+    text += ` · ${cell.nInferred} measurement${cell.nInferred === 1 ? "" : "s"} inferred`;
+  }
+  return text;
+}
+
+function fmtStat(v: number | null): string {
+  if (v === null) return "—";
+  return v < 0.001 ? v.toExponential(1) : v.toPrecision(2);
+}
+
+/**
+ * The per-study breakdown behind a collated cell, fetched on demand from
+ * /api/collated-cell (the matrix payload carries only k/n).
+ */
+function CollatedCellDetail({
+  group,
+  perturbedId,
+  targetId,
+}: {
+  group: string;
+  perturbedId: number;
+  targetId: number;
+}) {
+  const [rows, setRows] = useState<CollatedContribution[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setRows(null);
+    setFailed(false);
+    fetch(
+      `/api/collated-cell?group=${encodeURIComponent(group)}` +
+        `&perturbed=${perturbedId}&target=${targetId}`
+    )
+      .then((res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        return res.json() as Promise<CollatedCellResponse>;
+      })
+      .then((json) => {
+        if (!cancelled) setRows(json.contributions);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [group, perturbedId, targetId]);
+
+  if (failed) return <div style={{ color: "#dc2626", marginTop: 6 }}>Couldn&rsquo;t load studies.</div>;
+  if (rows === null) return <div style={{ color: "#9ca3af", marginTop: 6 }}>Loading studies&hellip;</div>;
+  return (
+    <ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0 0" }}>
+      {rows.map((r) => (
+        <li key={r.study} style={{ marginTop: 4 }}>
+          <span
+            style={{
+              fontWeight: 600,
+              color: r.significant ? "#1f2937" : "#6b7280",
+            }}
+          >
+            {r.significant ? "● " : "○ "}
+            <a
+              className="matrix-link"
+              href={`/full-datasets?select=${encodeURIComponent(r.sourceTables.split(",")[0])}`}
+            >
+              {r.studyLabel}
+            </a>
+          </span>{" "}
+          <span style={{ color: "#6b7280" }}>
+            {r.inferredBasis
+              ? r.inferredBasis === "library"
+                ? "not reported; on the perturbation list, assumed tested"
+                : "not reported; inferred tested, not significant"
+              : `best FDR ${fmtStat(r.minFdr)}` +
+                (r.effect !== null ? ` · effect ${r.effect > 0 ? "+" : ""}${r.effect.toFixed(2)}` : "") +
+                ` · ${r.nTests} test${r.nTests === 1 ? "" : "s"}`}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 interface BandGroup {
@@ -699,6 +796,8 @@ export default function CollatedMatrix({
     ? selCell
       ? summary
         ? summaryValueText(sel.col, selCell)
+        : selCell.k !== undefined
+          ? collatedValueText(selCell)
         : selCell.inferred !== undefined
           ? inferredValueText(selCell)
           : fmtValue(sel.col.metric, selCell.value)
@@ -1021,7 +1120,7 @@ export default function CollatedMatrix({
           position: "absolute",
           display: "none",
           zIndex: 20,
-          maxWidth: 260,
+          maxWidth: 340,
           background: "#ffffff",
           border: "1px solid #d1d5db",
           borderRadius: 8,
@@ -1070,6 +1169,13 @@ export default function CollatedMatrix({
               {(summary ? sel.col.sourceMediumLabel : null) ?? sel.col.sourceLabel}
             </div>
             <div style={{ marginTop: 5, fontWeight: 500 }}>{selValueText}</div>
+            {selCell?.k !== undefined && sel.col.key.startsWith("col:") && (
+              <CollatedCellDetail
+                group={sel.col.section}
+                perturbedId={sel.gene.centralGeneId}
+                targetId={Number(sel.col.key.split(":")[2])}
+              />
+            )}
           </>
         )}
       </div>

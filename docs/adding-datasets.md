@@ -719,6 +719,24 @@ taken against `|value| >= -log10(0.05)` rather than an FDR; the popover says
 which rule produced it. A metric with no significance notion at all
 (`activity_ratio`) gets no summary column, and the build logs a warning saying so.
 
+#### The "by readout, across studies" view
+
+The matrix page's **By readout, across studies** view pools the RNA readouts of
+every flagged gene-target table (Perturb-seq, perturb-FISH and expression
+assays) by readout gene: each column is one gene measured downstream of a
+perturbation in any study, and each cell is *k* of *n* studies significant
+(any test with FDR < 0.05), plus their direction agreement. A few things follow
+for a new dataset:
+
+- **The study is the dataset directory.** Several tables in one
+  `data/datasets/<name>/` count as one study, so split one paper into tables
+  freely, but don't put two independent studies in one directory.
+- **It needs a `target` gene mapping, a p/FDR column, and ideally an
+  `effect_column`** (for the up/down direction). Phenotype axes and protein
+  interactions aren't pooled.
+- It is built with the rest of the matrix (`overview-matrix` /
+  `deploy-overview`) — nothing extra to run.
+
 #### Tables that publish only their significant rows (`significant_only`)
 
 Many Perturb-seq supplements list only the hits (e.g. `padj < 0.05`). On the

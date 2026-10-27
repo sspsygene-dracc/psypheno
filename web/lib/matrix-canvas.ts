@@ -53,14 +53,23 @@ const SELECT_OUTLINE = "#111827";
 export const CELL_NO_DATA = 0;
 export const CELL_VALUE = 1;
 export const CELL_INFERRED = 2;
+/** Collated cell: two triangles, `packed` upper-left and `packed2` lower-right. */
+export const CELL_SPLIT = 3;
+
+// A collated cell measured by a single study is blended this far toward white:
+// "1 of 1" must not read as strong convergence.
+const SINGLE_STUDY_FADE = 0.55;
+const NO_DIRECTION: [number, number, number] = [226, 228, 232];
 
 export type MetricDomains = Record<string, [number, number] | null>;
 
 export interface ColorGrid {
   nRows: number;
   nCols: number;
-  /** 0xRRGGBB per cell (only meaningful where `state[idx]` is CELL_VALUE). */
+  /** 0xRRGGBB per cell (meaningful where `state[idx]` is CELL_VALUE / CELL_SPLIT). */
   packed: Uint32Array;
+  /** Lower-right triangle color for CELL_SPLIT cells. */
+  packed2: Uint32Array;
   /** CELL_NO_DATA / CELL_VALUE / CELL_INFERRED. */
   state: Uint8Array;
 }
@@ -74,7 +83,14 @@ export function buildColorGrid(
   const nRows = genes.length;
   const nCols = columns.length;
   const packed = new Uint32Array(nRows * nCols);
+  const packed2 = new Uint32Array(nRows * nCols);
   const state = new Uint8Array(nRows * nCols);
+  const pack = ([r, g, b]: [number, number, number]) => (r << 16) | (g << 8) | b;
+  const fade = ([r, g, b]: [number, number, number]): [number, number, number] => [
+    Math.round(r + (255 - r) * SINGLE_STUDY_FADE),
+    Math.round(g + (255 - g) * SINGLE_STUDY_FADE),
+    Math.round(b + (255 - b) * SINGLE_STUDY_FADE),
+  ];
   for (let i = 0; i < nRows; i++) {
     const cells = genes[i].cells;
     const base = i * nCols;
@@ -86,12 +102,38 @@ export function buildColorGrid(
         state[base + j] = CELL_INFERRED;
         continue;
       }
+      if (cell.k !== undefined && cell.n !== undefined) {
+        // Collated: upper = share of studies significant; lower = direction
+        // agreement among the significant ones. With k = 0 there is no
+        // direction, so the tile stays one color.
+        let upper = scaleColorRGB(col.metric, cell.value, metricDomains[col.metric]);
+        let lower: [number, number, number] = upper;
+        if (cell.k > 0) {
+          const signed = (cell.nUp ?? 0) + (cell.nDown ?? 0);
+          lower =
+            signed > 0
+              ? scaleColorRGB(
+                  "direction_agreement",
+                  ((cell.nUp ?? 0) - (cell.nDown ?? 0)) / cell.k,
+                  null
+                )
+              : NO_DIRECTION;
+        }
+        if (cell.n <= 1) {
+          upper = fade(upper);
+          lower = fade(lower);
+        }
+        packed[base + j] = pack(upper);
+        packed2[base + j] = pack(lower);
+        state[base + j] = CELL_SPLIT;
+        continue;
+      }
       const [r, g, b] = scaleColorRGB(col.metric, cell.value, metricDomains[col.metric]);
       packed[base + j] = (r << 16) | (g << 8) | b;
       state[base + j] = CELL_VALUE;
     }
   }
-  return { nRows, nCols, packed, state };
+  return { nRows, nCols, packed, packed2, state };
 }
 
 export interface DrawParams {
@@ -113,7 +155,8 @@ export interface DrawParams {
 export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
   const { grid, scrollLeft, scrollTop, viewW, viewH, dpr, selected } = p;
   const colW = p.colW ?? COL_W;
-  const { nRows, nCols, packed, state } = grid;
+  const { nRows, nCols, packed, packed2, state } = grid;
+  const rgb = (c: number) => `rgb(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255})`;
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, viewW, viewH);
@@ -143,9 +186,33 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
       const x = j * colW - scrollLeft;
       const st = state[base + j];
       if (st === CELL_VALUE) {
-        const c = packed[base + j];
-        ctx.fillStyle = `rgb(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255})`;
+        ctx.fillStyle = rgb(packed[base + j]);
         ctx.fillRect(x + GUTTER, y + GUTTER, tileW, tileH);
+      } else if (st === CELL_SPLIT) {
+        const x0 = x + GUTTER;
+        const y0 = y + GUTTER;
+        const x1 = x0 + tileW;
+        const y1 = y0 + tileH;
+        const upper = packed[base + j];
+        const lower = packed2[base + j];
+        ctx.fillStyle = rgb(upper);
+        if (upper === lower) {
+          ctx.fillRect(x0, y0, tileW, tileH);
+        } else {
+          const tri = new Path2D();
+          tri.moveTo(x0, y0);
+          tri.lineTo(x1, y0);
+          tri.lineTo(x0, y1);
+          tri.closePath();
+          ctx.fill(tri);
+          const tri2 = new Path2D();
+          tri2.moveTo(x1, y0);
+          tri2.lineTo(x1, y1);
+          tri2.lineTo(x0, y1);
+          tri2.closePath();
+          ctx.fillStyle = rgb(lower);
+          ctx.fill(tri2);
+        }
       } else if (st === CELL_INFERRED) {
         ctx.fillStyle = INFERRED_FILL;
         ctx.fillRect(x + GUTTER, y + GUTTER, tileW, tileH);

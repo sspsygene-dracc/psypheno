@@ -79,6 +79,26 @@ const GREENS: Array<[number, RGB]> = [
   [1.0, [0, 68, 27]],
 ];
 
+// ColorBrewer YlGnBu — the collated view's "share of studies" ramp. Calm on
+// purpose (feedback on the first mock-up: "fewer angry colors"), and distinct
+// from every significance ramp above: a share of studies is not a p-value.
+const YLGNBU: Array<[number, RGB]> = [
+  [0.0, [255, 255, 217]],
+  [0.25, [199, 233, 180]],
+  [0.5, [65, 182, 196]],
+  [0.75, [34, 94, 168]],
+  [1.0, [8, 29, 88]],
+];
+
+// Muted diverging blue → grey → red for direction agreement: the inner tones of
+// ColorBrewer RdBu, keeping the site's blue = down / red = up convention without
+// the saturated endpoints.
+const MUTED_BLUE_RED: Array<[number, RGB]> = [
+  [0.0, [67, 147, 195]],
+  [0.5, [238, 238, 238]],
+  [1.0, [214, 96, 77]],
+];
+
 export const COLOR_SCALES: Record<string, ColorScale> = {
   neglog_p: {
     label: "−log10(p)",
@@ -136,6 +156,29 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     // actual signal (2-15 genes each) never get a say. Same reason `neglog_q`
     // carries a floor.
     clusterNoiseFloor: 0, // no significant readouts
+  },
+  frac_sig: {
+    // Collated view, upper-left triangle: k / n — of the studies that measured
+    // a (perturbed gene, readout gene) pair, the share that found it
+    // significant. Cells measured by a single study are drawn faded.
+    label: "share of studies significant",
+    kind: "sequential",
+    domain: [0, 1],
+    stops: YLGNBU,
+    note: "k of n studies; faded = only one study measured it",
+    legendFormat: (v) => `${Math.round(v * 100)}%`,
+    clusterNoiseFloor: 0, // no study significant
+  },
+  direction_agreement: {
+    // Collated view, lower-right triangle: (up − down) / k over the significant
+    // studies. Grey when no study was significant (no direction to agree on).
+    label: "direction agreement",
+    kind: "diverging",
+    domain: [-1, 1],
+    mid: 0,
+    stops: MUTED_BLUE_RED,
+    note: "among significant studies; blue = down, red = up",
+    legendFormat: (v) => (v < 0 ? "all down" : v > 0 ? "all up" : "mixed"),
   },
   activity_ratio: {
     label: "pERK ratio (mut/WT)",

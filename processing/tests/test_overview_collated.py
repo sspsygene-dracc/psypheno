@@ -1,0 +1,228 @@
+"""Collated by-readout view of the overview matrix (overview_collated.py).
+
+Hand-built studies over the shared fixture genes (ids 1-4 = AAA..DDD, 9 = a
+control). Readout genes are central genes too, so targets are ids 1-4 as well.
+"""
+
+import json
+import sqlite3
+
+from processing.overview_matrix import materialize_overview_matrix
+from test_overview_matrix import _add_link, _make_db, _register
+
+_EXTRA_COLUMNS = ("significant_only", "gene_species", "dataset", "effect_column", "medium_label")
+
+
+def _with_extra_columns(conn: sqlite3.Connection) -> None:
+    for col in _EXTRA_COLUMNS:
+        conn.execute(f"ALTER TABLE data_tables ADD COLUMN {col} TEXT")
+
+
+def _add_study(
+    conn: sqlite3.Connection,
+    table: str,
+    *,
+    dataset: str,
+    rows: list[tuple[str, int, str, float, float, float]],
+    pert_gene: dict[str, int],
+    significant_only: dict | None = None,
+    label: str | None = None,
+) -> None:
+    """rows: (perturbation, target gene id, context, p, fdr, effect)."""
+    conn.execute(
+        f"CREATE TABLE {table} (id INTEGER, pert TEXT, target TEXT, ctx TEXT, "
+        "p REAL, fdr REAL, lfc REAL)"
+    )
+    conn.executemany(
+        f"INSERT INTO {table} VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+            (i, pert, f"G{target}", ctx, p, fdr, lfc)
+            for i, (pert, target, ctx, p, fdr, lfc) in enumerate(rows, start=1)
+        ],
+    )
+    _add_link(
+        conn,
+        f"{table}__pert",
+        [(pert_gene[r[0]], i) for i, r in enumerate(rows, start=1) if pert_gene.get(r[0])],
+    )
+    _add_link(conn, f"{table}__target", [(r[1], i) for i, r in enumerate(rows, start=1)])
+    _register(
+        conn,
+        table,
+        "perturbation_deg",
+        f"target:{table}__target:target,pert:{table}__pert:perturbed",
+        pvalue_column="p",
+        fdr_column="fdr",
+    )
+    conn.execute(
+        "UPDATE data_tables SET dataset = ?, effect_column = 'lfc', medium_label = ?, "
+        "gene_species = 'human', significant_only = ? WHERE table_name = ?",
+        (
+            dataset,
+            f"{label or dataset} - fixture",
+            json.dumps(significant_only) if significant_only else None,
+            table,
+        ),
+    )
+
+
+def _cells(conn: sqlite3.Connection) -> dict[tuple[int, int], tuple[int, int, int, int, int]]:
+    return {
+        (gene, target): (k, n, up, down, inferred)
+        for target, gene, k, n, up, down, inferred in conn.execute(
+            "SELECT target_gene_id, central_gene_id, k, n, n_up, n_down, n_inferred "
+            "FROM overview_matrix_collated_cells"
+        )
+    }
+
+
+def _contrib(conn: sqlite3.Connection, gene: int, target: int):
+    return {
+        study: (n_tests, significant, inferred_basis)
+        for study, n_tests, significant, inferred_basis in conn.execute(
+            "SELECT study, n_tests, significant, inferred_basis "
+            "FROM overview_matrix_collated_contrib "
+            "WHERE central_gene_id = ? AND target_gene_id = ?",
+            (gene, target),
+        )
+    }
+
+
+PERTS = {"P_AAA": 1, "P_BBB": 2, "P_CCC": 3, "NTC": 9}
+
+
+def _two_studies() -> sqlite3.Connection:
+    conn = _make_db()
+    _with_extra_columns(conn)
+    # Study A (full table, one context): AAA→T3 significant up, BBB→T3 tested n.s.
+    _add_study(
+        conn,
+        "study_a",
+        dataset="ds_a",
+        rows=[
+            ("P_AAA", 3, "", 1e-6, 0.001, 1.5),
+            ("P_BBB", 3, "", 0.4, 0.8, 0.1),
+            ("P_AAA", 4, "", 1e-5, 0.01, -0.7),
+        ],
+        pert_gene=PERTS,
+    )
+    # Study B: AAA→T3 in three cell types, significant in one (FDR 0.02) → the
+    # study counts as significant; a cell-type-specific hit is a hit. BBB→T3
+    # significant down.
+    _add_study(
+        conn,
+        "study_b",
+        dataset="ds_b",
+        rows=[
+            ("P_AAA", 3, "c1", 0.001, 0.02, 0.9),
+            ("P_AAA", 3, "c2", 0.3, 0.5, 0.2),
+            ("P_AAA", 3, "c3", 0.6, 0.9, -0.1),
+            ("P_BBB", 3, "", 1e-8, 0.0001, -2.0),
+        ],
+        pert_gene=PERTS,
+    )
+    return conn
+
+
+def test_k_over_n_counts_studies() -> None:
+    conn = _two_studies()
+    materialize_overview_matrix(conn, min_groups=1)
+    cells = _cells(conn)
+    # AAA×T3: A significant (up); B significant in c1 (up) → 2 of 2, both up.
+    assert cells[(1, 3)] == (2, 2, 2, 0, 0)
+    # BBB×T3: A n.s., B significant down → 1 of 2, down.
+    assert cells[(2, 3)] == (1, 2, 0, 1, 0)
+    # n_tests still records that B tested the pair three times.
+    assert _contrib(conn, 1, 3) == {"ds_a": (1, 1, None), "ds_b": (3, 1, None)}
+
+
+def test_columns_ranked_and_labelled() -> None:
+    conn = _two_studies()
+    materialize_overview_matrix(conn, min_groups=1)
+    columns = conn.execute(
+        "SELECT target_gene_id, label, n_convergent, sum_k, sum_n, n_studies "
+        "FROM overview_matrix_collated_columns ORDER BY sort_rank"
+    ).fetchall()
+    # T3 (CCC): AAA's row reaches k = 2 (convergent); 3 significant study-pairs
+    # over 4 measurements, 2 studies. T4 (DDD): 1 of 1.
+    assert columns == [(3, "CCC", 1, 3, 4, 2), (4, "DDD", 0, 1, 1, 1)]
+    group = conn.execute(
+        "SELECT label, studies FROM overview_matrix_collated_groups"
+    ).fetchone()
+    assert group[0] == "RNA response across studies"
+    assert [s["study"] for s in json.loads(group[1])] == ["ds_a", "ds_b"]
+
+
+def test_two_tables_of_one_dataset_count_once() -> None:
+    conn = _make_db()
+    _with_extra_columns(conn)
+    for table in ("half_1", "half_2"):
+        _add_study(
+            conn,
+            table,
+            dataset="same_paper",
+            rows=[("P_AAA", 3, "", 1e-6, 0.001, 1.0)],
+            pert_gene=PERTS,
+        )
+    materialize_overview_matrix(conn, min_groups=1)
+    # One study; it tested the pair twice (once per table).
+    assert _cells(conn)[(1, 3)] == (1, 1, 1, 0, 0)
+    assert _contrib(conn, 1, 3) == {"same_paper": (2, 1, None)}
+
+
+def test_controls_are_not_rows() -> None:
+    conn = _make_db()
+    _with_extra_columns(conn)
+    _add_study(
+        conn,
+        "s",
+        dataset="ds",
+        rows=[("NTC", 3, "", 1e-9, 1e-6, 1.0), ("P_AAA", 3, "", 1e-6, 0.001, 1.0)],
+        pert_gene=PERTS,
+    )
+    materialize_overview_matrix(conn, min_groups=1)
+    assert {gene for gene, _ in _cells(conn)} == {1}
+
+
+def test_significant_only_study_adds_inferred_measurements() -> None:
+    conn = _two_studies()
+    # Study C publishes only hits, in two cell types. CCC→T3 hit in X; AAA has a
+    # hit in X too (→ T3 measured for AAA, inferred n.s.). DDD is library-only.
+    _add_study(
+        conn,
+        "study_c",
+        dataset="ds_c",
+        rows=[
+            ("P_CCC", 3, "X", 1e-6, 0.001, 1.0),
+            ("P_AAA", 4, "X", 1e-6, 0.001, 1.0),
+            ("P_BBB", 4, "Y", 1e-6, 0.001, 1.0),
+        ],
+        pert_gene={**PERTS, "P_DDD": 4},
+        significant_only={"context_columns": ["ctx"], "tested_perturbations": ["DDD"]},
+    )
+    materialize_overview_matrix(conn, min_groups=1)
+    cells = _cells(conn)
+    # AAA×T3: A sig, B sig, C inferred n.s. → 2 of 3, one inferred.
+    assert cells[(1, 3)] == (2, 3, 2, 0, 1)
+    assert _contrib(conn, 1, 3)["ds_c"] == (1, 0, "screen")
+    # BBB was tested only in Y, where T3 was never a hit → C doesn't count.
+    assert "ds_c" not in _contrib(conn, 2, 3)
+    # Library-only DDD: measured on T3 (X) and T4 (X, Y) → inferred, basis library.
+    assert _contrib(conn, 4, 3) == {"ds_c": (1, 0, "library")}
+    assert _contrib(conn, 4, 4) == {"ds_c": (2, 0, "library")}
+    # A reported pair's n_tests counts the contexts it was measured in: AAA→T4
+    # was reported in X only, and T4 was measured in X and Y — but AAA was only
+    # tested in X, so 1.
+    assert _contrib(conn, 1, 4)["ds_c"] == (1, 1, None)
+
+
+def test_phenotype_and_non_rna_tables_are_not_collated() -> None:
+    conn = _two_studies()
+    conn.execute(
+        "UPDATE data_tables SET assay = 'behavior' WHERE table_name = 'study_b'"
+    )
+    materialize_overview_matrix(conn, min_groups=1)
+    studies = json.loads(
+        conn.execute("SELECT studies FROM overview_matrix_collated_groups").fetchone()[0]
+    )
+    assert [s["study"] for s in studies] == ["ds_a"]

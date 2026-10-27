@@ -50,11 +50,19 @@ import click
 from processing.build_info import read_build_uuid
 from processing.combined_pvalues.collection import parse_link_tables_for_direction
 from processing.my_logger import get_sspsygene_logger
+from processing.overview_collated import (
+    COLLATE_GROUPS,
+    COLLATED_TABLES,
+    CollateSource,
+    create_collated_schema,
+    materialize_collated,
+    target_link_for,
+)
 from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import normalize_column_name
 
 
-SCHEMA_VERSION = "5"
+SCHEMA_VERSION = "6"
 
 # -log10(p) clamp for neglog_* heatmap cells. The lower bound keeps every present
 # cell visible against "no data"; the upper bound stops a single p ~ 1e-49 row
@@ -106,6 +114,7 @@ _TABLES = (
     "overview_matrix_summary_columns",
     "overview_matrix_summary_cells",
     "overview_matrix_inferred_cells",
+    *COLLATED_TABLES,
     "overview_matrix_info",
 )
 
@@ -286,6 +295,7 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         PRIMARY KEY (modality_key, source_table, column_value, central_gene_id))
         WITHOUT ROWID"""
     )
+    create_collated_schema(conn)
     conn.execute(
         """CREATE TABLE overview_matrix_info (
         key TEXT PRIMARY KEY,
@@ -1151,6 +1161,102 @@ def _materialize_expansion(
     )
 
 
+def _collate_source(
+    conn: sqlite3.Connection,
+    *,
+    collate_group: str,
+    table_name: str,
+    dataset: str | None,
+    medium_label: str | None,
+    short_label: str | None,
+    link_tables_raw: str | None,
+    pvalue_column: str | None,
+    fdr_column: str | None,
+    effect_column: str | None,
+    significant_only: dict[str, list[str]] | None,
+    species: str | None,
+    src_schema: str,
+) -> tuple[CollateSource, dict[object, list[int]], str] | None:
+    """Resolve one gene-target table into a collated-view source, or None.
+
+    Uses the same column resolution as the expanded view (`_materialize_expansion`)
+    so both views read a table identically.
+    """
+    log = get_sspsygene_logger()
+    base_table = sanitize_identifier(table_name)
+    perturbed_links = parse_link_tables_for_direction(link_tables_raw or "", "perturbed")
+    target_link = target_link_for(link_tables_raw)
+    if not perturbed_links or target_link is None:
+        return None
+    if not conn.execute(
+        f"SELECT 1 FROM {src_schema}.sqlite_master WHERE type = 'table' AND name = ?",
+        (target_link,),
+    ).fetchone():
+        log.warning(
+            "overview matrix: %s target link table %s is missing; not collated",
+            table_name,
+            target_link,
+        )
+        return None
+    columns = _table_columns(conn, base_table, src_schema)
+    source_columns = _resolve_source_columns(link_tables_raw, columns)
+    group_column = source_columns["perturbed"]
+    if not group_column or not source_columns["target"]:
+        return None
+    pvalue_cols = _split_columns(pvalue_column)
+    fdr_cols = _split_columns(fdr_column)
+    p_col = pvalue_cols[0] if pvalue_cols else (fdr_cols[0] if fdr_cols else None)
+    fdr_col = fdr_cols[0] if fdr_cols else (pvalue_cols[0] if pvalue_cols else None)
+    if p_col is None or fdr_col is None:
+        return None
+    effect_cols = _split_columns(effect_column)
+    effect_col = effect_cols[0] if effect_cols and effect_cols[0] in columns else None
+
+    context_columns: list[str] | None = None
+    library_gene_ids: set[int] = set()
+    context_expr = "''"
+    if significant_only is not None:
+        context_columns = list(significant_only.get("context_columns") or [])
+        expr = _context_expr(context_columns, columns)
+        if expr is None:
+            log.warning(
+                "overview matrix: %s significant_only context columns %s missing; "
+                "collated view treats it as a full table",
+                table_name,
+                context_columns,
+            )
+            context_columns = None
+        else:
+            context_expr = expr
+            library_gene_ids, _ = _resolve_perturbation_values(
+                conn,
+                list(significant_only.get("tested_perturbations") or []),
+                species,
+                src_schema,
+            )
+
+    group_genes = _group_to_genes(
+        conn, base_table, perturbed_links[0], group_column, src_schema
+    )
+    study_label = (medium_label or "").split(" - ")[0].strip() or short_label or table_name
+    source = CollateSource(
+        collate_group=collate_group,
+        table_name=table_name,
+        study=dataset or table_name,
+        study_label=study_label,
+        base_table=base_table,
+        group_column=group_column,
+        perturbed_link=perturbed_links[0],
+        target_link=target_link,
+        p_col=p_col,
+        fdr_col=fdr_col,
+        effect_col=effect_col,
+        context_columns=context_columns,
+        library_gene_ids=frozenset(library_gene_ids),
+    )
+    return source, group_genes, context_expr
+
+
 def materialize_overview_matrix(
     conn: sqlite3.Connection,
     *,
@@ -1215,7 +1321,13 @@ def materialize_overview_matrix(
     dt_columns = _table_columns(conn, "data_tables", src_schema)
     optional = ", ".join(
         col if col in dt_columns else f"NULL AS {col}"
-        for col in ("significant_only", "gene_species")
+        for col in (
+            "significant_only",
+            "gene_species",
+            "dataset",
+            "effect_column",
+            "medium_label",
+        )
     )
     source_rows = conn.execute(
         f"""SELECT table_name, assay, pvalue_column, fdr_column, link_tables,
@@ -1230,6 +1342,9 @@ def materialize_overview_matrix(
 
     expanded_source_tables: list[str] = []
     perturbed_link_tables: list[str] = []
+    collate_sources: list[CollateSource] = []
+    collate_group_genes: dict[str, dict[object, list[int]]] = {}
+    collate_context_exprs: dict[str, str] = {}
     for (
         table_name,
         assay,
@@ -1243,6 +1358,9 @@ def materialize_overview_matrix(
         metric_domain,
         significant_only_raw,
         gene_species,
+        dataset,
+        effect_column,
+        medium_label,
     ) in source_rows:
         modality_keys_for_table = _modality_keys_for(assay, assay_to_modalities)
         if not modality_keys_for_table:
@@ -1284,6 +1402,27 @@ def materialize_overview_matrix(
             significant_only=significant_only,
             species=gene_species,
         )
+        if modality_key in COLLATE_GROUPS and not phenotype_column and not phenotype_columns:
+            prepared = _collate_source(
+                conn,
+                collate_group=COLLATE_GROUPS[modality_key],
+                table_name=table_name,
+                dataset=dataset,
+                medium_label=medium_label,
+                short_label=short_label,
+                link_tables_raw=link_tables_raw,
+                pvalue_column=pvalue_column,
+                fdr_column=fdr_column,
+                effect_column=effect_column,
+                significant_only=significant_only,
+                species=gene_species,
+                src_schema=src_schema,
+            )
+            if prepared is not None:
+                collate_source, group_genes, context_expr = prepared
+                collate_sources.append(collate_source)
+                collate_group_genes[table_name] = group_genes
+                collate_context_exprs[table_name] = context_expr
         if n_columns == 0:
             continue
         expanded_source_tables.append(table_name)
@@ -1301,6 +1440,10 @@ def materialize_overview_matrix(
                 n_columns,
             ),
         )
+
+    materialize_collated(
+        conn, collate_sources, collate_group_genes, collate_context_exprs, src_schema
+    )
 
     # Rows: every perturbed (non-control) gene across the expanded tables.
     for link_table in dict.fromkeys(perturbed_link_tables):

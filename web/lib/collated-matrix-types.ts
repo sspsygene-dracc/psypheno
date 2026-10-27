@@ -85,6 +85,17 @@ export interface MatrixCell {
   /** Summary mode: how many of `nMeasured` readouts were inferred, and on what basis. */
   nInferred?: number;
   inferredBasis?: InferredBasis;
+  /**
+   * Collated mode (by readout, across studies): `k` of the `n` studies that
+   * measured this (perturbed gene, readout gene) pair found it significant;
+   * `nUp` / `nDown` split the `k` by effect direction (they may not add up to
+   * `k` when a study has no effect column). `nInferred` (shared with summary
+   * mode) counts studies whose measurement was inferred. `value` = k / n.
+   */
+  k?: number;
+  n?: number;
+  nUp?: number;
+  nDown?: number;
 }
 
 export type InferredBasis = "screen" | "library";
@@ -102,7 +113,28 @@ export interface MetricPresence {
   domain: [number, number] | null;
 }
 
-export type MatrixMode = "expanded" | "summary";
+export type MatrixMode = "expanded" | "summary" | "collated";
+
+/** One study behind a collated cell — GET /api/collated-cell. */
+export interface CollatedContribution {
+  study: string;
+  studyLabel: string;
+  /** Source table(s) of the study that measured the pair (comma-joined). */
+  sourceTables: string;
+  /** How many tests (cell types, conditions, methods) the study ran on the pair. */
+  nTests: number;
+  minFdr: number | null;
+  bestP: number | null;
+  /** Effect at the study's most significant test (log fold change etc.). */
+  effect: number | null;
+  significant: boolean;
+  /** Set when the study never reported the pair (significant-only source). */
+  inferredBasis: InferredBasis | null;
+}
+
+export interface CollatedCellResponse {
+  contributions: CollatedContribution[];
+}
 
 export interface CollatedMatrixMeta {
   /** Which view produced this response. */
@@ -112,6 +144,10 @@ export interface CollatedMatrixMeta {
    * disables the Summary control rather than rendering an empty matrix.
    */
   summaryAvailable: boolean;
+  /** False when the overview DB predates the collated tables. */
+  collatedAvailable: boolean;
+  /** Collated mode: the studies pooled into its columns. */
+  collatedStudies?: Array<{ study: string; label: string }>;
   /** Columns-per-dataset cap used for this response (after clamping). */
   colsPerDataset: number;
   /** Total value columns actually returned across all datasets. */
