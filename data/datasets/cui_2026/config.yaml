@@ -103,7 +103,7 @@ tables:
         isogenic clones. Cui et al. 2026, Fig. 3D.
       time_point: >
         Day of neuronal differentiation at which RNA-seq was performed:
-        "day28" (4 weeks), "day42" (6 weeks), or "day56" (8 weeks)
+        "Day 28" (4 weeks), "Day 42" (6 weeks), or "Day 56" (8 weeks)
         post-neuronal induction. Cui et al. 2026, Fig. 3A.
       log2fc_shrink: >
         Shrinkage-estimated log2 fold change in gene expression (XPO7 LoF

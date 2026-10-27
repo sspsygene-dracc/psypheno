@@ -24,9 +24,9 @@ SHEET = "Fig3D_deseq__XPO7LoF"
 
 # wk4 = day 28, wk6 = day 42, wk8 = day 56 post-neuronal induction
 TIMEPOINTS = {
-    "wk4": "day28",
-    "wk6": "day42",
-    "wk8": "day56",
+    "wk4": "Day 28",
+    "wk6": "Day 42",
+    "wk8": "Day 56",
 }
 GENOTYPES = {
     "het": "XPO7+/-",
@@ -62,7 +62,7 @@ def main() -> None:
 
     out = out.dropna(subset=["gene"])
     out = out[["perturbed_gene", "gene", "gene_ensembl",
-               "genotype", "time_point", "log2FC_shrink", "stat", "padj"]]
+               "genotype", "time_point", "padj", "log2FC_shrink", "stat"]]
     out = out.sort_values(["genotype", "time_point", "padj"]).reset_index(drop=True)
 
     out_path = DIR / "cui_2026_deg.tsv"
