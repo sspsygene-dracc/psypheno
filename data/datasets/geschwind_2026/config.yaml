@@ -28,7 +28,7 @@ tables:
   - table: geschwind_2026_deg
     changelog:
       - date: "2026-10-26"
-        message: "Initial data load — 750,160 DEG rows across 40 perturbed genes"
+        message: "Initial data load — 750,160 DEG rows; incomplete, 40 of 54 genes received"
 
     shortLabel: geschwind_2026_deg
     mediumLabel: "Geschwind 2026 - Bulk RNA-seq DEGs in NGN2 iPSC Neurons (40 genes)"
@@ -42,7 +42,8 @@ tables:
       KCNQ3, KMT2A, KMT2C, KMT5B, MEIS2, NF1, PHF21A, PLXNA1, PTEN, SCN2A,
       SHANK3, TBR1, TCF4, TCF7L2, TLK2, TRIO). Each perturbed line was
       compared to controls using limma-voom. Unpublished SSPsyGene consortium
-      data (Jacqueline Martin, Geschwind lab, UCLA).
+      data (Jacqueline Martin, Geschwind lab, UCLA). Note: incomplete —
+      40 of 54 genes received; will be updated as remaining genes are provided.
 
     source: >
       DGE_allContrasts_allGenes.csv provided by Jacqueline Martin,
