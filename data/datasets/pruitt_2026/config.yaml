@@ -1,0 +1,133 @@
+deployTo:
+  - dev
+
+publication:
+  authors:
+    - Pruitt, A.
+    - Yang, L.
+    - Lee, S.
+    - Balafkan, N.
+    - Gao, S.
+    - Seah, C.
+    - Dai, Y.
+    - Davidson, E.
+    - Khan, S.
+    - Liu, J.
+    - Wood, I.
+    - Xu, G.
+    - Huang, X.
+    - Carlson, M.
+    - Zhao, D.
+    - Jamadagni, P.
+    - Dossou, G.
+    - Retallick-Townsley, K.
+    - Li, X.
+    - Papademetris, X.
+    - Deans, P. J. M.
+    - Fernandez Garcia, M.
+    - Gao, H.
+    - Wang, T.
+    - Wang, Z.
+    - Huckins, L.
+    - Hoffman, E. J.
+    - Brennand, K.
+  title: "Convergent and divergent phenotypic impacts of estradiol on neurodevelopmental disorder risk genes"
+  year: 2026
+  journal: "bioRxiv"
+  doi: "10.64898/2026.02.18.706588"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-10-26"
+    comment: >
+      Initial draft — zebrafish baseline behavioral phenotypes for 31
+      NDD/autism risk gene mutants across 24 sleep-wake and visual-startle
+      parameters. Tables 10 and 11 from Pruitt et al. 2026 preprint.
+
+tables:
+
+  - table: pruitt_2026_zf_behavior
+    changelog:
+      - date: "2026-10-26"
+        message: "Initial data load — 744 rows; 31 zebrafish mutants × 24 behavioral parameters"
+
+    shortLabel: pruitt_2026_zf_behavior
+    mediumLabel: "Pruitt 2026 - Zebrafish Baseline Behavioral Phenotypes in 31 NDD Mutants"
+    longLabel: "Baseline sleep-wake and visual-startle behavioral phenotypes in 31 zebrafish NDD/autism risk gene mutants (Pruitt et al. 2026)"
+    description: >
+      Baseline behavioral phenotypes of 31 zebrafish loss-of-function mutants
+      for autism/NDD risk genes, measured across 24 quantitative behavioral
+      parameters: 12 sleep-wake parameters (daytime and nighttime activity,
+      waking activity, sleep bouts, sleep latency, sleep length, and total sleep)
+      and 12 visual-startle response (VSR) parameters (VSR-On and VSR-Off,
+      each measuring average response to all stimuli, post-stimulus activity,
+      response to first and fifth stimuli, and stimulus-minus-post difference).
+      Phenotypes were assessed in stable homozygous mutant lines or F0 mosaic
+      crispant larvae at 5–7 dpf and compared to wild-type or scramble-injected
+      controls using linear mixed models (LMM). Pruitt et al. 2026 preprint,
+      doi:10.64898/2026.02.18.706588, Supplementary Tables 10–11.
+
+    source: >
+      Supplementary Tables 10 (signed -log10 LMM p-values) and 11 (scaled LMM
+      betas). Pruitt et al. 2026, bioRxiv, doi:10.64898/2026.02.18.706588
+
+    in_path: pruitt_2026_zf_behavior.tsv
+    separator: "\t"
+
+    organism: "Danio rerio (larval zebrafish, 5–7 dpf)"
+    organism_key: zebrafish
+    assay: behavior
+    condition:
+      - autism
+      - ndc
+    categories:
+      - zebrafish
+      - behavioral phenotyping
+      - sleep-wake
+      - visual-startle
+      - CRISPR
+      - autism genetics
+      - NDD
+
+    gene_mappings:
+      - column_name: human_gene
+        link_table_name: human_gene
+        species: human
+        perturbed_or_target: perturbed
+
+    pvalue_column: pval
+    effect_column: beta
+
+    fieldLabels:
+      human_gene: >
+        Human HGNC symbol for the autism/NDD risk gene whose zebrafish ortholog
+        was disrupted by loss-of-function mutation. Mapped from zebrafish gene
+        symbol. Note: scn1lab (zebrafish) maps to human SCN1A; it is also
+        related to SCN2A. Pruitt et al. 2026.
+      zebrafish_gene: >
+        Zebrafish gene symbol targeted by CRISPR loss-of-function. Suffix "ab"
+        indicates a combined double-ortholog knockout (e.g., shank3ab = shank3a
+        + shank3b). Pruitt et al. 2026.
+      mutant_id: >
+        Full mutant identifier as reported in Supplementary Tables 10–11,
+        including zebrafish gene and zygosity (e.g., "shank3ab hom:hom" =
+        homozygous double-ortholog KO; "pten hom:het" = compound heterozygous).
+        F0 crispant lines lack a zygosity suffix. Pruitt et al. 2026.
+      behavioral_parameter: >
+        Behavioral assay and parameter measured. "Sleep-Wake:" parameters were
+        quantified over 5–7 dpf under a 14h:10h light:dark cycle (12 parameters,
+        daytime and nighttime). "VSR-On:" = lights-on visual-startle response
+        (dark-to-light flash); "VSR-Off:" = lights-off visual-startle response
+        (light-to-dark flash). 24 parameters total. Pruitt et al. 2026, Fig. 4A.
+      pval: >
+        P-value from linear mixed model (LMM) comparing homozygous mutant or F0
+        crispant larvae versus wild-type or scramble-injected controls for this
+        behavioral parameter. Derived from the signed -log10(p) in Supplementary
+        Table 10: pval = 10^(−|signed_log10_pval|). Pruitt et al. 2026.
+      beta: >
+        Scaled LMM beta coefficient (effect size) for the mutant vs. control
+        comparison on this behavioral parameter. Sign indicates direction:
+        positive = mutant higher than control. Pruitt et al. 2026,
+        Supplementary Table 11.
