@@ -1,0 +1,11 @@
+# Pruitt et al. 2026 — Zebrafish baseline behavioral phenotypes in NDD mutants
+# bioRxiv preprint, doi:10.64898/2026.02.18.706588
+#
+# Source: Supplementary Tables 10 and 11 (zebrafish baseline behavior)
+# Downloaded from: https://www.biorxiv.org/content/10.64898/2026.02.18.706588
+# (Supplementary material section)
+# Refresh cadence: static (preprint; update if published version differs)
+
+# Supplementary tables (all tables in one file):
+curl -L -o pruitt_suppl_tables.xlsx \
+  "https://www.biorxiv.org/content/biorxiv/early/2026/09/19/2026.02.18.706588/DC1/embed/media-1.xlsx"
