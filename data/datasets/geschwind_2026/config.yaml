@@ -1,0 +1,111 @@
+deployTo:
+  - dev
+
+# DRAFT — unpublished SSPsyGene consortium data; no DOI yet.
+# Update publication block when paper is submitted/posted.
+
+publication:
+  authors:
+    - Martin, J.
+    - Geschwind, D. H.
+  title: "Unpublished — bulk RNA-seq DEGs in NGN2-directed iPSC neurons (Geschwind lab, UCLA)"
+  year: 2026
+  journal: "unpublished"
+  sspsygene_grants:
+    - SSPsyGene
+
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-10-26"
+    comment: >
+      Initial draft — limma-voom DEGs for 40 autism/NDD gene perturbations
+      in day-28 NGN2 iPSC-derived neurons. Unpublished SSPsyGene consortium
+      data from Jacqueline Martin / Dan Geschwind lab (UCLA).
+
+tables:
+
+  - table: geschwind_2026_deg
+    changelog:
+      - date: "2026-10-26"
+        message: "Initial data load — 750,160 DEG rows across 40 perturbed genes"
+
+    shortLabel: geschwind_2026_deg
+    mediumLabel: "Geschwind 2026 - Bulk RNA-seq DEGs in NGN2 iPSC Neurons (40 genes)"
+    longLabel: "Differentially expressed genes from limma-voom bulk RNA-seq of 40 autism/NDD gene perturbations in NGN2-directed day-28 iPSC-derived neurons (Geschwind lab, UCLA)"
+    description: >
+      Differentially expressed genes (DEGs) from bulk RNA-seq of day-28
+      NGN2-directed iPSC-derived neurons with perturbations of 40
+      autism/NDD risk genes (AFF3, ANK2, ARID1B, ASXL3, BCL11A, BRSK2,
+      CASK, CASKIN1, CHD7, CNTNAP2, CTNNB1, DLL1, DNMT3A, DYRK1A, FBXO11,
+      FMR1, FOXP1, FOXP2, GABRA1, GIGYF1, HERC1, HIVEP2, KCNB1, KCNMA1,
+      KCNQ3, KMT2A, KMT2C, KMT5B, MEIS2, NF1, PHF21A, PLXNA1, PTEN, SCN2A,
+      SHANK3, TBR1, TCF4, TCF7L2, TLK2, TRIO). Each perturbed line was
+      compared to controls using limma-voom. Unpublished SSPsyGene consortium
+      data (Jacqueline Martin, Geschwind lab, UCLA).
+
+    source: >
+      DGE_allContrasts_allGenes.csv provided by Jacqueline Martin,
+      Geschwind lab, UCLA. Unpublished SSPsyGene consortium data.
+
+    in_path: geschwind_2026_deg.tsv
+    separator: "\t"
+
+    organism: "Homo sapiens (iPSC-derived neurons, day 28 NGN2)"
+    organism_key: human
+    assay: perturbation_deg
+    condition:
+      - autism
+    categories:
+      - bulk RNA-seq
+      - iPSC neurons
+      - NGN2
+      - limma-voom
+      - human
+      - SSPsyGene
+      - UCLA L4
+
+    gene_mappings:
+      - column_name: perturbed_gene
+        link_table_name: perturbed_gene
+        species: human
+        perturbed_or_target: perturbed
+      - column_name: gene
+        link_table_name: target_gene
+        species: human
+        perturbed_or_target: target
+
+    pvalue_column: pvalue
+    fdr_column: padj
+    effect_column: log2FC
+
+    fieldLabels:
+      perturbed_gene: >
+        Autism/NDD risk gene perturbed in iPSC-derived neurons. One of 40
+        genes profiled in this study. HGNC symbol. Geschwind lab, UCLA
+        (unpublished).
+      gene: >
+        Target gene whose expression was measured by bulk RNA-seq. HGNC symbol
+        mapped from Ensembl ID; original Ensembl ID preserved in gene_ensembl.
+        Geschwind lab, UCLA.
+      gene_ensembl: >
+        Ensembl gene ID (GRCh38, unversioned) for the target gene.
+        Geschwind lab, UCLA.
+      log2fc: >
+        log2 fold change in gene expression: perturbed vs. control neurons
+        (limma-voom). Positive = upregulated in KO. Geschwind lab, UCLA.
+      avg_expr: >
+        Average log2-CPM expression across all samples for this gene
+        (limma AveExpr). Geschwind lab, UCLA.
+      t_stat: >
+        limma moderated t-statistic for the perturbed vs. control contrast.
+        Geschwind lab, UCLA.
+      pvalue: >
+        Nominal p-value from limma moderated t-test (KO vs. control).
+        Geschwind lab, UCLA.
+      padj: >
+        Benjamini-Hochberg adjusted p-value (FDR) across all genes tested
+        for this perturbed gene. Geschwind lab, UCLA.
+      b: >
+        log-odds that this gene is differentially expressed (limma B-statistic).
+        Positive = more likely DE. Geschwind lab, UCLA.
