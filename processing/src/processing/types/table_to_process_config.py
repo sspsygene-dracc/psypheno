@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from dataclasses import dataclass, field
@@ -92,6 +93,7 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "overview_matrix_phenotype_columns",
         "overview_matrix_metric",
         "overview_matrix_metric_domain",
+        "significant_only",
         "changelog",
         # Internal: dataset-level publication block, merged in by TablesConfig.
         "_publication",
@@ -345,6 +347,72 @@ class PublicationInfo:
         )
 
 
+@dataclass(frozen=True)
+class SignificantOnly:
+    """A table whose source published only its significant rows.
+
+    Such a table can't say "measured, not significant" — every unreported
+    (perturbation, readout) pair looks like "not measured". For a pooled screen
+    the tested universe can still be inferred: all perturbations are read out
+    on the same transcriptomes, so a readout reported as a hit for *any*
+    perturbation in a context (e.g. a cell type) was measured for every
+    perturbation tested in that context.
+
+    - `context_columns`: columns that define "the same screen" (normalized
+      names, e.g. ``["cell_type"]``). Empty = the whole table is one context.
+    - `tested_perturbations`: perturbed-column values of the full perturbation
+      library, from the paper's methods/supplement. Perturbations with no
+      reported row at all are otherwise invisible; listed ones are assumed
+      tested in every context (their per-context cell counts are unknown).
+      Values already present in the table may be listed too.
+    """
+
+    context_columns: list[str] = field(default_factory=list)
+    tested_perturbations: list[str] = field(default_factory=list)
+
+    _KEYS = frozenset({"context_columns", "tested_perturbations"})
+
+    @classmethod
+    def from_yaml(cls, raw: Any, *, table_name: str) -> "SignificantOnly | None":
+        if raw is None or raw is False:
+            return None
+        if raw is True:
+            return cls()
+        if not isinstance(raw, dict):
+            raise ValueError(
+                f"table {table_name}: significant_only must be a mapping "
+                f"(context_columns / tested_perturbations) or true; got "
+                f"{type(raw).__name__}"
+            )
+        unknown = set(raw) - cls._KEYS
+        if unknown:
+            raise ValueError(
+                f"table {table_name}: unknown significant_only key(s) "
+                f"{sorted(unknown)}; expected {sorted(cls._KEYS)}"
+            )
+        contexts = raw.get("context_columns") or []
+        if isinstance(contexts, str):
+            contexts = [contexts]
+        tested = raw.get("tested_perturbations") or []
+        if not isinstance(tested, list):
+            raise ValueError(
+                f"table {table_name}: significant_only.tested_perturbations must "
+                f"be a list of perturbed-column values"
+            )
+        return cls(
+            context_columns=[normalize_column_name(str(c)) for c in contexts],
+            tested_perturbations=[str(v).strip() for v in tested if str(v).strip()],
+        )
+
+    def to_json(self) -> str:
+        return json.dumps(
+            {
+                "context_columns": self.context_columns,
+                "tested_perturbations": self.tested_perturbations,
+            }
+        )
+
+
 @dataclass
 class TableToProcessConfig:
     table: str
@@ -418,6 +486,10 @@ class TableToProcessConfig:
     overview_matrix_metric: str | None = None
     # Optional [lo, hi] override of the metric's default color-scale domain.
     overview_matrix_metric_domain: list[float] | None = None
+    # Set when the source publishes only its significant rows (see
+    # `SignificantOnly`). Lets the overview matrix tell "tested, not
+    # significant" apart from "not measured" by inferring the tested universe.
+    significant_only: "SignificantOnly | None" = None
     publication_title: str | None = None
     publication_first_author: str | None = None
     publication_last_author: str | None = None
@@ -553,6 +625,18 @@ class TableToProcessConfig:
                 raise ValueError(
                     f"table {self.table}: overview_matrix requires "
                     f"{', '.join(missing)}."
+                )
+        if self.significant_only is not None:
+            if num_perturbed == 0 or num_target == 0:
+                raise ValueError(
+                    f"table {self.table}: significant_only needs both a perturbed "
+                    f"and a target gene_mapping — the tested universe is inferred "
+                    f"per (perturbation, readout gene) pair."
+                )
+            if not (self.fdr_column or self.pvalue_column):
+                raise ValueError(
+                    f"table {self.table}: significant_only needs a fdr_column or "
+                    f"pvalue_column."
                 )
 
     @classmethod
@@ -702,6 +786,9 @@ class TableToProcessConfig:
             str(c) for c in (json_data.get("overview_matrix_phenotype_columns") or [])
         ]
         overview_matrix_metric = json_data.get("overview_matrix_metric")
+        significant_only = SignificantOnly.from_yaml(
+            json_data.get("significant_only"), table_name=json_data.get("table", "?")
+        )
         raw_metric_domain = json_data.get("overview_matrix_metric_domain")
         overview_matrix_metric_domain = (
             [float(v) for v in raw_metric_domain]
@@ -744,6 +831,7 @@ class TableToProcessConfig:
             overview_matrix_phenotype_columns=overview_matrix_phenotype_columns,
             overview_matrix_metric=overview_matrix_metric,
             overview_matrix_metric_domain=overview_matrix_metric_domain,
+            significant_only=significant_only,
             publication_title=publication.get("title"),
             publication_first_author=first_author,
             publication_last_author=last_author,

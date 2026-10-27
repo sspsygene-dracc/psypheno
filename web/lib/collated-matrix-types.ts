@@ -72,7 +72,22 @@ export interface MatrixCell {
   nSig?: number;
   nMeasured?: number;
   best?: number;
+  /**
+   * Expanded mode, significant-only sources: the source published only its
+   * hits, and this pair is *inferred* "tested, not significant" — no value was
+   * ever published, so `value` is meaningless (0). The basis says why:
+   * - "screen": the perturbation has reported hits in the same context (e.g.
+   *   cell type), and this readout was a hit for another perturbation there.
+   * - "library": the perturbation is only on the paper's perturbation list (no
+   *   reported row at all) — assumed tested in every context the table covers.
+   */
+  inferred?: InferredBasis;
+  /** Summary mode: how many of `nMeasured` readouts were inferred, and on what basis. */
+  nInferred?: number;
+  inferredBasis?: InferredBasis;
 }
+
+export type InferredBasis = "screen" | "library";
 
 export interface MatrixGeneRow {
   centralGeneId: number;

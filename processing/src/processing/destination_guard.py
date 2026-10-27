@@ -533,6 +533,7 @@ def verify_destination(
                 ("overview_matrix_expanded_cells", "source_table", False),
                 ("overview_matrix_summary_columns", "source_table", False),
                 ("overview_matrix_summary_cells", "source_table", False),
+                ("overview_matrix_inferred_cells", "source_table", False),
             ],
             prod_allowed,
             all_known,

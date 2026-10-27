@@ -157,12 +157,38 @@ function sigRuleText(rule: string | undefined): string {
  * text is built from the raw counts the API ships alongside it.
  */
 function summaryValueText(column: MatrixColumn, cell: MatrixCell): string {
-  const head =
+  let head =
     `${(cell.nSig ?? 0).toLocaleString()} of ` +
     `${(cell.nMeasured ?? 0).toLocaleString()} readouts significant ` +
     `(${sigRuleText(column.sigRule)})`;
-  if (cell.best === undefined || column.baseMetric === undefined) return head;
+  if (cell.nInferred) {
+    head +=
+      ` · ${cell.nInferred.toLocaleString()} of those measured are inferred ` +
+      `(the source lists only significant results; ` +
+      (cell.inferredBasis === "library"
+        ? "this gene is only on its perturbation list)"
+        : "a readout counts as measured where it was a hit for another perturbation in the same cell type)");
+  }
+  // best_value 0 = no reported readout at all (every measurement inferred).
+  if (cell.best === undefined || cell.best <= 0 || column.baseMetric === undefined)
+    return head;
   return `${head} · strongest: ${fmtValue(column.baseMetric, cell.best)}`;
+}
+
+/**
+ * Popover text for an inferred "tested, not significant" cell. The source
+ * published only significant results, so there is no value to show — only
+ * why the pair is believed to have been measured.
+ */
+function inferredValueText(cell: MatrixCell): string {
+  return cell.inferred === "library"
+    ? "Not reported — assumed tested, not significant. The source lists only " +
+        "significant results; this gene is on its perturbation list but has no " +
+        "reported result, so it is assumed tested in every cell type the table " +
+        "covers (per-cell-type cell counts weren't published)."
+    : "Not reported — inferred tested, not significant. The source lists only " +
+        "significant results; this readout was a hit for another perturbation in " +
+        "a cell type where this gene was also tested, so it was measured here too.";
 }
 
 interface BandGroup {
@@ -673,7 +699,9 @@ export default function CollatedMatrix({
     ? selCell
       ? summary
         ? summaryValueText(sel.col, selCell)
-        : fmtValue(sel.col.metric, selCell.value)
+        : selCell.inferred !== undefined
+          ? inferredValueText(selCell)
+          : fmtValue(sel.col.metric, selCell.value)
       : "No data"
     : "";
 

@@ -3,6 +3,7 @@ import Head from "next/head";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CollatedMatrix, { type MetricDomains } from "@/components/CollatedMatrix";
+import { INFERRED_DOT, INFERRED_FILL } from "@/lib/matrix-canvas";
 import {
   legendEndpoints,
   legendGradientCss,
@@ -49,8 +50,17 @@ function ToggleButton({
   );
 }
 
+/** True when any cell is an inferred "tested, not significant" pair. */
+function hasInferredCells(data: CollatedMatrixResponse): boolean {
+  return data.genes.some((g) => {
+    for (const key in g.cells) if (g.cells[key].inferred !== undefined) return true;
+    return false;
+  });
+}
+
 function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
   const metrics = data.meta.metrics;
+  const showInferred = useMemo(() => hasInferredCells(data), [data]);
   if (metrics.length === 0) return null;
   return (
     <div
@@ -100,6 +110,52 @@ function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
           </div>
         );
       })}
+      {showInferred && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+            fontSize: 12,
+            color: "#4b5563",
+            maxWidth: 300,
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "#374151" }}>
+            Tested, not significant (inferred)
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span
+              aria-hidden="true"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                width: 15,
+                height: 15,
+                borderRadius: 2,
+                background: INFERRED_FILL,
+                border: "1px solid rgba(0,0,0,0.08)",
+              }}
+            >
+              <span
+                style={{
+                  width: 3,
+                  height: 3,
+                  borderRadius: "50%",
+                  background: INFERRED_DOT,
+                }}
+              />
+            </span>
+            <span style={{ color: "#9ca3af", fontSize: 11 }}>
+              Some sources publish only their significant results; where a readout
+              was a hit for another perturbation in the same screen, we infer it was
+              measured here too. Click a cell for the basis.
+            </span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -202,6 +258,24 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             percentage because datasets differ in whether they store their
             non-significant readouts at all, which would make the denominators
             mean different things.
+          </dd>
+
+          <dt style={METHODS_TERM}>Sources that publish only significant results</dt>
+          <dd style={METHODS_DEF}>
+            Some screens publish only their hits, so an absent result could mean
+            either &ldquo;tested, not significant&rdquo; or &ldquo;never
+            measured&rdquo;. For pooled Perturb-seq screens we recover part of the
+            difference: every perturbation is read out on the same cells, so a gene
+            reported as a hit for <em>any</em>{" "}perturbation in a cell type was
+            measured for every perturbation tested in that cell type. Those pairs are
+            drawn as{" "}<strong>tested, not significant (inferred)</strong>{" "}and
+            count toward the Summary view&rsquo;s &ldquo;measured&rdquo; totals.
+            A perturbation counts as tested in a cell type only if it has at least
+            one reported result there. Perturbations on the paper&rsquo;s library
+            list with no reported result at all are assumed tested in every cell
+            type the table covers; this is a weaker assumption and is labelled as
+            such. Readouts that were never a hit anywhere stay &ldquo;no
+            data&rdquo;. No p-values or effect sizes are imputed.
           </dd>
 
           <dt style={METHODS_TERM}>Clustering rows and columns</dt>

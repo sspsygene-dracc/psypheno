@@ -310,3 +310,70 @@ def test_dataset_level_links_rejected_when_tables_exist(tmp_path: Path) -> None:
     _write_dataset(tmp_path, "d1", "d1_table", links=["https://example.org"])
     with pytest.raises(ValueError, match="only for datasets without tables"):
         TablesConfig.from_yaml_root(tmp_path, Path("datasets"))
+
+
+# ── significant_only ────────────────────────────────────────────────────────
+
+
+def _screen_table(**table_overrides) -> dict:
+    table = {
+        "table": "screen_table",
+        "description": "significant-only fixture",
+        "in_path": "data.tsv",
+        "separator": "\t",
+        "fdr_column": "padj",
+        "gene_mappings": [
+            {
+                "column_name": "perturbation",
+                "link_table_name": "perturbation_gene",
+                "species": "mouse",
+                "perturbed_or_target": "perturbed",
+            },
+            {
+                "column_name": "gene",
+                "link_table_name": "gene",
+                "species": "mouse",
+                "perturbed_or_target": "target",
+            },
+        ],
+    }
+    table.update(table_overrides)
+    return table
+
+
+def _load_screen(tmp_path: Path, **table_overrides):
+    _write_dataset(
+        tmp_path, "d1", "unused", tables=[_screen_table(**table_overrides)]
+    )
+    return TablesConfig.from_yaml_root(tmp_path, Path("datasets")).tables[0]
+
+
+def test_significant_only_is_parsed_and_normalized(tmp_path: Path) -> None:
+    table = _load_screen(
+        tmp_path,
+        significant_only={
+            "context_columns": "Cell Type",
+            "tested_perturbations": ["Auts2", " Ep300 ", ""],
+        },
+    )
+    assert table.significant_only is not None
+    assert table.significant_only.context_columns == ["cell_type"]
+    assert table.significant_only.tested_perturbations == ["Auts2", "Ep300"]
+
+
+def test_significant_only_absent_by_default(tmp_path: Path) -> None:
+    assert _load_screen(tmp_path).significant_only is None
+
+
+def test_significant_only_rejects_unknown_keys(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="unknown significant_only key"):
+        _load_screen(tmp_path, significant_only={"contexts": ["cell_type"]})
+
+
+def test_significant_only_needs_perturbed_and_target_mappings(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="perturbed\\s+and a target"):
+        _load_screen(
+            tmp_path,
+            significant_only=True,
+            gene_mappings=[_screen_table()["gene_mappings"][0]],
+        )

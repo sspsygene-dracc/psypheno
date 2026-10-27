@@ -260,13 +260,28 @@ function buildSummaryResponse(args: {
   }
 
   const keyByTable = new Map(columns.map((c) => [c.sourceTable, c.key]));
-  for (const [sourceTable, geneId, nSig, nMeasured, best] of db
+  // n_inferred / inferred_basis exist only in overview DBs built with
+  // significant-only inference; older files read them as 0 / NULL.
+  const summaryCols = new Set(
+    (
+      db
+        .prepare("PRAGMA overview.table_info(overview_matrix_summary_cells)")
+        .all() as Array<{ name: string }>
+    ).map((c) => c.name)
+  );
+  const inferredSelect = summaryCols.has("n_inferred")
+    ? "n_inferred, inferred_basis"
+    : "0 AS n_inferred, NULL AS inferred_basis";
+  for (const [sourceTable, geneId, nSig, nMeasured, best, nInferred, basis] of db
     .prepare(
-      "SELECT source_table, central_gene_id, n_sig, n_measured, best_value " +
-        "FROM overview.overview_matrix_summary_cells"
+      "SELECT source_table, central_gene_id, n_sig, n_measured, best_value, " +
+        inferredSelect +
+        " FROM overview.overview_matrix_summary_cells"
     )
     .raw()
-    .all() as Array<[string, number, number, number, number]>) {
+    .all() as Array<
+    [string, number, number, number, number, number, string | null]
+  >) {
     const gene = byId.get(geneId);
     const key = keyByTable.get(sourceTable);
     if (!gene || key === undefined) continue;
@@ -277,6 +292,13 @@ function buildSummaryResponse(args: {
       nSig,
       nMeasured,
       best,
+      ...(nInferred > 0
+        ? {
+            nInferred,
+            inferredBasis:
+              basis === "library" ? ("library" as const) : ("screen" as const),
+          }
+        : {}),
     };
   }
 
@@ -429,6 +451,22 @@ export default async function handler(
       )
       .raw();
 
+    // Absent in overview DBs built before significant-only inference.
+    const inferredStmt = tableExists(db, "overview_matrix_inferred_cells", "overview")
+      ? db
+          .prepare(
+            `SELECT c.central_gene_id, c.column_value, c.basis
+               FROM (SELECT column_value
+                       FROM overview.overview_matrix_expanded_columns
+                      WHERE modality_key = ? AND source_table = ?
+                      ORDER BY sort_rank ASC LIMIT ?) k
+               CROSS JOIN overview.overview_matrix_inferred_cells c
+                 ON c.modality_key = ? AND c.source_table = ?
+                    AND c.column_value = k.column_value`
+          )
+          .raw()
+      : null;
+
     if (mode === "summary") {
       const body = buildSummaryResponse({
         db,
@@ -505,6 +543,27 @@ export default async function handler(
           const gene = byId.get(geneId);
           if (!gene) continue;
           gene.cells[`${prefix}:${st.source_table}:${columnValue}`] = { value };
+        }
+        // Significant-only sources: pairs the build inferred were tested but
+        // not significant. Never overwrite a reported cell (the build doesn't
+        // emit both, but a reported value must always win).
+        if (inferredStmt) {
+          for (const [geneId, columnValue, basis] of inferredStmt.all(
+            modalityKey,
+            st.source_table,
+            K,
+            modalityKey,
+            st.source_table
+          ) as Array<[number, string, string]>) {
+            const gene = byId.get(geneId);
+            if (!gene) continue;
+            const key = `${prefix}:${st.source_table}:${columnValue}`;
+            if (gene.cells[key] !== undefined) continue;
+            gene.cells[key] = {
+              value: 0,
+              inferred: basis === "library" ? "library" : "screen",
+            };
+          }
         }
 
         sectionSpan += colRows.length;

@@ -462,7 +462,7 @@ def test_expansion_metadata_and_info(conn: sqlite3.Connection) -> None:
     info = dict(conn.execute("SELECT key, value FROM overview_matrix_info"))
     assert info["min_groups_floor"] == "2"
     assert json.loads(info["expanded_source_tables"]) == ["expr"]
-    assert info["schema_version"] == "4"
+    assert info["schema_version"] == "5"
     assert info["materialize_top_m"] == "200"
 
 
@@ -591,3 +591,174 @@ def test_all_destinations_build_includes_non_prod_tables(
     info = dict(conn.execute("SELECT key, value FROM overview_matrix_info"))
     assert info["destination_scope"] == "all"
     assert json.loads(info["expanded_source_tables"]) == ["expr"]
+
+
+# --- significant-only tables: inferred tested universe ----------------------
+
+
+def _add_significant_only_screen(
+    conn: sqlite3.Connection, *, tested: list[str] | None = None, contexts=("ctx",)
+) -> None:
+    """A pooled screen that published only hits, in two cell types.
+
+    Perturbations P_AAA (gene 1), P_BBB (gene 2), P_CCC (gene 3). Every row is
+    significant. Cell type X: T1 hit for P_AAA and P_BBB, T2 hit for P_AAA.
+    Cell type Y: T3 hit for P_CCC only. So P_BBB (tested in X) was measured on
+    T1 + T2, but not T3 (measured only in Y, where P_BBB has no row).
+    """
+    conn.execute(
+        "CREATE TABLE screen (id INTEGER, pert TEXT, target TEXT, ctx TEXT, "
+        "p REAL, fdr REAL)"
+    )
+    rows = [
+        (1, "P_AAA", "T1", "X", 1e-6, 0.001),
+        (2, "P_BBB", "T1", "X", 1e-5, 0.01),
+        (3, "P_AAA", "T2", "X", 1e-4, 0.02),
+        (4, "P_CCC", "T3", "Y", 1e-4, 0.03),
+    ]
+    conn.executemany("INSERT INTO screen VALUES (?, ?, ?, ?, ?, ?)", rows)
+    pert_gene = {"P_AAA": 1, "P_BBB": 2, "P_CCC": 3}
+    _add_link(conn, "screen__pert", [(pert_gene[r[1]], r[0]) for r in rows])
+    _register(
+        conn,
+        "screen",
+        "perturbation_deg",
+        "target:screen__gene:target,pert:screen__pert:perturbed",
+        pvalue_column="p",
+        fdr_column="fdr",
+    )
+    for col in ("significant_only", "gene_species"):
+        try:
+            conn.execute(f"ALTER TABLE data_tables ADD COLUMN {col} TEXT")
+        except sqlite3.OperationalError:
+            pass
+    conn.execute(
+        "UPDATE data_tables SET significant_only = ?, gene_species = 'human' "
+        "WHERE table_name = 'screen'",
+        (
+            json.dumps(
+                {"context_columns": list(contexts), "tested_perturbations": tested or []}
+            ),
+        ),
+    )
+
+
+def _inferred_basis(conn: sqlite3.Connection, table: str) -> dict[tuple[int, str], str]:
+    return {
+        (gene_id, column): basis
+        for gene_id, column, basis in conn.execute(
+            "SELECT central_gene_id, column_value, basis FROM overview_matrix_inferred_cells "
+            "WHERE source_table = ?",
+            (table,),
+        )
+    }
+
+
+def _inferred(conn: sqlite3.Connection, table: str) -> set[tuple[int, str]]:
+    return {
+        (gene_id, column)
+        for gene_id, column in conn.execute(
+            "SELECT central_gene_id, column_value FROM overview_matrix_inferred_cells "
+            "WHERE source_table = ?",
+            (table,),
+        )
+    }
+
+
+def _summary_inferred(conn: sqlite3.Connection, table: str) -> dict[int, tuple[int, int, int]]:
+    return {
+        gene_id: (n_sig, n_measured, n_inferred)
+        for gene_id, n_sig, n_measured, n_inferred in conn.execute(
+            "SELECT central_gene_id, n_sig, n_measured, n_inferred "
+            "FROM overview_matrix_summary_cells WHERE source_table = ?",
+            (table,),
+        )
+    }
+
+
+def test_infer_measured_readouts_is_context_aware() -> None:
+    from processing.overview_matrix import infer_measured_readouts
+
+    rows = [("a", "X", "T1"), ("b", "X", "T1"), ("a", "X", "T2"), ("c", "Y", "T3")]
+    measured = infer_measured_readouts(rows, {"a": [1], "b": [2], "c": [3]}, set())
+    assert measured == {1: {"T1", "T2"}, 2: {"T1", "T2"}, 3: {"T3"}}
+
+
+def test_infer_measured_readouts_library_gene_assumed_tested_everywhere() -> None:
+    from processing.overview_matrix import infer_measured_readouts
+
+    rows = [("a", "X", "T1"), ("c", "Y", "T3")]
+    measured = infer_measured_readouts(rows, {"a": [1], "c": [3]}, {1, 4})
+    # Gene 4 has no reported row: every context's readouts. Gene 1 keeps its
+    # observed contexts — being listed doesn't widen a reported perturbation.
+    assert measured[4] == {"T1", "T3"}
+    assert measured[1] == {"T1"}
+
+
+def test_significant_only_infers_tested_not_significant_cells() -> None:
+    conn = _make_db()
+    _add_significant_only_screen(conn)
+    materialize_overview_matrix(conn, min_groups=1)
+
+    # Reported cells are untouched.
+    assert set(_cells(conn, "screen")) == {(1, "T1"), (2, "T1"), (1, "T2"), (3, "T3")}
+    # BBB was tested in X, where T2 was measured → inferred n.s. Nothing else:
+    # CCC's T3 was measured in Y only, where AAA/BBB have no rows.
+    assert _inferred(conn, "screen") == {(2, "T2")}
+    # Summary: BBB measured on 2 readouts (1 reported + 1 inferred), 1 significant.
+    assert _summary_inferred(conn, "screen") == {
+        1: (2, 2, 0),
+        2: (1, 2, 1),
+        3: (1, 1, 0),
+    }
+
+
+def test_significant_only_without_contexts_is_one_screen() -> None:
+    conn = _make_db()
+    _add_significant_only_screen(conn, contexts=())
+    materialize_overview_matrix(conn, min_groups=1)
+    assert _inferred(conn, "screen") == {
+        (1, "T3"),
+        (2, "T2"),
+        (2, "T3"),
+        (3, "T1"),
+        (3, "T2"),
+    }
+
+
+def test_library_only_perturbation_becomes_a_row_with_inferred_cells() -> None:
+    conn = _make_db()
+    _add_significant_only_screen(conn, tested=["DDD", "NOPE"])
+    materialize_overview_matrix(conn, min_groups=1)
+    genes = {row[0] for row in conn.execute("SELECT central_gene_id FROM overview_matrix_genes")}
+    assert 4 in genes  # DDD: in the library, zero reported rows
+    assert {(4, "T1"), (4, "T2"), (4, "T3")} <= _inferred(conn, "screen")
+    # Tested on all three readouts, none significant, all inferred; no best value.
+    assert _summary_inferred(conn, "screen")[4] == (0, 3, 3)
+    best = conn.execute(
+        "SELECT best_value FROM overview_matrix_summary_cells "
+        "WHERE source_table = 'screen' AND central_gene_id = 4"
+    ).fetchone()
+    assert best == (0.0,)
+    # The weaker assumption is labelled as such; within-screen inference isn't.
+    basis = _inferred_basis(conn, "screen")
+    assert {basis[(4, t)] for t in ("T1", "T2", "T3")} == {"library"}
+    assert basis[(2, "T2")] == "screen"
+    assert conn.execute(
+        "SELECT central_gene_id, inferred_basis FROM overview_matrix_summary_cells "
+        "WHERE source_table = 'screen' AND n_inferred > 0 ORDER BY 1"
+    ).fetchall() == [(2, "screen"), (4, "library")]
+
+
+def test_unknown_context_column_skips_inference() -> None:
+    conn = _make_db()
+    _add_significant_only_screen(conn, contexts=("no_such_column",))
+    materialize_overview_matrix(conn, min_groups=1)
+    assert _inferred(conn, "screen") == set()
+
+
+def test_tables_without_significant_only_get_no_inferred_cells(
+    conn: sqlite3.Connection,
+) -> None:
+    materialize_overview_matrix(conn)
+    assert conn.execute("SELECT COUNT(*) FROM overview_matrix_inferred_cells").fetchone() == (0,)

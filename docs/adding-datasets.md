@@ -708,15 +708,51 @@ Two things to know when adding a dataset:
   matrix for one column per dataset.
 - **It is a count, not a percentage**, because tables differ in whether they
   store their non-significant readouts at all. A table pre-filtered to its
-  significant rows (like `mouse_perturb_deg`) has `n_sig == n_measured` for every
-  gene, so a fraction would read 100% everywhere. If your table *does* carry the
-  non-significant rows, keep them — the `n_measured` in the popover is then the
-  honest denominator a reader can judge the count against.
+  significant rows would have `n_sig == n_measured` for every gene, so a fraction
+  would read 100% everywhere — declare such tables `significant_only` (below) so
+  `n_measured` includes the inferred tested-but-not-significant readouts. If your
+  table *does* carry the non-significant rows, keep them — the `n_measured` in the
+  popover is then the honest denominator a reader can judge the count against.
 
 The wide-phenotype axis has only a signed `-log10(nominal p)`, so its count is
 taken against `|value| >= -log10(0.05)` rather than an FDR; the popover says
 which rule produced it. A metric with no significance notion at all
 (`activity_ratio`) gets no summary column, and the build logs a warning saying so.
+
+#### Tables that publish only their significant rows (`significant_only`)
+
+Many Perturb-seq supplements list only the hits (e.g. `padj < 0.05`). On the
+matrix, every unreported pair would then look like "not measured", although most
+were tested and simply weren't significant. For a **pooled screen** the
+difference can be partly recovered: all perturbations are read out on the same
+cells, so a gene reported as a hit for *any* perturbation in a cell type was
+measured for every perturbation tested in that cell type. Declare it:
+
+```yaml
+    overview_matrix: true
+    significant_only:
+      context_columns: [cell_type]       # what "the same screen" means; omit = whole table
+      tested_perturbations: [Adnp, Ankrd11, Auts2, ...]   # full library, optional
+```
+
+- `context_columns` — columns that define one screen/readout context, usually the
+  cell type. A perturbation counts as tested in a context only if it has at least
+  one reported row there (a perturbation with too few cells in a cell type has no
+  rows there, so it isn't over-claimed).
+- `tested_perturbations` — the paper's full perturbation library (guide list in
+  the methods/supplement), in the perturbed column's own vocabulary. Needed for
+  perturbations with **no reported row at all**, which are otherwise invisible;
+  they are assumed tested in every context the table covers, and the matrix labels
+  that as the weaker basis. Leave it out if the list isn't available.
+- Requires a `perturbed` and a `target` gene mapping and a p/FDR column. Only the
+  gene-target axis uses it.
+
+The matrix draws inferred pairs as grey tiles with a dot ("tested, not
+significant (inferred)"), and the Summary popover says how many of the measured
+readouts were inferred. Nothing is imputed: inferred pairs carry no p-value or
+effect size. Readouts never reported for anyone stay "no data". Worked examples:
+`zheng_2026`, `mouse-perturb-4tf`, `shi_2026`. If the authors can share the full
+(unfiltered) table, prefer that and drop `significant_only`.
 
 #### Implicit (whole-table) perturbed gene (`constant_value`)
 

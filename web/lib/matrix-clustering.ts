@@ -49,6 +49,9 @@ function normalizedMatrix(
       const cell = g.cells[columns[c].key];
       if (
         cell === undefined ||
+        // Inferred "tested, not significant": a non-hit with no value — the
+        // same "nothing here" as a clamped cell, so it is set aside likewise.
+        cell.inferred !== undefined ||
         !isInformativeForClustering(columns[c].metric, cell.value)
       ) {
         row[c] = NaN;

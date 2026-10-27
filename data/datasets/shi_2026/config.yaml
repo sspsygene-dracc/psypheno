@@ -56,6 +56,12 @@ tables:
   # but not loaded into the website — DESeq2 pseudobulk is the recommended table.
   - table: shi_2026_deseq2
     overview_matrix: true
+    # Pre-filtered to FDR < 0.05 by the authors. Pooled screen, so the overview
+    # matrix infers "tested, not significant" per cell type. The full library of
+    # 1,947 perturbed genes isn't in the files we received (the table covers
+    # 1,876); add it as tested_perturbations once available.
+    significant_only:
+      context_columns: [cell_type]
     changelog:
       - date: "2026-08-17"
         message: "Initial data load"

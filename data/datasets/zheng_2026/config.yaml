@@ -72,6 +72,17 @@ tables:
     fdr_column: padj
     effect_column: logFC
     overview_matrix: true
+    # Only padj < 0.05 rows were published. All 16 perturbations share one
+    # pooled screen, so a gene reported as a DEG for any perturbation in a cell
+    # type was measured for every perturbation tested there; the overview
+    # matrix uses that to separate "tested, not significant" from "not
+    # measured". The library (Table S1, gRNA distribution in the 16-gene pool)
+    # includes 5 genes with no significant DEG: Auts2, Ep300, Foxp2, Kmt2e,
+    # Setbp1 (~1,700-2,200 assigned cells each, Table S2).
+    significant_only:
+      context_columns: [cell_type]
+      tested_perturbations: [Adnp, Ankrd11, Auts2, Bcl11a, Crebbp, Ep300, Foxp2,
+        Kmt2e, Kmt5b, Mbd5, Mef2c, Myt1l, Rai1, Setbp1, Setd2, Sin3a]
 
     gene_mappings:
       - column_name: perturbation

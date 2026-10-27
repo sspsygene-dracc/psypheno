@@ -53,6 +53,12 @@ deployTo:
 tables:
   - table: mouse_perturb_deg
     overview_matrix: true  # #212 overview matrix source
+    # Table S4 lists significant genes only (see description). Pooled screen:
+    # a gene reported for any perturbation in a cell type was measured for every
+    # perturbation tested in that cell type (>50 cells, per the STAR Methods).
+    significant_only:
+      context_columns: [cell_type]
+      tested_perturbations: [Foxg1, Nr2f1, Tbr1, Tcf4]
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"

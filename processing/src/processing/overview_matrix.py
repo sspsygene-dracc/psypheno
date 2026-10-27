@@ -54,7 +54,7 @@ from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import normalize_column_name
 
 
-SCHEMA_VERSION = "4"
+SCHEMA_VERSION = "5"
 
 # -log10(p) clamp for neglog_* heatmap cells. The lower bound keeps every present
 # cell visible against "no data"; the upper bound stops a single p ~ 1e-49 row
@@ -105,6 +105,7 @@ _TABLES = (
     "overview_matrix_expanded_cells",
     "overview_matrix_summary_columns",
     "overview_matrix_summary_cells",
+    "overview_matrix_inferred_cells",
     "overview_matrix_info",
 )
 
@@ -265,7 +266,25 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         n_sig INTEGER NOT NULL,
         n_measured INTEGER NOT NULL,
         best_value REAL NOT NULL,
+        n_inferred INTEGER NOT NULL DEFAULT 0,
+        inferred_basis TEXT,
         PRIMARY KEY (source_table, central_gene_id)) WITHOUT ROWID"""
+    )
+    # "Tested, not significant" cells *inferred* for significant-only tables
+    # (see `infer_measured_readouts`). Kept apart from the expanded cells: they
+    # carry no value — the source never published one — and every existing
+    # reader of expanded_cells keeps meaning "reported". `basis` is "screen"
+    # (the perturbation has reported rows in that context) or "library" (it is
+    # only on the paper's perturbation list — a weaker assumption).
+    conn.execute(
+        """CREATE TABLE overview_matrix_inferred_cells (
+        modality_key TEXT NOT NULL,
+        source_table TEXT NOT NULL,
+        column_value TEXT NOT NULL,
+        central_gene_id INTEGER NOT NULL,
+        basis TEXT NOT NULL,
+        PRIMARY KEY (modality_key, source_table, column_value, central_gene_id))
+        WITHOUT ROWID"""
     )
     conn.execute(
         """CREATE TABLE overview_matrix_info (
@@ -423,6 +442,8 @@ def _write_summary(
     n_sig: dict[int, int],
     n_measured: dict[int, int],
     best: dict[int, float],
+    n_inferred: dict[int, int] | None = None,
+    library_only: set[int] | None = None,
 ) -> None:
     """Write one dataset’s collapsed summary column and its cells (#234).
 
@@ -430,7 +451,13 @@ def _write_summary(
     of the table’s readouts. Genes with no measurement at all are simply absent
     — the matrix is sparse, and the frontend draws a missing cell differently
     from a measured-but-empty one (n_sig = 0).
+
+    `n_inferred` (significant-only tables) counts how many of `n_measured` were
+    inferred rather than reported. A gene whose readouts are *all* inferred has
+    no reported value, so its `best_value` is 0 — below every metric's range.
     """
+    n_inferred = n_inferred or {}
+    library_only = library_only or set()
     if not n_measured:
         return
     conn.execute(
@@ -449,24 +476,208 @@ def _write_summary(
     )
     conn.executemany(
         "INSERT INTO overview_matrix_summary_cells "
-        "(source_table, central_gene_id, n_sig, n_measured, best_value) "
-        "VALUES (?, ?, ?, ?, ?)",
+        "(source_table, central_gene_id, n_sig, n_measured, best_value, "
+        " n_inferred, inferred_basis) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
             (
                 table_name,
                 gene_id,
                 n_sig.get(gene_id, 0),
                 measured,
-                round(best[gene_id], 3),
+                round(best[gene_id], 3) if gene_id in best else 0.0,
+                n_inferred.get(gene_id, 0),
+                (
+                    ("library" if gene_id in library_only else "screen")
+                    if n_inferred.get(gene_id)
+                    else None
+                ),
             )
             for gene_id, measured in sorted(n_measured.items())
-            if gene_id in best
+            if gene_id in best or n_inferred.get(gene_id)
         ],
     )
     click.echo(
         f"  Overview matrix: \'{modality_key}\' / {table_name} summary → "
         f"{len(n_measured)} genes over {n_readouts_total} readouts ({sig_rule})"
     )
+
+
+def infer_measured_readouts(
+    rows: list[tuple[object, object, str]],
+    group_genes: dict[object, list[int]],
+    library_gene_ids: set[int],
+) -> dict[int, set[str]]:
+    """Readouts each perturbed gene was measured on, for a significant-only table.
+
+    `rows` are the table's distinct (perturbed group, context, readout) triples
+    — every one a reported hit. In a pooled screen all perturbations are read
+    out on the same transcriptomes, so:
+
+    * a readout reported for *any* perturbation in context C was measured in C;
+    * a perturbation was tested in C if it has a reported row in C. (Tested in
+      C without a single hit there is indistinguishable from untested — e.g.
+      too few cells — so this stays a lower bound.)
+    * a `library_gene_ids` gene (from the paper's perturbation list) with no
+      reported row at all is assumed tested in every context *that appears in
+      the table* — the populations the authors could test at all. This is a
+      weaker basis (its per-context cell counts are unknown), which is why the
+      caller records it separately as basis "library".
+
+    Returns gene id → readouts measured (reported ∪ inferred). Reported pairs
+    are always included, since a reported row puts its readout in its context.
+    """
+    measured_in_context: dict[object, set[str]] = defaultdict(set)
+    gene_contexts: dict[int, set[object]] = defaultdict(set)
+    for group, context, readout in rows:
+        measured_in_context[context].add(readout)
+        for gene_id in group_genes.get(group, ()):
+            gene_contexts[gene_id].add(context)
+    all_contexts = set(measured_in_context)
+    for gene_id in library_gene_ids:
+        if gene_id not in gene_contexts:
+            gene_contexts[gene_id] = set(all_contexts)
+    measured: dict[int, set[str]] = {}
+    for gene_id, contexts in gene_contexts.items():
+        readouts: set[str] = set()
+        for context in contexts:
+            readouts |= measured_in_context[context]
+        measured[gene_id] = readouts
+    return measured
+
+
+def _resolve_perturbation_values(
+    conn: sqlite3.Connection,
+    values: list[str],
+    species: str | None,
+    src_schema: str,
+) -> tuple[set[int], list[str]]:
+    """Map perturbation-library symbols to panel central gene ids.
+
+    For library entries with no reported row — they have no link-table rows to
+    resolve through. Mouse symbols match `central_gene.mouse_symbols` (a
+    comma-joined list); anything else matches `human_symbol`, then synonyms.
+    Returns (panel gene ids, values that resolved to no gene at all).
+    """
+    gene_ids: set[int] = set()
+    unresolved: list[str] = []
+    mouse = "mouse" in (species or "")
+    has_synonyms = conn.execute(
+        f"SELECT 1 FROM {src_schema}.sqlite_master "
+        f"WHERE type = 'table' AND name = 'extra_gene_synonyms'"
+    ).fetchone() is not None
+    for value in values:
+        if mouse:
+            # LIKE narrows the scan; it is case-insensitive in SQLite, so the
+            # exact list-member check happens in Python.
+            rows = [
+                (gene_id,)
+                for gene_id, symbols in conn.execute(
+                    f"""SELECT id, mouse_symbols FROM {src_schema}.central_gene
+                         WHERE mouse_symbols LIKE '%' || ? || '%'""",
+                    (value,),
+                )
+                if value in (symbols or "").split(",")
+            ]
+        else:
+            rows = conn.execute(
+                f"SELECT id FROM {src_schema}.central_gene WHERE human_symbol = ?",
+                (value,),
+            ).fetchall()
+            if not rows and has_synonyms:
+                rows = conn.execute(
+                    f"""SELECT central_gene_id FROM {src_schema}.extra_gene_synonyms
+                         WHERE synonym = ? LIMIT 1""",
+                    (value,),
+                ).fetchall()
+        if not rows:
+            unresolved.append(value)
+            continue
+        gene_ids.update(gene_id for (gene_id,) in rows)
+    allowed = {row[0] for row in conn.execute(f"SELECT id FROM {_PANEL_TABLE}")}
+    return gene_ids & allowed, unresolved
+
+
+def _infer_for_table(
+    conn: sqlite3.Connection,
+    *,
+    table_name: str,
+    base_table: str,
+    group_expr: str,
+    target_column: str,
+    group_genes: dict[object, list[int]],
+    significant_only: dict[str, list[str]] | None,
+    species: str | None,
+    src_schema: str,
+) -> tuple[dict[int, set[str]], set[int]] | None:
+    """(measured readouts per gene, library-only genes) for a significant-only
+    table, else None.
+
+    Library perturbations with no reported row become matrix rows here: they
+    were tested, and "no significant readout" is exactly what the matrix should
+    show for them.
+    """
+    if significant_only is None:
+        return None
+    log = get_sspsygene_logger()
+    columns = _table_columns(conn, base_table, src_schema)
+    context_columns = list(significant_only.get("context_columns") or [])
+    context_expr = _context_expr(context_columns, columns)
+    if context_expr is None:
+        log.warning(
+            "overview matrix: %s declares significant_only context columns %s "
+            "that aren't all in the table; skipping inference",
+            table_name,
+            context_columns,
+        )
+        return None
+    rows = [
+        (group, context, str(target))
+        for group, context, target in conn.execute(
+            f"""SELECT DISTINCT {group_expr}, {context_expr}, {target_column}
+                  FROM {src_schema}.{base_table}
+                 WHERE {target_column} IS NOT NULL AND {target_column} != ''"""
+        )
+    ]
+    library_values = list(significant_only.get("tested_perturbations") or [])
+    library_gene_ids, unresolved = _resolve_perturbation_values(
+        conn, library_values, species, src_schema
+    )
+    if unresolved:
+        log.warning(
+            "overview matrix: %s significant_only.tested_perturbations — %d value(s) "
+            "resolve to no gene: %s",
+            table_name,
+            len(unresolved),
+            ", ".join(unresolved),
+        )
+    reported_gene_ids = {g for genes in group_genes.values() for g in genes}
+    library_only = library_gene_ids - reported_gene_ids
+    if library_only:
+        conn.executemany(
+            f"""INSERT OR IGNORE INTO overview_matrix_genes (central_gene_id, human_symbol)
+                SELECT id, human_symbol FROM {src_schema}.central_gene WHERE id = ?""",
+            [(gene_id,) for gene_id in sorted(library_only)],
+        )
+    measured = infer_measured_readouts(rows, group_genes, library_gene_ids)
+    click.echo(
+        f"  Overview matrix: {table_name} is significant-only → tested universe "
+        f"inferred over {len({c for _, c, _ in rows})} context(s); "
+        f"{len(library_only)} library-only perturbed gene(s) added as rows"
+    )
+    return measured, library_only
+
+
+def _context_expr(context_columns: list[str], columns: set[str]) -> str | None:
+    """SQL for a row's screen context: '' (one context) or the joined columns.
+
+    None when a declared context column isn't in the table — the caller skips
+    inference rather than silently treating the table as one context.
+    """
+    if not context_columns:
+        return "''"
+    if any(col not in columns for col in context_columns):
+        return None
+    return " || char(31) || ".join(f"COALESCE({col}, '')" for col in context_columns)
 
 
 def _materialize_pvalue_axis(
@@ -487,12 +698,19 @@ def _materialize_pvalue_axis(
     min_groups: int,
     show_all: bool,
     src_schema: str,
+    significant_only: dict[str, list[str]] | None = None,
+    species: str | None = None,
 ) -> int:
     """Gene-target or long-phenotype axis: columns keyed by `target_column`.
 
     A cell is -log10(most significant p) per (perturbed gene, column value).
     Gene columns keep the ≥`min_groups` convergence floor + top-M cap; phenotype
     columns (`show_all`) keep every distinct value.
+
+    `significant_only` (gene axis only): the source published only its hits, so
+    unreported pairs are split into "tested, not significant (inferred)" —
+    written to `overview_matrix_inferred_cells` and counted in the summary —
+    and "not measured" (absent). See `infer_measured_readouts`.
     """
     group_genes = _group_to_genes(conn, base_table, link_table, group_expr, src_schema)
 
@@ -551,6 +769,31 @@ def _materialize_pvalue_axis(
         for gene_id in sig_genes:
             sum_n_sig[gene_id] += 1
 
+    inference = _infer_for_table(
+        conn,
+        table_name=table_name,
+        base_table=base_table,
+        group_expr=group_expr,
+        target_column=target_column,
+        group_genes=group_genes,
+        significant_only=significant_only if column_is_gene else None,
+        species=species,
+        src_schema=src_schema,
+    )
+    measured, library_only = inference if inference is not None else (None, set())
+    sum_n_inferred: dict[int, int] = {}
+    if measured is not None:
+        reported_by_gene: dict[int, set[str]] = defaultdict(set)
+        for target, entries in by_target.items():
+            for group, _min_p, _min_fdr in entries:
+                for gene_id in group_genes.get(group, ()):
+                    reported_by_gene[gene_id].add(target)
+        for gene_id, readouts in measured.items():
+            n_inferred = len(readouts - reported_by_gene.get(gene_id, set()))
+            sum_n_measured[gene_id] = len(readouts | reported_by_gene.get(gene_id, set()))
+            if n_inferred:
+                sum_n_inferred[gene_id] = n_inferred
+
     _write_summary(
         conn,
         modality_key=modality_key,
@@ -562,6 +805,8 @@ def _materialize_pvalue_axis(
         n_sig=sum_n_sig,
         n_measured=sum_n_measured,
         best={g: _neg_log_p(p) for g, p in sum_best_p.items()},
+        n_inferred=sum_n_inferred,
+        library_only=library_only,
     )
 
     if show_all:
@@ -583,6 +828,7 @@ def _materialize_pvalue_axis(
         qualifying, key=lambda t: (-qualifying[t], min_p_by_target[t], str(t))
     )[:MATERIALIZE_TOP_M]
     kept = set(ordered)
+    kept_str = {str(t) for t in ordered}
     conn.executemany(
         "INSERT INTO overview_matrix_expanded_columns "
         "(modality_key, source_table, source_label, column_value, n_sig_groups, "
@@ -623,10 +869,26 @@ def _materialize_pvalue_axis(
             for (gene_id, target), min_p in cells.items()
         ],
     )
+    inferred_cells: list[tuple[str, str, str, int, str]] = []
+    if measured is not None:
+        for gene_id, readouts in measured.items():
+            basis = "library" if gene_id in library_only else "screen"
+            for target in readouts & kept_str:
+                if (gene_id, target) not in cells:
+                    inferred_cells.append(
+                        (modality_key, table_name, target, gene_id, basis)
+                    )
+        conn.executemany(
+            "INSERT INTO overview_matrix_inferred_cells "
+            "(modality_key, source_table, column_value, central_gene_id, basis) "
+            "VALUES (?, ?, ?, ?, ?)",
+            inferred_cells,
+        )
     click.echo(
         f"  Overview matrix: '{modality_key}' / {table_name} → "
-        f"{len(ordered)} columns / {len(cells)} cells "
-        f"(metric {metric}, {'all' if show_all else f'≥{min_groups} sig'})"
+        f"{len(ordered)} columns / {len(cells)} cells"
+        + (f" + {len(inferred_cells)} inferred n.s." if measured is not None else "")
+        + f" (metric {metric}, {'all' if show_all else f'≥{min_groups} sig'})"
     )
     return len(ordered)
 
@@ -797,6 +1059,8 @@ def _materialize_expansion(
     metric_domain: str | None,
     min_groups: int,
     src_schema: str,
+    significant_only: dict[str, list[str]] | None = None,
+    species: str | None = None,
 ) -> int:
     """Materialize one expanded (modality, source table). Returns column count.
 
@@ -882,6 +1146,8 @@ def _materialize_expansion(
         min_groups=min_groups,
         show_all=show_all,
         src_schema=src_schema,
+        significant_only=significant_only,
+        species=species,
     )
 
 
@@ -944,12 +1210,20 @@ def materialize_overview_matrix(
             f" AND table_name IN (SELECT table_name FROM "
             f"{src_schema}.dataset_destinations WHERE destination = 'prod')"
         )
+    # Columns newer than some source DBs (and than the test fixtures) are read
+    # as NULL when absent, so an old dataset DB still materializes.
+    dt_columns = _table_columns(conn, "data_tables", src_schema)
+    optional = ", ".join(
+        col if col in dt_columns else f"NULL AS {col}"
+        for col in ("significant_only", "gene_species")
+    )
     source_rows = conn.execute(
         f"""SELECT table_name, assay, pvalue_column, fdr_column, link_tables,
                    short_label,
                    overview_matrix_phenotype_column,
                    overview_matrix_phenotype_columns,
-                   overview_matrix_metric, overview_matrix_metric_domain
+                   overview_matrix_metric, overview_matrix_metric_domain,
+                   {optional}
              FROM {src_schema}.data_tables
             WHERE include_in_overview_matrix = 1{prod_clause}"""
     ).fetchall()
@@ -967,6 +1241,8 @@ def materialize_overview_matrix(
         phenotype_columns_raw,
         metric,
         metric_domain,
+        significant_only_raw,
+        gene_species,
     ) in source_rows:
         modality_keys_for_table = _modality_keys_for(assay, assay_to_modalities)
         if not modality_keys_for_table:
@@ -984,6 +1260,12 @@ def materialize_overview_matrix(
             )
         except (TypeError, ValueError):
             phenotype_columns = []
+        try:
+            significant_only = (
+                json.loads(significant_only_raw) if significant_only_raw else None
+            )
+        except (TypeError, ValueError):
+            significant_only = None
 
         n_columns = _materialize_expansion(
             conn,
@@ -999,6 +1281,8 @@ def materialize_overview_matrix(
             metric_domain=metric_domain,
             min_groups=min_groups,
             src_schema=src_schema,
+            significant_only=significant_only,
+            species=gene_species,
         )
         if n_columns == 0:
             continue

@@ -8,7 +8,7 @@
  * the two pure pieces:
  *
  *  - `buildColorGrid` — precompute every cell's color once (per data/order
- *    change) into a packed `Uint32Array` (0xRRGGBB) + a present-mask, indexed
+ *    change) into a packed `Uint32Array` (0xRRGGBB) + a per-cell state, indexed
  *    `row * nCols + col`. Scrolling then never recomputes a color.
  *  - `drawCells` — repaint only the visible cell window for the current scroll
  *    offset. Cost ≈ visible cells, independent of how large the matrix is.
@@ -41,17 +41,28 @@ export const NO_DATA_STROKE = "#ecedf0";
 // Keeps each diagonal clear of the tile corners, so a run of no-data tiles reads
 // as separate ticks instead of one unbroken line.
 const NO_DATA_INSET = 3;
+// "Tested, not significant (inferred)" — for sources that published only their
+// hits. A flat grey tile with a centred dot: unmistakably a measurement (unlike
+// the no-data diagonal) but carrying no value (unlike the color ramps).
+export const INFERRED_FILL = "#e9ebef";
+export const INFERRED_DOT = "#9ca3af";
+const INFERRED_DOT_R = 1.6;
 const SELECT_OUTLINE = "#111827";
+
+/** Per-cell state in `ColorGrid.state`. */
+export const CELL_NO_DATA = 0;
+export const CELL_VALUE = 1;
+export const CELL_INFERRED = 2;
 
 export type MetricDomains = Record<string, [number, number] | null>;
 
 export interface ColorGrid {
   nRows: number;
   nCols: number;
-  /** 0xRRGGBB per cell (only meaningful where `present[idx]` is 1). */
+  /** 0xRRGGBB per cell (only meaningful where `state[idx]` is CELL_VALUE). */
   packed: Uint32Array;
-  /** 1 = the cell has data, 0 = no data. */
-  present: Uint8Array;
+  /** CELL_NO_DATA / CELL_VALUE / CELL_INFERRED. */
+  state: Uint8Array;
 }
 
 /** Precompute the color of every cell once, in the caller's current row/col order. */
@@ -63,7 +74,7 @@ export function buildColorGrid(
   const nRows = genes.length;
   const nCols = columns.length;
   const packed = new Uint32Array(nRows * nCols);
-  const present = new Uint8Array(nRows * nCols);
+  const state = new Uint8Array(nRows * nCols);
   for (let i = 0; i < nRows; i++) {
     const cells = genes[i].cells;
     const base = i * nCols;
@@ -71,12 +82,16 @@ export function buildColorGrid(
       const col = columns[j];
       const cell = cells[col.key];
       if (cell === undefined) continue;
+      if (cell.inferred !== undefined) {
+        state[base + j] = CELL_INFERRED;
+        continue;
+      }
       const [r, g, b] = scaleColorRGB(col.metric, cell.value, metricDomains[col.metric]);
       packed[base + j] = (r << 16) | (g << 8) | b;
-      present[base + j] = 1;
+      state[base + j] = CELL_VALUE;
     }
   }
-  return { nRows, nCols, packed, present };
+  return { nRows, nCols, packed, state };
 }
 
 export interface DrawParams {
@@ -98,7 +113,7 @@ export interface DrawParams {
 export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
   const { grid, scrollLeft, scrollTop, viewW, viewH, dpr, selected } = p;
   const colW = p.colW ?? COL_W;
-  const { nRows, nCols, packed, present } = grid;
+  const { nRows, nCols, packed, state } = grid;
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, viewW, viewH);
@@ -112,8 +127,10 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
   const tileH = ROW_H - 2 * GUTTER;
 
   // No-data diagonals accumulate into one path and get stroked once at the end —
-  // a stroke() per tile would cost more than the whole fill pass.
+  // a stroke() per tile would cost more than the whole fill pass. Inferred-cell
+  // dots likewise collect into one path, filled once.
   ctx.beginPath();
+  const dots = new Path2D();
 
   for (let i = firstRow; i <= lastRow; i++) {
     const y = i * ROW_H - scrollTop;
@@ -124,10 +141,18 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
     const base = i * nCols;
     for (let j = firstCol; j <= lastCol; j++) {
       const x = j * colW - scrollLeft;
-      if (present[base + j]) {
+      const st = state[base + j];
+      if (st === CELL_VALUE) {
         const c = packed[base + j];
         ctx.fillStyle = `rgb(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255})`;
         ctx.fillRect(x + GUTTER, y + GUTTER, tileW, tileH);
+      } else if (st === CELL_INFERRED) {
+        ctx.fillStyle = INFERRED_FILL;
+        ctx.fillRect(x + GUTTER, y + GUTTER, tileW, tileH);
+        const cx = x + colW / 2;
+        const cy = y + ROW_H / 2;
+        dots.moveTo(cx + INFERRED_DOT_R, cy);
+        dots.arc(cx, cy, INFERRED_DOT_R, 0, 2 * Math.PI);
       } else {
         ctx.fillStyle = NO_DATA_FILL;
         ctx.fillRect(x + GUTTER, y + GUTTER, tileW, tileH);
@@ -145,6 +170,8 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
   ctx.strokeStyle = NO_DATA_STROKE;
   ctx.lineWidth = 1;
   ctx.stroke();
+  ctx.fillStyle = INFERRED_DOT;
+  ctx.fill(dots);
 
   if (
     selected &&
