@@ -1,0 +1,23 @@
+# Cui et al. 2026 — XPO7 LoF DEGs in iPSC glutamatergic neurons
+# Molecular Psychiatry (2026) 31:4995–5013
+# doi: 10.1038/s41380-026-03587-3
+#
+# Source: Supplementary Table 1 (Fig3D_deseq__XPO7LoF sheet)
+# Downloaded from: https://www.nature.com/articles/s41380-026-03587-3#Sec27
+# (Supplementary information section, "Supplementary Data 1")
+# Refresh cadence: static (published paper, supplementary tables won't change)
+
+# Supplementary Table 1 (transcriptomics + electrophysiology):
+curl -L -o cui_suppl_table_1.xlsx \
+  "https://static-content.springer.com/esm/art%3A10.1038%2Fs41380-026-03587-3/MediaObjects/41380_2026_3587_MOESM2_ESM.xlsx"
+
+# Supplementary Table 2 (proteomics):
+curl -L -o cui_suppl_table_2.xlsx \
+  "https://static-content.springer.com/esm/art%3A10.1038%2Fs41380-026-03587-3/MediaObjects/41380_2026_3587_MOESM3_ESM.xlsx"
+
+# Supplementary Table 3 (experimental summary):
+curl -L -o cui_suppl_table_3.xlsx \
+  "https://static-content.springer.com/esm/art%3A10.1038%2Fs41380-026-03587-3/MediaObjects/41380_2026_3587_MOESM4_ESM.xlsx"
+
+# Ensembl → HGNC symbol map (GRCh38, shared with geschwind_2026):
+cp ../geschwind_2026/ensembl_to_symbol.tsv ensembl_to_symbol.tsv

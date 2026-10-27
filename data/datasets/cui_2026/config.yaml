@@ -1,0 +1,117 @@
+deployTo:
+  - dev
+
+publication:
+  authors:
+    - Cui, L.
+    - Kurganov, E.
+    - Hawes, D.
+    - Hornauer, P.
+    - Lin, R.
+    - Wang, Y.
+    - Hierlemann, A.
+    - Sheng, M.
+    - Nehme, R.
+    - Pan, J. Q.
+  title: "Loss of schizophrenia risk gene XPO7 disrupts neuronal excitability and network regularity via altered Na+ channel dynamics in human neurons"
+  year: 2026
+  journal: "Molecular Psychiatry"
+  doi: "10.1038/s41380-026-03587-3"
+  sspsygene_grants: []
+
+maintainers:
+  - name: Brittney Wick
+    email: bwick@ucsc.edu
+    date: "2026-10-26"
+    comment: >
+      Initial draft — DESeq2 DEGs for XPO7+/- and XPO7-/- vs. parental controls
+      in iPSC-derived glutamatergic neurons at day 28, 42, and 56. Pooled
+      genotype comparisons only; individual clone data excluded.
+
+tables:
+
+  - table: cui_2026_deg
+    changelog:
+      - date: "2026-10-26"
+        message: "Initial data load — 103,464 DEG rows; XPO7+/- and XPO7-/- at day 28, 42, 56"
+
+    shortLabel: cui_2026_deg
+    mediumLabel: "Cui 2026 - XPO7 LoF DEGs in iPSC Glutamatergic Neurons"
+    longLabel: "Differentially expressed genes from DESeq2 bulk RNA-seq of XPO7 loss-of-function iPSC-derived glutamatergic neurons at three differentiation stages (Cui et al. 2026)"
+    description: >
+      Differentially expressed genes (DEGs) from bulk RNA-seq of human
+      iPSC-derived glutamatergic neurons with CRISPR-Cas9 loss-of-function
+      mutations in XPO7, a schizophrenia risk gene encoding the nuclear
+      export receptor Exportin-7. Two XPO7 LoF genotypes were profiled:
+      heterozygous (XPO7+/-) and homozygous (XPO7-/-). DEGs were computed
+      by DESeq2 with apeglm log2FC shrinkage at three developmental time
+      points: day 28, day 42, and day 56 post-neuronal induction (forebrain
+      patterning + NGN2). Pooled genotype comparisons only; individual clone
+      data not included. Supplementary Table 1, Fig3D_deseq__XPO7LoF.
+
+    source: >
+      Supplementary Table 1, sheet "Fig3D_deseq__XPO7LoF".
+      Cui et al. 2026, Molecular Psychiatry 31:4995–5013,
+      doi:10.1038/s41380-026-03587-3
+
+    in_path: cui_2026_deg.tsv
+    separator: "\t"
+
+    organism: "Homo sapiens (iPSC-derived glutamatergic neurons)"
+    organism_key: human
+    assay: perturbation_deg
+    condition:
+      - scz
+    categories:
+      - bulk RNA-seq
+      - iPSC neurons
+      - glutamatergic
+      - CRISPR-Cas9
+      - DESeq2
+      - human
+      - schizophrenia
+
+    gene_mappings:
+      - column_name: perturbed_gene
+        link_table_name: perturbed_gene
+        species: human
+        perturbed_or_target: perturbed
+      - column_name: gene
+        link_table_name: target_gene
+        species: human
+        perturbed_or_target: target
+
+    fdr_column: padj
+    effect_column: log2FC_shrink
+
+    fieldLabels:
+      perturbed_gene: >
+        Gene disrupted by CRISPR-Cas9 loss-of-function. Always XPO7
+        (Exportin-7), a schizophrenia risk gene. HGNC symbol.
+        Cui et al. 2026, Molecular Psychiatry.
+      gene: >
+        Target gene whose expression was measured by bulk RNA-seq. HGNC
+        symbol mapped from Ensembl ID; original Ensembl ID preserved in
+        gene_ensembl. Cui et al. 2026.
+      gene_ensembl: >
+        Ensembl gene ID (GRCh38, unversioned) for the target gene.
+        Cui et al. 2026.
+      genotype: >
+        XPO7 loss-of-function genotype: "XPO7+/-" = heterozygous LoF
+        (one allele disrupted); "XPO7-/-" = homozygous LoF (both alleles
+        disrupted). Each represents pooled data across two independent
+        isogenic clones. Cui et al. 2026, Fig. 3D.
+      time_point: >
+        Day of neuronal differentiation at which RNA-seq was performed:
+        "day28" (4 weeks), "day42" (6 weeks), or "day56" (8 weeks)
+        post-neuronal induction. Cui et al. 2026, Fig. 3A.
+      log2fc_shrink: >
+        Shrinkage-estimated log2 fold change in gene expression (XPO7 LoF
+        vs. parental control neurons), computed by DESeq2 with apeglm
+        shrinkage. Positive = upregulated in XPO7 LoF. Cui et al. 2026.
+      stat: >
+        DESeq2 Wald test statistic for the XPO7 LoF vs. control contrast.
+        Cui et al. 2026.
+      padj: >
+        Benjamini-Hochberg adjusted p-value (FDR) from DESeq2 Wald test
+        (XPO7 LoF vs. parental control neurons). Cui et al. 2026.
