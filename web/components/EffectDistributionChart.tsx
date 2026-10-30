@@ -5,7 +5,6 @@ import {
   ResponsiveContainer,
   Scatter,
   ScatterChart,
-  Tooltip,
   XAxis,
   YAxis,
   ZAxis,
@@ -28,6 +27,49 @@ type VolcanoPoint = {
   // Stored effect is ±Inf; `effect` is where it is drawn.
   effectCapped?: boolean;
 };
+
+// A clicked dot: a background point, or a queried-gene row (which has rowKey).
+type SelectedDot = VolcanoPoint & { pvalue?: number | null; rowKey?: string };
+
+type DotShapeProps = {
+  cx?: number;
+  cy?: number;
+  fill?: string;
+  fillOpacity?: number;
+  stroke?: string;
+  strokeWidth?: number;
+};
+
+function VolcanoDot({ cx, cy, fill, fillOpacity, stroke, strokeWidth }: DotShapeProps) {
+  return (
+    <g style={{ cursor: "pointer" }}>
+      <circle cx={cx} cy={cy} r={DOT_HIT_RADIUS} fill="transparent" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={DOT_RADIUS}
+        fill={fill}
+        fillOpacity={fillOpacity}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+      />
+    </g>
+  );
+}
+
+function SelectedRing({ cx, cy }: DotShapeProps) {
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={DOT_RADIUS + 3}
+      fill="none"
+      stroke={COLOR_GENE_OUTLINE}
+      strokeWidth={1.5}
+      style={{ pointerEvents: "none" }}
+    />
+  );
+}
 
 type DistributionResponse = {
   effectColumn: string;
@@ -56,6 +98,10 @@ const COLOR_DOWN = "#2563eb"; // blue
 const COLOR_NS = "#cbd5e1"; // light grey
 const COLOR_GENE = "#f59e0b"; // amber for queried gene
 const COLOR_GENE_OUTLINE = "#111827";
+const DOT_RADIUS = 2;
+// Dots are too small to click reliably, so each carries an invisible larger
+// target.
+const DOT_HIT_RADIUS = 7;
 
 type Category = "up" | "down" | "ns";
 
@@ -90,11 +136,13 @@ export default function EffectDistributionChart({
   const [data, setData] = useState<DistributionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<SelectedDot | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setSelected(null);
     fetch("/api/effect-distribution", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -201,8 +249,30 @@ export default function EffectDistributionChart({
     data.geneRows.some((r) => r.effectCapped);
   const cappedNote = `Rows with an infinite ${data.effectColumn} are drawn at the largest finite value in this table.`;
 
+  const selectDot = (entry: unknown) => {
+    const dot = (entry as { payload?: SelectedDot }).payload;
+    if (dot) setSelected((cur) => (cur === dot ? null : dot));
+  };
+
+  // Orange (queried-gene) dots carry the searched gene: the perturbed one on
+  // per-gene tables, otherwise the target. Background dots use whatever
+  // direction the table labels by (#189).
+  const selectedIsGene = selected?.rowKey != null;
+  const selectedSymbol = selectedIsGene
+    ? (highlightSymbol ?? null)
+    : (selected?.symbol ?? null);
+  const selectedDirection = !selectedIsGene
+    ? data.labelDirection
+    : data.perGeneTable
+      ? "perturbed"
+      : "target";
+  const selectedHref =
+    selectedSymbol && selectedDirection
+      ? `/?${selectedDirection}=${encodeURIComponent(selectedSymbol)}`
+      : null;
+
   const explainer = [
-    `Each background dot is one row from the table.`,
+    `Each background dot is one row from the table; click a dot to see its gene and values.`,
     `The sample is the top rows by p-value plus a deterministic pseudo-random sample (~${VOLCANO_SAMPLE_CAP.toLocaleString()} dots total); control-perturbed rows are excluded by default.`,
     `Red = significantly up, blue = significantly down, grey = not significant (${sigLabel}).`,
     `Orange dot${geneScatter.length === 1 ? "" : "s"} = ${highlightSymbol ?? "the queried gene"}'s row${geneScatter.length === 1 ? "" : "s"} in this table (full opacity).`,
@@ -314,108 +384,14 @@ export default function EffectDistributionChart({
           />
           <ZAxis range={[DOT_Z, DOT_Z]} />
           <ReferenceLine x={0} stroke="#9ca3af" strokeDasharray="4 4" />
-          <Tooltip
-            content={(props) => {
-              const payload = (
-                props as unknown as {
-                  payload?: Array<{ payload?: Record<string, unknown> }>;
-                }
-              ).payload;
-              const p = payload?.[0]?.payload as
-                | (VolcanoPoint & {
-                    pvalue?: number | null;
-                    rowKey?: string;
-                  })
-                | undefined;
-              if (!p) return null;
-              const isGene = "rowKey" in p && p.rowKey != null;
-              // The orange (queried-gene) dots carry the searched gene: the
-              // perturbed one on per-gene tables, otherwise the target.
-              // Background dots use whatever direction the table labels by
-              // (#189).
-              const symbol = isGene ? highlightSymbol ?? null : p.symbol ?? null;
-              const direction = !isGene
-                ? data.labelDirection
-                : data.perGeneTable
-                  ? "perturbed"
-                  : "target";
-              const href =
-                symbol && direction
-                  ? `/?${direction}=${encodeURIComponent(symbol)}`
-                  : null;
-              return (
-                <div
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 6,
-                    padding: "8px 10px",
-                    fontSize: 12,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                  }}
-                >
-                  {symbol && (
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                      {href ? (
-                        <a
-                          href={href}
-                          style={{
-                            color: "#1d4ed8",
-                            textDecoration: "none",
-                          }}
-                        >
-                          {symbol}
-                        </a>
-                      ) : (
-                        symbol
-                      )}
-                    </div>
-                  )}
-                  <TooltipRow
-                    label={effectLabel}
-                    column={data.effectColumn}
-                    value={
-                      p.effectCapped
-                        ? `${p.effect < 0 ? "−" : ""}∞ (drawn at ${fmt(p.effect, 3)})`
-                        : fmt(p.effect, 3)
-                    }
-                  />
-                  <TooltipRow
-                    label={pvalueLabel}
-                    column={data.pvalueColumn}
-                    value={fmt(
-                      (p as { pvalue?: number | null }).pvalue ??
-                        (p.negLog10P != null
-                          ? Math.pow(10, -p.negLog10P)
-                          : null),
-                      2,
-                    )}
-                  />
-                  {data.fdrColumn && (
-                    <TooltipRow
-                      label={fdrLabel}
-                      column={data.fdrColumn}
-                      value={fmt(p.fdr, 2)}
-                    />
-                  )}
-                </div>
-              );
-            }}
-            cursor={{ strokeDasharray: "3 3" }}
-            // Let the cursor move into the tooltip without it vanishing, so
-            // the gene link is clickable (#189). Recharts otherwise renders
-            // tooltips with pointer-events disabled.
-            wrapperStyle={{ pointerEvents: "auto" }}
-            // Small dwell before auto-hide gives users time to cross the gap
-            // from dot to tooltip.
-            animationDuration={150}
-          />
           <Scatter
             name="ns"
             data={seriesByCategory.ns}
             fill={COLOR_NS}
             fillOpacity={BACKGROUND_OPACITY}
             isAnimationActive={false}
+            shape={VolcanoDot}
+            onClick={selectDot}
           />
           <Scatter
             name="down"
@@ -423,6 +399,8 @@ export default function EffectDistributionChart({
             fill={COLOR_DOWN}
             fillOpacity={BACKGROUND_OPACITY}
             isAnimationActive={false}
+            shape={VolcanoDot}
+            onClick={selectDot}
           />
           <Scatter
             name="up"
@@ -430,6 +408,8 @@ export default function EffectDistributionChart({
             fill={COLOR_UP}
             fillOpacity={BACKGROUND_OPACITY}
             isAnimationActive={false}
+            shape={VolcanoDot}
+            onClick={selectDot}
           />
           {geneScatter.length > 0 && (
             <Scatter
@@ -439,12 +419,93 @@ export default function EffectDistributionChart({
               stroke={COLOR_GENE_OUTLINE}
               strokeWidth={1.5}
               isAnimationActive={false}
-              shape="circle"
+              shape={VolcanoDot}
+              onClick={selectDot}
               legendType="circle"
+            />
+          )}
+          {selected && (
+            <Scatter
+              name="selected"
+              data={[selected]}
+              isAnimationActive={false}
+              shape={SelectedRing}
             />
           )}
         </ScatterChart>
       </ResponsiveContainer>
+      {selected ? (
+        <div
+          style={{
+            position: "relative",
+            marginTop: 4,
+            padding: "8px 28px 8px 10px",
+            border: "1px solid #d1d5db",
+            borderRadius: 6,
+            fontSize: 12,
+          }}
+        >
+          <button
+            type="button"
+            aria-label="Close dot details"
+            onClick={() => setSelected(null)}
+            style={{
+              position: "absolute",
+              top: 4,
+              right: 6,
+              border: "none",
+              background: "none",
+              color: "#6b7280",
+              cursor: "pointer",
+              fontSize: 14,
+            }}
+          >
+            ×
+          </button>
+          {selectedSymbol && (
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>
+              {selectedHref ? (
+                <a
+                  href={selectedHref}
+                  style={{ color: "#1d4ed8", textDecoration: "none" }}
+                >
+                  {selectedSymbol}
+                </a>
+              ) : (
+                selectedSymbol
+              )}
+            </div>
+          )}
+          <DetailRow
+            label={effectLabel}
+            column={data.effectColumn}
+            value={
+              selected.effectCapped
+                ? `${selected.effect < 0 ? "−" : ""}∞ (drawn at ${fmt(selected.effect, 3)})`
+                : fmt(selected.effect, 3)
+            }
+          />
+          <DetailRow
+            label={pvalueLabel}
+            column={data.pvalueColumn}
+            value={fmt(
+              selected.pvalue ?? Math.pow(10, -selected.negLog10P),
+              2,
+            )}
+          />
+          {data.fdrColumn && (
+            <DetailRow
+              label={fdrLabel}
+              column={data.fdrColumn}
+              value={fmt(selected.fdr, 2)}
+            />
+          )}
+        </div>
+      ) : (
+        <div style={{ marginTop: 4, fontSize: 12, color: "#6b7280" }}>
+          Click a dot to see its gene and values.
+        </div>
+      )}
       {hasCappedEffects && (
         <div style={{ marginTop: 4, fontSize: 12, color: "#6b7280" }}>
           {cappedNote}
@@ -454,7 +515,7 @@ export default function EffectDistributionChart({
   );
 }
 
-function TooltipRow({
+function DetailRow({
   label,
   column,
   value,
