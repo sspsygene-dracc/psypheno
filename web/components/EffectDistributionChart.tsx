@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import {
   CartesianGrid,
   ReferenceLine,
@@ -7,7 +7,6 @@ import {
   ScatterChart,
   XAxis,
   YAxis,
-  ZAxis,
 } from "recharts";
 
 type GeneRow = {
@@ -29,7 +28,14 @@ type VolcanoPoint = {
 };
 
 // A clicked dot: a background point, or a queried-gene row (which has rowKey).
-type SelectedDot = VolcanoPoint & { pvalue?: number | null; rowKey?: string };
+type SelectedDot = VolcanoPoint & {
+  dotId: string;
+  pvalue?: number | null;
+  rowKey?: string;
+};
+
+// The dots stacked under one click spot, closest first.
+type DotCycle = { x: number; y: number; dotIds: string[]; index: number };
 
 type DotShapeProps = {
   cx?: number;
@@ -38,12 +44,27 @@ type DotShapeProps = {
   fillOpacity?: number;
   stroke?: string;
   strokeWidth?: number;
+  payload?: { dotId?: string };
 };
 
-function VolcanoDot({ cx, cy, fill, fillOpacity, stroke, strokeWidth }: DotShapeProps) {
+function VolcanoDot({
+  cx,
+  cy,
+  fill,
+  fillOpacity,
+  stroke,
+  strokeWidth,
+  payload,
+}: DotShapeProps) {
   return (
     <g style={{ cursor: "pointer" }}>
-      <circle cx={cx} cy={cy} r={DOT_HIT_RADIUS} fill="transparent" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={DOT_HIT_RADIUS}
+        fill="transparent"
+        data-dot-id={payload?.dotId}
+      />
       <circle
         cx={cx}
         cy={cy}
@@ -62,7 +83,7 @@ function SelectedRing({ cx, cy }: DotShapeProps) {
     <circle
       cx={cx}
       cy={cy}
-      r={DOT_RADIUS + 3}
+      r={DOT_RADIUS + 2.5}
       fill="none"
       stroke={COLOR_GENE_OUTLINE}
       strokeWidth={1.5}
@@ -91,17 +112,17 @@ type DistributionResponse = {
 const SIG_THRESHOLD = 0.05;
 const VOLCANO_SAMPLE_CAP = 1000;
 const BACKGROUND_OPACITY = 0.35;
-const DOT_Z = 12; // ~60% of the previous 20
 
 const COLOR_UP = "#dc2626"; // red
 const COLOR_DOWN = "#2563eb"; // blue
 const COLOR_NS = "#cbd5e1"; // light grey
 const COLOR_GENE = "#f59e0b"; // amber for queried gene
 const COLOR_GENE_OUTLINE = "#111827";
-const DOT_RADIUS = 2;
-// Dots are too small to click reliably, so each carries an invisible larger
-// target.
-const DOT_HIT_RADIUS = 7;
+const DOT_RADIUS = 4.5;
+// Slightly larger than the dot, so clicks needn't be exact.
+const DOT_HIT_RADIUS = 6;
+// A click this close to the previous one steps through the dots there.
+const CYCLE_TOLERANCE_PX = 5;
 
 type Category = "up" | "down" | "ns";
 
@@ -137,12 +158,14 @@ export default function EffectDistributionChart({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<SelectedDot | null>(null);
+  const [cycle, setCycle] = useState<DotCycle | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
     setSelected(null);
+    setCycle(null);
     fetch("/api/effect-distribution", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -176,14 +199,14 @@ export default function EffectDistributionChart({
   // Hooks must run unconditionally; compute on whatever data we have, even
   // when null, and gate the render below.
   const seriesByCategory = useMemo(() => {
-    const byCat: Record<Category, VolcanoPoint[]> = { up: [], down: [], ns: [] };
+    const byCat: Record<Category, SelectedDot[]> = { up: [], down: [], ns: [] };
     if (!data) return byCat;
-    for (const p of data.volcanoPoints) {
+    for (const [i, p] of data.volcanoPoints.entries()) {
       // Undo the -log10 for tables with no FDR; the rounding keeps a p of
       // exactly 0.05 on the significant side of the threshold.
       const pvalue = Number(Math.pow(10, -p.negLog10P).toPrecision(12));
       const cat = classify(p.effect, p.fdr, pvalue);
-      byCat[cat].push(p);
+      byCat[cat].push({ ...p, dotId: `bg-${i}` });
     }
     return byCat;
   }, [data]);
@@ -205,6 +228,7 @@ export default function EffectDistributionChart({
         fdr: r.fdr,
         rowKey: r.rowKey,
         effectCapped: r.effectCapped,
+        dotId: `gene-${r.rowKey}`,
       }));
   }, [data]);
 
@@ -249,9 +273,55 @@ export default function EffectDistributionChart({
     data.geneRows.some((r) => r.effectCapped);
   const cappedNote = `Rows with an infinite ${data.effectColumn} are drawn at the largest finite value in this table.`;
 
-  const selectDot = (entry: unknown) => {
-    const dot = (entry as { payload?: SelectedDot }).payload;
-    if (dot) setSelected((cur) => (cur === dot ? null : dot));
+  const dotById = new Map<string, SelectedDot>();
+  for (const dot of [
+    ...Object.values(seriesByCategory).flat(),
+    ...(geneScatter as unknown as SelectedDot[]),
+  ]) {
+    dotById.set(dot.dotId, dot);
+  }
+
+  const clearSelection = () => {
+    setSelected(null);
+    setCycle(null);
+  };
+
+  const handlePlotClick = (e: MouseEvent<HTMLDivElement>) => {
+    const { clientX: x, clientY: y } = e;
+    if (
+      cycle &&
+      selected &&
+      Math.hypot(x - cycle.x, y - cycle.y) <= CYCLE_TOLERANCE_PX
+    ) {
+      if (cycle.dotIds.length === 1) {
+        clearSelection();
+        return;
+      }
+      const index = (cycle.index + 1) % cycle.dotIds.length;
+      setCycle({ ...cycle, index });
+      setSelected(dotById.get(cycle.dotIds[index]) ?? null);
+      return;
+    }
+    // Every dot under the pointer; the queried gene first, then closest.
+    const hits = document
+      .elementsFromPoint(x, y)
+      .filter((el) => el.hasAttribute("data-dot-id"))
+      .map((el) => {
+        const box = el.getBoundingClientRect();
+        const distance = Math.hypot(
+          x - (box.left + box.width / 2),
+          y - (box.top + box.height / 2),
+        );
+        const dotId = el.getAttribute("data-dot-id") as string;
+        return { dotId, distance, isGene: dotId.startsWith("gene-") };
+      })
+      .sort(
+        (a, b) =>
+          Number(b.isGene) - Number(a.isGene) || a.distance - b.distance,
+      );
+    if (hits.length === 0) return;
+    setCycle({ x, y, dotIds: hits.map((h) => h.dotId), index: 0 });
+    setSelected(dotById.get(hits[0].dotId) ?? null);
   };
 
   // Orange (queried-gene) dots carry the searched gene: the perturbed one on
@@ -358,7 +428,7 @@ export default function EffectDistributionChart({
           </div>
         )}
       {/* Don't let a click focus the chart: it draws a box around the plot. */}
-      <div onMouseDown={(e) => e.preventDefault()}>
+      <div onMouseDown={(e) => e.preventDefault()} onClick={handlePlotClick}>
       <ResponsiveContainer width="100%" height={280}>
         <ScatterChart margin={{ top: 6, right: 16, bottom: 28, left: 8 }}>
           <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
@@ -384,7 +454,6 @@ export default function EffectDistributionChart({
               fontSize: 12,
             }}
           />
-          <ZAxis range={[DOT_Z, DOT_Z]} />
           <ReferenceLine x={0} stroke="#9ca3af" strokeDasharray="4 4" />
           <Scatter
             name="ns"
@@ -393,7 +462,6 @@ export default function EffectDistributionChart({
             fillOpacity={BACKGROUND_OPACITY}
             isAnimationActive={false}
             shape={VolcanoDot}
-            onClick={selectDot}
           />
           <Scatter
             name="down"
@@ -402,7 +470,6 @@ export default function EffectDistributionChart({
             fillOpacity={BACKGROUND_OPACITY}
             isAnimationActive={false}
             shape={VolcanoDot}
-            onClick={selectDot}
           />
           <Scatter
             name="up"
@@ -411,7 +478,6 @@ export default function EffectDistributionChart({
             fillOpacity={BACKGROUND_OPACITY}
             isAnimationActive={false}
             shape={VolcanoDot}
-            onClick={selectDot}
           />
           {geneScatter.length > 0 && (
             <Scatter
@@ -422,7 +488,6 @@ export default function EffectDistributionChart({
               strokeWidth={1.5}
               isAnimationActive={false}
               shape={VolcanoDot}
-              onClick={selectDot}
               legendType="circle"
             />
           )}
@@ -451,7 +516,7 @@ export default function EffectDistributionChart({
           <button
             type="button"
             aria-label="Close dot details"
-            onClick={() => setSelected(null)}
+            onClick={clearSelection}
             style={{
               position: "absolute",
               top: 4,
@@ -465,6 +530,11 @@ export default function EffectDistributionChart({
           >
             ×
           </button>
+          {cycle && cycle.dotIds.length > 1 && (
+            <div style={{ color: "#6b7280", marginBottom: 2 }}>
+              {`Dot ${cycle.index + 1} of ${cycle.dotIds.length} at this spot. Click again for the next.`}
+            </div>
+          )}
           {selectedSymbol && (
             <div style={{ fontWeight: 600, marginBottom: 4 }}>
               {selectedHref ? (
