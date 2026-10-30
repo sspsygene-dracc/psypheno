@@ -35,6 +35,34 @@ from processing.preprocessing import (
 
 DIR = Path(__file__).resolve().parent
 
+# Table S4 only gives Seurat cluster numbers. The names are the row labels of
+# Fig. 4F, which lists these 15 clusters in numeric order. Each match was checked
+# against the significant guides in that figure, the cell type composition sheet
+# of Table S4, and the fold changes quoted in the text (L6-IT cluster_5,
+# L6-CT-c3 cluster_7, upper layer cluster_4).
+#
+# cluster_21 is drawn as "Inhib Id2", but the numbers disagree: Table S4 has 94
+# Id2 cells, below the paper's 200-cell cutoff, while cluster_21 tracks the
+# L5-IT cells not in cluster_6 across guides (r = 0.97). Keep the published
+# label, marked, until the authors confirm it.
+CELL_TYPE_BY_CLUSTER = {
+    "cluster_0": "Excit L6CT-c1",
+    "cluster_1": "Cajal Retzius-c1",
+    "cluster_2": "Excit L6CT-c2",
+    "cluster_3": "Excit L5NP",
+    "cluster_4": "Excit Upper",
+    "cluster_5": "Excit L6IT",
+    "cluster_6": "Excit L5IT-c1",
+    "cluster_7": "Excit L6CT-c3",
+    "cluster_8": "Inhib Sst",
+    "cluster_9": "Excit L2IT ENTl",
+    "cluster_10": "Excit L5PT",
+    "cluster_11": "Inhib Lhx6+Sst-",
+    "cluster_12": "Excit L6b",
+    "cluster_17": "Excit L6b/CT ENTl",
+    "cluster_21": "Inhib Id2 (label unconfirmed)",
+}
+
 
 def main() -> None:
     tracker = Tracker()
@@ -84,9 +112,14 @@ def main() -> None:
             "guide_gene_idx",
             sep="_",
         )
+        .insert_column(
+            "cell_type",
+            lambda df: df["subcluster"].map(CELL_TYPE_BY_CLUSTER),
+        )
         .reorder(
             [
                 "guide_gene",
+                "cell_type",
                 "subcluster",
                 "P.Value",
                 "FDR",

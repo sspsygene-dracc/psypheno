@@ -128,6 +128,8 @@ tables:
         message: "Standardized title and added column header tooltips."
       - date: "2026-09-08"
         message: "Corrected source citation: the data come from Table S4 (mmc4.xlsx), not Table S8 — the paper has only Tables S1–S4."
+      - date: "2026-10-30"
+        message: "Added cell_type: names for the numbered clusters, from Fig. 4F."
     shortLabel: 4tf_cell_proportion_changes
     mediumLabel: Zheng 2024 - in vivo Perturb-seq Cell-Type Proportion Shifts in Mouse Cortex
     longLabel: Cell type proportion shifts from transcription factor perturbations
@@ -138,7 +140,16 @@ tables:
     source: "Table S4 (mmc4.xlsx), sheet Clusterprop_perturb"
     assay: perturbation
     fieldLabels:
-      subcluster: "Cell-subcluster identity from scRNA-seq clustering of developing mouse cortex"
+      cell_type: >
+        Cell type name for this cluster, taken from the row labels of Zheng et
+        al. 2024 Fig. 4F. "-c1" to "-c3" are subclusters of a cell type; Excit
+        L6CT-c3 is the hybrid population induced by Foxg1 perturbation. The
+        cluster_21 label is unconfirmed: Fig. 4F calls it Inhib Id2, but its
+        cell counts fit L5-IT neurons instead.
+      subcluster: >
+        Seurat cluster number from scRNA-seq clustering of the mouse cortex at
+        P7, as reported in Table S4. The numbers are arbitrary; see cell_type
+        for what each cluster is.
       guide: "gRNA identifier (target gene name + replicate index, e.g. Foxg1_1; NonTarget1/SafeTarget/GFP for controls)"
       guide_gene: "Gene targeted by the gRNA in this row, extracted as the prefix of the guide column."
       guide_gene_idx: "gRNA replicate index — the suffix after the underscore in the guide column."
@@ -177,4 +188,4 @@ tables:
     effect_column: limma_coef
     # Overview matrix (#213): one column per cell subcluster (long format),
     # colored by -log10(p) (default metric).
-    overview_matrix_phenotype_column: subcluster
+    overview_matrix_phenotype_column: cell_type
