@@ -10,7 +10,14 @@ import sqlite3
 from processing.overview_matrix import materialize_overview_matrix
 from test_overview_matrix import _add_link, _make_db, _register
 
-_EXTRA_COLUMNS = ("significant_only", "gene_species", "dataset", "effect_column", "medium_label")
+_EXTRA_COLUMNS = (
+    "significant_only",
+    "gene_species",
+    "dataset",
+    "effect_column",
+    "medium_label",
+    "evidence_source",
+)
 
 
 def _with_extra_columns(conn: sqlite3.Connection) -> None:
@@ -27,6 +34,7 @@ def _add_study(
     pert_gene: dict[str, int],
     significant_only: dict | None = None,
     label: str | None = None,
+    evidence_source: str | None = None,
 ) -> None:
     """rows: (perturbation, target gene id, context, p, fdr, effect)."""
     conn.execute(
@@ -56,11 +64,13 @@ def _add_study(
     )
     conn.execute(
         "UPDATE data_tables SET dataset = ?, effect_column = 'lfc', medium_label = ?, "
-        "gene_species = 'human', significant_only = ? WHERE table_name = ?",
+        "gene_species = 'human', significant_only = ?, evidence_source = ? "
+        "WHERE table_name = ?",
         (
             dataset,
             f"{label or dataset} - fixture",
             json.dumps(significant_only) if significant_only else None,
+            evidence_source,
             table,
         ),
     )
@@ -168,6 +178,30 @@ def test_two_tables_of_one_dataset_count_once() -> None:
     # One study; it tested the pair twice (once per table).
     assert _cells(conn)[(1, 3)] == (1, 1, 1, 0, 0)
     assert _contrib(conn, 1, 3) == {"same_paper": (2, 1, None)}
+
+
+def test_one_experiment_in_two_papers_counts_once() -> None:
+    conn = _make_db()
+    _with_extra_columns(conn)
+    for table, dataset in (("paper_1", "ds_1"), ("paper_2", "ds_2")):
+        _add_study(
+            conn,
+            table,
+            dataset=dataset,
+            rows=[("P_AAA", 3, "", 1e-6, 0.001, 1.0)],
+            pert_gene=PERTS,
+            evidence_source="same_experiment",
+        )
+    _add_study(
+        conn,
+        "other_lab",
+        dataset="ds_3",
+        rows=[("P_AAA", 3, "", 0.5, 0.9, 0.1)],
+        pert_gene=PERTS,
+    )
+    materialize_overview_matrix(conn, min_groups=1)
+    assert _cells(conn)[(1, 3)] == (1, 2, 1, 0, 0)
+    assert set(_contrib(conn, 1, 3)) == {"same_experiment", "ds_3"}
 
 
 def test_controls_are_not_rows() -> None:

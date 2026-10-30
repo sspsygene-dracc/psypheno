@@ -335,6 +335,7 @@ def load_data_tables(
         overview_matrix_metric TEXT,
         overview_matrix_metric_domain TEXT,
         significant_only TEXT,
+        evidence_source TEXT,
         preprocessing TEXT)"""
     )
     log = get_sspsygene_logger()
@@ -486,6 +487,7 @@ def load_data_tables(
                 else None
             ),
             "overview_matrix_metric": table_config.overview_matrix_metric,
+            "evidence_source": table_config.evidence_source,
             "significant_only": (
                 table_config.significant_only.to_json()
                 if table_config.significant_only is not None

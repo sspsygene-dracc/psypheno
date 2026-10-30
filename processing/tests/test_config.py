@@ -114,6 +114,15 @@ def test_deploy_to_is_parsed_and_stamped_onto_every_table(tmp_path: Path) -> Non
     assert cfg.tables[0].dataset == "d1"
 
 
+def test_evidence_source_must_be_a_plain_identifier(tmp_path: Path) -> None:
+    yaml_path = _write_dataset(tmp_path, "d1", "d1_table")
+    body = yaml.safe_load(yaml_path.read_text())
+    body["tables"][0]["evidence_source"] = "Not A Name"
+    yaml_path.write_text(yaml.safe_dump(body))
+    with pytest.raises(ValueError, match="evidence_source"):
+        TablesConfig.from_yaml_root(tmp_path, Path("datasets"))
+
+
 def test_deploy_to_is_normalized_to_instance_order(tmp_path: Path) -> None:
     """Order in the YAML must not leak into the parsed value."""
     _write_dataset(tmp_path, "d1", "d1_table", deployTo=["prod", "dev", "int"])

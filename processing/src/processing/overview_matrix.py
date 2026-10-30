@@ -62,7 +62,7 @@ from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import normalize_column_name
 
 
-SCHEMA_VERSION = "6"
+SCHEMA_VERSION = "7"
 
 # -log10(p) clamp for neglog_* heatmap cells. The lower bound keeps every present
 # cell visible against "no data"; the upper bound stops a single p ~ 1e-49 row
@@ -105,6 +105,8 @@ SIG_ALPHA = 0.05
 SIG_RULE_FDR = "fdr<0.05"
 SIG_RULE_NOMINAL_P = "nominal_p<0.05"
 _SIGNED_NEGLOG_P_SIG = -math.log10(SIG_ALPHA)  # 1.301
+_SHARED_MIN_VALUES = 3
+_SHARED_MIN_FRACTION = 0.25
 
 _TABLES = (
     "overview_matrix_genes",
@@ -114,6 +116,7 @@ _TABLES = (
     "overview_matrix_summary_columns",
     "overview_matrix_summary_cells",
     "overview_matrix_inferred_cells",
+    "overview_matrix_shared_cells",
     *COLLATED_TABLES,
     "overview_matrix_info",
 )
@@ -295,6 +298,20 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         PRIMARY KEY (modality_key, source_table, column_value, central_gene_id))
         WITHOUT ROWID"""
     )
+    # Phenotype cells whose values also appear in another table for the same gene:
+    # the same measurement published twice (see `materialize_shared_cells`).
+    conn.execute(
+        """CREATE TABLE overview_matrix_shared_cells (
+        modality_key TEXT NOT NULL,
+        source_table TEXT NOT NULL,
+        column_value TEXT NOT NULL,
+        central_gene_id INTEGER NOT NULL,
+        shared_with_table TEXT NOT NULL,
+        shared_with_label TEXT NOT NULL,
+        PRIMARY KEY (modality_key, source_table, column_value, central_gene_id,
+                     shared_with_table))
+        WITHOUT ROWID"""
+    )
     create_collated_schema(conn)
     conn.execute(
         """CREATE TABLE overview_matrix_info (
@@ -320,6 +337,13 @@ def _load_modalities(
         for assay in assay_types:
             assay_to_modalities[assay].append(key)
     return keys, dict(assay_to_modalities)
+
+
+def _study_label(
+    medium_label: str | None, short_label: str | None, table_name: str
+) -> str:
+    """Short study name: the "Author Year" head of the table's medium label."""
+    return (medium_label or "").split(" - ")[0].strip() or short_label or table_name
 
 
 def _split_columns(raw: str | None) -> list[str]:
@@ -1133,6 +1157,87 @@ def _write_phenotype_axis(
     return len(ordered)
 
 
+def materialize_shared_cells(
+    conn: sqlite3.Connection,
+    labels: dict[str, str],
+    evidence_sources: dict[str, str],
+) -> None:
+    """Record phenotype cells that repeat another table's values for a gene.
+
+    Column names differ between papers, so values are compared per gene rather
+    than per column: stored at 3 decimals, a value also present in the other table
+    for that gene is a match. Small values collide by chance, so a gene only
+    counts once at least `_SHARED_MIN_VALUES`, and at least `_SHARED_MIN_FRACTION`
+    of the smaller table's values for it, match.
+
+    `evidence_sources` (table -> declared source) is what pooling acts on; this
+    only marks cells, and warns when reuse hasn't been declared.
+    """
+    log = get_sspsygene_logger()
+    matches: dict[tuple[str, str, str, int], set[str]] = defaultdict(set)
+    for modality, table, other, gene_id, column_value in conn.execute(
+        """SELECT a.modality_key, a.source_table, b.source_table,
+                  a.central_gene_id, a.column_value
+             FROM overview_matrix_expanded_cells a
+             JOIN overview_matrix_expanded_cells b
+               ON b.modality_key = a.modality_key
+              AND b.central_gene_id = a.central_gene_id
+              AND b.source_table <> a.source_table
+              AND ABS(b.value) = ABS(a.value)
+             JOIN overview_matrix_expanded_columns ca
+               ON ca.modality_key = a.modality_key
+              AND ca.source_table = a.source_table
+              AND ca.column_value = a.column_value
+             JOIN overview_matrix_expanded_columns cb
+               ON cb.modality_key = b.modality_key
+              AND cb.source_table = b.source_table
+              AND cb.column_value = b.column_value
+            WHERE a.value <> 0 AND ca.column_is_gene = 0 AND cb.column_is_gene = 0"""
+    ):
+        matches[(modality, table, other, gene_id)].add(column_value)
+
+    n_values: dict[tuple[str, int], int] = {
+        (table, gene_id): n
+        for table, gene_id, n in conn.execute(
+            """SELECT source_table, central_gene_id, COUNT(*)
+                 FROM overview_matrix_expanded_cells GROUP BY 1, 2"""
+        )
+    }
+    rows: list[tuple[str, str, str, int, str, str]] = []
+    genes_by_pair: dict[tuple[str, str], set[int]] = defaultdict(set)
+    for (modality, table, other, gene_id), columns in matches.items():
+        smaller = min(n_values[(table, gene_id)], n_values[(other, gene_id)])
+        if len(columns) < max(_SHARED_MIN_VALUES, _SHARED_MIN_FRACTION * smaller):
+            continue
+        genes_by_pair[(table, other)].add(gene_id)
+        rows.extend(
+            (modality, table, column, gene_id, other, labels.get(other, other))
+            for column in columns
+        )
+    conn.executemany(
+        "INSERT INTO overview_matrix_shared_cells (modality_key, source_table, "
+        "column_value, central_gene_id, shared_with_table, shared_with_label) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        rows,
+    )
+    for (table, other), genes in sorted(genes_by_pair.items()):
+        if table > other:
+            continue
+        click.echo(
+            f"  Overview matrix: {table} and {other} share values for "
+            f"{len(genes)} gene(s)"
+        )
+        source = evidence_sources.get(table)
+        if source is None or source != evidence_sources.get(other):
+            log.warning(
+                "overview matrix: %s and %s share values for %d gene(s) but declare "
+                "no common evidence_source, so they would count as independent",
+                table,
+                other,
+                len(genes),
+            )
+
+
 def _materialize_expansion(
     conn: sqlite3.Connection,
     *,
@@ -1334,7 +1439,7 @@ def _collate_source(
     group_genes = _group_to_genes(
         conn, base_table, perturbed_links[0], group_column, src_schema
     )
-    study_label = (medium_label or "").split(" - ")[0].strip() or short_label or table_name
+    study_label = _study_label(medium_label, short_label, table_name)
     source = CollateSource(
         collate_group=collate_group,
         table_name=table_name,
@@ -1423,6 +1528,7 @@ def materialize_overview_matrix(
             "dataset",
             "effect_column",
             "medium_label",
+            "evidence_source",
         )
     )
     source_rows = conn.execute(
@@ -1439,6 +1545,8 @@ def materialize_overview_matrix(
     expanded_source_tables: list[str] = []
     perturbed_link_tables: list[str] = []
     collate_sources: list[CollateSource] = []
+    study_labels: dict[str, str] = {}
+    evidence_sources: dict[str, str] = {}
     collate_group_genes: dict[str, dict[object, list[int]]] = {}
     collate_context_exprs: dict[str, str] = {}
     for (
@@ -1457,11 +1565,15 @@ def materialize_overview_matrix(
         dataset,
         effect_column,
         medium_label,
+        evidence_source,
     ) in source_rows:
         modality_keys_for_table = _modality_keys_for(assay, assay_to_modalities)
         if not modality_keys_for_table:
             continue
         modality_key = modality_keys_for_table[0]
+        study_labels[table_name] = _study_label(medium_label, short_label, table_name)
+        if evidence_source:
+            evidence_sources[table_name] = evidence_source
 
         # Genes present in this table (its rows), regardless of column success —
         # the perturbed-gene axis of the whole matrix is their union.
@@ -1504,7 +1616,7 @@ def materialize_overview_matrix(
                 conn,
                 collate_group=COLLATE_GROUPS[modality_key],
                 table_name=table_name,
-                dataset=dataset,
+                dataset=evidence_source or dataset,
                 medium_label=medium_label,
                 short_label=short_label,
                 link_tables_raw=link_tables_raw,
@@ -1538,6 +1650,7 @@ def materialize_overview_matrix(
             ),
         )
 
+    materialize_shared_cells(conn, study_labels, evidence_sources)
     materialize_collated(
         conn, collate_sources, collate_group_genes, collate_context_exprs, src_schema
     )

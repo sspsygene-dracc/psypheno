@@ -106,6 +106,9 @@ tables:
     pvalue_column: pval
     effect_column: beta
 
+    # Baseline behavior shares fish and measurements with Fernandez Garcia 2026.
+    evidence_source: hoffman_brennand_zebrafish_ndd_behavior
+
     # Overview matrix: one column per behavioral parameter (long format), signed
     # by beta to match the Fernandez Garcia 2026 behavior columns.
     overview_matrix: true

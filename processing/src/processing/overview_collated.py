@@ -12,8 +12,9 @@ as k/n, plus how many of the k went up vs. down.
 
 Counting rules (deliberately simple defaults; revisit on concrete feedback):
 
-- **The unit is the study** — the dataset directory. Two tables from one paper
-  count once.
+- **The unit is the study** — one experiment, not one paper: the table's
+  ``evidence_source`` if it declares one, else its dataset directory. Two tables
+  from one paper count once, and so does one experiment published twice.
 - **A study is significant for a pair if any of its tests is**: ``min(FDR) <
   0.05`` over the cell types / conditions / methods it tested the pair in. A
   cell-type-specific hit is a real finding and must count; the price is that a

@@ -3,6 +3,7 @@ import {
   buildColorGrid,
   CELL_INFERRED,
   CELL_NO_DATA,
+  CELL_SHARED,
   CELL_SPLIT,
   CELL_VALUE,
 } from "@/lib/matrix-canvas";
@@ -71,5 +72,16 @@ describe("buildColorGrid", () => {
     const full = scaleColorRGB("frac_sig", 1, null);
     const faded = unpack(one.packed[0]);
     faded.forEach((channel, i) => expect(channel).toBeGreaterThan(full[i]));
+  });
+
+  it("marks a value shared with another study, keeping its color", () => {
+    const cols = [col("a", "signed_neglog_p"), col("b", "signed_neglog_p")];
+    const grid = buildColorGrid(
+      [row({ a: { value: 2, sharedWith: "Other 2026" }, b: { value: 2 } })],
+      cols,
+      {}
+    );
+    expect(Array.from(grid.state)).toEqual([CELL_SHARED, CELL_VALUE]);
+    expect(grid.packed[0]).toBe(grid.packed[1]);
   });
 });

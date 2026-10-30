@@ -800,7 +800,10 @@ export default function CollatedMatrix({
           ? collatedValueText(selCell)
         : selCell.inferred !== undefined
           ? inferredValueText(selCell)
-          : fmtValue(sel.col.metric, selCell.value)
+          : fmtValue(sel.col.metric, selCell.value) +
+            (selCell.sharedWith
+              ? ` · same data as ${selCell.sharedWith}, not independent evidence`
+              : "")
       : "No data"
     : "";
 

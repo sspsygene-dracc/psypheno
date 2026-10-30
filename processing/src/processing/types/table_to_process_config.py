@@ -94,6 +94,7 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "overview_matrix_metric",
         "overview_matrix_metric_domain",
         "significant_only",
+        "evidence_source",
         "changelog",
         # Internal: dataset-level publication block, merged in by TablesConfig.
         "_publication",
@@ -490,6 +491,10 @@ class TableToProcessConfig:
     # `SignificantOnly`). Lets the overview matrix tell "tested, not
     # significant" apart from "not measured" by inferring the tested universe.
     significant_only: "SignificantOnly | None" = None
+    # The experiment behind this table, when it isn't unique to the dataset.
+    # Tables sharing a value count as one study when studies are pooled, so data
+    # reused across papers isn't counted as independent evidence.
+    evidence_source: str | None = None
     publication_title: str | None = None
     publication_first_author: str | None = None
     publication_last_author: str | None = None
@@ -636,6 +641,13 @@ class TableToProcessConfig:
                     f"table {self.table}: overview_matrix requires "
                     f"{', '.join(missing)}."
                 )
+        if self.evidence_source is not None and not re.fullmatch(
+            r"[a-z0-9_]+", self.evidence_source
+        ):
+            raise ValueError(
+                f"table {self.table}: evidence_source must be lowercase letters, "
+                f"digits and underscores; got {self.evidence_source!r}."
+            )
         if self.significant_only is not None:
             if num_perturbed == 0 or num_target == 0:
                 raise ValueError(
@@ -842,6 +854,7 @@ class TableToProcessConfig:
             overview_matrix_metric=overview_matrix_metric,
             overview_matrix_metric_domain=overview_matrix_metric_domain,
             significant_only=significant_only,
+            evidence_source=json_data.get("evidence_source"),
             publication_title=publication.get("title"),
             publication_first_author=first_author,
             publication_last_author=last_author,

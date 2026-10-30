@@ -3,7 +3,7 @@ import Head from "next/head";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CollatedMatrix, { type MetricDomains } from "@/components/CollatedMatrix";
-import { INFERRED_DOT, INFERRED_FILL } from "@/lib/matrix-canvas";
+import { INFERRED_DOT, INFERRED_FILL, SHARED_MARK } from "@/lib/matrix-canvas";
 import {
   legendEndpoints,
   legendGradientCss,
@@ -59,9 +59,18 @@ function hasInferredCells(data: CollatedMatrixResponse): boolean {
   });
 }
 
+/** True when any cell repeats a value from another study. */
+function hasSharedCells(data: CollatedMatrixResponse): boolean {
+  return data.genes.some((g) => {
+    for (const key in g.cells) if (g.cells[key].sharedWith !== undefined) return true;
+    return false;
+  });
+}
+
 function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
   const metrics = data.meta.metrics;
   const showInferred = useMemo(() => hasInferredCells(data), [data]);
+  const showShared = useMemo(() => hasSharedCells(data), [data]);
   if (metrics.length === 0) return null;
   return (
     <div
@@ -153,6 +162,49 @@ function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
               Some sources publish only their significant results; where a readout
               was a hit for another perturbation in the same screen, we infer it was
               measured here too. Click a cell for the basis.
+            </span>
+          </span>
+        </div>
+      )}
+      {showShared && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+            fontSize: 12,
+            color: "#4b5563",
+            maxWidth: 300,
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "#374151" }}>Same data as another study</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span
+              aria-hidden="true"
+              style={{
+                position: "relative",
+                flexShrink: 0,
+                width: 15,
+                height: 15,
+                borderRadius: 2,
+                background: "#d1d5db",
+                border: "1px solid rgba(0,0,0,0.08)",
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  borderStyle: "solid",
+                  borderWidth: "0 6px 6px 0",
+                  borderColor: `transparent ${SHARED_MARK} transparent transparent`,
+                }}
+              />
+            </span>
+            <span style={{ color: "#9ca3af", fontSize: 11 }}>
+              This value also appears for this gene in another study, so it is one
+              measurement published twice. Click a cell to see which study.
             </span>
           </span>
         </div>

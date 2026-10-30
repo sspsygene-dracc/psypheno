@@ -383,6 +383,57 @@ def test_long_phenotype_signed_metric_takes_sign_from_the_effect(
     assert cells[(2, "P1")] == 2.0
 
 
+def _two_wide_tables(conn: sqlite3.Connection, rows_a: list, rows_b: list) -> None:
+    for name, rows in (("wide_a", rows_a), ("wide_b", rows_b)):
+        conn.execute(f"CREATE TABLE {name} (id INTEGER, cola REAL, colb REAL, colc REAL, cold REAL)")
+        conn.executemany(f"INSERT INTO {name} VALUES (?, ?, ?, ?, ?)", rows)
+        _add_link(conn, f"{name}__perturbed", [(r[0], r[0]) for r in rows])
+        _register(
+            conn,
+            name,
+            "behavior",
+            f"src:{name}__perturbed:perturbed",
+            phenotype_columns=["ColA", "ColB", "ColC", "ColD"],
+            metric="signed_neglog_p",
+        )
+
+
+def _shared(conn: sqlite3.Connection) -> set[tuple[str, str, int, str]]:
+    return set(
+        conn.execute(
+            "SELECT source_table, column_value, central_gene_id, shared_with_table "
+            "FROM overview_matrix_shared_cells"
+        )
+    )
+
+
+def test_shared_cells_mark_repeated_values_per_gene(
+    conn: sqlite3.Connection,
+) -> None:
+    """AAA repeats across tables under other column names; BBB is new data."""
+    _two_wide_tables(
+        conn,
+        [(1, 1.5, 2.5, -3.5, 0.2), (2, 1.0, 1.1, 1.2, 1.3)],
+        [(1, 2.5, -1.5, 3.5, 0.9), (2, 4.0, 4.1, 4.2, 4.3)],
+    )
+    materialize_overview_matrix(conn, min_groups=1)
+    shared = _shared(conn)
+    assert ("wide_b", "ColA", 1, "wide_a") in shared
+    assert ("wide_a", "ColC", 1, "wide_b") in shared
+    assert {row[2] for row in shared} == {1}
+    assert not any(row[1] == "ColD" for row in shared)
+
+
+def test_a_few_chance_matches_are_not_shared_data(conn: sqlite3.Connection) -> None:
+    _two_wide_tables(
+        conn,
+        [(1, 1.5, 2.5, 3.5, 0.2)],
+        [(1, 1.5, 2.5, 9.0, 9.1)],
+    )
+    materialize_overview_matrix(conn, min_groups=1)
+    assert _shared(conn) == set()
+
+
 # --- per-dataset summary column (#234) -------------------------------------
 
 def test_summary_counts_every_readout_not_just_the_columns(
@@ -499,7 +550,7 @@ def test_expansion_metadata_and_info(conn: sqlite3.Connection) -> None:
     info = dict(conn.execute("SELECT key, value FROM overview_matrix_info"))
     assert info["min_groups_floor"] == "2"
     assert json.loads(info["expanded_source_tables"]) == ["expr"]
-    assert info["schema_version"] == "6"
+    assert info["schema_version"] == "7"
     assert info["materialize_top_m"] == "200"
 
 

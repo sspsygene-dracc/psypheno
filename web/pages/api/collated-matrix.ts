@@ -610,6 +610,17 @@ export default async function handler(
           .raw()
       : null;
 
+    // Absent in overview DBs built before shared-data detection.
+    const sharedStmt = tableExists(db, "overview_matrix_shared_cells", "overview")
+      ? db
+          .prepare(
+            `SELECT central_gene_id, column_value, shared_with_label
+               FROM overview.overview_matrix_shared_cells
+              WHERE modality_key = ? AND source_table = ?`
+          )
+          .raw()
+      : null;
+
     if (mode === "collated") {
       const body = buildCollatedResponse({
         db,
@@ -721,6 +732,16 @@ export default async function handler(
               value: 0,
               inferred: basis === "library" ? "library" : "screen",
             };
+          }
+        }
+        if (sharedStmt) {
+          for (const [geneId, columnValue, label] of sharedStmt.all(
+            modalityKey,
+            st.source_table
+          ) as Array<[number, string, string]>) {
+            const cell =
+              byId.get(geneId)?.cells[`${prefix}:${st.source_table}:${columnValue}`];
+            if (cell) cell.sharedWith = label;
           }
         }
 

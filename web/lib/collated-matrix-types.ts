@@ -82,6 +82,11 @@ export interface MatrixCell {
    *   reported row at all) — assumed tested in every context the table covers.
    */
   inferred?: InferredBasis;
+  /**
+   * Expanded mode, phenotype columns: this value also appears for this gene in
+   * another study, which is named here, so it isn't independent evidence.
+   */
+  sharedWith?: string;
   /** Summary mode: how many of `nMeasured` readouts were inferred, and on what basis. */
   nInferred?: number;
   inferredBasis?: InferredBasis;

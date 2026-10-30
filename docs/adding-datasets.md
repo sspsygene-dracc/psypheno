@@ -19,7 +19,8 @@ on gene pages.
 5. [Test on the server](#step-5-test-on-the-server)
 6. [Commit to git](#step-6-commit-to-git)
 7. [Deploy](#step-7-deploy)
-8. [Widening a dataset's destinations (dev → int / prod)](#widening-a-datasets-destinations-dev--int--prod)
+8. [Declaring data reused from another paper](#declaring-data-reused-from-another-paper-evidence_source)
+9. [Widening a dataset's destinations (dev → int / prod)](#widening-a-datasets-destinations-dev--int--prod)
 9. [Troubleshooting](#troubleshooting)
 
 ---
@@ -1451,6 +1452,26 @@ Unlike the old manual `rsync -av data/datasets/<name>/ …`, it never copies
 tracked files, so the server's git tree stays clean for the next `git pull`.
 
 ---
+
+## Declaring data reused from another paper (`evidence_source`)
+
+Papers from one lab sometimes publish the same measurements twice, often with new
+ones added. Counting those as two studies would invent agreement, so the overview
+matrix counts experiments, not papers. If a table reuses another table's data, give
+both the same name:
+
+```yaml
+evidence_source: hoffman_brennand_zebrafish_ndd_behavior
+```
+
+Tables with the same `evidence_source` count as one study whenever studies are
+pooled. Use lowercase letters, digits and underscores. Leave it out for
+independent data; each dataset then counts as its own study.
+
+The overview matrix build also compares phenotype tables gene by gene. Cells whose
+values match another table get a corner mark and a "same data as" note, and the
+build warns if two tables share values but declare no common source. The check
+covers phenotype columns only, so declare reused gene-expression data yourself.
 
 ## Widening a dataset's destinations (dev → int / prod)
 

@@ -47,6 +47,9 @@ const NO_DATA_INSET = 3;
 export const INFERRED_FILL = "#e9ebef";
 export const INFERRED_DOT = "#9ca3af";
 const INFERRED_DOT_R = 1.6;
+// A value that also appears in another study: a dark corner over the usual color.
+export const SHARED_MARK = "#111827";
+const SHARED_MARK_SIZE = 5;
 const SELECT_OUTLINE = "#111827";
 
 /** Per-cell state in `ColorGrid.state`. */
@@ -55,6 +58,8 @@ export const CELL_VALUE = 1;
 export const CELL_INFERRED = 2;
 /** Collated cell: two triangles, `packed` upper-left and `packed2` lower-right. */
 export const CELL_SPLIT = 3;
+/** A `CELL_VALUE` cell whose value is shared with another study. */
+export const CELL_SHARED = 4;
 
 // A collated cell measured by a single study is blended this far toward white:
 // "1 of 1" must not read as strong convergence.
@@ -130,7 +135,7 @@ export function buildColorGrid(
       }
       const [r, g, b] = scaleColorRGB(col.metric, cell.value, metricDomains[col.metric]);
       packed[base + j] = (r << 16) | (g << 8) | b;
-      state[base + j] = CELL_VALUE;
+      state[base + j] = cell.sharedWith !== undefined ? CELL_SHARED : CELL_VALUE;
     }
   }
   return { nRows, nCols, packed, packed2, state };
@@ -171,9 +176,10 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
 
   // No-data diagonals accumulate into one path and get stroked once at the end —
   // a stroke() per tile would cost more than the whole fill pass. Inferred-cell
-  // dots likewise collect into one path, filled once.
+  // dots and shared-data corners likewise collect into one path each.
   ctx.beginPath();
   const dots = new Path2D();
+  const corners = new Path2D();
 
   for (let i = firstRow; i <= lastRow; i++) {
     const y = i * ROW_H - scrollTop;
@@ -185,9 +191,17 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
     for (let j = firstCol; j <= lastCol; j++) {
       const x = j * colW - scrollLeft;
       const st = state[base + j];
-      if (st === CELL_VALUE) {
+      if (st === CELL_VALUE || st === CELL_SHARED) {
         ctx.fillStyle = rgb(packed[base + j]);
         ctx.fillRect(x + GUTTER, y + GUTTER, tileW, tileH);
+        if (st === CELL_SHARED) {
+          const xr = x + GUTTER + tileW;
+          const yt = y + GUTTER;
+          corners.moveTo(xr - SHARED_MARK_SIZE, yt);
+          corners.lineTo(xr, yt);
+          corners.lineTo(xr, yt + SHARED_MARK_SIZE);
+          corners.closePath();
+        }
       } else if (st === CELL_SPLIT) {
         const x0 = x + GUTTER;
         const y0 = y + GUTTER;
@@ -239,6 +253,8 @@ export function drawCells(ctx: CanvasRenderingContext2D, p: DrawParams): void {
   ctx.stroke();
   ctx.fillStyle = INFERRED_DOT;
   ctx.fill(dots);
+  ctx.fillStyle = SHARED_MARK;
+  ctx.fill(corners);
 
   if (
     selected &&
