@@ -16,6 +16,7 @@ type GeneRow = {
   pvalue: number | null;
   fdr: number | null;
   rowKey: string;
+  effectCapped?: boolean;
 };
 
 type VolcanoPoint = {
@@ -24,6 +25,8 @@ type VolcanoPoint = {
   fdr: number | null;
   topByP: boolean;
   symbol: string | null;
+  // Stored effect is ±Inf; `effect` is where it is drawn.
+  effectCapped?: boolean;
 };
 
 type DistributionResponse = {
@@ -35,6 +38,9 @@ type DistributionResponse = {
   // Which home-page query param a tooltip's gene link should use, or null
   // when the table has no single labelling link table (#189).
   labelDirection: "target" | "perturbed" | null;
+  // One row per gene: the background stays whole-table and a searched
+  // perturbed gene is the orange dot.
+  perGeneTable?: boolean;
   volcanoPoints: VolcanoPoint[];
   geneRows: GeneRow[];
   fieldLabels?: Record<string, string>;
@@ -73,11 +79,13 @@ export default function EffectDistributionChart({
   perturbedCentralGeneId,
   targetCentralGeneId,
   geneSymbol,
+  perturbedGeneSymbol,
 }: {
   tableName: string;
   perturbedCentralGeneId?: number;
   targetCentralGeneId?: number;
   geneSymbol?: string;
+  perturbedGeneSymbol?: string;
 }) {
   const [data, setData] = useState<DistributionResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -145,6 +153,7 @@ export default function EffectDistributionChart({
         pvalue: r.pvalue,
         fdr: r.fdr,
         rowKey: r.rowKey,
+        effectCapped: r.effectCapped,
       }));
   }, [data]);
 
@@ -180,11 +189,21 @@ export default function EffectDistributionChart({
   const pvalueLabel = labelFor(data.pvalueColumn);
   const fdrLabel = labelFor(data.fdrColumn);
 
+  const highlightSymbol = data.perGeneTable
+    ? (perturbedGeneSymbol ?? geneSymbol)
+    : geneSymbol;
+
+  const hasCappedEffects =
+    data.volcanoPoints.some((p) => p.effectCapped) ||
+    data.geneRows.some((r) => r.effectCapped);
+  const cappedNote = `Rows with an infinite ${data.effectColumn} are drawn at the largest finite value in this table.`;
+
   const explainer = [
     `Each background dot is one row from the table.`,
     `The sample is the top rows by p-value plus a deterministic pseudo-random sample (~${VOLCANO_SAMPLE_CAP.toLocaleString()} dots total); control-perturbed rows are excluded by default.`,
     `Red = significantly up, blue = significantly down, grey = not significant (${sigLabel}).`,
-    `Orange dot${geneScatter.length === 1 ? "" : "s"} = ${geneSymbol ?? "the queried gene"}'s row${geneScatter.length === 1 ? "" : "s"} in this table (full opacity).`,
+    `Orange dot${geneScatter.length === 1 ? "" : "s"} = ${highlightSymbol ?? "the queried gene"}'s row${geneScatter.length === 1 ? "" : "s"} in this table (full opacity).`,
+    ...(hasCappedEffects ? [cappedNote] : []),
   ].join(" ");
 
   return (
@@ -255,6 +274,16 @@ export default function EffectDistributionChart({
         </div>
       </div>
 
+      {data.perGeneTable &&
+        perturbedCentralGeneId != null &&
+        perturbedCentralGeneId > 0 &&
+        geneScatter.length === 0 && (
+          <div style={{ marginBottom: 4, fontSize: 12, color: "#6b7280" }}>
+            {`${highlightSymbol ?? "This gene"} has no plottable ` +
+              `${data.effectColumn} / ${data.pvalueColumn} values in this ` +
+              `table, so it isn't highlighted.`}
+          </div>
+        )}
       <ResponsiveContainer width="100%" height={280}>
         <ScatterChart margin={{ top: 6, right: 16, bottom: 28, left: 8 }}>
           <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
@@ -297,11 +326,16 @@ export default function EffectDistributionChart({
                 | undefined;
               if (!p) return null;
               const isGene = "rowKey" in p && p.rowKey != null;
-              // The orange (queried-gene) dots always carry the searched
-              // target gene, so link them as ?target=. Background dots use
-              // whatever direction the table labels by (#189).
-              const symbol = isGene ? geneSymbol ?? null : p.symbol ?? null;
-              const direction = isGene ? "target" : data.labelDirection;
+              // The orange (queried-gene) dots carry the searched gene: the
+              // perturbed one on per-gene tables, otherwise the target.
+              // Background dots use whatever direction the table labels by
+              // (#189).
+              const symbol = isGene ? highlightSymbol ?? null : p.symbol ?? null;
+              const direction = !isGene
+                ? data.labelDirection
+                : data.perGeneTable
+                  ? "perturbed"
+                  : "target";
               const href =
                 symbol && direction
                   ? `/?${direction}=${encodeURIComponent(symbol)}`
@@ -337,7 +371,11 @@ export default function EffectDistributionChart({
                   <TooltipRow
                     label={effectLabel}
                     column={data.effectColumn}
-                    value={fmt(p.effect, 3)}
+                    value={
+                      p.effectCapped
+                        ? `${p.effect < 0 ? "−" : ""}∞ (drawn at ${fmt(p.effect, 3)})`
+                        : fmt(p.effect, 3)
+                    }
                   />
                   <TooltipRow
                     label={pvalueLabel}
@@ -404,6 +442,11 @@ export default function EffectDistributionChart({
           )}
         </ScatterChart>
       </ResponsiveContainer>
+      {hasCappedEffects && (
+        <div style={{ marginTop: 4, fontSize: 12, color: "#6b7280" }}>
+          {cappedNote}
+        </div>
+      )}
     </div>
   );
 }

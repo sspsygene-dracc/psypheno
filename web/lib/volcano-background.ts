@@ -44,6 +44,9 @@ export type VolcanoPoint = {
   // table (target if present, else perturbed). null when the row doesn't
   // resolve to a central gene. Drives the hoverable tooltip link (#189).
   symbol: string | null;
+  // The stored effect is ±Inf (e.g. an odds ratio with no carriers among
+  // controls); `effect` is the capped value it is drawn at.
+  effectCapped?: true;
 };
 
 type SampleRow = {
@@ -62,6 +65,9 @@ export type VolcanoBackground = {
   effectCol: string;
   pvalueCol: string;
   fdrCol: string | null;
+  // One row per gene (e.g. GeneTrek): a perturbed gene doesn't restrict the
+  // background, its row is highlighted on the whole-table volcano instead.
+  perGeneTable: boolean;
   // Response fields.
   effectColumn: string;
   fdrColumn: string | null;
@@ -98,13 +104,17 @@ export function getVolcanoBackground(
 ): VolcanoBackgroundResult {
   const cache = cacheFor(db);
   // The perturbed gene only restricts the background when the table has
-  // exactly one perturbed link table; otherwise share the whole-table entry
-  // rather than recomputing it per gene.
+  // exactly one perturbed link table and several rows per gene; otherwise
+  // share the whole-table entry rather than recomputing it per gene.
   if (perturbedCentralGeneId !== undefined) {
     const meta = db
       .prepare(`SELECT link_tables FROM data_tables WHERE table_name = ?`)
       .get(tableName) as { link_tables: string | null } | undefined;
-    if (parseLinkTablesForDirection(meta?.link_tables || "", "perturbed").length !== 1) {
+    const linkTablesRaw = meta?.link_tables || "";
+    if (
+      parseLinkTablesForDirection(linkTablesRaw, "perturbed").length !== 1 ||
+      (perturbedCentralGeneId > 0 && isPerGeneTable(db, linkTablesRaw))
+    ) {
       perturbedCentralGeneId = undefined;
     }
   }
@@ -130,6 +140,69 @@ export function getVolcanoBackground(
     }
   }
   return result;
+}
+
+const effectCaps = new WeakMap<Database.Database, Map<string, number>>();
+
+/**
+ * Where to draw ±Inf effects: the table's largest finite absolute effect, or 1
+ * if it has none. A plot can't place Inf, and dropping those rows would hide
+ * the strongest hits. Display only: the stored value stays Inf. Scans the
+ * table, so it only runs once a table actually has such a row.
+ */
+export function effectCapFor(
+  db: Database.Database,
+  baseTable: string,
+  effectCol: string,
+): number {
+  let known = effectCaps.get(db);
+  if (!known) {
+    known = new Map();
+    effectCaps.set(db, known);
+  }
+  let cap = known.get(baseTable);
+  if (cap === undefined) {
+    const { max } = db
+      .prepare(
+        `SELECT MAX(ABS(${effectCol})) AS max FROM ${baseTable}
+         WHERE ABS(${effectCol}) < 9e999`,
+      )
+      .get() as { max: number | null };
+    cap = max || 1;
+    known.set(baseTable, cap);
+  }
+  return cap;
+}
+
+const perGeneTables = new WeakMap<Database.Database, Map<string, boolean>>();
+
+/**
+ * Whether a table is a per-gene annotation list rather than an experiment: it
+ * has a single perturbed link table, no target link table, and fewer than two
+ * rows per gene. Restricting such a table to one gene leaves at most a dot or
+ * two, so its volcano stays whole-table and highlights the gene instead.
+ */
+function isPerGeneTable(db: Database.Database, linkTablesRaw: string): boolean {
+  const perturbedLTs = parseLinkTablesForDirection(linkTablesRaw, "perturbed");
+  const targetLTs = parseLinkTablesForDirection(linkTablesRaw, "target");
+  if (perturbedLTs.length !== 1 || targetLTs.length !== 0) return false;
+  const lt = perturbedLTs[0];
+  let known = perGeneTables.get(db);
+  if (!known) {
+    known = new Map();
+    perGeneTables.set(db, known);
+  }
+  let perGene = known.get(lt);
+  if (perGene === undefined) {
+    const { rows, genes } = db
+      .prepare(
+        `SELECT COUNT(*) AS rows, COUNT(DISTINCT central_gene_id) AS genes FROM ${lt}`,
+      )
+      .get() as { rows: number; genes: number };
+    perGene = rows < 2 * genes;
+    known.set(lt, perGene);
+  }
+  return perGene;
 }
 
 const warming = new WeakSet<Database.Database>();
@@ -328,9 +401,13 @@ function computeVolcanoBackground(
   const addRow = (row: SampleRow, topByP: boolean) => {
     if (seen.has(row.id)) return;
     if (row.effect == null || row.pvalue == null) return;
-    const effect = Number(row.effect);
+    const rawEffect = Number(row.effect);
     const pvalue = Number(row.pvalue);
-    if (!Number.isFinite(effect) || !Number.isFinite(pvalue)) return;
+    if (Number.isNaN(rawEffect) || !Number.isFinite(pvalue)) return;
+    const effectCapped = !Number.isFinite(rawEffect);
+    const effect = effectCapped
+      ? Math.sign(rawEffect) * effectCapFor(db, baseTable, effectCol)
+      : rawEffect;
     seen.add(row.id);
     volcanoPoints.push({
       effect,
@@ -338,6 +415,7 @@ function computeVolcanoBackground(
       fdr: row.fdr == null ? null : Number(row.fdr),
       topByP,
       symbol: null,
+      ...(effectCapped ? { effectCapped } : {}),
     });
     volcanoIds.push(row.id);
   };
@@ -374,6 +452,7 @@ function computeVolcanoBackground(
       effectCol,
       pvalueCol,
       fdrCol,
+      perGeneTable: isPerGeneTable(db, linkTablesRaw),
       effectColumn: tableMeta.effect_column,
       fdrColumn: tableMeta.fdr_column,
       labelDirection,

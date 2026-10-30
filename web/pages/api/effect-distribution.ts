@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 import { buildGeneQuery, ALL_CONTROLS_SENTINEL_ID } from "@/lib/gene-query";
-import { getVolcanoBackground } from "@/lib/volcano-background";
+import { effectCapFor, getVolcanoBackground } from "@/lib/volcano-background";
 
 // IDs are non-negative auto-increment ints in central_gene, plus the
 // reserved sentinel for "all controls" — accept either, reject anything
@@ -19,6 +19,7 @@ type GeneRow = {
   pvalue: number | null;
   fdr: number | null;
   rowKey: string;
+  effectCapped?: true;
 };
 
 export default async function handler(
@@ -50,15 +51,19 @@ export default async function handler(
     // perturbed gene is given, the background already represents that
     // perturbation's experiment — there's no separate row to single out.
     // When both are given, intersect (target row WITHIN the perturbation's
-    // background); same as gene-data's pair-search semantics.
+    // background); same as gene-data's pair-search semantics. Per-gene tables
+    // keep the whole-table background, so there the orange dot is the
+    // perturbed gene's own row.
+    const highlightPerturbed =
+      bg.perGeneTable && (perturbedCentralGeneId ?? 0) > 0;
     const geneRows: GeneRow[] = [];
-    if (targetCentralGeneId) {
+    if (targetCentralGeneId || highlightPerturbed) {
       const query = buildGeneQuery({
         baseTable,
         displayCols,
         linkTablesRaw,
         perturbedCentralGeneId,
-        targetCentralGeneId,
+        targetCentralGeneId: highlightPerturbed ? undefined : targetCentralGeneId,
       });
       if (query) {
         const fdrSelectGene = fdrCol ? `, b.${fdrCol} AS fdr` : `, NULL AS fdr`;
@@ -70,11 +75,17 @@ export default async function handler(
           fdr: number | null;
         }>;
         for (const r of rows) {
+          const effect = r.effect == null ? null : Number(r.effect);
+          const effectCapped =
+            effect != null && !Number.isNaN(effect) && !Number.isFinite(effect);
           geneRows.push({
-            effect: r.effect == null ? null : Number(r.effect),
+            effect: effectCapped
+              ? Math.sign(effect) * effectCapFor(db, baseTable, effectCol)
+              : effect,
             pvalue: r.pvalue == null ? null : Number(r.pvalue),
             fdr: r.fdr == null ? null : Number(r.fdr),
             rowKey: String(r.id),
+            ...(effectCapped ? { effectCapped } : {}),
           });
         }
       }
@@ -93,6 +104,7 @@ export default async function handler(
       // "perturbed" → /?perturbed=SYM. null when the table has no single
       // labelling link table (#189).
       labelDirection: bg.labelDirection,
+      perGeneTable: bg.perGeneTable,
       volcanoPoints: bg.volcanoPoints,
       geneRows,
       fieldLabels: bg.fieldLabels,
