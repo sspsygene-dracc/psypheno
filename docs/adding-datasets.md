@@ -606,7 +606,10 @@ Because expansion is mandatory, the flag has prerequisites and the config fails
 loudly at load time without them: a `perturbed` gene mapping, **exactly one**
 column axis (a `target` gene mapping, `overview_matrix_phenotype_column`, or
 `overview_matrix_phenotype_columns`), and a `pvalue_column`/`fdr_column` — or an
-explicit `overview_matrix_metric` for the wide-phenotype axis.
+explicit `overview_matrix_metric` for the wide-phenotype axis. A long-phenotype
+table can also set `overview_matrix_metric: signed_neglog_p`, which needs both
+`pvalue_column` and `effect_column`: the p-value sets the color strength and the
+effect sets the direction.
 
 > There used to be a second flag, `overview_matrix_expand`, opting a table into
 > the sub-column expansion on top of `overview_matrix`. It dated from a design

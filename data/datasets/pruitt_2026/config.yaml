@@ -53,6 +53,8 @@ tables:
     changelog:
       - date: "2026-10-26"
         message: "Initial data load — 744 rows; 31 zebrafish mutants × 24 behavioral parameters"
+      - date: "2026-10-30"
+        message: "Added to the overview matrix."
 
     shortLabel: pruitt_2026_zf_behavior
     mediumLabel: "Pruitt 2026 - Zebrafish Baseline Behavioral Phenotypes in 31 NDD Mutants"
@@ -69,6 +71,9 @@ tables:
       crispant larvae at 5–7 dpf and compared to wild-type or scramble-injected
       controls using linear mixed models (LMM). Pruitt et al. 2026 preprint,
       doi:10.64898/2026.02.18.706588, Supplementary Tables 10–11.
+      Comes from the same labs as Fernandez Garcia et al. 2026, and is not
+      independent of it: 15 genes are in both, and for 10 of that paper's 17 fish
+      lines all 24 p-values are identical here.
 
     source: >
       Supplementary Tables 10 (signed -log10 LMM p-values) and 11 (scaled LMM
@@ -100,6 +105,12 @@ tables:
 
     pvalue_column: pval
     effect_column: beta
+
+    # Overview matrix: one column per behavioral parameter (long format), signed
+    # by beta to match the Fernandez Garcia 2026 behavior columns.
+    overview_matrix: true
+    overview_matrix_phenotype_column: behavioral_parameter
+    overview_matrix_metric: signed_neglog_p
 
     fieldLabels:
       human_gene: >

@@ -970,6 +970,85 @@ def _materialize_wide_axis(
         per_column[pc] = agg
         labels[pc] = raw_pc
 
+    return _write_phenotype_axis(
+        conn,
+        modality_key=modality_key,
+        table_name=table_name,
+        source_label=source_label,
+        per_column=per_column,
+        labels=labels,
+        metric=metric,
+        metric_domain=metric_domain,
+    )
+
+
+def _materialize_long_signed_axis(
+    conn: sqlite3.Connection,
+    *,
+    modality_key: str,
+    table_name: str,
+    source_label: str | None,
+    base_table: str,
+    link_table: str,
+    phenotype_column: str,
+    pvalue_column: str,
+    effect_column: str,
+    metric_domain: str | None,
+    src_schema: str,
+) -> int:
+    """Long phenotype axis with a direction: signed −log10(p) per column value.
+
+    The p-value gives the magnitude and the effect column the sign, so a long
+    table lands on the same scale as a wide `signed_neglog_p` table.
+    """
+    rows = conn.execute(
+        f"""SELECT lt.central_gene_id, t.{phenotype_column}, t.{pvalue_column},
+                   t.{effect_column}
+              FROM {src_schema}.{base_table} t
+              JOIN {src_schema}.{link_table} lt ON t.id = lt.id
+             WHERE lt.central_gene_id IN (SELECT id FROM {_PANEL_TABLE})
+               AND t.{phenotype_column} IS NOT NULL
+               AND t.{pvalue_column} IS NOT NULL
+               AND t.{effect_column} IS NOT NULL"""
+    ).fetchall()
+    per_column: dict[str, dict[int, float]] = {}
+    for gene_id, column_value, raw_p, raw_effect in rows:
+        try:
+            p, effect = float(raw_p), float(raw_effect)
+        except (TypeError, ValueError):
+            continue
+        value = math.copysign(-math.log10(max(p, 1e-300)), effect)
+        agg = per_column.setdefault(str(column_value), {})
+        current = agg.get(gene_id)
+        if current is None or abs(value) > abs(current):
+            agg[gene_id] = value
+    return _write_phenotype_axis(
+        conn,
+        modality_key=modality_key,
+        table_name=table_name,
+        source_label=source_label,
+        per_column=per_column,
+        labels={column: column for column in per_column},
+        metric="signed_neglog_p",
+        metric_domain=metric_domain,
+    )
+
+
+def _write_phenotype_axis(
+    conn: sqlite3.Connection,
+    *,
+    modality_key: str,
+    table_name: str,
+    source_label: str | None,
+    per_column: dict[str, dict[int, float]],
+    labels: dict[str, str],
+    metric: str,
+    metric_domain: str | None,
+) -> int:
+    """Write a phenotype axis's summary, columns and cells. Returns column count."""
+    log = get_sspsygene_logger()
+    signed = metric == "signed_neglog_p"
+
     # Per-dataset summary column (#234). `per_column` is already panel-filtered
     # by SQL and holds every phenotype column that had data, before the top-M cut.
     if signed:
@@ -1049,7 +1128,7 @@ def _materialize_wide_axis(
     n_cells = sum(len(per_column[pc]) for pc in ordered)
     click.echo(
         f"  Overview matrix: '{modality_key}' / {table_name} → "
-        f"{len(ordered)} columns / {n_cells} cells (metric {metric}, wide)"
+        f"{len(ordered)} columns / {n_cells} cells (metric {metric}, phenotype)"
     )
     return len(ordered)
 
@@ -1071,6 +1150,7 @@ def _materialize_expansion(
     src_schema: str,
     significant_only: dict[str, list[str]] | None = None,
     species: str | None = None,
+    effect_column: str | None = None,
 ) -> int:
     """Materialize one expanded (modality, source table). Returns column count.
 
@@ -1107,6 +1187,22 @@ def _materialize_expansion(
     columns = _table_columns(conn, base_table, src_schema)
     source_columns = _resolve_source_columns(link_tables_raw, columns)
     group_expr = source_columns["perturbed"] or "''"
+
+    if phenotype_column and metric == "signed_neglog_p":
+        # LONG with a direction — config validation requires both columns.
+        return _materialize_long_signed_axis(
+            conn,
+            modality_key=modality_key,
+            table_name=table_name,
+            source_label=source_label,
+            base_table=base_table,
+            link_table=link_table,
+            phenotype_column=phenotype_column,
+            pvalue_column=pvalue_column or "",
+            effect_column=_split_columns(effect_column)[0],
+            metric_domain=metric_domain,
+            src_schema=src_schema,
+        )
 
     if phenotype_column:
         target_column = phenotype_column
@@ -1401,6 +1497,7 @@ def materialize_overview_matrix(
             src_schema=src_schema,
             significant_only=significant_only,
             species=gene_species,
+            effect_column=effect_column,
         )
         if modality_key in COLLATE_GROUPS and not phenotype_column and not phenotype_columns:
             prepared = _collate_source(

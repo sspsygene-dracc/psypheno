@@ -606,6 +606,16 @@ class TableToProcessConfig:
             elif not self.pvalue_column and not self.fdr_column:
                 missing.append("a pvalue_column or fdr_column")
 
+            # A long table has no signed values to read, so it derives them.
+            if (
+                self.overview_matrix_phenotype_column
+                and self.overview_matrix_metric == "signed_neglog_p"
+            ):
+                if not self.pvalue_column:
+                    missing.append("a pvalue_column (for signed_neglog_p)")
+                if not self.effect_column:
+                    missing.append("an effect_column (for signed_neglog_p)")
+
             if self.overview_matrix_metric and (
                 self.overview_matrix_metric not in _OVERVIEW_MATRIX_METRICS
             ):

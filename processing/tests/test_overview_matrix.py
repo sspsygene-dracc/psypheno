@@ -346,6 +346,43 @@ def test_wide_phenotype_max_magnitude_aggregate(conn: sqlite3.Connection) -> Non
     assert cells[(2, "ColB")] == 4.0
 
 
+def test_long_phenotype_signed_metric_takes_sign_from_the_effect(
+    conn: sqlite3.Connection,
+) -> None:
+    conn.execute(
+        "CREATE TABLE beh (id INTEGER, pgene TEXT, param TEXT, pval REAL, beta REAL)"
+    )
+    conn.executemany(
+        "INSERT INTO beh VALUES (?, ?, ?, ?, ?)",
+        [
+            (1, "AAA", "P1", 0.001, -2.0),
+            (2, "AAA", "P1", 0.1, 3.0),
+            (3, "BBB", "P1", 0.01, 1.0),
+            (4, "BBB", "P2", 0.5, None),
+        ],
+    )
+    _add_link(conn, "beh__perturbed", [(1, 1), (1, 2), (2, 3), (2, 4)])
+    _register(
+        conn,
+        "beh",
+        "behavior",
+        "pgene:beh__perturbed:perturbed",
+        pvalue_column="pval",
+        phenotype_column="param",
+        metric="signed_neglog_p",
+    )
+    conn.execute("ALTER TABLE data_tables ADD COLUMN effect_column TEXT")
+    conn.execute("UPDATE data_tables SET effect_column = 'beta'")
+    materialize_overview_matrix(conn, min_groups=1)
+    cols = _columns(conn, "beh")
+    assert [c[0] for c in cols] == ["P1"]  # P2's only row has no effect
+    assert cols[0][2] == "signed_neglog_p"
+    cells = _cells(conn, "beh")
+    # AAA keeps its strongest row, with that row's sign.
+    assert cells[(1, "P1")] == -3.0
+    assert cells[(2, "P1")] == 2.0
+
+
 # --- per-dataset summary column (#234) -------------------------------------
 
 def test_summary_counts_every_readout_not_just_the_columns(
