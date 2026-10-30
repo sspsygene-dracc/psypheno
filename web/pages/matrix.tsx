@@ -526,7 +526,7 @@ export default function MatrixPage() {
                 Columns are <strong>readout genes pooled across studies</strong>.
                 Each cell asks: of the studies that measured this readout after
                 perturbing this gene, how many found a significant change? The
-                upper-left triangle is that share; the lower-right shows whether
+                upper-left triangle shows that percentage; the lower-right shows whether
                 the significant studies agree on the direction. Click a cell for
                 the studies behind it.
               </>

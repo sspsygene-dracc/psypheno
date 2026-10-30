@@ -161,11 +161,11 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     // Collated view, upper-left triangle: k / n — of the studies that measured
     // a (perturbed gene, readout gene) pair, the share that found it
     // significant. Cells measured by a single study are drawn faded.
-    label: "share of studies significant",
+    label: "percentage of studies with a significant readout",
     kind: "sequential",
     domain: [0, 1],
     stops: YLGNBU,
-    note: "k of n studies; faded = only one study measured it",
+    note: "k of the n studies that measured it; faded = only one study did",
     legendFormat: (v) => `${Math.round(v * 100)}%`,
     clusterNoiseFloor: 0, // no study significant
   },

@@ -108,7 +108,7 @@ export function buildColorGrid(
         continue;
       }
       if (cell.k !== undefined && cell.n !== undefined) {
-        // Collated: upper = share of studies significant; lower = direction
+        // Collated: upper = % of studies with a significant readout; lower = direction
         // agreement among the significant ones. With k = 0 there is no
         // direction, so the tile stays one color.
         let upper = scaleColorRGB(col.metric, cell.value, metricDomains[col.metric]);
