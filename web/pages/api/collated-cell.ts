@@ -5,6 +5,7 @@ import { setReadCacheHeaders } from "@/lib/cache-headers";
 import type {
   CollatedCellResponse,
   CollatedContribution,
+  PhenotypeTest,
 } from "@/lib/collated-matrix-types";
 
 /**
@@ -73,8 +74,20 @@ export default async function handler(
           ? r.inferred_basis
           : null,
     }));
+    const tests =
+      group === "phenotype" && tableExists(db, "overview_matrix_phenotype_tests", "overview")
+        ? (db
+            .prepare(
+              `SELECT source_label AS source, source_table AS sourceTable,
+                      column_value AS "column", p, fdr, effect
+                 FROM overview.overview_matrix_phenotype_tests
+                WHERE target_gene_id = ? AND central_gene_id = ?
+                ORDER BY fdr ASC, p ASC, source_label ASC, column_value ASC`
+            )
+            .all(target, perturbed) as PhenotypeTest[])
+        : undefined;
     setReadCacheHeaders(res);
-    return res.status(200).json({ contributions });
+    return res.status(200).json({ contributions, ...(tests ? { tests } : {}) });
   } catch (err) {
     console.error("collated-cell failed", err);
     return res.status(500).json({ error: "Internal server error" });

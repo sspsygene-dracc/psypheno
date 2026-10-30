@@ -336,3 +336,46 @@ def test_phenotype_pooling_counts_a_shared_experiment_once() -> None:
     # One study, significant through its wide table.
     assert _cells(conn)[(1, -2)] == (1, 1, 0, 1, 0)
     assert set(_contrib(conn, 1, -2)) == {"one_experiment"}
+
+
+def test_phenotype_tests_keep_what_a_column_compressed() -> None:
+    conn = _make_db()
+    _with_phenotype_terms(conn)
+    _phenotype_tables(conn, shared_source=None)
+    materialize_overview_matrix(conn, min_groups=1)
+    rows = conn.execute(
+        "SELECT source_label, column_value FROM overview_matrix_phenotype_tests "
+        "WHERE target_gene_id = -2 AND central_gene_id = 1 ORDER BY 1, 2"
+    ).fetchall()
+    assert rows == [
+        ("ds_long", "night sleep"),
+        ("ds_wide", "SleepD"),
+        ("ds_wide", "SleepN"),
+    ]
+
+
+def test_a_study_with_significant_tests_both_ways_is_mixed() -> None:
+    conn = _make_db()
+    _with_phenotype_terms(conn)
+    conn.execute("CREATE TABLE beh (id INTEGER, sleepd REAL, sleepn REAL)")
+    conn.execute("INSERT INTO beh VALUES (1, 4.0, -5.0)")
+    _add_link(conn, "beh__perturbed", [(1, 1)])
+    _register(
+        conn,
+        "beh",
+        "behavior",
+        "src:beh__perturbed:perturbed",
+        phenotype_columns=["SleepD", "SleepN"],
+        metric="signed_neglog_p",
+    )
+    conn.execute(
+        "UPDATE data_tables SET dataset = 'ds', medium_label = 'ds - fixture', "
+        "overview_matrix_phenotype_terms = ?",
+        (json.dumps({"SleepD": "MP:0021198", "SleepN": "MP:0021198"}),),
+    )
+    materialize_overview_matrix(conn, min_groups=1)
+    # Significant, counted in neither direction, and no single effect to report.
+    assert _cells(conn)[(1, -2)] == (1, 1, 0, 0, 0)
+    assert conn.execute(
+        "SELECT effect FROM overview_matrix_collated_contrib WHERE target_gene_id = -2"
+    ).fetchone() == (None,)

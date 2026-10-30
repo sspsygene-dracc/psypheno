@@ -537,6 +537,7 @@ def verify_destination(
                 ("overview_matrix_shared_cells", "source_table", False),
                 ("overview_matrix_shared_cells", "shared_with_table", False),
                 ("overview_matrix_collated_contrib", "source_tables", True),
+                ("overview_matrix_phenotype_tests", "source_table", False),
             ],
             prod_allowed,
             all_known,

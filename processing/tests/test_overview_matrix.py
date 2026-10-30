@@ -550,7 +550,7 @@ def test_expansion_metadata_and_info(conn: sqlite3.Connection) -> None:
     info = dict(conn.execute("SELECT key, value FROM overview_matrix_info"))
     assert info["min_groups_floor"] == "2"
     assert json.loads(info["expanded_source_tables"]) == ["expr"]
-    assert info["schema_version"] == "7"
+    assert info["schema_version"] == "8"
     assert info["materialize_top_m"] == "200"
 
 

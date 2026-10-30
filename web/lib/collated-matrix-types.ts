@@ -35,6 +35,8 @@ export interface MatrixColumn {
   metric: string;
   /** True when `label` is a gene (→ links to a target-gene search). */
   columnIsGene: boolean;
+  /** Pooled phenotype columns: the original measures this column combines. */
+  contains?: Array<{ source: string; column: string }>;
   /**
    * How many distinct perturbed groups this column is significant in (gene
    * columns) or how many genes have data (phenotype columns). Drives render
@@ -137,8 +139,20 @@ export interface CollatedContribution {
   inferredBasis: InferredBasis | null;
 }
 
+/** One original measurement behind a pooled phenotype cell. */
+export interface PhenotypeTest {
+  source: string;
+  sourceTable: string;
+  column: string;
+  p: number;
+  fdr: number;
+  effect: number | null;
+}
+
 export interface CollatedCellResponse {
   contributions: CollatedContribution[];
+  /** Pooled phenotype columns only. */
+  tests?: PhenotypeTest[];
 }
 
 export interface CollatedMatrixMeta {

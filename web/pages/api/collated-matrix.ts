@@ -380,6 +380,23 @@ function buildCollatedResponse(args: {
     )
     .raw();
 
+  // What each pooled phenotype column combines. Absent in older overview DBs.
+  const contains = new Map<number, Array<{ source: string; column: string }>>();
+  if (tableExists(db, "overview_matrix_phenotype_tests", "overview")) {
+    for (const [target, source, column] of db
+      .prepare(
+        `SELECT DISTINCT target_gene_id, source_label, column_value
+           FROM overview.overview_matrix_phenotype_tests
+          ORDER BY source_label, column_value`
+      )
+      .raw()
+      .all() as Array<[number, string, string]>) {
+      const list = contains.get(target) ?? [];
+      list.push({ source, column });
+      contains.set(target, list);
+    }
+  }
+
   for (const g of groups) {
     let groupStudies: Array<{ study: string; label: string }> = [];
     try {
@@ -401,6 +418,9 @@ function buildCollatedResponse(args: {
         label: r.label,
         metric: COLLATED_METRIC,
         columnIsGene: g.collate_group !== "phenotype",
+        ...(g.collate_group === "phenotype"
+          ? { contains: contains.get(r.target_gene_id) ?? [] }
+          : {}),
         nSigGroups: r.sum_k,
         // One pseudo-"dataset" per collate group, so bands / hiding work as in
         // the per-study view.

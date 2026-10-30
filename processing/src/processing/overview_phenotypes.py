@@ -12,7 +12,9 @@ which is the `evidence_source` when declared, and a study is significant for a
 (gene, term) pair if any of its tests has FDR < 0.05. Most behavior tables publish
 only p-values, and with a dozen parameters per term a nominal p would pass by
 chance, so their FDR is computed here: Benjamini-Hochberg over each table's tests
-of a term. Direction comes from the sign of the study's strongest test.
+of a term. A study's direction is the sign of its significant tests; one with
+significant tests both ways is mixed, so it adds to neither count and shows no
+effect, rather than letting the strongest test hide the conflict.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 COLLATE_GROUP = "phenotype"
+TESTS_TABLE = "overview_matrix_phenotype_tests"
 GROUP_LABEL = "Phenotypes across studies"
 _ALPHA = 0.05
 
@@ -60,6 +63,7 @@ class PhenotypeSource:
     fdr_col: str | None = None
     effect_col: str | None = None
     columns: set[str] = field(default_factory=set)
+    column_labels: dict[str, str] = field(default_factory=dict)  # wide: DB -> raw
 
 
 @dataclass
@@ -68,6 +72,29 @@ class _Test:
     fdr: float | None  # None until `_fill_fdr`, if the table has none
     effect: float | None
     source_table: str
+    source_label: str
+    column: str  # the paper's own name for what was measured
+
+
+def create_phenotype_schema(conn: sqlite3.Connection) -> None:
+    # Every measurement behind a pooled phenotype column, so a click can show
+    # what the column compressed. Not unique: a gene can have several guides or
+    # fish lines per measure.
+    conn.execute(
+        f"""CREATE TABLE {TESTS_TABLE} (
+        target_gene_id INTEGER NOT NULL,
+        central_gene_id INTEGER NOT NULL,
+        source_table TEXT NOT NULL,
+        source_label TEXT NOT NULL,
+        column_value TEXT NOT NULL,
+        p REAL NOT NULL,
+        fdr REAL NOT NULL,
+        effect REAL)"""
+    )
+    conn.execute(
+        f"CREATE INDEX {TESTS_TABLE}_cell "
+        f"ON {TESTS_TABLE} (target_gene_id, central_gene_id)"
+    )
 
 
 def _wide_tests(
@@ -90,7 +117,18 @@ def _wide_tests(
             except (TypeError, ValueError):
                 continue
             tests.append(
-                (gene, term, _Test(10 ** -abs(value), None, value, source.table_name))
+                (
+                    gene,
+                    term,
+                    _Test(
+                        10 ** -abs(value),
+                        None,
+                        value,
+                        source.table_name,
+                        source.study_label,
+                        source.column_labels.get(column, column),
+                    ),
+                )
             )
     return tests
 
@@ -122,6 +160,8 @@ def _long_tests(
                         None if raw_fdr is None else float(raw_fdr),
                         None if raw_effect is None else float(raw_effect),
                         source.table_name,
+                        source.study_label,
+                        str(value),
                     ),
                 )
             )
@@ -176,12 +216,13 @@ def materialize_phenotype_collated(
         best = min(tests, key=lambda t: (t.fdr, t.p))
         fdrs = [t.fdr for t in tests]
         significant = min(fdrs) < _ALPHA
+        signs = {t.effect > 0 for t in tests if t.fdr < _ALPHA and t.effect}
         cell = cells[(term, gene)]
         cell[1] += 1
         if significant:
             cell[0] += 1
-            if best.effect is not None and best.effect != 0:
-                cell[2 if best.effect > 0 else 3] += 1
+            if len(signs) == 1:
+                cell[2 if next(iter(signs)) else 3] += 1
         contrib.append(
             (
                 COLLATE_GROUP,
@@ -193,7 +234,7 @@ def materialize_phenotype_collated(
                 len(tests),
                 min(fdrs),
                 min(t.p for t in tests),
-                best.effect,
+                None if len(signs) > 1 else best.effect,
                 int(significant),
                 None,
             )
@@ -201,6 +242,23 @@ def materialize_phenotype_collated(
     if not cells:
         return
 
+    conn.executemany(
+        f"INSERT INTO {TESTS_TABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+            (
+                term_ids[term],
+                gene,
+                t.source_table,
+                t.source_label,
+                t.column,
+                t.p,
+                t.fdr,
+                t.effect,
+            )
+            for (term, gene, _), tests in by_pair.items()
+            for t in tests
+        ],
+    )
     conn.executemany(
         "INSERT INTO overview_matrix_collated_cells VALUES (?, ?, ?, ?, ?, ?, ?, 0)",
         [

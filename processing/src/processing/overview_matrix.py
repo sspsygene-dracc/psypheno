@@ -51,7 +51,9 @@ from processing.build_info import read_build_uuid
 from processing.combined_pvalues.collection import parse_link_tables_for_direction
 from processing.my_logger import get_sspsygene_logger
 from processing.overview_phenotypes import (
+    TESTS_TABLE,
     PhenotypeSource,
+    create_phenotype_schema,
     materialize_phenotype_collated,
 )
 from processing.overview_collated import (
@@ -66,7 +68,7 @@ from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import normalize_column_name
 
 
-SCHEMA_VERSION = "7"
+SCHEMA_VERSION = "8"
 
 # -log10(p) clamp for neglog_* heatmap cells. The lower bound keeps every present
 # cell visible against "no data"; the upper bound stops a single p ~ 1e-49 row
@@ -122,6 +124,7 @@ _TABLES = (
     "overview_matrix_inferred_cells",
     "overview_matrix_shared_cells",
     *COLLATED_TABLES,
+    TESTS_TABLE,
     "overview_matrix_info",
 )
 
@@ -317,6 +320,7 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         WITHOUT ROWID"""
     )
     create_collated_schema(conn)
+    create_phenotype_schema(conn)
     conn.execute(
         """CREATE TABLE overview_matrix_info (
         key TEXT PRIMARY KEY,
@@ -378,8 +382,10 @@ def _phenotype_source(
             )
         }
         by_column = terms
+        column_labels: dict[str, str] = {}
     else:
         by_column = {normalize_column_name(k): v for k, v in terms.items()}
+        column_labels = {normalize_column_name(k): k for k in terms}
         declared = set(by_column)
         present = declared & columns
     if present - declared:
@@ -400,6 +406,7 @@ def _phenotype_source(
         fdr_col=fdr_column,
         effect_col=(_split_columns(effect_column) or [None])[0],
         columns=columns,
+        column_labels=column_labels,
     )
 
 

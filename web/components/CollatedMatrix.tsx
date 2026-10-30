@@ -3,6 +3,7 @@ import { EyeOff } from "lucide-react";
 import {
   type CollatedCellResponse,
   type CollatedContribution,
+  type PhenotypeTest,
   type MatrixCell,
   type MatrixColumn,
   type MatrixGeneRow,
@@ -202,6 +203,8 @@ function collatedValueText(cell: MatrixCell): string {
     const parts: string[] = [];
     if (cell.nUp) parts.push(`${cell.nUp} up`);
     if (cell.nDown) parts.push(`${cell.nDown} down`);
+    const noDirection = k - (cell.nUp ?? 0) - (cell.nDown ?? 0);
+    if (noDirection > 0) parts.push(`${noDirection} with no single direction`);
     if (parts.length) text += ` · ${parts.join(", ")}`;
   }
   if (cell.nInferred) {
@@ -229,10 +232,12 @@ function CollatedCellDetail({
   targetId: number;
 }) {
   const [rows, setRows] = useState<CollatedContribution[] | null>(null);
+  const [tests, setTests] = useState<PhenotypeTest[]>([]);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let cancelled = false;
     setRows(null);
+    setTests([]);
     setFailed(false);
     fetch(
       `/api/collated-cell?group=${encodeURIComponent(group)}` +
@@ -243,7 +248,9 @@ function CollatedCellDetail({
         return res.json() as Promise<CollatedCellResponse>;
       })
       .then((json) => {
-        if (!cancelled) setRows(json.contributions);
+        if (cancelled) return;
+        setRows(json.contributions);
+        setTests(json.tests ?? []);
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -256,6 +263,7 @@ function CollatedCellDetail({
   if (failed) return <div style={{ color: "#dc2626", marginTop: 6 }}>Couldn&rsquo;t load studies.</div>;
   if (rows === null) return <div style={{ color: "#9ca3af", marginTop: 6 }}>Loading studies&hellip;</div>;
   return (
+    <>
     <ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0 0" }}>
       {rows.map((r) => (
         <li key={r.study} style={{ marginTop: 4 }}>
@@ -285,6 +293,80 @@ function CollatedCellDetail({
         </li>
       ))}
     </ul>
+    {tests.length > 0 && <PhenotypeTests tests={tests} />}
+    </>
+  );
+}
+
+const MEASURE_LIST_STYLE = {
+  listStyle: "none",
+  padding: 0,
+  margin: "2px 0 0 0",
+  maxHeight: 170,
+  overflowY: "auto",
+} as const;
+
+/** The original measures behind a pooled phenotype cell, strongest first. */
+function PhenotypeTests({ tests }: { tests: PhenotypeTest[] }) {
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ fontWeight: 600, color: "#374151" }}>
+        Measures in this cell ({tests.length})
+      </div>
+      <ul style={MEASURE_LIST_STYLE}>
+        {tests.map((t, i) => (
+          <li key={i} style={{ marginTop: 3 }}>
+            <span style={{ color: t.fdr < 0.05 ? "#1f2937" : "#6b7280" }}>
+              {t.fdr < 0.05 ? "● " : "○ "}
+              {t.column}
+            </span>{" "}
+            <span style={{ color: "#6b7280" }}>
+              {`${t.source} · FDR ${fmtStat(t.fdr)}`}
+              {t.effect ? ` · ${t.effect > 0 ? "up" : "down"}` : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const CONTAINS_BUTTON_STYLE = {
+  all: "unset",
+  cursor: "pointer",
+  color: "#2563eb",
+  textDecoration: "underline dotted",
+} as const;
+
+const CONTAINS_PANEL_STYLE = {
+  position: "fixed",
+  zIndex: 50,
+  width: 340,
+  maxWidth: "calc(100vw - 16px)",
+  padding: "8px 10px",
+  background: "#fff",
+  border: "1px solid #d1d5db",
+  borderRadius: 6,
+  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+  fontSize: 12,
+  color: "#4b5563",
+} as const;
+
+/** What a pooled phenotype column combines. */
+function PhenotypeContains({ contains }: { contains: NonNullable<MatrixColumn["contains"]> }) {
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ fontWeight: 600, color: "#374151" }}>
+        This column combines ({contains.length})
+      </div>
+      <ul style={MEASURE_LIST_STYLE}>
+        {contains.map((c) => (
+          <li key={`${c.source}:${c.column}`} style={{ marginTop: 3 }}>
+            {c.column} <span style={{ color: "#6b7280" }}>{c.source}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -329,6 +411,7 @@ function ColumnLabel({
   datasetText,
   linkToDataset = false,
   horizontal = false,
+  onShowContains,
 }: {
   column: MatrixColumn;
   datasetText: string | null;
@@ -337,10 +420,24 @@ function ColumnLabel({
   linkToDataset?: boolean;
   /** Render across the column instead of rotated along it (wide columns). */
   horizontal?: boolean;
+  /** Pooled phenotype columns: open the list of measures the column combines. */
+  onShowContains?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <div style={horizontal ? HLABEL_STYLE : VLABEL_STYLE}>
-      {column.columnIsGene ? (
+    <div
+      style={horizontal ? HLABEL_STYLE : VLABEL_STYLE}
+      title={
+        column.contains
+          ? `Combines ${column.contains.length} measures: ` +
+            [...new Set(column.contains.map((c) => c.column))].join(", ")
+          : undefined
+      }
+    >
+      {column.contains && onShowContains ? (
+        <button type="button" onClick={onShowContains} style={CONTAINS_BUTTON_STYLE}>
+          {column.label} ({column.contains.length})
+        </button>
+      ) : column.columnIsGene ? (
         <a
           className="matrix-link"
           href={`/?target=${encodeURIComponent(column.label)}`}
@@ -531,6 +628,13 @@ export default function CollatedMatrix({
   const [colWindow, setColWindow] = useState({ start: 0, end: 0 });
   const [rowWindow, setRowWindow] = useState({ start: 0, end: 0 });
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
+  // The phenotype column whose label was clicked, and where.
+  const [containsOpen, setContainsOpen] = useState<{
+    column: MatrixColumn;
+    x: number;
+    y: number;
+  } | null>(null);
+  const containsRef = useRef<HTMLDivElement>(null);
 
   // Reset any selection when the data / ordering changes (indices would drift).
   useEffect(() => {
@@ -765,6 +869,23 @@ export default function CollatedMatrix({
       window.removeEventListener("mousedown", onDown);
     };
   }, [selected]);
+
+  // Dismiss the column-contents panel on Escape or an outside mousedown.
+  useEffect(() => {
+    if (!containsOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setContainsOpen(null);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (!containsRef.current?.contains(e.target as Node)) setContainsOpen(null);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onDown);
+    };
+  }, [containsOpen]);
 
   const onCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const el = scrollRef.current;
@@ -1006,6 +1127,9 @@ export default function CollatedMatrix({
                     datasetText={datasetText}
                     linkToDataset={summary}
                     horizontal={summary}
+                    onShowContains={(e) =>
+                      setContainsOpen({ column: c, x: e.clientX, y: e.clientY })
+                    }
                   />
                 </div>
               );
@@ -1179,6 +1303,9 @@ export default function CollatedMatrix({
                 targetId={Number(sel.col.key.split(":")[2])}
               />
             )}
+            {selCell === undefined && sel.col.contains && (
+              <PhenotypeContains contains={sel.col.contains} />
+            )}
           </>
         )}
       </div>
@@ -1195,6 +1322,24 @@ export default function CollatedMatrix({
             }, ${sel.col.sourceLabel}: ${selValueText}`
           : ""}
       </div>
+
+      {containsOpen?.column.contains && (
+        <div
+          ref={containsRef}
+          role="dialog"
+          aria-label={`What ${containsOpen.column.label} combines`}
+          style={{
+            ...CONTAINS_PANEL_STYLE,
+            left: Math.max(8, Math.min(containsOpen.x, window.innerWidth - 356)),
+            top: Math.max(8, Math.min(containsOpen.y + 10, window.innerHeight - 280)),
+          }}
+        >
+          <div style={{ fontWeight: 600, color: "#111827" }}>
+            {containsOpen.column.label}
+          </div>
+          <PhenotypeContains contains={containsOpen.column.contains} />
+        </div>
+      )}
     </div>
   );
 }
