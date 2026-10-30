@@ -131,7 +131,10 @@ export default function EffectDistributionChart({
     const byCat: Record<Category, VolcanoPoint[]> = { up: [], down: [], ns: [] };
     if (!data) return byCat;
     for (const p of data.volcanoPoints) {
-      const cat = classify(p.effect, p.fdr, null);
+      // Undo the -log10 for tables with no FDR; the rounding keeps a p of
+      // exactly 0.05 on the significant side of the threshold.
+      const pvalue = Number(Math.pow(10, -p.negLog10P).toPrecision(12));
+      const cat = classify(p.effect, p.fdr, pvalue);
       byCat[cat].push(p);
     }
     return byCat;
