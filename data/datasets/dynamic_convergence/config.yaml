@@ -213,3 +213,28 @@ tables:
       - "Off:Avg POST1"
       - "Off:Avg STIMvPOST"
       - "Off:Avg STIM5"
+    overview_matrix_phenotype_terms:
+      "ActivityD": MP:0001392
+      "ActivityN": MP:0001392
+      "WakingActivityD": MP:0001392
+      "WakingActivityN": MP:0001392
+      "RestBoutD": MP:0011396
+      "RestBoutN": MP:0011396
+      "SleepLatencyD": ZP:0131183
+      "SleepLatencyN": ZP:0131183
+      "SleepLengthD": MP:0021198
+      "SleepLengthN": MP:0021198
+      "SleepD": MP:0021198
+      "SleepN": MP:0021198
+      "On:Avg STIM": MP:0001486
+      "On:Avg POST": MP:0001486
+      "On:Avg STIM1": MP:0001486
+      "On:Avg POST1": MP:0001486
+      "On:Avg STIMvPOST": MP:0001486
+      "On:Avg STIM5": MP:0001486
+      "Off:Avg STIM": MP:0001486
+      "Off:Avg POST": MP:0001486
+      "Off:Avg STIM1": MP:0001486
+      "Off:Avg POST1": MP:0001486
+      "Off:Avg STIMvPOST": MP:0001486
+      "Off:Avg STIM5": MP:0001486

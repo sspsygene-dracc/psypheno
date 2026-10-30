@@ -387,7 +387,9 @@ function buildCollatedResponse(args: {
     } catch {
       groupStudies = [];
     }
-    studies.push(...groupStudies);
+    for (const st of groupStudies) {
+      if (!studies.some((s) => s.study === st.study)) studies.push(st);
+    }
     const studyNames = groupStudies.map((st) => st.label).join(", ");
     const rows = colStmt.all(g.collate_group, readouts) as CollatedColumnRow[];
     if (rows.length === 0) continue;
@@ -398,7 +400,7 @@ function buildCollatedResponse(args: {
         key: keyOf(r.target_gene_id),
         label: r.label,
         metric: COLLATED_METRIC,
-        columnIsGene: true,
+        columnIsGene: g.collate_group !== "phenotype",
         nSigGroups: r.sum_k,
         // One pseudo-"dataset" per collate group, so bands / hiding work as in
         // the per-study view.

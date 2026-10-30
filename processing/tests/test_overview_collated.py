@@ -260,3 +260,79 @@ def test_phenotype_and_non_rna_tables_are_not_collated() -> None:
         conn.execute("SELECT studies FROM overview_matrix_collated_groups").fetchone()[0]
     )
     assert [s["study"] for s in studies] == ["ds_a"]
+
+
+def _phenotype_tables(conn: sqlite3.Connection, *, shared_source: str | None) -> None:
+    """A wide behavior table and a long one, both mapped to one term."""
+    conn.execute("CREATE TABLE beh_wide (id INTEGER, sleepd REAL, sleepn REAL)")
+    conn.execute("INSERT INTO beh_wide VALUES (1, -3.0, 0.1), (2, 0.2, 0.1)")
+    _add_link(conn, "beh_wide__perturbed", [(1, 1), (2, 2)])
+    _register(
+        conn,
+        "beh_wide",
+        "behavior",
+        "src:beh_wide__perturbed:perturbed",
+        phenotype_columns=["SleepD", "SleepN"],
+        metric="signed_neglog_p",
+    )
+    conn.execute(
+        "CREATE TABLE beh_long (id INTEGER, param TEXT, p REAL, fdr REAL, b REAL)"
+    )
+    conn.execute(
+        "INSERT INTO beh_long VALUES (1, 'night sleep', 0.001, 0.9, 1.0), "
+        "(2, 'night sleep', 0.001, 0.01, -1.0), (3, 'unmapped', 0.001, 0.01, 1.0)"
+    )
+    _add_link(conn, "beh_long__perturbed", [(1, 1), (2, 2), (2, 3)])
+    _register(
+        conn,
+        "beh_long",
+        "behavior",
+        "src:beh_long__perturbed:perturbed",
+        pvalue_column="p",
+        fdr_column="fdr",
+        phenotype_column="param",
+    )
+    for table, dataset, terms in (
+        ("beh_wide", "ds_wide", {"SleepD": "MP:0021198", "SleepN": "MP:0021198"}),
+        ("beh_long", "ds_long", {"night sleep": "MP:0021198"}),
+    ):
+        conn.execute(
+            "UPDATE data_tables SET dataset = ?, medium_label = ?, effect_column = 'b', "
+            "evidence_source = ?, overview_matrix_phenotype_terms = ? "
+            "WHERE table_name = ?",
+            (dataset, f"{dataset} - fixture", shared_source, json.dumps(terms), table),
+        )
+
+
+def _with_phenotype_terms(conn: sqlite3.Connection) -> None:
+    _with_extra_columns(conn)
+    conn.execute(
+        "ALTER TABLE data_tables ADD COLUMN overview_matrix_phenotype_terms TEXT"
+    )
+
+
+def test_phenotype_columns_pool_through_terms() -> None:
+    conn = _make_db()
+    _with_phenotype_terms(conn)
+    _phenotype_tables(conn, shared_source=None)
+    materialize_overview_matrix(conn, min_groups=1)
+    columns = conn.execute(
+        "SELECT target_gene_id, label, n_studies FROM overview_matrix_collated_columns "
+        "WHERE collate_group = 'phenotype'"
+    ).fetchall()
+    assert columns == [(-2, "Sleep duration", 2)]
+    # AAA: wide p = 0.001 counts; long has an FDR of 0.9, so it doesn't.
+    assert _cells(conn)[(1, -2)] == (1, 2, 0, 1, 0)
+    # BBB: wide n.s.; long FDR 0.01, effect down.
+    assert _cells(conn)[(2, -2)] == (1, 2, 0, 1, 0)
+    assert _contrib(conn, 1, -2)["ds_wide"] == (2, 1, None)
+
+
+def test_phenotype_pooling_counts_a_shared_experiment_once() -> None:
+    conn = _make_db()
+    _with_phenotype_terms(conn)
+    _phenotype_tables(conn, shared_source="one_experiment")
+    materialize_overview_matrix(conn, min_groups=1)
+    # One study, significant through its wide table.
+    assert _cells(conn)[(1, -2)] == (1, 1, 0, 1, 0)
+    assert set(_contrib(conn, 1, -2)) == {"one_experiment"}

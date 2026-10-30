@@ -67,6 +67,27 @@ function hasSharedCells(data: CollatedMatrixResponse): boolean {
   });
 }
 
+// By-readout cells carry two metrics, one per triangle: this says which is which.
+const LEGEND_TRIANGLES: Record<string, string> = {
+  frac_sig: "0,0 14,0 0,14",
+  direction_agreement: "14,0 14,14 0,14",
+};
+
+function TriangleKey({ points }: { points: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      style={{ flexShrink: 0 }}
+    >
+      <rect width="14" height="14" fill="#e5e7eb" />
+      <polygon points={points} fill="#374151" />
+    </svg>
+  );
+}
+
 function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
   const metrics = data.meta.metrics;
   const showInferred = useMemo(() => hasInferredCells(data), [data]);
@@ -96,7 +117,18 @@ function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
               color: "#4b5563",
             }}
           >
-            <span style={{ fontWeight: 600, color: "#374151" }}>{scale.label}</span>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontWeight: 600,
+                color: "#374151",
+              }}
+            >
+              {LEGEND_TRIANGLES[m.id] && <TriangleKey points={LEGEND_TRIANGLES[m.id]} />}
+              {scale.label}
+            </span>
             <span
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
@@ -523,7 +555,8 @@ export default function MatrixPage() {
             (columns).{" "}
             {mode === "collated" ? (
               <>
-                Columns are <strong>readout genes pooled across studies</strong>.
+                Columns are <strong>readouts pooled across studies</strong>:
+                phenotypes, then genes.
                 Each cell asks: of the studies that measured this readout after
                 perturbing this gene, how many found a significant change? The
                 upper-left triangle shows that percentage; the lower-right shows whether
@@ -705,7 +738,7 @@ export default function MatrixPage() {
                 {mode === "summary"
                   ? "datasets"
                   : mode === "collated"
-                    ? `readout genes, pooled over ${meta?.collatedStudies?.length ?? 0} studies`
+                    ? `readouts, pooled over ${meta?.collatedStudies?.length ?? 0} studies`
                     : "columns"}
                 {hidden.size > 0 && (
                   <span style={{ color: "#9ca3af" }}>

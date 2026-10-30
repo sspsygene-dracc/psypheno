@@ -19,8 +19,9 @@ on gene pages.
 5. [Test on the server](#step-5-test-on-the-server)
 6. [Commit to git](#step-6-commit-to-git)
 7. [Deploy](#step-7-deploy)
-8. [Declaring data reused from another paper](#declaring-data-reused-from-another-paper-evidence_source)
-9. [Widening a dataset's destinations (dev → int / prod)](#widening-a-datasets-destinations-dev--int--prod)
+8. [Pooling phenotype columns](#pooling-phenotype-columns-overview_matrix_phenotype_terms)
+9. [Declaring data reused from another paper](#declaring-data-reused-from-another-paper-evidence_source)
+10. [Widening a dataset's destinations (dev → int / prod)](#widening-a-datasets-destinations-dev--int--prod)
 9. [Troubleshooting](#troubleshooting)
 
 ---
@@ -724,6 +725,10 @@ which rule produced it. A metric with no significance notion at all
 (`activity_ratio`) gets no summary column, and the build logs a warning saying so.
 
 #### The "by readout, across studies" view
+
+Phenotype columns come first and pool through ontology terms (see
+[Pooling phenotype columns](#pooling-phenotype-columns-overview_matrix_phenotype_terms)).
+The rest of this section is about the gene columns.
 
 The matrix page's **By readout, across studies** view pools the RNA readouts of
 every flagged gene-target table (Perturb-seq, perturb-FISH and expression
@@ -1452,6 +1457,24 @@ Unlike the old manual `rsync -av data/datasets/<name>/ …`, it never copies
 tracked files, so the server's git tree stays clean for the next `git pull`.
 
 ---
+
+## Pooling phenotype columns (`overview_matrix_phenotype_terms`)
+
+Phenotype columns have paper-specific names, so the by-readout view pools them
+through ontology terms. Give every column (wide) or value (long) a term:
+
+```yaml
+overview_matrix_phenotype_terms:
+  "SleepLatencyD": ZP:0131183
+  "Excit Upper": CL:0000679
+```
+
+Pick the closest term in `PHENOTYPE_TERMS` in
+`processing/src/processing/overview_phenotypes.py`. Prefer a broad term you are
+sure of over a narrow one you are guessing at. If nothing fits, add a term there:
+behavior terms come from uPheno (its MP and ZP terms), cell types from the Cell
+Ontology. The config check rejects a term that isn't in that list, and the
+overview matrix build warns about columns with no term.
 
 ## Declaring data reused from another paper (`evidence_source`)
 

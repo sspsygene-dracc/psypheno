@@ -50,6 +50,10 @@ import click
 from processing.build_info import read_build_uuid
 from processing.combined_pvalues.collection import parse_link_tables_for_direction
 from processing.my_logger import get_sspsygene_logger
+from processing.overview_phenotypes import (
+    PhenotypeSource,
+    materialize_phenotype_collated,
+)
 from processing.overview_collated import (
     COLLATE_GROUPS,
     COLLATED_TABLES,
@@ -337,6 +341,66 @@ def _load_modalities(
         for assay in assay_types:
             assay_to_modalities[assay].append(key)
     return keys, dict(assay_to_modalities)
+
+
+def _phenotype_source(
+    conn: sqlite3.Connection,
+    *,
+    table_name: str,
+    study: str,
+    study_label: str,
+    terms_raw: str,
+    link_tables_raw: str | None,
+    phenotype_column: str | None,
+    pvalue_column: str | None,
+    fdr_column: str | None,
+    effect_column: str | None,
+    src_schema: str,
+) -> PhenotypeSource | None:
+    """Describe a phenotype table for the by-readout view; warn on unmapped columns."""
+    log = get_sspsygene_logger()
+    base_table = sanitize_identifier(table_name)
+    links = parse_link_tables_for_direction(link_tables_raw or "", "perturbed")
+    if not links:
+        return None
+    terms: dict[str, str] = json.loads(terms_raw)
+    columns = _table_columns(conn, base_table, src_schema)
+    if phenotype_column:
+        if not pvalue_column:
+            return None
+        declared = set(terms)
+        present = {
+            str(row[0])
+            for row in conn.execute(
+                f"SELECT DISTINCT {phenotype_column} "
+                f"FROM {src_schema}.{base_table} "
+                f"WHERE {phenotype_column} IS NOT NULL"
+            )
+        }
+        by_column = terms
+    else:
+        by_column = {normalize_column_name(k): v for k, v in terms.items()}
+        declared = set(by_column)
+        present = declared & columns
+    if present - declared:
+        log.warning(
+            "overview matrix: %s has phenotype columns with no term: %s",
+            table_name,
+            sorted(present - declared),
+        )
+    return PhenotypeSource(
+        table_name=table_name,
+        study=study,
+        study_label=study_label,
+        base_table=base_table,
+        perturbed_link=links[0],
+        term_by_column=by_column,
+        phenotype_column=phenotype_column,
+        p_col=pvalue_column,
+        fdr_col=fdr_column,
+        effect_col=(_split_columns(effect_column) or [None])[0],
+        columns=columns,
+    )
 
 
 def _study_label(
@@ -1529,6 +1593,7 @@ def materialize_overview_matrix(
             "effect_column",
             "medium_label",
             "evidence_source",
+            "overview_matrix_phenotype_terms",
         )
     )
     source_rows = conn.execute(
@@ -1545,6 +1610,7 @@ def materialize_overview_matrix(
     expanded_source_tables: list[str] = []
     perturbed_link_tables: list[str] = []
     collate_sources: list[CollateSource] = []
+    phenotype_sources: list[PhenotypeSource] = []
     study_labels: dict[str, str] = {}
     evidence_sources: dict[str, str] = {}
     collate_group_genes: dict[str, dict[object, list[int]]] = {}
@@ -1566,6 +1632,7 @@ def materialize_overview_matrix(
         effect_column,
         medium_label,
         evidence_source,
+        phenotype_terms_raw,
     ) in source_rows:
         modality_keys_for_table = _modality_keys_for(assay, assay_to_modalities)
         if not modality_keys_for_table:
@@ -1632,6 +1699,22 @@ def materialize_overview_matrix(
                 collate_sources.append(collate_source)
                 collate_group_genes[table_name] = group_genes
                 collate_context_exprs[table_name] = context_expr
+        if phenotype_terms_raw:
+            source = _phenotype_source(
+                conn,
+                table_name=table_name,
+                study=evidence_source or dataset or table_name,
+                study_label=study_labels[table_name],
+                terms_raw=phenotype_terms_raw,
+                link_tables_raw=link_tables_raw,
+                phenotype_column=phenotype_column,
+                pvalue_column=pvalue_column,
+                fdr_column=fdr_column,
+                effect_column=effect_column,
+                src_schema=src_schema,
+            )
+            if source is not None:
+                phenotype_sources.append(source)
         if n_columns == 0:
             continue
         expanded_source_tables.append(table_name)
@@ -1654,6 +1737,7 @@ def materialize_overview_matrix(
     materialize_collated(
         conn, collate_sources, collate_group_genes, collate_context_exprs, src_schema
     )
+    materialize_phenotype_collated(conn, phenotype_sources, src_schema, _PANEL_TABLE)
 
     # Rows: every perturbed (non-control) gene across the expanded tables.
     for link_table in dict.fromkeys(perturbed_link_tables):

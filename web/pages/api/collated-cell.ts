@@ -17,7 +17,8 @@ import type {
 const querySchema = z.object({
   group: z.string().regex(/^[a-z0-9_]+$/),
   perturbed: z.coerce.number().int().nonnegative(),
-  target: z.coerce.number().int().nonnegative(),
+  // Phenotype columns are terms, which take negative ids.
+  target: z.coerce.number().int(),
 });
 
 export default async function handler(

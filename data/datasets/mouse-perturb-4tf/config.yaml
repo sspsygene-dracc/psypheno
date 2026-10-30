@@ -195,3 +195,19 @@ tables:
     # Overview matrix (#213): one column per cell subcluster (long format),
     # colored by -log10(p) (default metric).
     overview_matrix_phenotype_column: cell_type
+    overview_matrix_phenotype_terms:
+      "Excit L6CT-c1": CL:4023042
+      "Excit L6CT-c2": CL:4023042
+      "Excit L6CT-c3": CL:4023042
+      "Excit L6IT": CL:4023008
+      "Excit L5IT-c1": CL:4023008
+      "Excit L5IT-c2": CL:4023008
+      "Excit L2IT ENTl": CL:4023008
+      "Excit L5NP": CL:4023012
+      "Excit L5PT": CL:4023041
+      "Excit L6b": CL:4023038
+      "Excit L6b/CT ENTl": CL:0000679
+      "Excit Upper": CL:0000679
+      "Inhib Sst": CL:4023017
+      "Inhib Lhx6+Sst-": CL:0000617
+      "Cajal Retzius-c1": CL:0000695

@@ -114,6 +114,31 @@ tables:
     overview_matrix: true
     overview_matrix_phenotype_column: behavioral_parameter
     overview_matrix_metric: signed_neglog_p
+    overview_matrix_phenotype_terms:
+      "Sleep-Wake: Average Daytime Activity": MP:0001392
+      "Sleep-Wake: Average Nighttime Activity": MP:0001392
+      "Sleep-Wake: Average Daytime Waking Activity": MP:0001392
+      "Sleep-Wake: Average Nighttime Waking Activity": MP:0001392
+      "Sleep-Wake: Sleep Bouts Day": MP:0011396
+      "Sleep-Wake: Sleep Bouts Night": MP:0011396
+      "Sleep-Wake: Sleep Latency Day": ZP:0131183
+      "Sleep-Wake: Sleep Latency Night": ZP:0131183
+      "Sleep-Wake: Sleep Length Day": MP:0021198
+      "Sleep-Wake: Sleep Length Night": MP:0021198
+      "Sleep-Wake: Daytime Sleep": MP:0021198
+      "Sleep-Wake: Nighttime Sleep": MP:0021198
+      "VSR-On: Average Response to All Stimuli": MP:0001486
+      "VSR-On: Average Activity after All Stimuli": MP:0001486
+      "VSR-On: Average Response to Stimulus #1": MP:0001486
+      "VSR-On: Average Activity after Stimulus #1": MP:0001486
+      "VSR-On: Stimulus vs. Post-Stimulus Difference": MP:0001486
+      "VSR-On: Average Response to Stimulus #5": MP:0001486
+      "VSR-Off: Average Response to All Stimuli": MP:0001486
+      "VSR-Off: Average Activity after All Stimuli": MP:0001486
+      "VSR-Off: Average Response to Stimulus #1": MP:0001486
+      "VSR-Off: Average Activity after Stimulus #1": MP:0001486
+      "VSR-Off: Stimulus vs. Post-Stimulus Difference": MP:0001486
+      "VSR-Off: Average Response to Stimulus #5": MP:0001486
 
     fieldLabels:
       human_gene: >

@@ -114,6 +114,15 @@ def test_deploy_to_is_parsed_and_stamped_onto_every_table(tmp_path: Path) -> Non
     assert cfg.tables[0].dataset == "d1"
 
 
+def test_phenotype_terms_must_be_known(tmp_path: Path) -> None:
+    yaml_path = _write_dataset(tmp_path, "d1", "d1_table")
+    body = yaml.safe_load(yaml_path.read_text())
+    body["tables"][0]["overview_matrix_phenotype_terms"] = {"x": "MP:9999999"}
+    yaml_path.write_text(yaml.safe_dump(body))
+    with pytest.raises(ValueError, match="MP:9999999"):
+        TablesConfig.from_yaml_root(tmp_path, Path("datasets"))
+
+
 def test_evidence_source_must_be_a_plain_identifier(tmp_path: Path) -> None:
     yaml_path = _write_dataset(tmp_path, "d1", "d1_table")
     body = yaml.safe_load(yaml_path.read_text())

@@ -8,6 +8,7 @@ from typing import Any, Literal, cast
 
 import pandas as pd
 
+from processing.overview_phenotypes import PHENOTYPE_TERMS
 from processing.types.data_load_result import DataLoadResult
 from processing.types.gene_mapping import GeneMapping
 from processing.types.entrez_gene import EntrezGene
@@ -93,6 +94,7 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "overview_matrix_phenotype_columns",
         "overview_matrix_metric",
         "overview_matrix_metric_domain",
+        "overview_matrix_phenotype_terms",
         "significant_only",
         "evidence_source",
         "changelog",
@@ -491,6 +493,9 @@ class TableToProcessConfig:
     # `SignificantOnly`). Lets the overview matrix tell "tested, not
     # significant" apart from "not measured" by inferring the tested universe.
     significant_only: "SignificantOnly | None" = None
+    # Phenotype column (wide) or value (long) -> term in PHENOTYPE_TERMS, so
+    # columns from different papers pool in the by-readout view.
+    overview_matrix_phenotype_terms: dict[str, str] = field(default_factory=dict)
     # The experiment behind this table, when it isn't unique to the dataset.
     # Tables sharing a value count as one study when studies are pooled, so data
     # reused across papers isn't counted as independent evidence.
@@ -641,6 +646,23 @@ class TableToProcessConfig:
                     f"table {self.table}: overview_matrix requires "
                     f"{', '.join(missing)}."
                 )
+        unknown_terms = sorted(
+            set(self.overview_matrix_phenotype_terms.values()) - set(PHENOTYPE_TERMS)
+        )
+        if unknown_terms:
+            raise ValueError(
+                f"table {self.table}: overview_matrix_phenotype_terms uses "
+                f"{unknown_terms}, which are not in PHENOTYPE_TERMS "
+                f"(processing/overview_phenotypes.py)."
+            )
+        if self.overview_matrix_phenotype_terms and not (
+            self.overview_matrix_phenotype_column
+            or self.overview_matrix_phenotype_columns
+        ):
+            raise ValueError(
+                f"table {self.table}: overview_matrix_phenotype_terms needs a "
+                f"phenotype column axis."
+            )
         if self.evidence_source is not None and not re.fullmatch(
             r"[a-z0-9_]+", self.evidence_source
         ):
@@ -855,6 +877,12 @@ class TableToProcessConfig:
             overview_matrix_metric_domain=overview_matrix_metric_domain,
             significant_only=significant_only,
             evidence_source=json_data.get("evidence_source"),
+            overview_matrix_phenotype_terms={
+                str(k): str(v)
+                for k, v in (
+                    json_data.get("overview_matrix_phenotype_terms") or {}
+                ).items()
+            },
             publication_title=publication.get("title"),
             publication_first_author=first_author,
             publication_last_author=last_author,
