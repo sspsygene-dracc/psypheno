@@ -129,7 +129,7 @@ tables:
       - date: "2026-09-08"
         message: "Corrected source citation: the data come from Table S4 (mmc4.xlsx), not Table S8 — the paper has only Tables S1–S4."
       - date: "2026-10-30"
-        message: "Added cell_type: names for the numbered clusters, from Fig. 4F."
+        message: "Added cell_type: names for the numbered clusters, from Fig. S4P."
     shortLabel: 4tf_cell_proportion_changes
     mediumLabel: Zheng 2024 - in vivo Perturb-seq Cell-Type Proportion Shifts in Mouse Cortex
     longLabel: Cell type proportion shifts from transcription factor perturbations
@@ -141,11 +141,11 @@ tables:
     assay: perturbation
     fieldLabels:
       cell_type: >
-        Cell type name for this cluster, taken from the row labels of Zheng et
-        al. 2024 Fig. 4F. "-c1" to "-c3" are subclusters of a cell type; Excit
-        L6CT-c3 is the hybrid population induced by Foxg1 perturbation. The
-        cluster_21 label is unconfirmed: Fig. 4F calls it Inhib Id2, but its
-        cell counts fit L5-IT neurons instead.
+        Cell type name for this cluster, from the labelled cluster map in Zheng
+        et al. 2024 Fig. S4P. "-c1" to "-c3" are subclusters of a cell type;
+        Excit L6CT-c3 is the hybrid population induced by Foxg1 perturbation.
+        Excit L5IT-c2 (cluster_21) appears as "Inhib Id2" in Fig. 4F, which is
+        a labelling error in that figure.
       subcluster: >
         Seurat cluster number from scRNA-seq clustering of the mouse cortex at
         P7, as reported in Table S4. The numbers are arbitrary; see cell_type

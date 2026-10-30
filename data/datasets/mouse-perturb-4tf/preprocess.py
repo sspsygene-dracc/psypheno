@@ -35,16 +35,12 @@ from processing.preprocessing import (
 
 DIR = Path(__file__).resolve().parent
 
-# Table S4 only gives Seurat cluster numbers. The names are the row labels of
-# Fig. 4F, which lists these 15 clusters in numeric order. Each match was checked
-# against the significant guides in that figure, the cell type composition sheet
-# of Table S4, and the fold changes quoted in the text (L6-IT cluster_5,
-# L6-CT-c3 cluster_7, upper layer cluster_4).
+# Table S4 only gives Seurat cluster numbers. The names come from Fig. S4P, a
+# UMAP with the numbers drawn on the clusters and a color legend of names.
 #
-# cluster_21 is drawn as "Inhib Id2", but the numbers disagree: Table S4 has 94
-# Id2 cells, below the paper's 200-cell cutoff, while cluster_21 tracks the
-# L5-IT cells not in cluster_6 across guides (r = 0.97). Keep the published
-# label, marked, until the authors confirm it.
+# Fig. 4F labels its last row (cluster_21) "Inhib Id2", which is an error in that
+# figure: Fig. S4P shows cluster_21 is Excit L5IT-c2 and Inhib Id2 is cluster 25,
+# which was excluded from this table for having under 200 cells.
 CELL_TYPE_BY_CLUSTER = {
     "cluster_0": "Excit L6CT-c1",
     "cluster_1": "Cajal Retzius-c1",
@@ -60,7 +56,7 @@ CELL_TYPE_BY_CLUSTER = {
     "cluster_11": "Inhib Lhx6+Sst-",
     "cluster_12": "Excit L6b",
     "cluster_17": "Excit L6b/CT ENTl",
-    "cluster_21": "Inhib Id2 (label unconfirmed)",
+    "cluster_21": "Excit L5IT-c2",
 }
 
 
