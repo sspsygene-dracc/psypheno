@@ -107,9 +107,9 @@ def test_tables_config_bad_yaml_includes_path(tmp_path: Path) -> None:
 
 
 def test_deploy_to_is_parsed_and_stamped_onto_every_table(tmp_path: Path) -> None:
-    _write_dataset(tmp_path, "d1", "d1_table", deployTo=["dev", "prod"])
+    _write_dataset(tmp_path, "d1", "d1_table", deployTo=["dev", "int", "prod"])
     cfg = TablesConfig.from_yaml_root(tmp_path, Path("datasets"))
-    assert cfg.tables[0].deploy_to == frozenset({"dev", "prod"})
+    assert cfg.tables[0].deploy_to == frozenset({"dev", "int", "prod"})
     # The dataset *directory* name, which nothing else in the config carries.
     assert cfg.tables[0].dataset == "d1"
 
@@ -130,6 +130,7 @@ def test_deploy_to_is_normalized_to_instance_order(tmp_path: Path) -> None:
         pytest.param({"dev": True}, "must be a list", id="mapping"),
         pytest.param(["dev", "staging"], "unknown instance", id="unknown-token"),
         pytest.param(["prod"], "must include `dev`", id="dev-omitted"),
+        pytest.param(["dev", "prod"], "without `int`", id="prod-without-int"),
         pytest.param(["int", "prod"], "must include `dev`", id="dev-omitted-multi"),
     ],
 )
@@ -191,7 +192,7 @@ def test_table_level_deploy_to_is_not_recognized(
     """deployTo is a *dataset*-level key. Putting it under a table must trip
     the existing per-table unknown-key warning rather than appear to work."""
     body = _dataset_yaml("d1_table")
-    body["tables"][0]["deployTo"] = ["dev", "prod"]
+    body["tables"][0]["deployTo"] = ["dev", "int", "prod"]
     dataset_dir = tmp_path / "datasets" / "d1"
     dataset_dir.mkdir(parents=True)
     (dataset_dir / "config.yaml").write_text(yaml.safe_dump(body))
@@ -237,7 +238,7 @@ def test_config_tables_carry_dataset_and_deploy_to(mini_fixture: Path) -> None:
     config = get_sspsygene_config()
     by_table = {t.table: t for t in config.tables_config.tables}
     assert by_table["mini_perturb_deg"].dataset == "mini_perturb"
-    assert by_table["mini_perturb_deg"].deploy_to == frozenset({"dev", "prod"})
+    assert by_table["mini_perturb_deg"].deploy_to == frozenset({"dev", "int", "prod"})
     assert by_table["mini_embargoed_deg"].dataset == "mini_embargoed"
     assert by_table["mini_embargoed_deg"].deploy_to == frozenset({"dev"})
 
@@ -265,7 +266,7 @@ def _write_link_only(root: Path, name: str, body: dict) -> Path:
 
 
 _LINK_ONLY = {
-    "deployTo": ["dev", "prod"],
+    "deployTo": ["dev", "int", "prod"],
     "publication": {
         "title": "Putamen ASD",
         "authors": ["A, B.", "C, D."],
@@ -285,7 +286,7 @@ def test_link_only_dataset_loads_without_tables(tmp_path: Path) -> None:
     assert cfg.tables == []
     [entry] = cfg.link_only
     assert entry.dataset == "putamen_asd"
-    assert entry.deploy_to == frozenset({"dev", "prod"})
+    assert entry.deploy_to == frozenset({"dev", "int", "prod"})
     assert entry.publication.doi == "10.1101/2025.11.05.686845"
     assert entry.publication.first_author == "A, B."
     assert entry.description == "Cell Browser only."

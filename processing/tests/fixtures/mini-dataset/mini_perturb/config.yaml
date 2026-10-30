@@ -16,6 +16,7 @@ maintainers:
 # "member", "non-member" and "member of one destination only" (#225).
 deployTo:
   - dev
+  - int
   - prod
 tables:
   - table: mini_perturb_deg

@@ -110,6 +110,8 @@ def _parse_deploy_to(loaded: dict[str, Any], yaml_path: Path) -> list[str]:
     publishing embargoed data, so every malformed form is a hard error naming
     the offending file. `dev` must always be listed explicitly even though it
     is present in every dataset — explicit beats implicit for a safety flag.
+    The same goes for `int`, which `prod` requires: whatever is public belongs
+    on the internal site too.
     """
     valid = ", ".join(INSTANCE_ORDER)
     hint = (
@@ -141,6 +143,12 @@ def _parse_deploy_to(loaded: dict[str, Any], yaml_path: Path) -> list[str]:
             f"{yaml_path}: `deployTo` must include `{REQUIRED_DESTINATION}` — "
             f"dev is the build superset that int and prod are subsetted from. "
             f"Got {sorted(deploy_to)}."
+        )
+    if "prod" in deploy_to and "int" not in deploy_to:
+        raise ValueError(
+            f"{yaml_path}: `deployTo` lists `prod` without `int` — a dataset on "
+            f"prod is always on int too, and `promote-dev-to-prod` promotes "
+            f"both. Add `int`. Got {sorted(deploy_to)}."
         )
 
     # Normalize to INSTANCE_ORDER so downstream comparisons and the DB rows are

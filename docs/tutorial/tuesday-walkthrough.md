@@ -824,9 +824,9 @@ their databases are derived from dev's, keeping only the datasets whose
 `deployTo` names them:
 
 ```bash
-# Publish to int:
+# Publish to int only:
 sspsygene promote-dev-to-int
-# Publish to prod:
+# Publish to prod (updates int too):
 sspsygene promote-dev-to-prod
 ```
 
@@ -998,7 +998,7 @@ Full reference: `docs/development.md` → "Testing".
 | Pull data files (fresh machine) | `sspsygene pull-data` |
 | Push data to dev | `sspsygene push-data NAME --instance dev` |
 | Rebuild dev DB | `sspsygene deploy --instances dev --load-db` |
-| Publish to int (internal / embargoed) | `sspsygene promote-dev-to-int` |
+| Publish to int only (internal / embargoed) | `sspsygene promote-dev-to-int` |
 | Publish to prod (public, after dev verify) | `sspsygene promote-dev-to-prod` |
 | Close ticket once live | GitHub website → **Close issue** |
 | List branches | `git branch` |

@@ -305,8 +305,9 @@ Two deployment paths:
   you want to do exactly one step and nothing else.
 
 - **Promote dev's build to prod or int (no rebuild):** once dev serves a build
-  you've verified, `sspsygene promote-dev-to-prod` (or `promote-dev-to-int`)
-  derives that instance's DB from dev's and swaps it in.
+  you've verified, `sspsygene promote-dev-to-prod` updates int and then prod
+  (`promote-dev-to-int` updates int alone), deriving each DB from dev's and
+  swapping it in.
 
   Since #225 the dataset DB is **built once, on dev**. dev holds every dataset;
   each other instance's DB is a *subset* of it, restricted to the datasets

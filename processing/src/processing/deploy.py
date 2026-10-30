@@ -1998,7 +1998,25 @@ def run_promote_dev_to_prod(
     local: bool | None = None,
     dry_run: bool = False,
 ) -> None:
-    """Promote dev's build to prod. See `run_promote_dev_to`."""
+    """Promote dev's build to int, then prod. See `run_promote_dev_to`.
+
+    Every dataset on prod is also on int (`deployTo` validation enforces it), so
+    publishing is one step. int goes first: if it fails, prod is left alone.
+    int-only datasets stay off prod; that subsetting is per destination.
+    """
+    click.secho("Promoting int first, then prod.\n", bold=True)
+    try:
+        run_promote_dev_to(
+            "int",
+            include_meta_analysis=include_meta_analysis,
+            local=local,
+            dry_run=dry_run,
+        )
+    except DeployError as e:
+        raise DeployError(
+            f"{e.message}\n\nprod was not touched.", detail=e.detail
+        ) from e
+    click.echo("")
     run_promote_dev_to(
         "prod",
         include_meta_analysis=include_meta_analysis,

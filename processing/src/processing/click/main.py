@@ -831,7 +831,10 @@ def promote_dev_to_prod(
     local: bool | None,
     dry_run: bool,
 ) -> None:
-    """Derive prod's DB from dev's build and swap it in (no rebuild on prod).
+    """Derive int's and prod's DBs from dev's build and swap them in.
+
+    Promotes int first, then prod: every dataset on prod is also on int, so
+    publishing is one step. If int fails, prod is left untouched.
 
     dev is the only site that builds. This subsets dev's superset down to the
     datasets whose `deployTo` includes `prod` (#225), verifies the result
@@ -873,8 +876,9 @@ def promote_dev_to_int(
 ) -> None:
     """Derive int's DB from dev's build and swap it in (no rebuild on int).
 
-    The mirror of promote-dev-to-prod for the internal site, subsetting to the
-    datasets whose `deployTo` includes `int` (#225). int used to be neither a
+    Updates int alone, e.g. for an embargoed dataset that must not go further;
+    promote-dev-to-prod does this step too. Subsets to the datasets whose
+    `deployTo` includes `int` (#225). int used to be neither a
     source nor a target — it built its own tree — which is why an embargoed
     dataset landing in dev could reach prod unnoticed. It is now a target of
     dev like prod is, with its dataset set declared in config rather than

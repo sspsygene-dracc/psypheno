@@ -105,6 +105,7 @@ def _assert_dataset_destinations(conn: sqlite3.Connection) -> None:
     }
     assert rows == {
         ("mini_perturb", "mini_perturb_deg", "dev"),
+        ("mini_perturb", "mini_perturb_deg", "int"),
         ("mini_perturb", "mini_perturb_deg", "prod"),
         ("mini_embargoed", "mini_embargoed_deg", "dev"),
     }

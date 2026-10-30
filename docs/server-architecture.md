@@ -203,8 +203,8 @@ hold every dev dataset's gitignored payloads — the thing this design prevents
 — while bypassing the destination check entirely.
 
 **Promote dev's build to prod or int (the data path onto either site).** Use
-`sspsygene promote-dev-to-prod` or `sspsygene promote-dev-to-int`. Each
-subsets dev's superset down to the datasets whose `deployTo` names that
+`sspsygene promote-dev-to-prod` (which updates int first, then prod) or
+`sspsygene promote-dev-to-int` (int alone). Each promotion subsets dev's superset down to the datasets whose `deployTo` names that
 instance, verifies the result before and after the swap, and copies it plus
 dev's `sspsygene-meta.db` and `sspsygene-overview.db` into the target's db dir
 (issues #178, #225). dev and the targets share `/hive`, so it's a local `cp` +

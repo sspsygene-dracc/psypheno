@@ -1,7 +1,7 @@
 """`subset-db` against the mini fixture (#225).
 
 The fixture's two datasets differ in `deployTo` — mini_perturb is
-[dev, prod], mini_embargoed is [dev] — and they deliberately overlap: some
+[dev, int, prod], mini_embargoed is [dev] — and they deliberately overlap: some
 genes appear in both (a prod subset must keep them but shrink num_datasets),
 some only in the dev-only one (a prod subset must drop them entirely).
 
@@ -326,8 +326,12 @@ def test_refuses_an_unknown_table_it_cannot_classify(
 def test_refuses_a_destination_with_no_members(
     superset: tuple[Path, Path], tmp_path: Path
 ) -> None:
-    """int is in no fixture's deployTo, so an int subset would be empty."""
+    """Nothing labelled for int, so an int subset would be empty."""
     src, config_root = superset
+    conn = sqlite3.connect(src)
+    conn.execute("DELETE FROM dataset_destinations WHERE destination = 'int'")
+    conn.commit()
+    conn.close()
     with pytest.raises(SubsetError, match="no table"):
         subset_db(src, tmp_path / "int.db", "int", config_root=config_root)
 

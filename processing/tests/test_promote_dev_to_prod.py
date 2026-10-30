@@ -373,6 +373,39 @@ def test_promote_dev_to_int_is_the_mirror(hive: dict[str, Path]) -> None:
     assert not list(hive["int_db_dir"].glob("*.new"))
 
 
+def test_promote_to_prod_updates_int_first(hive: dict[str, Path]) -> None:
+    """Publishing is one step, and int-only data stops at int."""
+    labels = {**LABELS, "int_only": ["dev", "int"]}
+    _write_configs(hive["dev_main"].parents[1] / "datasets", labels)
+    _make_dataset_db(hive["dev_main"], labels)
+    run_promote_dev_to_prod(local=True, include_meta_analysis=False)
+    assert _tables(hive["prod_main"]) == {PUBLIC}
+    assert _tables(hive["int_main"]) - {PUBLIC} == _tables(hive["dev_main"]) - {
+        PUBLIC,
+        EMBARGOED,
+    }
+    assert len(_tables(hive["int_main"])) == 2
+
+
+def test_prod_is_untouched_when_the_int_step_fails(
+    hive: dict[str, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _make_dataset_db(hive["dev_main"], LABELS)
+    _make_dataset_db(hive["prod_main"], {"public": ["dev", "prod"]})
+    before = hive["prod_main"].read_bytes()
+    real = deploy.run_promote_dev_to
+
+    def fail_on_int(destination: str, **kwargs: object) -> None:
+        if destination == "int":
+            raise DeployError("int broke")
+        real(destination, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(deploy, "run_promote_dev_to", fail_on_int)
+    with pytest.raises(DeployError, match="prod was not touched"):
+        run_promote_dev_to_prod(local=True)
+    assert hive["prod_main"].read_bytes() == before
+
+
 def test_promote_refuses_missing_source(hive: dict[str, Path]) -> None:
     with pytest.raises(DeployError, match="Source main DB not found"):
         run_promote_dev_to_prod(local=True)

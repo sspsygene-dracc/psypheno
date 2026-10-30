@@ -1021,7 +1021,7 @@ one place that records where a dataset is allowed to appear:
 deployTo:
   - dev     # required in every dataset
   - int     # optional — the internal, auth-protected site
-  - prod    # optional — the public site
+  - prod    # optional — the public site; requires int
 ```
 
 Rules, and why they are the way they are:
@@ -1247,7 +1247,7 @@ names them (#225). So the shape of a rollout is always the same:
 Where a dataset ends up is decided by its `deployTo` list, not by which server
 you happen to run a command on:
 
-- **Public datasets** → `deployTo: [dev, int, prod]` (or `[dev, prod]`).
+- **Public datasets** → `deployTo: [dev, int, prod]`.
 - **Embargoed / pre-publication datasets** → `deployTo: [dev, int]`, or
   `[dev]` while you are still working on it.
 - Widening later is a config edit plus a promotion — see
@@ -1274,11 +1274,13 @@ sspsygene deploy --instances dev --load-db
 Verify at https://psypheno-dev.gi.ucsc.edu. Once you're happy, **promote**:
 
 ```bash
-sspsygene promote-dev-to-int      # then check psypheno-int
-sspsygene promote-dev-to-prod     # then check psypheno (live)
+sspsygene promote-dev-to-prod     # updates int, then prod (live)
 ```
 
-Each derives that instance's DB from dev's build — keeping only the datasets
+Check psypheno-int and psypheno afterwards. To update int alone, for example
+for an embargoed dataset, use `sspsygene promote-dev-to-int`.
+
+Each promotion derives that instance's DB from dev's build — keeping only the datasets
 whose `deployTo` names it — verifies the result before and after the swap, and
 copies dev's `sspsygene-meta.db` and `sspsygene-overview.db` alongside it. No
 rebuild, no restart. See [development.md](development.md) for the full flag
@@ -1404,8 +1406,11 @@ A dataset appears on an instance if and only if its `config.yaml` says so:
 deployTo:
   - dev
   - int     # add to publish on the internal site
-  - prod    # add to publish on the public site
+  - prod    # add to publish on the public site; requires int
 ```
+
+A dataset on prod is always on int too, so `prod` without `int` fails config
+validation. Listing `int` alone keeps a dataset off prod.
 
 To widen a dataset that is currently `deployTo: [dev]`:
 
@@ -1423,8 +1428,8 @@ To widen a dataset that is currently `deployTo: [dev]`:
 3. **Promote.** From your laptop or on the server:
 
    ```bash
-   sspsygene promote-dev-to-int      # for int
-   sspsygene promote-dev-to-prod     # for prod
+   sspsygene promote-dev-to-int      # for int only
+   sspsygene promote-dev-to-prod     # for prod (updates int first)
    ```
 
    Each derives that instance's DB from dev's superset, keeping only the
@@ -1530,8 +1535,8 @@ section 10c ("GitHub access for the deploy's `git pull`").
 | Load all datasets, skip indexing | `sspsygene load-db --no-index` |
 | Load all datasets (full build) | `sspsygene load-db` |
 | Build on dev (from laptop) | `sspsygene deploy --instances dev --load-db` |
-| Publish to internal | `sspsygene promote-dev-to-int` |
-| Publish to production | `sspsygene promote-dev-to-prod` |
+| Publish to internal only | `sspsygene promote-dev-to-int` |
+| Publish to production (and internal) | `sspsygene promote-dev-to-prod` |
 | Check what an instance is serving | `sspsygene verify-destination <db> --destination prod` |
 | Pull data files from a server (fresh machine) | `sspsygene pull-data` |
 | Push data files to dev (from laptop) | `sspsygene push-data NAME --instance dev` |
