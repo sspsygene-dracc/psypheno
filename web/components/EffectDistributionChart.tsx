@@ -357,6 +357,8 @@ export default function EffectDistributionChart({
               `table, so it isn't highlighted.`}
           </div>
         )}
+      {/* Don't let a click focus the chart: it draws a box around the plot. */}
+      <div onMouseDown={(e) => e.preventDefault()}>
       <ResponsiveContainer width="100%" height={280}>
         <ScatterChart margin={{ top: 6, right: 16, bottom: 28, left: 8 }}>
           <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
@@ -434,6 +436,7 @@ export default function EffectDistributionChart({
           )}
         </ScatterChart>
       </ResponsiveContainer>
+      </div>
       {selected ? (
         <div
           style={{
