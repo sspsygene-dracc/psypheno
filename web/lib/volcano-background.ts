@@ -6,15 +6,16 @@
 // same for every gene, yet it costs full-table sorts/scans: ~6 s of synchronous
 // better-sqlite3 work per gene page across all tables, which blocks the whole
 // Node process. Caching it per (DB connection, table, perturbed gene) makes
-// repeat requests nearly free. The first request on a new connection (after
-// server start or a DB swap) kicks off warmVolcanoCache(), which precomputes
-// every table's whole-table entry in the background.
+// repeat requests nearly free. getDb() calls warmCaches() whenever it opens a
+// new connection (server start or a DB swap), which precomputes the autocomplete
+// lists and every table's whole-table entry in the background.
 //
 // The cache is keyed on the Database instance (WeakMap), so a `load-db` swap —
 // which makes getDb() open a fresh connection — invalidates it automatically.
 
 import type Database from "better-sqlite3";
 import { getDb } from "@/lib/db";
+import { warmSuggestions } from "@/lib/suggestions";
 import {
   sanitizeIdentifier,
   parseDisplayColumns,
@@ -81,13 +82,6 @@ function cacheFor(db: Database.Database): Map<string, VolcanoBackgroundResult> {
   if (!cache) {
     cache = new Map();
     caches.set(db, cache);
-    // First use of a new connection (startup or a load-db swap): precompute
-    // the rest in the background.
-    try {
-      warmVolcanoCache();
-    } catch (err) {
-      console.error("volcano warm-up failed", err);
-    }
   }
   return cache;
 }
@@ -141,12 +135,13 @@ export function getVolcanoBackground(
 const warming = new WeakSet<Database.Database>();
 
 /**
- * Precompute every table's whole-table background, one table per macrotask so
- * requests interleave between tables (each table still blocks for its own
- * query time — up to ~1.5 s for the largest). Idempotent per connection; stops
- * early if the DB is swapped mid-warm.
+ * Precompute the autocomplete lists and every table's whole-table volcano
+ * background, one step per macrotask so requests interleave between steps
+ * (each step still blocks for its own query time — a second or two for the
+ * largest table on prod). Idempotent per connection; stops early if the DB is
+ * swapped mid-warm.
  */
-export function warmVolcanoCache(): void {
+export function warmCaches(): void {
   const db = getDb();
   if (warming.has(db)) return;
   warming.add(db);
@@ -160,17 +155,22 @@ export function warmVolcanoCache(): void {
       )
       .all() as Array<{ table_name: string }>
   ).map((r) => r.table_name);
-  const step = (i: number) => {
-    if (i >= tables.length) return;
+  const steps: Array<() => void> = [
+    () => warmSuggestions(db, "perturbed"),
+    () => warmSuggestions(db, "target"),
+    ...tables.map((t) => () => void getVolcanoBackground(db, t)),
+  ];
+  const run = (i: number) => {
+    if (i >= steps.length) return;
     if (getDb() !== db) return; // swapped; the new connection warms itself
     try {
-      getVolcanoBackground(db, tables[i]);
+      steps[i]();
     } catch (err) {
-      console.error(`volcano warm-up failed for ${tables[i]}`, err);
+      console.error("warm-up step failed", err);
     }
-    setTimeout(() => step(i + 1), 50).unref();
+    setTimeout(() => run(i + 1), 50).unref();
   };
-  setTimeout(() => step(0), 50).unref();
+  setTimeout(() => run(0), 50).unref();
 }
 
 function computeVolcanoBackground(

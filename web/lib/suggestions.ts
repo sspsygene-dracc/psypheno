@@ -180,6 +180,18 @@ function getControlsStmt(
   return stmtControlsTarget;
 }
 
+/**
+ * Build one direction's autocomplete id list ahead of the first keystroke.
+ * It scans every link table in that direction (about a second on the big
+ * DB), so the warm-up does it instead of the first person to type.
+ */
+export function warmSuggestions(
+  db: Database.Database,
+  direction: SearchDirection,
+): void {
+  getStmts(db, direction);
+}
+
 function getStmts(
   db: Database.Database,
   direction: SearchDirection | null,

@@ -160,6 +160,18 @@ function attachDerived(
   return status;
 }
 
+// Warm the in-process caches on every new connection (server start or a DB
+// swap). Dynamic import: lib/volcano-background imports this module. Production
+// only, so tests and `next dev` don't pay for full-table work.
+function scheduleCacheWarmup(): void {
+  if (process.env.NODE_ENV !== "production") return;
+  setTimeout(() => {
+    import("@/lib/volcano-background")
+      .then((m) => m.warmCaches())
+      .catch((err) => console.error("cache warm-up failed", err));
+  }, 0).unref();
+}
+
 export function getDb(): Database.Database {
   const dbPathFromEnv = process.env.SSPSYGENE_DATA_DB;
   if (!dbPathFromEnv) {
@@ -219,6 +231,7 @@ export function getDb(): Database.Database {
   );
   cachedKey = key;
   cachedPath = dbPath;
+  scheduleCacheWarmup();
   return dbInstance;
 }
 
