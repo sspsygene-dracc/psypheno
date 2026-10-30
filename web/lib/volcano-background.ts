@@ -30,8 +30,9 @@ const BULK_LIMIT = 1000;
 const PVALUE_FLOOR = 1e-300;
 
 // Per-perturbed-gene entries are bounded (LRU); whole-table entries — one per
-// table — are always kept.
-const MAX_GENE_ENTRIES = 200;
+// table — are always kept. One entry is at most ~1100 points, so this bounds
+// the cache at roughly 150 MB.
+const MAX_GENE_ENTRIES = 1000;
 
 export type VolcanoPoint = {
   effect: number;
@@ -404,11 +405,15 @@ function resolveRowSymbols(
   for (let i = 0; i < ids.length; i += ID_CHUNK) {
     const chunk = ids.slice(i, i + ID_CHUNK);
     const placeholders = chunk.map(() => "?").join(", ");
+    // CROSS JOIN pins the join order. A plain JOIN lets SQLite drive from
+    // central_gene and probe the link table's (central_gene_id, id) primary
+    // key once per gene per id — ~150k × 500 seeks, several seconds of
+    // blocking on big tables. Scanning the link table is far cheaper.
     const sql = `
       SELECT lt.id AS id, cg.human_symbol AS human_symbol,
              cg.mouse_symbols AS mouse_symbols
       FROM ${linkTable} lt
-      JOIN central_gene cg ON cg.id = lt.central_gene_id
+      CROSS JOIN central_gene cg ON cg.id = lt.central_gene_id
       WHERE lt.id IN (${placeholders})
       ORDER BY (cg.human_symbol IS NULL), cg.id
     `;
