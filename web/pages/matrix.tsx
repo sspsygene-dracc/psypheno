@@ -551,8 +551,6 @@ export default function MatrixPage() {
 
           {data && <MatrixMethods data={data} />}
 
-          {data && <MetricLegend data={data} />}
-
           <div
             style={{
               display: "flex",
@@ -726,6 +724,7 @@ export default function MatrixPage() {
                   &mdash; click any cell for its value
                 </span>
               </div>
+              {data && <MetricLegend data={data} />}
               <CollatedMatrix
                 sections={sections}
                 columns={orderedColumns}
