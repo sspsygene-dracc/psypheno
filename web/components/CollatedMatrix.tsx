@@ -338,6 +338,8 @@ const CONTAINS_BUTTON_STYLE = {
   textDecoration: "underline dotted",
 } as const;
 
+const CONTAINS_PANEL_MAX_H = 280;
+
 const CONTAINS_PANEL_STYLE = {
   position: "fixed",
   zIndex: 50,
@@ -350,6 +352,9 @@ const CONTAINS_PANEL_STYLE = {
   boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
   fontSize: 12,
   color: "#4b5563",
+  maxHeight: CONTAINS_PANEL_MAX_H,
+  overflowY: "auto",
+  boxSizing: "border-box",
 } as const;
 
 /** What a pooled phenotype column combines. */
@@ -434,7 +439,12 @@ function ColumnLabel({
       }
     >
       {column.contains && onShowContains ? (
-        <button type="button" onClick={onShowContains} style={CONTAINS_BUTTON_STYLE}>
+        <button
+          type="button"
+          data-contains-trigger=""
+          onClick={onShowContains}
+          style={CONTAINS_BUTTON_STYLE}
+        >
           {column.label} ({column.contains.length})
         </button>
       ) : column.columnIsGene ? (
@@ -632,7 +642,8 @@ export default function CollatedMatrix({
   const [containsOpen, setContainsOpen] = useState<{
     column: MatrixColumn;
     x: number;
-    y: number;
+    top?: number;
+    bottom?: number;
   } | null>(null);
   const containsRef = useRef<HTMLDivElement>(null);
 
@@ -877,7 +888,11 @@ export default function CollatedMatrix({
       if (e.key === "Escape") setContainsOpen(null);
     };
     const onDown = (e: MouseEvent) => {
-      if (!containsRef.current?.contains(e.target as Node)) setContainsOpen(null);
+      const target = e.target as Element;
+      if (containsRef.current?.contains(target)) return;
+      // The label buttons toggle the panel themselves on click.
+      if (target.closest?.("[data-contains-trigger]")) return;
+      setContainsOpen(null);
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousedown", onDown);
@@ -1127,9 +1142,22 @@ export default function CollatedMatrix({
                     datasetText={datasetText}
                     linkToDataset={summary}
                     horizontal={summary}
-                    onShowContains={(e) =>
-                      setContainsOpen({ column: c, x: e.clientX, y: e.clientY })
-                    }
+                    onShowContains={(e) => {
+                      // Open below the label strip so the list never covers
+                      // the neighbouring labels; a second click closes it.
+                      const strip = labelStripRef.current?.getBoundingClientRect();
+                      const x = e.currentTarget.getBoundingClientRect().left;
+                      // Below the strip if the panel fits there, else ending
+                      // just above it.
+                      const below = strip ? strip.bottom + 4 : e.clientY + 10;
+                      const place =
+                        below + CONTAINS_PANEL_MAX_H <= window.innerHeight
+                          ? { top: below }
+                          : { bottom: window.innerHeight - (strip ? strip.top - 4 : e.clientY - 10) };
+                      setContainsOpen((prev) =>
+                        prev?.column.key === c.key ? null : { column: c, x, ...place }
+                      );
+                    }}
                   />
                 </div>
               );
@@ -1331,7 +1359,9 @@ export default function CollatedMatrix({
           style={{
             ...CONTAINS_PANEL_STYLE,
             left: Math.max(8, Math.min(containsOpen.x, window.innerWidth - 356)),
-            top: Math.max(8, Math.min(containsOpen.y + 10, window.innerHeight - 280)),
+            ...(containsOpen.top !== undefined
+              ? { top: containsOpen.top }
+              : { bottom: Math.max(8, containsOpen.bottom ?? 8) }),
           }}
         >
           <div style={{ fontWeight: 600, color: "#111827" }}>

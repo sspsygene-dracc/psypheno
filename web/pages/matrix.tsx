@@ -347,26 +347,33 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
 
           <dt style={METHODS_TERM}>The &ldquo;by readout, across studies&rdquo; view</dt>
           <dd style={METHODS_DEF}>
-            Pools the RNA readouts (Perturb-seq, perturb-FISH and expression
-            datasets) by readout gene, matched across species, so each column is
-            one gene measured downstream of a perturbation in any study. The unit
-            is the <strong>study</strong>{" "}(a paper&rsquo;s datasets count once).
-            A study counts as <strong>significant</strong>{" "}for a pair if any of
-            its tests &mdash; any cell type, condition or method &mdash; has FDR
-            &lt; 0.05; a cell-type-specific hit is a real hit. Studies that test
-            a pair in many cell types therefore get more chances; each
-            study&rsquo;s number of tests is shown when you click a cell. The
-            cell&rsquo;s upper-left triangle is{" "}<em>k</em>/<em>n</em>{" "}(of{" "}
+            Pools readouts across studies so that each column is one readout,
+            whichever study measured it. RNA readouts (Perturb-seq, perturb-FISH
+            and expression datasets) are pooled by readout gene, matched across
+            species. Phenotype readouts are pooled by ontology term (Mammalian
+            and Zebrafish Phenotype Ontology, Cell Ontology): a column such as
+            &ldquo;Locomotor behavior&rdquo; combines every measure the studies
+            map to that term, and its label shows how many; click the label for
+            the list. The unit is the <strong>study</strong>: a paper&rsquo;s
+            datasets count once, and so do two papers that report the same
+            experiment. A study counts as <strong>significant</strong>{" "}for a
+            pair if any of its tests &mdash; any cell type, condition, method or
+            pooled measure &mdash; has FDR &lt; 0.05; a cell-type-specific hit is
+            a real hit. Studies that test a pair in many ways therefore get more
+            chances; each study&rsquo;s tests are listed when you click a cell.
+            The cell&rsquo;s upper-left triangle is{" "}<em>k</em>/<em>n</em>{" "}(of{" "}
             <em>n</em>{" "}studies that measured the pair,{" "}<em>k</em>{" "}found it
             significant); the lower-right is direction agreement among those{" "}
-            <em>k</em>, from the effect sign at each study&rsquo;s most significant
-            test. Cells measured by a single study are faded, since 1 of 1 is not
-            convergence. Studies that publish only their hits contribute their
-            inferred tested-but-not-significant pairs to <em>n</em>{" "}(below).
-            Columns are ranked by how many perturbed genes are significant for
-            them in two or more studies, then by total significant studies.
-            Phenotype readouts aren&rsquo;t pooled yet: they have no shared
-            vocabulary across studies.
+            <em>k</em>. For a gene column a study&rsquo;s direction is the effect
+            sign at its most significant test; for a phenotype column, a study
+            with significant measures in both directions counts as having no
+            single direction and adds to neither side. Cells measured by a single
+            study are faded, since 1 of 1 is not convergence. Studies that
+            publish only their hits contribute their inferred
+            tested-but-not-significant pairs to <em>n</em>{" "}(below). Phenotype
+            columns come first; gene columns are ranked by how many perturbed
+            genes are significant for them in two or more studies, then by total
+            significant studies.
           </dd>
 
           <dt style={METHODS_TERM}>Sources that publish only significant results</dt>
@@ -551,7 +558,7 @@ export default function MatrixPage() {
             }}
           >
             Every experimentally perturbed SSPsyGene target gene (rows) against{" "}
-            {mode === "collated" ? "the genes measured downstream of it" : "each experimental dataset"}{" "}
+            {mode === "collated" ? "the readouts measured after perturbing it" : "each experimental dataset"}{" "}
             (columns).{" "}
             {mode === "collated" ? (
               <>
@@ -740,6 +747,15 @@ export default function MatrixPage() {
                   : mode === "collated"
                     ? `readouts, pooled over ${meta?.collatedStudies?.length ?? 0} studies`
                     : "columns"}
+                {mode === "collated" &&
+                  (meta?.collatedStudiesInSeveralSections?.length ?? 0) > 0 && (
+                    <span>
+                      {" "}
+                      ({meta!.collatedStudiesInSeveralSections!.join(", ")}{" "}
+                      {meta!.collatedStudiesInSeveralSections!.length === 1 ? "contributes" : "contribute"}{" "}
+                      to more than one section, so the section counts add up to more)
+                    </span>
+                  )}
                 {hidden.size > 0 && (
                   <span style={{ color: "#9ca3af" }}>
                     {" "}

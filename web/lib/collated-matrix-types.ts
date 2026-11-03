@@ -167,6 +167,11 @@ export interface CollatedMatrixMeta {
   collatedAvailable: boolean;
   /** Collated mode: the studies pooled into its columns. */
   collatedStudies?: Array<{ study: string; label: string }>;
+  /**
+   * Collated mode: labels of studies that feed more than one section, so the
+   * per-section study counts add up to more than `collatedStudies.length`.
+   */
+  collatedStudiesInSeveralSections?: string[];
   /** Columns-per-dataset cap used for this response (after clamping). */
   colsPerDataset: number;
   /** Total value columns actually returned across all datasets. */

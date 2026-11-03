@@ -397,6 +397,7 @@ function buildCollatedResponse(args: {
     }
   }
 
+  const sectionsPerStudy = new Map<string, number>();
   for (const g of groups) {
     let groupStudies: Array<{ study: string; label: string }> = [];
     try {
@@ -406,6 +407,7 @@ function buildCollatedResponse(args: {
     }
     for (const st of groupStudies) {
       if (!studies.some((s) => s.study === st.study)) studies.push(st);
+      sectionsPerStudy.set(st.study, (sectionsPerStudy.get(st.study) ?? 0) + 1);
     }
     const studyNames = groupStudies.map((st) => st.label).join(", ");
     const rows = colStmt.all(g.collate_group, readouts) as CollatedColumnRow[];
@@ -458,6 +460,9 @@ function buildCollatedResponse(args: {
       summaryAvailable: true,
       collatedAvailable: true,
       collatedStudies: studies,
+      collatedStudiesInSeveralSections: studies
+        .filter((st) => (sectionsPerStudy.get(st.study) ?? 0) > 1)
+        .map((st) => st.label),
       colsPerDataset: K,
       expandedColumnCount: columns.length,
       expandedColumnsAvailable: columns.length,
