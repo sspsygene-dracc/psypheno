@@ -227,7 +227,7 @@ function agreementText(cell: MatrixCell): string {
       : ` (effect signs over all studies: ${pos} up, ${neg} down` +
         (cell.nInferred ? "; inferred measurements have no effect size" : "") +
         ")";
-  if (!a) return `fewer than two studies to compare${signs}`;
+  if (!a) return `nothing to compare: only one study has a result with a direction${signs}`;
   if (a.strength === "strong") {
     return `significant studies ${a.agreement === "agree" ? "agree" : "disagree"} on direction${signs}`;
   }

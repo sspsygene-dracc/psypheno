@@ -88,6 +88,13 @@ export const AGREEMENT_COLORS: Record<
 };
 
 /**
+ * Agreement view: lower triangle of a cell with a significant study but no
+ * second study to compare it with. Keeps every significant cell split, so the
+ * two views read the same way.
+ */
+export const AGREEMENT_NOTHING_TO_COMPARE: [number, number, number] = [196, 200, 207];
+
+/**
  * Do the studies behind a collated cell agree on direction?
  *
  * - Strong: two or more significant studies. They agree when all of them went
@@ -160,9 +167,12 @@ export function buildColorGrid(
         let upper = scaleColorRGB(col.metric, cell.value, metricDomains[col.metric]);
         let lower: [number, number, number] = upper;
         if (lowerMode === "agreement") {
-          // Fewer than two studies to compare → one-colored tile.
+          // A significant cell is always split; with nothing to compare its
+          // lower half is neutral grey. Only a cell with no significant study
+          // and nothing to compare stays one color.
           const a = cellAgreement(cell);
           if (a) lower = AGREEMENT_COLORS[a.strength][a.agreement];
+          else if (cell.k > 0) lower = AGREEMENT_NOTHING_TO_COMPARE;
         } else if (cell.k > 0) {
           const signed = (cell.nUp ?? 0) + (cell.nDown ?? 0);
           lower =

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AGREEMENT_COLORS,
+  AGREEMENT_NOTHING_TO_COMPARE,
   buildColorGrid,
   cellAgreement,
   CELL_INFERRED,
@@ -127,6 +128,13 @@ describe("agreement view", () => {
     expect(cellAgreement(cell)).toBeNull();
     const grid = buildColorGrid([row({ a: cell })], [col("a", "frac_sig")], {}, "agreement");
     expect(grid.packed[0]).toBe(grid.packed2[0]);
+  });
+
+  it("keeps a significant cell split even with nothing to compare", () => {
+    // 1 of 2 significant; the other study was inferred, so no second sign.
+    const cell = { value: 0.5, k: 1, n: 2, nUp: 1, nDown: 0, nPosAll: 1, nNegAll: 0 };
+    expect(cellAgreement(cell)).toBeNull();
+    expect(lowerOf(cell)).toEqual(AGREEMENT_NOTHING_TO_COMPARE);
   });
 
   it("leaves the upper triangle unchanged", () => {

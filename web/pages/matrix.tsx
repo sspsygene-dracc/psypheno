@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import CollatedMatrix, { type MetricDomains } from "@/components/CollatedMatrix";
 import {
   AGREEMENT_COLORS,
+  AGREEMENT_NOTHING_TO_COMPARE,
   INFERRED_DOT,
   INFERRED_FILL,
   SHARED_MARK,
@@ -143,8 +144,12 @@ function AgreementLegend() {
           by effect sign, counting non-significant studies
         </span>
       </span>
+      <span style={{ display: "inline-flex", gap: 12, flexWrap: "wrap" }}>
+        {swatch(AGREEMENT_NOTHING_TO_COMPARE, "nothing to compare")}
+        <span style={{ color: "#9ca3af" }}>only one study has a result with a direction</span>
+      </span>
       <span style={{ color: "#9ca3af", fontSize: 11 }}>
-        one color = fewer than two studies to compare
+        a whole tile in one color = no study found it significant
       </span>
     </div>
   );
@@ -482,8 +487,9 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             compared, pale when the comparison relies on effect signs that
             include non-significant studies (each study votes with its strongest
             test; inferred measurements have no effect size and don&rsquo;t
-            vote). A tile stays one color when fewer than two studies can be
-            compared. Cells measured by a single
+            vote). A significant cell with only one study to go on gets a grey
+            lower triangle (nothing to compare); a tile stays one color only
+            when no study found the pair significant. Cells measured by a single
             study are faded, since 1 of 1 is not convergence. Studies that
             publish only their hits contribute their inferred
             tested-but-not-significant pairs to <em>n</em>{" "}(below). Phenotype
