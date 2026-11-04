@@ -85,6 +85,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: cell_line
+anatomy:
+  - UBERON:0002113  # kidney
+stage: in_vitro
+stage_detail: "HEK293T cells"
 tables:
   - table: wang_2026_ppi
     changelog:

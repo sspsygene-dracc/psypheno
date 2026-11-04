@@ -1,5 +1,10 @@
 deployTo:
   - dev
+model_system: in_vivo
+anatomy:
+  - UBERON:0000468  # multicellular organism
+stage: larval
+stage_detail: "5-7 dpf"
 
 publication:
   authors:

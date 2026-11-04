@@ -44,6 +44,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: ineurons
+anatomy:
+  - UBERON:0000955  # brain
+stage: in_vitro
+stage_detail: "NGN2 iGLUT neurons, day 7-21"
 tables:
   - table: SCZ_Risk_Arrayed_RNAseq_supp_1
     changelog:

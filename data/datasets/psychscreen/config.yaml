@@ -102,6 +102,10 @@ deployTo:
   - dev
   - int
   - prod
+model_system: postmortem
+anatomy:
+  - UBERON:0000451  # prefrontal cortex
+stage: adult
 tables:
   - table: psychscreen_age_deg
     changelog:

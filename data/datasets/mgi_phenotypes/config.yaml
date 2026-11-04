@@ -27,6 +27,7 @@ deployTo:
   - dev
   - int
   - prod
+model_system: curated
 tables:
   - table: mgi_high_level_phenotypes
     changelog:

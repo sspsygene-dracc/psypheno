@@ -48,6 +48,7 @@ deployTo:
   - dev
   - int
   - prod
+model_system: curated
 tables:
   - table: zhou_2022_gene_meta
     changelog:

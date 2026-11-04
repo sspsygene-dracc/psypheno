@@ -64,6 +64,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: postmortem
+anatomy:
+  - UBERON:0000451  # prefrontal cortex
+  - UBERON:0009835  # anterior cingulate cortex
+stage: postnatal
 tables:
   - table: velmeshev_2019_degs
     shortLabel: velmeshev_2019_degs

@@ -54,8 +54,17 @@ deployTo:
   - dev
   - int
   - prod
+model_system: in_vivo
+anatomy:
+  - UBERON:0000468  # multicellular organism
+stage: larval
+stage_detail: "5-7 dpf"
 tables:
   - table: zebra_asd
+    # pERK/tERK whole-brain activity mapping (per-region columns, not rows).
+    anatomy:
+      - UBERON:0000955  # brain
+    stage_detail: "6 dpf"
     changelog:
       - date: "2025-10-06"
         message: "Initial data load"

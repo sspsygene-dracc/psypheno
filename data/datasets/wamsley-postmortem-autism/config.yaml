@@ -32,6 +32,13 @@ deployTo:
   - dev
   - int
   - prod
+model_system: postmortem
+anatomy:
+  - UBERON:0013540  # Brodmann (1909) area 9
+  - UBERON:0013535  # Brodmann (1909) area 4
+  - UBERON:0006472  # Brodmann (1909) area 6
+stage: postnatal
+stage_detail: "donors aged 2-60 years"
 tables:
   - table: wamsley_2024_cluster_markers
     shortLabel: wamsley_2024_cluster_markers

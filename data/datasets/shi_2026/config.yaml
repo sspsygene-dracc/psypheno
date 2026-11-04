@@ -2,6 +2,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: in_vivo
+anatomy:
+  - UBERON:0000955  # brain
+stage: postnatal
+stage_detail: "AAV at P16; brains harvested P37-P44"
 
 publication:
   authors:

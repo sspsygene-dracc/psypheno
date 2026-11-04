@@ -50,6 +50,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: in_vivo
+anatomy:
+  - UBERON:0000956  # cerebral cortex
+stage: postnatal
+stage_detail: "AAV in utero at E14.5; cortex profiled at P7"
 tables:
   - table: mouse_perturb_deg
     overview_matrix: true  # #212 overview matrix source

@@ -33,6 +33,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: ipsc_other
+anatomy:
+  - UBERON:0000955  # brain
+stage: in_vitro
+stage_detail: "iPSC-derived astrocytes, day 30"
 tables:
   - table: perturb_fish_astro
     overview_matrix: true  # #212 overview matrix source

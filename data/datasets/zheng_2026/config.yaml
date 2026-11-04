@@ -1,6 +1,11 @@
 deployTo:
   - dev
   - int
+model_system: in_vivo
+anatomy:
+  - UBERON:0000956  # cerebral cortex
+stage: postnatal
+stage_detail: "AAV at E13.5; cortex profiled at P28"
 
 publication:
   title: "In vivo multiomic Perturb-seq with enhanced nuclear gRNA capture"
