@@ -544,6 +544,9 @@ export default function MatrixPage() {
   const [mode, setMode] = useState<MatrixMode>("expanded");
   const [colsPerDataset, setColsPerDataset] = useState(25);
   const [readouts, setReadouts] = useState(100);
+  // By study view: single-gene studies with several conditions as a compact
+  // block (one column per condition) — the #16 prototype.
+  const [compact, setCompact] = useState(false);
   // By-readout view: lower triangle shows direction (default) or agreement.
   const [lowerMode, setLowerMode] = useState<LowerTriangleMode>("direction");
   // The per-study views remember which one was last shown, so toggling the
@@ -569,7 +572,7 @@ export default function MatrixPage() {
     setLoading(true);
     fetch(
       `/api/collated-matrix?colsPerDataset=${colsPerDataset}&mode=${mode}` +
-        `&readouts=${readouts}`
+        `&readouts=${readouts}&compact=${compact ? 1 : 0}`
     )
       .then((res) => {
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -590,7 +593,7 @@ export default function MatrixPage() {
     return () => {
       cancelled = true;
     };
-  }, [colsPerDataset, mode, readouts]);
+  }, [colsPerDataset, mode, readouts, compact]);
 
   const genes = data?.genes ?? [];
   const sections = data?.sections ?? [];
@@ -772,6 +775,15 @@ export default function MatrixPage() {
             >
               Unhide all datasets
             </ToggleButton>
+            {mode === "expanded" && (
+              <ToggleButton
+                active={compact}
+                disabled={loading}
+                onClick={() => setCompact((v) => !v)}
+              >
+                Single-gene studies as compact blocks
+              </ToggleButton>
+            )}
           </div>
 
           <div

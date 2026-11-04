@@ -31,9 +31,17 @@ maintainers:
 tables:
 
   - table: cui_2026_deg
+    # Full table (significant and not), FDR only: no p-value column, so the
+    # overview matrix colors by FDR. One perturbed gene, six genotype × day
+    # conditions; the by-readout view counts them as tests within one study.
+    overview_matrix: true
+    # The compact single-gene option shows one column per genotype × day.
+    overview_matrix_condition_columns: [genotype, time_point]
     changelog:
       - date: "2026-10-26"
         message: "Initial data load — 103,464 DEG rows; XPO7+/- and XPO7-/- at day 28, 42, 56"
+      - date: "2026-11-04"
+        message: "Added to the overview matrix."
 
     shortLabel: cui_2026_deg
     mediumLabel: "Cui 2026 - XPO7 LoF DEGs in iPSC Glutamatergic Neurons"

@@ -379,3 +379,35 @@ def test_a_study_with_significant_tests_both_ways_is_mixed() -> None:
     assert conn.execute(
         "SELECT effect FROM overview_matrix_collated_contrib WHERE target_gene_id = -2"
     ).fetchone() == (None,)
+
+
+def test_condition_columns_count_significant_readouts_per_condition() -> None:
+    conn = _two_studies()
+    conn.execute("ALTER TABLE data_tables ADD COLUMN overview_matrix_condition_columns TEXT")
+    conn.execute(
+        "UPDATE data_tables SET overview_matrix_condition_columns = ? "
+        "WHERE table_name = 'study_b'",
+        (json.dumps(["ctx"]),),
+    )
+    materialize_overview_matrix(conn, min_groups=1)
+    columns = conn.execute(
+        "SELECT condition, label, sort_rank FROM overview_matrix_condition_columns "
+        "WHERE source_table = 'study_b' ORDER BY sort_rank"
+    ).fetchall()
+    # Study B's contexts: '' (BBB), c1, c2, c3 (AAA).
+    assert [c[0] for c in columns] == ["", "c1", "c2", "c3"]
+    cells = {
+        (cond, gene): (n_sig, n_measured)
+        for cond, gene, n_sig, n_measured in conn.execute(
+            "SELECT condition, central_gene_id, n_sig, n_measured "
+            "FROM overview_matrix_condition_cells WHERE source_table = 'study_b'"
+        )
+    }
+    # AAA→T3 significant only in c1 (FDR 0.02); measured in all three.
+    assert cells[("c1", 1)] == (1, 1)
+    assert cells[("c2", 1)] == (0, 1)
+    assert cells[("", 2)] == (1, 1)
+    # Tables that don't declare conditions get none.
+    assert not conn.execute(
+        "SELECT 1 FROM overview_matrix_condition_columns WHERE source_table = 'study_a'"
+    ).fetchone()

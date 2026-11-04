@@ -97,6 +97,7 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "overview_matrix_phenotype_terms",
         "significant_only",
         "evidence_source",
+        "overview_matrix_condition_columns",
         "changelog",
         # Internal: dataset-level publication block, merged in by TablesConfig.
         "_publication",
@@ -500,6 +501,11 @@ class TableToProcessConfig:
     # Tables sharing a value count as one study when studies are pooled, so data
     # reused across papers isn't counted as independent evidence.
     evidence_source: str | None = None
+    # Columns naming a single-gene study's conditions (genotype, time point,
+    # ...). The overview matrix can then show the study as one compact column
+    # per condition (significant readouts in that condition) instead of one
+    # column per readout gene.
+    overview_matrix_condition_columns: list[str] = field(default_factory=list)
     publication_title: str | None = None
     publication_first_author: str | None = None
     publication_last_author: str | None = None
@@ -662,6 +668,15 @@ class TableToProcessConfig:
             raise ValueError(
                 f"table {self.table}: overview_matrix_phenotype_terms needs a "
                 f"phenotype column axis."
+            )
+        if self.overview_matrix_condition_columns and (
+            not self.overview_matrix
+            or self.overview_matrix_phenotype_column
+            or self.overview_matrix_phenotype_columns
+        ):
+            raise ValueError(
+                f"table {self.table}: overview_matrix_condition_columns needs "
+                f"overview_matrix: true and a gene (not phenotype) column axis."
             )
         if self.evidence_source is not None and not re.fullmatch(
             r"[a-z0-9_]+", self.evidence_source
@@ -877,6 +892,10 @@ class TableToProcessConfig:
             overview_matrix_metric_domain=overview_matrix_metric_domain,
             significant_only=significant_only,
             evidence_source=json_data.get("evidence_source"),
+            overview_matrix_condition_columns=[
+                normalize_column_name(c)
+                for c in (json_data.get("overview_matrix_condition_columns") or [])
+            ],
             overview_matrix_phenotype_terms={
                 str(k): str(v)
                 for k, v in (

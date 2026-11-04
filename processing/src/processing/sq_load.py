@@ -337,6 +337,7 @@ def load_data_tables(
         significant_only TEXT,
         evidence_source TEXT,
         overview_matrix_phenotype_terms TEXT,
+        overview_matrix_condition_columns TEXT,
         preprocessing TEXT)"""
     )
     log = get_sspsygene_logger()
@@ -489,6 +490,11 @@ def load_data_tables(
             ),
             "overview_matrix_metric": table_config.overview_matrix_metric,
             "evidence_source": table_config.evidence_source,
+            "overview_matrix_condition_columns": (
+                json.dumps(table_config.overview_matrix_condition_columns)
+                if table_config.overview_matrix_condition_columns
+                else None
+            ),
             "overview_matrix_phenotype_terms": (
                 json.dumps(table_config.overview_matrix_phenotype_terms)
                 if table_config.overview_matrix_phenotype_terms

@@ -46,6 +46,14 @@ const querySchema = z.object({
   mode: z.enum(["expanded", "summary", "collated"]).default("expanded"),
   /** Collated mode: how many readout columns (most convergent first). */
   readouts: z.coerce.number().int().min(1).max(500).default(100),
+  /**
+   * Expanded mode: show studies that declare condition columns (one perturbed
+   * gene, several genotypes / time points) as one compact column per condition.
+   */
+  compact: z
+    .enum(["0", "1"])
+    .default("0")
+    .transform((v) => v === "1"),
 });
 
 /** Color-scale ids of a collated cell's two triangles. */
@@ -494,6 +502,7 @@ export default async function handler(
   const K = parsed.data.colsPerDataset;
   const mode = parsed.data.mode;
   const readouts = parsed.data.readouts;
+  const compact = parsed.data.compact;
 
   try {
     const db = getDb();
@@ -679,8 +688,51 @@ export default async function handler(
       return res.status(200).json(body);
     }
 
-    for (const modalityKey of orderedModalityKeys) {
-      const prefix = prefixByModality.get(modalityKey);
+    // Compact single-gene studies: condition columns, grouped by modality.
+    // Absent in overview DBs built before them.
+    const conditionRows =
+      compact && tableExists(db, "overview_matrix_condition_columns", "overview")
+        ? (db
+            .prepare(
+              `SELECT cc.source_table, cc.condition, cc.label, cc.n_readouts_total,
+                      cc.sort_rank, sc.modality_key, sc.source_label, sc.sig_rule
+                 FROM overview.overview_matrix_condition_columns cc
+                 JOIN overview.overview_matrix_summary_columns sc
+                   ON sc.source_table = cc.source_table
+                ORDER BY cc.source_table, cc.sort_rank`
+            )
+            .all() as Array<{
+            source_table: string;
+            condition: string;
+            label: string;
+            n_readouts_total: number;
+            sort_rank: number;
+            modality_key: string;
+            source_label: string | null;
+            sig_rule: string;
+          }>)
+        : [];
+    const conditionCellStmt = conditionRows.length
+      ? db
+          .prepare(
+            `SELECT central_gene_id, condition, n_sig, n_measured
+               FROM overview.overview_matrix_condition_cells WHERE source_table = ?`
+          )
+          .raw()
+      : null;
+    const conditionTables = new Set(conditionRows.map((r) => r.source_table));
+    if (conditionRows.length) metrics.set(SUMMARY_METRIC, null);
+
+    for (const modalityKey of [
+      ...orderedModalityKeys,
+      // A modality whose only table is a compact study has no expansions row.
+      ...[...new Set(conditionRows.map((r) => r.modality_key))].filter(
+        (k) => !orderedModalityKeys.includes(k)
+      ),
+    ]) {
+      const prefix =
+        prefixByModality.get(modalityKey) ??
+        (conditionRows.some((r) => r.modality_key === modalityKey) ? modalityKey : undefined);
       if (prefix === undefined) continue;
 
       const srcTables = srcTablesStmt.all(modalityKey) as Array<{
@@ -691,6 +743,8 @@ export default async function handler(
 
       let sectionSpan = 0;
       for (const st of srcTables) {
+        // A compact study shows its condition block instead (below).
+        if (conditionTables.has(st.source_table)) continue;
         const colRows = colStmt.all(modalityKey, st.source_table, K) as Array<{
           column_value: string;
           n_sig_groups: number;
@@ -775,6 +829,54 @@ export default async function handler(
         sectionSpan += colRows.length;
         expandedColumnCount += colRows.length;
         expandedColumnsAvailable += st.available;
+      }
+
+      for (const table of [...conditionTables]) {
+        const conds = conditionRows.filter(
+          (r) => r.source_table === table && r.modality_key === modalityKey
+        );
+        if (conds.length === 0 || !conditionCellStmt) continue;
+        const dsMeta = datasetMeta.get(table) ?? {
+          mediumLabel: null,
+          citation: null,
+          restriction: null,
+        };
+        const sourceLabel = withRestriction(
+          authorYearLabel(dsMeta.mediumLabel, conds[0].source_label ?? table),
+          dsMeta
+        );
+        const rankOf = new Map(conds.map((r) => [r.condition, r.sort_rank]));
+        const keyFor = (condition: string) =>
+          `${prefix}:${table}:__condition__:${rankOf.get(condition)}`;
+        for (const r of conds) {
+          columns.push({
+            section: modalityKey,
+            key: keyFor(r.condition),
+            label: r.label,
+            metric: SUMMARY_METRIC,
+            columnIsGene: false,
+            nSigGroups: r.n_readouts_total,
+            sourceTable: table,
+            sourceLabel,
+            sourceMediumLabel: dsMeta.mediumLabel,
+            sourceCitation: dsMeta.citation,
+            sigRule: r.sig_rule,
+          });
+        }
+        for (const [geneId, condition, nSig, nMeasured] of conditionCellStmt.all(table) as Array<
+          [number, string, number, number]
+        >) {
+          const gene = byId.get(geneId);
+          if (!gene) continue;
+          gene.cells[keyFor(condition)] = {
+            value: Math.round(Math.log10(1 + nSig) * 1000) / 1000,
+            nSig,
+            nMeasured,
+          };
+        }
+        sectionSpan += conds.length;
+        expandedColumnCount += conds.length;
+        expandedColumnsAvailable += conds.length;
       }
 
       if (sectionSpan === 0) continue;

@@ -970,7 +970,7 @@ export default function CollatedMatrix({
   const selGeneName = sel ? sel.gene.humanSymbol ?? `#${sel.gene.centralGeneId}` : "";
   const selValueText = sel
     ? selCell
-      ? summary
+      ? summary || sel.col.metric === "sig_readouts"
         ? summaryValueText(sel.col, selCell)
         : selCell.k !== undefined
           ? collatedValueText(selCell, lowerMode)
@@ -1355,7 +1355,13 @@ export default function CollatedMatrix({
                 sel.col.label
               )}{" "}
               <span style={{ color: "#9ca3af" }}>
-                ({summary ? "dataset" : sel.col.columnIsGene ? "measured" : "phenotype"})
+                ({summary
+                  ? "dataset"
+                  : sel.col.columnIsGene
+                    ? "measured"
+                    : sel.col.metric === "sig_readouts"
+                      ? "condition"
+                      : "phenotype"})
               </span>
             </div>
             <div style={{ color: "#6b7280", fontSize: 11, marginTop: 1 }}>

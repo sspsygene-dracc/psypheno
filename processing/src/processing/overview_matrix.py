@@ -68,7 +68,7 @@ from processing.sql_utils import sanitize_identifier
 from processing.types.table_to_process_config import normalize_column_name
 
 
-SCHEMA_VERSION = "8"
+SCHEMA_VERSION = "9"
 
 # -log10(p) clamp for neglog_* heatmap cells. The lower bound keeps every present
 # cell visible against "no data"; the upper bound stops a single p ~ 1e-49 row
@@ -123,6 +123,8 @@ _TABLES = (
     "overview_matrix_summary_cells",
     "overview_matrix_inferred_cells",
     "overview_matrix_shared_cells",
+    "overview_matrix_condition_columns",
+    "overview_matrix_condition_cells",
     *COLLATED_TABLES,
     TESTS_TABLE,
     "overview_matrix_info",
@@ -288,6 +290,28 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         n_inferred INTEGER NOT NULL DEFAULT 0,
         inferred_basis TEXT,
         PRIMARY KEY (source_table, central_gene_id)) WITHOUT ROWID"""
+    )
+    # Single-gene studies with several conditions (genotypes × time points,
+    # declared via `overview_matrix_condition_columns`): one compact column per
+    # condition, counting the readouts significant in it — the study reads as a
+    # small block instead of one column per readout gene.
+    conn.execute(
+        """CREATE TABLE overview_matrix_condition_columns (
+        source_table TEXT NOT NULL,
+        condition TEXT NOT NULL,
+        label TEXT NOT NULL,
+        sort_rank INTEGER NOT NULL,
+        n_readouts_total INTEGER NOT NULL,
+        PRIMARY KEY (source_table, condition)) WITHOUT ROWID"""
+    )
+    conn.execute(
+        """CREATE TABLE overview_matrix_condition_cells (
+        source_table TEXT NOT NULL,
+        condition TEXT NOT NULL,
+        central_gene_id INTEGER NOT NULL,
+        n_sig INTEGER NOT NULL,
+        n_measured INTEGER NOT NULL,
+        PRIMARY KEY (source_table, condition, central_gene_id)) WITHOUT ROWID"""
     )
     # "Tested, not significant" cells *inferred* for significant-only tables
     # (see `infer_measured_readouts`). Kept apart from the expanded cells: they
@@ -1309,6 +1333,91 @@ def materialize_shared_cells(
             )
 
 
+def _materialize_conditions(
+    conn: sqlite3.Connection,
+    *,
+    table_name: str,
+    link_tables_raw: str | None,
+    pvalue_column: str | None,
+    fdr_column: str | None,
+    condition_columns: list[str],
+    src_schema: str,
+) -> None:
+    """One column per condition of a table (see overview_matrix_condition_*).
+
+    A cell counts, for one perturbed gene in one condition, the readouts
+    measured and the readouts significant (FDR < 0.05; the p-value when the
+    table has no FDR, as elsewhere). Conditions are ordered by value.
+    """
+    log = get_sspsygene_logger()
+    base_table = sanitize_identifier(table_name)
+    perturbed_links = parse_link_tables_for_direction(link_tables_raw or "", "perturbed")
+    columns = _table_columns(conn, base_table, src_schema)
+    source_columns = _resolve_source_columns(link_tables_raw, columns)
+    group_column = source_columns["perturbed"]
+    target_column = source_columns["target"]
+    fdr_cols = _split_columns(fdr_column) or _split_columns(pvalue_column)
+    condition_expr = _context_expr(condition_columns, columns)
+    if (
+        not perturbed_links
+        or not group_column
+        or not target_column
+        or not fdr_cols
+        or condition_expr is None
+    ):
+        log.warning(
+            "overview matrix: %s condition columns %s unusable, skipping",
+            table_name,
+            condition_columns,
+        )
+        return
+    group_genes = _group_to_genes(
+        conn, base_table, perturbed_links[0], group_column, src_schema
+    )
+    rows = conn.execute(
+        f"""SELECT {group_column}, {condition_expr} AS cond,
+                   COUNT(DISTINCT {target_column}),
+                   COUNT(DISTINCT CASE WHEN {fdr_cols[0]} < {SIG_ALPHA}
+                                       THEN {target_column} END)
+              FROM {src_schema}.{base_table}
+             WHERE {target_column} IS NOT NULL AND {target_column} != ''
+             GROUP BY 1, 2"""
+    ).fetchall()
+    cells: dict[tuple[str, int], list[int]] = {}
+    totals: dict[str, int] = defaultdict(int)
+    for group, cond, n_measured, n_sig in rows:
+        totals[cond] = max(totals[cond], n_measured)
+        for gene_id in group_genes.get(group, ()):
+            cell = cells.setdefault((cond, gene_id), [0, 0])
+            cell[0] = max(cell[0], n_sig)
+            cell[1] = max(cell[1], n_measured)
+    if not cells:
+        return
+    conditions = sorted({cond for cond, _ in cells})
+    conn.executemany(
+        "INSERT INTO overview_matrix_condition_columns "
+        "(source_table, condition, label, sort_rank, n_readouts_total) "
+        "VALUES (?, ?, ?, ?, ?)",
+        [
+            (table_name, cond, cond.replace(chr(31), " · "), rank, totals[cond])
+            for rank, cond in enumerate(conditions)
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO overview_matrix_condition_cells "
+        "(source_table, condition, central_gene_id, n_sig, n_measured) "
+        "VALUES (?, ?, ?, ?, ?)",
+        [
+            (table_name, cond, gene_id, n_sig, n_measured)
+            for (cond, gene_id), (n_sig, n_measured) in cells.items()
+        ],
+    )
+    click.echo(
+        f"  Overview matrix: {table_name} → {len(conditions)} condition columns / "
+        f"{len(cells)} cells"
+    )
+
+
 def _materialize_expansion(
     conn: sqlite3.Connection,
     *,
@@ -1601,6 +1710,7 @@ def materialize_overview_matrix(
             "medium_label",
             "evidence_source",
             "overview_matrix_phenotype_terms",
+            "overview_matrix_condition_columns",
         )
     )
     source_rows = conn.execute(
@@ -1640,6 +1750,7 @@ def materialize_overview_matrix(
         medium_label,
         evidence_source,
         phenotype_terms_raw,
+        condition_columns_raw,
     ) in source_rows:
         modality_keys_for_table = _modality_keys_for(assay, assay_to_modalities)
         if not modality_keys_for_table:
@@ -1685,6 +1796,16 @@ def materialize_overview_matrix(
             species=gene_species,
             effect_column=effect_column,
         )
+        if condition_columns_raw and not phenotype_column and not phenotype_columns:
+            _materialize_conditions(
+                conn,
+                table_name=table_name,
+                link_tables_raw=link_tables_raw,
+                pvalue_column=pvalue_column,
+                fdr_column=fdr_column,
+                condition_columns=json.loads(condition_columns_raw),
+                src_schema=src_schema,
+            )
         if modality_key in COLLATE_GROUPS and not phenotype_column and not phenotype_columns:
             prepared = _collate_source(
                 conn,
