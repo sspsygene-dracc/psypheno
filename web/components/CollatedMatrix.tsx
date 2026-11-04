@@ -701,6 +701,7 @@ export default function CollatedMatrix({
   // Body scroll: imperatively slave the header/gene-column/canvas to the offset
   // (rAF-coalesced), redraw, reposition the popover, and update the DOM windows
   // only when the visible span actually shifts.
+  const prevColWRef = useRef<number | null>(null);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -732,12 +733,31 @@ export default function CollatedMatrix({
       if (!raf) raf = requestAnimationFrame(frame);
     };
     el.addEventListener("scroll", onScroll, { passive: true });
+    // The column set changed (mode, columns per dataset, hidden datasets…):
+    // bring the offsets back inside the new content before syncing. The browser
+    // won't clamp them for us — the canvas is translated by the *old* offset and
+    // its own box keeps the scrollable overflow that wide, so a narrower grid
+    // would come up scrolled past its last column (blank headers and cells). A
+    // mode switch changes the column pitch, so the old offset means nothing
+    // there; start the new view from the left edge.
+    const modeChanged = prevColWRef.current !== null && prevColWRef.current !== colW;
+    prevColWRef.current = colW;
+    const maxLeft = Math.max(0, nCols * colW - el.clientWidth);
+    const maxTop = Math.max(0, nRows * ROW_H - el.clientHeight);
+    const left = modeChanged ? 0 : Math.min(el.scrollLeft, maxLeft);
+    const top = Math.min(el.scrollTop, maxTop);
+    if (left !== el.scrollLeft || top !== el.scrollTop) {
+      if (canvasRef.current)
+        canvasRef.current.style.transform = `translate(${left}px, ${top}px)`;
+      el.scrollLeft = left;
+      el.scrollTop = top;
+    }
     frame(); // initial sync
     return () => {
       if (raf) cancelAnimationFrame(raf);
       el.removeEventListener("scroll", onScroll);
     };
-  }, [nRows, nCols]);
+  }, [nRows, nCols, colW]);
 
   // Wheel over the panel's non-scrolling regions: forward it to the body (the
   // only real scroller) instead of letting it chain to the page. One axis per
