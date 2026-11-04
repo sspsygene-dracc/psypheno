@@ -13,6 +13,7 @@ import {
 import {
   legendEndpoints,
   legendGradientCss,
+  scaleColorRGB,
   scaleFor,
 } from "@/lib/matrix-color-scales";
 import { orderColumns, orderRows } from "@/lib/matrix-clustering";
@@ -149,6 +150,42 @@ function AgreementLegend() {
   );
 }
 
+/**
+ * By-readout view: an enlarged example tile with both halves labelled, so a
+ * first-time reader can decode a cell from the legend alone.
+ */
+function CellKey({ lowerMode }: { lowerMode: LowerTriangleMode }) {
+  const lowerText =
+    lowerMode === "agreement"
+      ? "lower right: do the studies agree on direction?"
+      : "lower right: which way the significant studies went";
+  return (
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#4b5563" }}
+    >
+      <svg aria-hidden="true" width="34" height="34" viewBox="0 0 34 34" style={{ flexShrink: 0 }}>
+        <polygon points="0,0 34,0 0,34" fill={rgbCss(scaleColorRGB("frac_sig", 0.75, null))} />
+        <polygon
+          points="34,0 34,34 0,34"
+          fill={rgbCss(
+            lowerMode === "agreement"
+              ? AGREEMENT_COLORS.strong.agree
+              : scaleColorRGB("direction_agreement", 1, null)
+          )}
+        />
+      </svg>
+      <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <span style={{ fontWeight: 600, color: "#374151" }}>Reading a cell</span>
+        <span>upper left: how many of the studies found a significant change</span>
+        <span>{lowerText}</span>
+        <span style={{ color: "#9ca3af", fontSize: 11 }}>
+          grey diagonal = never measured; faded = only one study measured it
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function MetricLegend({
   data,
   lowerMode = "direction",
@@ -170,6 +207,7 @@ function MetricLegend({
         marginBottom: 18,
       }}
     >
+      {metrics.some((m) => m.id === "frac_sig") && <CellKey lowerMode={lowerMode} />}
       {metrics.map((m) => {
         if (m.id === "direction_agreement" && lowerMode === "agreement") {
           return <AgreementLegend key={m.id} />;

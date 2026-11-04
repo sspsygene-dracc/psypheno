@@ -1375,6 +1375,19 @@ export default function CollatedMatrix({
               {(summary ? sel.col.sourceMediumLabel : null) ?? sel.col.sourceLabel}
             </div>
             <div style={{ marginTop: 5, fontWeight: 500 }}>{selValueText}</div>
+            {sel.col.columnIsGene && sel.gene.humanSymbol && !summary && (
+              <div style={{ marginTop: 4 }}>
+                <a
+                  className="matrix-link"
+                  href={
+                    `/?perturbed=${encodeURIComponent(sel.gene.humanSymbol)}` +
+                    `&target=${encodeURIComponent(sel.col.label)}`
+                  }
+                >
+                  {sel.gene.humanSymbol} &rarr; {sel.col.label} in every dataset
+                </a>
+              </div>
+            )}
             {selCell?.k !== undefined && sel.col.key.startsWith("col:") && (
               <CollatedCellDetail
                 group={sel.col.section}
