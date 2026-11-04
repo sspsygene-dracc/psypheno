@@ -57,10 +57,17 @@ def _substitute_ensgs(value: object, symbol_map: dict[str, str]) -> object:
     return _ENSG_PATTERN.sub(lambda m: symbol_map.get(m.group(1), m.group(0)), value)
 
 
+# Dataset-tag columns (dataset_tags.py). Selected only when present so exports
+# of a hand-built / older data_tables schema keep working.
+_TAG_COLUMNS = ("model_system", "anatomy", "anatomy_column", "stage", "stage_detail")
+
+
 def _list_data_tables(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     conn.row_factory = sqlite3.Row
+    present = {r[1] for r in conn.execute("PRAGMA table_info(data_tables)")}
+    tag_select = "".join(f", {c}" for c in _TAG_COLUMNS if c in present)
     rows = conn.execute(
-        """SELECT table_name, short_label, medium_label, long_label, description,
+        f"""SELECT table_name, short_label, medium_label, long_label, description,
                   gene_columns, gene_species, display_columns, scalar_columns,
                   link_tables, links, categories, source, assay, condition,
                   field_labels, organism, organism_key,
@@ -70,7 +77,7 @@ def _list_data_tables(conn: sqlite3.Connection) -> list[sqlite3.Row]:
                   publication_journal, publication_doi, publication_pmid,
                   publication_sspsygene_grants,
                   pvalue_column, fdr_column, effect_column,
-                  preprocessing
+                  preprocessing{tag_select}
            FROM data_tables
            ORDER BY table_name"""
     ).fetchall()
@@ -198,6 +205,13 @@ def _table_metadata_dict(table_row: sqlite3.Row) -> dict[str, object]:
         "fdr_column": table_row["fdr_column"],
         "effect_column": table_row["effect_column"],
     }
+    keys = set(table_row.keys())
+    for col in _TAG_COLUMNS:
+        if col not in keys or table_row[col] is None:
+            continue
+        md[col] = (
+            _parse_json_list(table_row[col]) if col == "anatomy" else table_row[col]
+        )
     publication: dict[str, object] = {}
     if table_row["publication_title"]:
         publication["title"] = table_row["publication_title"]

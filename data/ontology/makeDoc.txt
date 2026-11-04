@@ -1,0 +1,25 @@
+#!/bin/zsh
+# Vendored UBERON term list for dataset `anatomy:` tags.
+#
+# Source: UBERON (Uber-anatomy ontology), https://obophenotype.github.io/uberon/
+# File:   uberon-basic.obo, fixed release 2026-10-01 (UBERON releases roughly
+#         monthly; refresh only when a dataset needs a term that is missing).
+#
+# uberon_terms.tsv is the subset the loader validates CURIEs against and the web
+# region filter uses for its is_a/part_of ancestor closure. Selection rule and
+# columns are documented at the top of build_uberon_terms.py: everything under
+# "nervous system" (UBERON:0001016) via is_a/part_of, plus a short list of
+# whole-organism / organ terms (EXTRA_TERMS), plus all their ancestors.
+#
+# To add a non-neural organ: append it to EXTRA_TERMS and re-run. Never
+# hand-edit uberon_terms.tsv.
+
+set -euo pipefail
+cd "$(dirname "$0")"
+
+tmp=$(mktemp -d)
+curl -sSL -o "$tmp/uberon-basic.obo" \
+    http://purl.obolibrary.org/obo/uberon/releases/2026-10-01/uberon-basic.obo
+python3 -I build_uberon_terms.py "$tmp/uberon-basic.obo" uberon_terms.tsv
+rm -rf "$tmp"
+# -> wrote 3462 terms to uberon_terms.tsv (uberon/releases/2026-10-01/uberon-basic.owl)

@@ -8,6 +8,7 @@ from typing import Any, Literal, cast
 
 import pandas as pd
 
+from processing.dataset_tags import DatasetTags, resolve_table_tags
 from processing.overview_phenotypes import PHENOTYPE_TERMS
 from processing.types.data_load_result import DataLoadResult
 from processing.types.gene_mapping import GeneMapping
@@ -109,6 +110,16 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         # get the unknown-key warning below rather than a silently ignored flag.
         "_deploy_to",
         "_dataset",
+        # Dataset tags (dataset_tags.py): per-table overrides of the dataset's
+        # model_system / anatomy / stage / stage_detail, plus anatomy_column.
+        "model_system",
+        "anatomy",
+        "stage",
+        "stage_detail",
+        "anatomy_column",
+        # Internal: the dataset-level tags, validated and stamped in by
+        # TablesConfig.from_yaml_root.
+        "_dataset_tags",
     }
 )
 
@@ -116,7 +127,7 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
 # Excluded from the "recognized keys" list in the unknown-key warning so we
 # don't advertise them as things to type into a config.yaml.
 _INTERNAL_TABLE_KEYS: frozenset[str] = frozenset(
-    {"_publication", "_deploy_to", "_dataset"}
+    {"_publication", "_deploy_to", "_dataset", "_dataset_tags"}
 )
 
 
@@ -527,6 +538,9 @@ class TableToProcessConfig:
     # YAML and validated there; the empty default exists only so the dataclass
     # field ordering works, and __post_init__ rejects it.
     deploy_to: frozenset[str] = frozenset()
+    # Effective dataset tags (model system / anatomy / stage): the dataset's
+    # top-level values with this table's overrides applied (dataset_tags.py).
+    tags: DatasetTags = field(default_factory=DatasetTags)
 
     # short_label is a code/link identifier: lowercase letters, digits, underscores only
     _SHORT_LABEL_RE = re.compile(r"^[a-z0-9_]+$")
@@ -721,6 +735,12 @@ class TableToProcessConfig:
         # INSTANCE_ORDER with the offending config.yaml path in the message.
         deploy_to = frozenset(json_data.get("_deploy_to") or ())
         dataset = str(json_data.get("_dataset") or "")
+        tags = resolve_table_tags(
+            json_data.get("_dataset_tags") or {},
+            json_data,
+            context=f"table {json_data.get('table', '<unknown>')}",
+            normalize_column=normalize_column_name,
+        )
         pub = PublicationInfo.from_yaml(publication)
         authors = pub.authors
         first_author = pub.first_author
@@ -915,6 +935,7 @@ class TableToProcessConfig:
             changelog=list(json_data.get("changelog", [])),
             dataset=dataset,
             deploy_to=deploy_to,
+            tags=tags,
         )
 
     def load_data_table(
@@ -956,6 +977,13 @@ class TableToProcessConfig:
         assert "id" not in data.columns, "id column already exists in data"
         # add id column:
         display_columns = get_sql_friendly_columns(data)
+        # Checked before gene resolution so a typo fails fast and cheaply.
+        anatomy_column = self.tags.anatomy_column
+        if anatomy_column and anatomy_column not in display_columns:
+            raise ValueError(
+                f"table {self.table}: anatomy_column '{anatomy_column}' "
+                f"not found in data columns: {sorted(display_columns)}"
+            )
         data["id"] = list(range(len(data)))
         if test_central_gene_ids is not None and self.gene_mappings:
             data = _filter_to_test_genes(

@@ -3,10 +3,11 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, TypedDict, List, TYPE_CHECKING
+from typing import Any, TypedDict, List, TYPE_CHECKING, cast
 
 import yaml
 
+from processing.dataset_tags import validate_tag_values
 from processing.instances import INSTANCE_ORDER, REQUIRED_DESTINATION
 
 if TYPE_CHECKING:
@@ -98,6 +99,11 @@ _KNOWN_DATASET_KEYS = frozenset(
         # Link-only datasets (#242): a paper with no data table, only links.
         "links",
         "description",
+        # Dataset tags (model system / anatomy / stage) — see dataset_tags.py.
+        "model_system",
+        "anatomy",
+        "stage",
+        "stage_detail",
     }
 )
 
@@ -236,6 +242,11 @@ class TablesConfig:
             # `tables:` list must still fail on a bad deployTo rather than pass
             # silently because the loop body never runs.
             deploy_to = _parse_deploy_to(loaded, yaml_path)
+            # Dataset-level tags, validated once per file (unknown values and
+            # CURIEs fail here naming the file); tables layer overrides on top.
+            dataset_tags = validate_tag_values(
+                cast(dict[str, Any], loaded), context=str(yaml_path)
+            )
 
             table_entries = loaded.get("tables") or []
             publication = loaded.get("publication")
@@ -261,6 +272,7 @@ class TablesConfig:
                         dataset=dataset_name,
                         deploy_to=deploy_to,
                         yaml_path=yaml_path,
+                        tags=dataset_tags,
                     )
                 )
 
@@ -274,6 +286,7 @@ class TablesConfig:
                     merged_config["_publication"] = publication
                 merged_config["_deploy_to"] = deploy_to
                 merged_config["_dataset"] = dataset_name
+                merged_config["_dataset_tags"] = dataset_tags
                 try:
                     tables.append(
                         TableToProcessConfig.from_json(

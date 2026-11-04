@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from processing.dataset_tags import DatasetTags, resolve_table_tags
 from processing.types.table_to_process_config import DatasetLink, PublicationInfo
 
 
@@ -22,6 +23,7 @@ class LinkOnlyPublication:
     publication: PublicationInfo
     links: list[DatasetLink] = field(default_factory=list)
     description: str | None = None
+    tags: DatasetTags = field(default_factory=DatasetTags)
 
     @classmethod
     def from_yaml(
@@ -31,6 +33,7 @@ class LinkOnlyPublication:
         dataset: str,
         deploy_to: list[str],
         yaml_path: Path,
+        tags: dict[str, Any] | None = None,
     ) -> "LinkOnlyPublication":
         publication = PublicationInfo.from_yaml(loaded.get("publication") or {})
         if not publication.doi:
@@ -53,4 +56,5 @@ class LinkOnlyPublication:
             publication=publication,
             links=[DatasetLink.from_yaml(entry, table_name=dataset) for entry in raw_links],
             description=description.strip() if description else None,
+            tags=resolve_table_tags(tags or {}, {}, context=str(yaml_path)),
         )

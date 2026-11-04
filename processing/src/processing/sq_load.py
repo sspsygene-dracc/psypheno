@@ -23,6 +23,7 @@ from processing.overview_matrix import (
     materialize_overview_matrix,
     resolve_panel_gene_ids,
 )
+from processing.dataset_tags import DatasetTags
 from processing.instances import INSTANCE_ORDER
 from processing.sql_utils import sanitize_identifier
 from processing.types.link_only_publication import LinkOnlyPublication
@@ -279,6 +280,21 @@ def _load_preprocessing_for_table(in_path: Path) -> dict[str, object] | None:
     }
 
 
+def _tag_columns(tags: DatasetTags) -> tuple[Any, ...]:
+    """(model_system, anatomy, anatomy_closure, stage, stage_detail) DB values.
+
+    `anatomy` is a JSON list of {id, label} in config order (chips);
+    `anatomy_closure` a JSON list of the tagged ids plus all their is_a/part_of
+    ancestors (the region filter matches a term iff it is in the closure)."""
+    return (
+        tags.model_system,
+        json.dumps(tags.anatomy_terms()) if tags.anatomy else None,
+        json.dumps(tags.anatomy_closure()) if tags.anatomy else None,
+        tags.stage,
+        tags.stage_detail,
+    )
+
+
 def load_data_tables(
     conn: sqlite3.Connection,
     table_configs: list[TableToProcessConfig],
@@ -338,7 +354,15 @@ def load_data_tables(
         evidence_source TEXT,
         overview_matrix_phenotype_terms TEXT,
         overview_matrix_condition_columns TEXT,
-        preprocessing TEXT)"""
+        preprocessing TEXT,
+        -- Dataset tags (dataset_tags.py), effective per table (table-level
+        -- keys override the dataset's). anatomy / anatomy_closure are JSON.
+        model_system TEXT,
+        anatomy TEXT,
+        anatomy_closure TEXT,
+        anatomy_column TEXT,
+        stage TEXT,
+        stage_detail TEXT)"""
     )
     log = get_sspsygene_logger()
     loaded: list[str] = []
@@ -513,6 +537,19 @@ def load_data_tables(
             "preprocessing": json.dumps(preprocessing_dict)
             if preprocessing_dict
             else None,
+            **dict(
+                zip(
+                    (
+                        "model_system",
+                        "anatomy",
+                        "anatomy_closure",
+                        "stage",
+                        "stage_detail",
+                    ),
+                    _tag_columns(table_config.tags),
+                )
+            ),
+            "anatomy_column": table_config.tags.anatomy_column,
         }
         columns = ", ".join(row.keys())
         placeholders = ", ".join(f":{col}" for col in row.keys())
@@ -657,13 +694,18 @@ def load_link_only_publications(
         publication_journal TEXT,
         publication_doi TEXT NOT NULL,
         publication_pmid TEXT,
-        publication_sspsygene_grants TEXT)"""
+        publication_sspsygene_grants TEXT,
+        model_system TEXT,
+        anatomy TEXT,
+        anatomy_closure TEXT,
+        stage TEXT,
+        stage_detail TEXT)"""
     )
     for entry in link_only:
         pub = entry.publication
         cur.execute(
             "INSERT INTO link_only_publications VALUES "
-            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 entry.dataset,
                 ",".join(i for i in INSTANCE_ORDER if i in entry.deploy_to),
@@ -679,6 +721,7 @@ def load_link_only_publications(
                 pub.doi,
                 pub.pmid,
                 json.dumps(pub.sspsygene_grants) if pub.sspsygene_grants else None,
+                *_tag_columns(entry.tags),
             ),
         )
     conn.commit()
