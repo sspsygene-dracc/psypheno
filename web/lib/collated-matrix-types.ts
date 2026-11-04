@@ -103,6 +103,13 @@ export interface MatrixCell {
   n?: number;
   nUp?: number;
   nDown?: number;
+  /**
+   * Collated mode: effect signs over *every* study that measured the pair,
+   * significant or not (each study votes with its strongest test; inferred
+   * measurements have no effect size and abstain). Drives the agreement view.
+   */
+  nPosAll?: number;
+  nNegAll?: number;
 }
 
 export type InferredBasis = "screen" | "library";
@@ -172,6 +179,8 @@ export interface CollatedMatrixMeta {
    * per-section study counts add up to more than `collatedStudies.length`.
    */
   collatedStudiesInSeveralSections?: string[];
+  /** Collated mode: the overview DB carries `nPosAll` / `nNegAll`. */
+  collatedSignsAvailable?: boolean;
   /** Columns-per-dataset cap used for this response (after clamping). */
   colsPerDataset: number;
   /** Total value columns actually returned across all datasets. */

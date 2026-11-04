@@ -116,6 +116,11 @@ def create_collated_schema(conn: sqlite3.Connection) -> None:
         n_up INTEGER NOT NULL,
         n_down INTEGER NOT NULL,
         n_inferred INTEGER NOT NULL,
+        -- Effect sign over every study that measured the pair, significant or
+        -- not. A study votes with its strongest test's sign; inferred
+        -- measurements have no effect size and don't vote.
+        n_pos_all INTEGER NOT NULL DEFAULT 0,
+        n_neg_all INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (collate_group, target_gene_id, central_gene_id)) WITHOUT ROWID"""
     )
     # One row per study behind a cell, for the click-through. `inferred_basis`
@@ -373,7 +378,9 @@ def materialize_collated(
                   SUM(significant) AS k, COUNT(*) AS n,
                   SUM(significant AND effect > 0) AS n_up,
                   SUM(significant AND effect < 0) AS n_down,
-                  SUM(inferred_basis IS NOT NULL) AS n_inferred
+                  SUM(inferred_basis IS NOT NULL) AS n_inferred,
+                  COALESCE(SUM(effect > 0), 0) AS n_pos_all,
+                  COALESCE(SUM(effect < 0), 0) AS n_neg_all
              FROM temp.collate_study_pairs
             GROUP BY collate_group, target, gene"""
     )
@@ -424,9 +431,9 @@ def materialize_collated(
         conn.execute(
             """INSERT INTO overview_matrix_collated_cells
                    (collate_group, target_gene_id, central_gene_id, k, n, n_up,
-                    n_down, n_inferred)
+                    n_down, n_inferred, n_pos_all, n_neg_all)
                SELECT c.collate_group, c.target, c.gene, c.k, c.n, c.n_up,
-                      c.n_down, c.n_inferred
+                      c.n_down, c.n_inferred, c.n_pos_all, c.n_neg_all
                  FROM temp.collate_cells c
                  JOIN overview_matrix_collated_columns k
                    ON k.collate_group = c.collate_group

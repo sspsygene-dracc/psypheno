@@ -3,7 +3,13 @@ import Head from "next/head";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CollatedMatrix, { type MetricDomains } from "@/components/CollatedMatrix";
-import { INFERRED_DOT, INFERRED_FILL, SHARED_MARK } from "@/lib/matrix-canvas";
+import {
+  AGREEMENT_COLORS,
+  INFERRED_DOT,
+  INFERRED_FILL,
+  SHARED_MARK,
+  type LowerTriangleMode,
+} from "@/lib/matrix-canvas";
 import {
   legendEndpoints,
   legendGradientCss,
@@ -88,7 +94,68 @@ function TriangleKey({ points }: { points: string }) {
   );
 }
 
-function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
+const rgbCss = ([r, g, b]: [number, number, number]) => `rgb(${r}, ${g}, ${b})`;
+
+/** Legend for the agreement view's lower triangle: four swatches. */
+function AgreementLegend() {
+  const swatch = (rgb: [number, number, number], text: string) => (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <span
+        aria-hidden="true"
+        style={{
+          display: "inline-block",
+          width: 12,
+          height: 12,
+          borderRadius: 2,
+          border: "1px solid rgba(0,0,0,0.12)",
+          background: rgbCss(rgb),
+        }}
+      />
+      {text}
+    </span>
+  );
+  return (
+    <div
+      style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 12, color: "#4b5563" }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontWeight: 600,
+          color: "#374151",
+        }}
+      >
+        <TriangleKey points={LEGEND_TRIANGLES.direction_agreement} />
+        do the studies agree on direction?
+      </span>
+      <span style={{ display: "inline-flex", gap: 12, flexWrap: "wrap" }}>
+        {swatch(AGREEMENT_COLORS.strong.agree, "agree")}
+        {swatch(AGREEMENT_COLORS.strong.disagree, "disagree")}
+        <span style={{ color: "#9ca3af" }}>among 2+ significant studies</span>
+      </span>
+      <span style={{ display: "inline-flex", gap: 12, flexWrap: "wrap" }}>
+        {swatch(AGREEMENT_COLORS.pale.agree, "agree")}
+        {swatch(AGREEMENT_COLORS.pale.disagree, "disagree")}
+        <span style={{ color: "#9ca3af" }}>
+          by effect sign, counting non-significant studies
+        </span>
+      </span>
+      <span style={{ color: "#9ca3af", fontSize: 11 }}>
+        one color = fewer than two studies to compare
+      </span>
+    </div>
+  );
+}
+
+function MetricLegend({
+  data,
+  lowerMode = "direction",
+}: {
+  data: CollatedMatrixResponse;
+  lowerMode?: LowerTriangleMode;
+}) {
   const metrics = data.meta.metrics;
   const showInferred = useMemo(() => hasInferredCells(data), [data]);
   const showShared = useMemo(() => hasSharedCells(data), [data]);
@@ -104,6 +171,9 @@ function MetricLegend({ data }: { data: CollatedMatrixResponse }) {
       }}
     >
       {metrics.map((m) => {
+        if (m.id === "direction_agreement" && lowerMode === "agreement") {
+          return <AgreementLegend key={m.id} />;
+        }
         const scale = scaleFor(m.id);
         const [lo, hi] = legendEndpoints(m.id, m.domain);
         return (
@@ -367,7 +437,15 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             <em>k</em>. For a gene column a study&rsquo;s direction is the effect
             sign at its most significant test; for a phenotype column, a study
             with significant measures in both directions counts as having no
-            single direction and adds to neither side. Cells measured by a single
+            single direction and adds to neither side.{" "}The <strong>Lower triangle:
+            Agreement</strong>{" "}switch recolors that triangle by concordance
+            instead: purple where studies agree on direction, orange where they
+            disagree &mdash; strong when two or more significant studies are
+            compared, pale when the comparison relies on effect signs that
+            include non-significant studies (each study votes with its strongest
+            test; inferred measurements have no effect size and don&rsquo;t
+            vote). A tile stays one color when fewer than two studies can be
+            compared. Cells measured by a single
             study are faded, since 1 of 1 is not convergence. Studies that
             publish only their hits contribute their inferred
             tested-but-not-significant pairs to <em>n</em>{" "}(below). Phenotype
@@ -431,6 +509,8 @@ export default function MatrixPage() {
   const [mode, setMode] = useState<MatrixMode>("expanded");
   const [colsPerDataset, setColsPerDataset] = useState(25);
   const [readouts, setReadouts] = useState(100);
+  // By-readout view: lower triangle shows direction (default) or agreement.
+  const [lowerMode, setLowerMode] = useState<LowerTriangleMode>("direction");
   // The per-study views remember which one was last shown, so toggling the
   // collated view off returns to it.
   const [lastStudyMode, setLastStudyMode] = useState<MatrixMode>("expanded");
@@ -683,6 +763,26 @@ export default function MatrixPage() {
                     {k}
                   </ToggleButton>
                 ))}
+                <span
+                  style={{ fontSize: 13, color: "#374151", fontWeight: 600, marginLeft: 12 }}
+                >
+                  Lower triangle:
+                </span>
+                <ToggleButton
+                  active={lowerMode === "direction"}
+                  disabled={loading}
+                  onClick={() => setLowerMode("direction")}
+                >
+                  Direction
+                </ToggleButton>
+                <ToggleButton
+                  active={lowerMode === "agreement"}
+                  /* Overview DBs built before the all-study sign counts. */
+                  disabled={loading || (data != null && !data.meta.collatedSignsAvailable)}
+                  onClick={() => setLowerMode("agreement")}
+                >
+                  Agreement
+                </ToggleButton>
               </>
             ) : (
               <>
@@ -773,7 +873,9 @@ export default function MatrixPage() {
                   &mdash; click any cell for its value
                 </span>
               </div>
-              {data && <MetricLegend data={data} />}
+              {data && (
+                <MetricLegend data={data} lowerMode={mode === "collated" ? lowerMode : "direction"} />
+              )}
               <CollatedMatrix
                 sections={sections}
                 columns={orderedColumns}
@@ -781,6 +883,7 @@ export default function MatrixPage() {
                 metricDomains={metricDomains}
                 bandsVisible={mode === "summary" ? false : !clusterCols}
                 summary={mode === "summary"}
+                lowerMode={mode === "collated" ? lowerMode : "direction"}
                 onToggleHide={toggleHide}
               />
             </div>

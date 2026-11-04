@@ -14,7 +14,7 @@
  *    offset. Cost ≈ visible cells, independent of how large the matrix is.
  */
 
-import type { MatrixColumn, MatrixGeneRow } from "@/lib/collated-matrix-types";
+import type { MatrixCell, MatrixColumn, MatrixGeneRow } from "@/lib/collated-matrix-types";
 import { scaleColorRGB } from "@/lib/matrix-color-scales";
 
 // Cell geometry (shared with CollatedMatrix so the DOM header/labels line up
@@ -68,6 +68,51 @@ const NO_DIRECTION: [number, number, number] = [226, 228, 232];
 
 export type MetricDomains = Record<string, [number, number] | null>;
 
+/** What a collated cell's lower-right triangle shows. */
+export type LowerTriangleMode = "direction" | "agreement";
+
+export type Agreement = "agree" | "disagree";
+export type AgreementStrength = "strong" | "pale";
+
+/**
+ * Agreement view colors (purple = agree, orange = disagree; a colorblind-safe
+ * pair that doesn't reuse the direction view's blue/red). Strong = among the
+ * significant studies; pale = by effect sign over every measuring study.
+ */
+export const AGREEMENT_COLORS: Record<
+  AgreementStrength,
+  Record<Agreement, [number, number, number]>
+> = {
+  strong: { agree: [94, 60, 153], disagree: [230, 97, 1] },
+  pale: { agree: [203, 192, 226], disagree: [253, 196, 140] },
+};
+
+/**
+ * Do the studies behind a collated cell agree on direction?
+ *
+ * - Strong: two or more significant studies. They agree when all of them went
+ *   the same way; a significant study with no single direction counts as
+ *   disagreement.
+ * - Pale: otherwise, when two or more studies carry an effect sign
+ *   (significant or not). They agree when the signs are all the same.
+ * - null: fewer than two studies to compare.
+ */
+export function cellAgreement(
+  cell: MatrixCell
+): { agreement: Agreement; strength: AgreementStrength } | null {
+  const k = cell.k ?? 0;
+  if (k >= 2) {
+    const agree = cell.nUp === k || cell.nDown === k;
+    return { agreement: agree ? "agree" : "disagree", strength: "strong" };
+  }
+  const pos = cell.nPosAll ?? 0;
+  const neg = cell.nNegAll ?? 0;
+  if (pos + neg >= 2) {
+    return { agreement: pos > 0 && neg > 0 ? "disagree" : "agree", strength: "pale" };
+  }
+  return null;
+}
+
 export interface ColorGrid {
   nRows: number;
   nCols: number;
@@ -83,7 +128,8 @@ export interface ColorGrid {
 export function buildColorGrid(
   genes: MatrixGeneRow[],
   columns: MatrixColumn[],
-  metricDomains: MetricDomains
+  metricDomains: MetricDomains,
+  lowerMode: LowerTriangleMode = "direction"
 ): ColorGrid {
   const nRows = genes.length;
   const nCols = columns.length;
@@ -113,7 +159,11 @@ export function buildColorGrid(
         // direction, so the tile stays one color.
         let upper = scaleColorRGB(col.metric, cell.value, metricDomains[col.metric]);
         let lower: [number, number, number] = upper;
-        if (cell.k > 0) {
+        if (lowerMode === "agreement") {
+          // Fewer than two studies to compare → one-colored tile.
+          const a = cellAgreement(cell);
+          if (a) lower = AGREEMENT_COLORS[a.strength][a.agreement];
+        } else if (cell.k > 0) {
           const signed = (cell.nUp ?? 0) + (cell.nDown ?? 0);
           lower =
             signed > 0

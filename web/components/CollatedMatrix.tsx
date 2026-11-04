@@ -12,11 +12,13 @@ import {
 import { scaleFor } from "@/lib/matrix-color-scales";
 import {
   buildColorGrid,
+  cellAgreement,
   cellAt,
   drawCells,
   COL_W,
   ROW_H,
   SUMMARY_COL_W,
+  type LowerTriangleMode,
   type MetricDomains,
 } from "@/lib/matrix-canvas";
 
@@ -195,7 +197,7 @@ function inferredValueText(cell: MatrixCell): string {
 }
 
 /** Popover headline for a collated (by-readout) cell. */
-function collatedValueText(cell: MatrixCell): string {
+function collatedValueText(cell: MatrixCell, lowerMode: LowerTriangleMode): string {
   const k = cell.k ?? 0;
   const n = cell.n ?? 0;
   let text = `${k} of ${n} ${n === 1 ? "study" : "studies"} significant (FDR < 0.05)`;
@@ -210,7 +212,26 @@ function collatedValueText(cell: MatrixCell): string {
   if (cell.nInferred) {
     text += ` · ${cell.nInferred} measurement${cell.nInferred === 1 ? "" : "s"} inferred`;
   }
+  if (lowerMode === "agreement") text += ` · ${agreementText(cell)}`;
   return text;
+}
+
+/** The agreement view's reading of a cell, for the popover. */
+function agreementText(cell: MatrixCell): string {
+  const a = cellAgreement(cell);
+  const pos = cell.nPosAll ?? 0;
+  const neg = cell.nNegAll ?? 0;
+  const signs =
+    cell.nPosAll === undefined
+      ? ""
+      : ` (effect signs over all studies: ${pos} up, ${neg} down` +
+        (cell.nInferred ? "; inferred measurements have no effect size" : "") +
+        ")";
+  if (!a) return `fewer than two studies to compare${signs}`;
+  if (a.strength === "strong") {
+    return `significant studies ${a.agreement === "agree" ? "agree" : "disagree"} on direction${signs}`;
+  }
+  return `studies ${a.agreement === "agree" ? "agree" : "disagree"} on effect sign, counting non-significant ones${signs}`;
 }
 
 function fmtStat(v: number | null): string {
@@ -284,10 +305,17 @@ function CollatedCellDetail({
           <span style={{ color: "#6b7280" }}>
             {r.inferredBasis
               ? r.inferredBasis === "library"
-                ? "not reported; on the perturbation list, assumed tested"
-                : "not reported; inferred tested, not significant"
+                ? "not reported; on the perturbation list, assumed tested; no effect size, so no vote on direction"
+                : "not reported; inferred tested, not significant; no effect size, so no vote on direction"
               : `best FDR ${fmtStat(r.minFdr)}` +
-                (r.effect !== null ? ` · effect ${r.effect > 0 ? "+" : ""}${r.effect.toFixed(2)}` : "") +
+                (r.effect
+                  ? ` · effect ${r.effect > 0 ? "+" : ""}${r.effect.toFixed(2)} (${r.effect > 0 ? "up" : "down"})`
+                  : // A significant pooled-phenotype study without an effect has
+                    // significant measures both ways; elsewhere there is no
+                    // effect column to take a sign from.
+                    r.significant && group === "phenotype"
+                    ? " · no single direction"
+                    : " · no effect size, so no vote on direction") +
                 ` · ${r.nTests} test${r.nTests === 1 ? "" : "s"}`}
           </span>
         </li>
@@ -499,6 +527,7 @@ export default function CollatedMatrix({
   bandsVisible,
   onToggleHide,
   summary = false,
+  lowerMode = "direction",
   panelHeight = DEFAULT_PANEL_H,
 }: {
   sections: MatrixSection[];
@@ -516,6 +545,8 @@ export default function CollatedMatrix({
    * a single column has no room for its own heading.
    */
   summary?: boolean;
+  /** By-readout view: what the lower-right triangle of each cell shows. */
+  lowerMode?: LowerTriangleMode;
   /**
    * Fixed panel height. Both the vertical and horizontal scrollbars live inside
    * this panel and the header stays pinned; the surrounding page doesn't scroll
@@ -616,8 +647,8 @@ export default function CollatedMatrix({
   // Every cell's color, precomputed once per data/order change (packed RGB +
   // present-mask). Scrolling never recomputes a color.
   const colorGrid = useMemo(
-    () => buildColorGrid(genes, columns, metricDomains),
-    [genes, columns, metricDomains]
+    () => buildColorGrid(genes, columns, metricDomains, lowerMode),
+    [genes, columns, metricDomains, lowerMode]
   );
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -953,7 +984,7 @@ export default function CollatedMatrix({
       ? summary
         ? summaryValueText(sel.col, selCell)
         : selCell.k !== undefined
-          ? collatedValueText(selCell)
+          ? collatedValueText(selCell, lowerMode)
         : selCell.inferred !== undefined
           ? inferredValueText(selCell)
           : fmtValue(sel.col.metric, selCell.value) +
