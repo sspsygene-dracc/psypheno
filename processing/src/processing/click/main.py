@@ -619,7 +619,7 @@ def run_llm_search(
     default=False,
     help="Run scripts/test.sh all on each selected site after build/load-db "
     "and (if --restart is set) restart, so the e2e tests hit the freshly "
-    "deployed code. Includes slow tests (data-correspondence) and playwright "
+    "deployed code. Includes the built-DB sanity check and playwright "
     "e2e against the deployed URL. Hard-aborts on first failure.",
 )
 @click.option(

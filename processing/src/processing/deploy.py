@@ -852,7 +852,7 @@ def _step_run_tests_site(
     its browsers. Aborts on first failure (raises DeployError)."""
     click.echo(f"\n  --- {label} tests ({path}) ---")
 
-    # 1. Server-side suites on psygene (python + web-tsc + web-unit + data-corr).
+    # 1. Server-side suites on psygene (python + web-tsc + web-unit + db).
     test_env = {
         **env_vars,
         "SSPSYGENE_TEST_HOMOLOGY_DIR": f"{path}/data/homology",
@@ -873,7 +873,7 @@ def _step_run_tests_site(
     _run_ssh(
         PSYGENE,
         cmd,
-        desc="Running scripts/test.sh server (python + web + data-corr)",
+        desc="Running scripts/test.sh server (python + web + db)",
         timeout=TEST_TIMEOUT,
         stream=True,
     )

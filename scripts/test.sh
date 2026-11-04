@@ -2,7 +2,7 @@
 # Single entry point for SSPsyGene's local test suites. Run before pushing.
 #
 #   scripts/test.sh             fast suites (pytest unit + tsc + vitest)
-#   scripts/test.sh all         everything, including e2e and data-corr
+#   scripts/test.sh all         everything, including e2e and db
 #   scripts/test.sh server      everything except e2e (deploy uses this on
 #                               psygene, where playwright browsers aren't
 #                               installed)
@@ -10,7 +10,7 @@
 #   scripts/test.sh web         tsc + vitest
 #   scripts/test.sh e2e         playwright (requires a dev server on :3000,
 #                               or set $E2E_BASE_URL)
-#   scripts/test.sh data-corr   data-correspondence (requires the built DB)
+#   scripts/test.sh db          quick sanity check of the built DB
 #
 # Fails fast: stops at the first failing suite and prints the one-liner to
 # re-run just that suite. There is deliberately no CI — see
@@ -45,9 +45,9 @@ export PYTHONPATH="$REPO_ROOT/processing/src${PYTHONPATH:+:$PYTHONPATH}"
 # ---- Suite definitions ------------------------------------------------------
 
 run_python_unit() {
-  echo ">>> python unit (pytest, excluding data_correspondence)"
+  echo ">>> python unit (pytest, excluding built_db)"
   "$PYTEST" "$REPO_ROOT/processing/tests" \
-    --ignore="$REPO_ROOT/processing/tests/data_correspondence" \
+    --ignore="$REPO_ROOT/processing/tests/built_db" \
     -q
 }
 
@@ -92,9 +92,9 @@ EOF
   ( cd "$REPO_ROOT/web" && npm run test:e2e --silent )
 }
 
-run_data_corr() {
-  echo ">>> data-correspondence (pytest)"
-  # Match the helpers' resolution order: SSPSYGENE_DATA_DB beats
+run_db() {
+  echo ">>> built DB sanity check (pytest)"
+  # Same resolution order as the test: SSPSYGENE_DATA_DB beats
   # SSPSYGENE_DATA_DIR, both beat the repo-local default.
   local db
   if [[ -n "${SSPSYGENE_DATA_DB:-}" ]]; then
@@ -104,7 +104,7 @@ run_data_corr() {
   fi
   if [[ ! -e "$db" ]]; then
     cat >&2 <<EOF
-data-correspondence suite needs a built SQLite DB.
+db suite needs a built SQLite DB.
 
 Looked for: $db
 
@@ -112,16 +112,11 @@ Build it (or point SSPSYGENE_DATA_DB at an existing one):
 
     sspsygene load-db
 
-then re-run:  scripts/test.sh data-corr
+then re-run:  scripts/test.sh db
 EOF
     return 1
   fi
-  # `-m ""` overrides the project default (`-m 'not slow'` in
-  # processing/pyproject.toml) — the data_correspondence suite's two
-  # heaviest files (test_meta_analysis_correspondence,
-  # test_value_correspondence) are marked `slow` and would otherwise be
-  # silently deselected here.
-  "$PYTEST" "$REPO_ROOT/processing/tests/data_correspondence" -q -m ""
+  SSPSYGENE_DATA_DB="$db" "$PYTEST" "$REPO_ROOT/processing/tests/built_db" -q
 }
 
 # ---- Dispatch ---------------------------------------------------------------
@@ -135,7 +130,6 @@ rerun_for() {
     web-tsc)   echo "(cd web && npx tsc --noEmit)" ;;
     web-unit)  echo "(cd web && npm run test:run)" ;;
     e2e)       echo "scripts/test.sh e2e" ;;
-    data-corr) echo "scripts/test.sh data-corr" ;;
     *)         echo "scripts/test.sh $1" ;;
   esac
 }
@@ -161,7 +155,7 @@ case "$target" in
     run_suite web-tsc   run_web_tsc
     run_suite web-unit  run_web_unit
     run_suite e2e       run_e2e
-    run_suite data-corr run_data_corr
+    run_suite db        run_db
     ;;
   server)
     # Everything that doesn't need a browser. Used by `sspsygene deploy
@@ -170,7 +164,7 @@ case "$target" in
     run_suite python    run_python_unit
     run_suite web-tsc   run_web_tsc
     run_suite web-unit  run_web_unit
-    run_suite data-corr run_data_corr
+    run_suite db        run_db
     ;;
   python)
     run_suite python run_python_unit
@@ -182,8 +176,8 @@ case "$target" in
   e2e)
     run_suite e2e run_e2e
     ;;
-  data-corr)
-    run_suite data-corr run_data_corr
+  db)
+    run_suite db run_db
     ;;
   -h|--help|help)
     sed -n '2,13p' "$0"
@@ -191,7 +185,7 @@ case "$target" in
     ;;
   *)
     echo "unknown suite: $target" >&2
-    echo "usage: scripts/test.sh [fast|all|server|python|web|e2e|data-corr]" >&2
+    echo "usage: scripts/test.sh [fast|all|server|python|web|e2e|db]" >&2
     exit 2
     ;;
 esac

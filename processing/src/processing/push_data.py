@@ -11,7 +11,7 @@ data/datasets/<name>/ …``:
 - **Only the gitignored payloads travel.** The file list comes from
   ``git ls-files --others --ignored --exclude-standard`` run inside the dataset
   dir, so tracked files (``config.yaml``, ``preprocess.py``, ``makeDoc.txt``,
-  ``expected_drops.yaml``, ``.gitignore``) are *never* pushed — they reach the
+  ``.gitignore``) are *never* pushed — they reach the
   server through ``git pull``. The old ``-av`` copied everything, dirtying the
   server's git tree and breaking the next ``git pull`` (§1.2a).
 - **Group-write is preserved.** The remote dataset dir is created (if missing)

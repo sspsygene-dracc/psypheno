@@ -965,14 +965,15 @@ The repo has a single test entry point:
 ```bash
 cd ~/code/psypheno
 scripts/test.sh             # fast suites — always safe to run
-scripts/test.sh data-corr   # data-correspondence — needs a built DB
+scripts/test.sh db          # quick check of the built DB
 ```
 
 You don't need to run tests as part of every dataset commit — most of
 the suite is about the loader and the website, not your dataset config.
 But if you've changed `preprocess.py` for an existing dataset, or
 modified anything under `processing/src/processing/preprocessing/`,
-running `scripts/test.sh data-corr` is a good idea before you commit.
+rebuilding the DB and running `scripts/test.sh db` is a good idea
+before you commit.
 
 Full reference: `docs/development.md` → "Testing".
 

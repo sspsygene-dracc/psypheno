@@ -1,7 +1,0 @@
-tables:
-  perturb_fish_astro:
-    raw_file: perturbfish-astro.csv
-    pipeline_used: false
-    expected_drops: []
-    raw_rows: 35733
-    db_rows: 35733

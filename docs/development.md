@@ -159,11 +159,11 @@ There is no CI. The contract is `scripts/test.sh` — run it before you push.
 
 ```bash
 scripts/test.sh             # fast suites (default) — always safe to run
-scripts/test.sh all         # everything, including e2e and data-corr
+scripts/test.sh all         # everything, including e2e and db
 scripts/test.sh python      # pytest unit only
 scripts/test.sh web         # tsc --noEmit + vitest
 scripts/test.sh e2e         # playwright (needs a dev server on :3000)
-scripts/test.sh data-corr   # data-correspondence (needs the built DB)
+scripts/test.sh db          # quick sanity check of the built DB
 ```
 
 The script fails fast: it stops at the first failing suite and prints the
@@ -173,18 +173,18 @@ exact one-liner to re-run just that suite.
 
 | Suite       | What runs                                              | Time    | Prereqs |
 |-------------|--------------------------------------------------------|---------|---------|
-| `python`    | `pytest processing/tests` (excl. `data_correspondence`) | ~10–20s | `data/homology/` payload (or `$SSPSYGENE_TEST_HOMOLOGY_DIR`) |
+| `python`    | `pytest processing/tests` (excl. `built_db`)           | ~10–20s | `data/homology/` payload (or `$SSPSYGENE_TEST_HOMOLOGY_DIR`) |
 | `web`       | `tsc --noEmit` + `vitest run`                          | ~10s    | `web/node_modules/` (run `npm install` once) |
 | `e2e`       | `playwright test` (against `:3000`, or `$E2E_BASE_URL`) | ~30s   | dev server on `:3000` (`cd web && npm run dev`), or set `E2E_BASE_URL=https://...` to drive a deployed instance |
-| `data-corr` | `pytest processing/tests/data_correspondence`          | ~5s     | `data/db/sspsygene.db` (`sspsygene load-db`) |
+| `db`        | `pytest processing/tests/built_db` — every dataset table and link table exists and is non-empty, `central_gene` is non-empty | ~1s | `data/db/sspsygene.db` (`sspsygene load-db`), or `$SSPSYGENE_DATA_DB` |
 | `fast`      | `python` + `web`                                       | ~30s    | union of above |
-| `server`    | everything except `e2e` (`python` + `web` + `data-corr`) | ~30s  | built DB. Used by `sspsygene deploy --run-tests` on psygene, where playwright browsers aren't installed. |
+| `server`    | everything except `e2e` (`python` + `web` + `db`)      | ~30s    | built DB. Used by `sspsygene deploy --run-tests` on psygene, where playwright browsers aren't installed. |
 | `all`       | everything                                             | ~50s    | dev server + built DB |
 
 The `e2e` suite deliberately does **not** spawn its own dev server — it
 probes `localhost:3000` and refuses with a clear message if nothing
 answers, so it doesn't fight whatever you have running. Same idea for
-`data-corr`: it refuses if the SQLite file is missing rather than letting
+`db`: it refuses if the SQLite file is missing rather than letting
 pytest crash deep inside a fixture.
 
 ### When to run what
@@ -195,10 +195,8 @@ pytest crash deep inside a fixture.
   type checks and unit tests don't catch render or routing regressions.
 - **Before merging dataset-preprocessing changes** (anything under
   `data/datasets/*/preprocess.py`, `processing/src/processing/preprocessing/`,
-  or the `load-db` pipeline that affects loaded values): also
-  `scripts/test.sh data-corr`. Useful as an occasional periodic check
-  even when you didn't touch preprocessing — drift in upstream data can
-  break it.
+  or the `load-db` pipeline): rebuild the DB, then `scripts/test.sh db`
+  to confirm no table came out empty.
 - **Before deploys:** `scripts/test.sh all`.
 
 ### Why there's no CI
@@ -405,7 +403,7 @@ Commands:
                                          restart (if requested), then run
                                          `scripts/test.sh server` on psygene
                                          (python + web-tsc + web-unit +
-                                         data-corr) followed by
+                                         db) followed by
                                          `scripts/test.sh e2e` LOCALLY against
                                          that site's URL. Hard-aborts on the
                                          first failure.
