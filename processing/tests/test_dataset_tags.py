@@ -148,8 +148,8 @@ def test_unknown_table_level_values_fail(tmp_path: Path) -> None:
         )
 
 
-def test_unknown_values_fail_even_with_switch_off() -> None:
-    assert dataset_tags.REQUIRE_DATASET_TAGS is False
+def test_unknown_values_fail_even_with_switch_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(dataset_tags, "REQUIRE_DATASET_TAGS", False)
     with pytest.raises(ValueError):
         dataset_tags.validate_tag_values({"model_system": "zoo"}, context="x")
 
@@ -158,8 +158,9 @@ def test_unknown_values_fail_even_with_switch_off() -> None:
 
 
 def test_missing_tags_warn_while_switch_is_off(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setattr(dataset_tags, "REQUIRE_DATASET_TAGS", False)
     with caplog.at_level(logging.WARNING):
         cfg = _load(tmp_path)
     assert cfg.tables[0].tags == DatasetTags()

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # only logged as a warning. Flip to True once every config.yaml carries tags;
 # from then on both are hard errors. Unknown values and unknown CURIEs are
 # errors regardless of this switch.
-REQUIRE_DATASET_TAGS = False
+REQUIRE_DATASET_TAGS = True
 
 MODEL_SYSTEMS: tuple[str, ...] = (
     "in_vivo",

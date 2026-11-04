@@ -200,3 +200,13 @@ def mini_fixture(
         yield mini_data_root
     finally:
         _reset_module_caches()
+
+
+@pytest.fixture(autouse=True)
+def _dataset_tags_optional_in_fixtures(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Real configs must carry dataset tags (dataset_tags.REQUIRE_DATASET_TAGS),
+    but most tests build minimal configs without them. Tests of the
+    requirement itself switch it back on (test_dataset_tags.py)."""
+    from processing import dataset_tags
+
+    monkeypatch.setattr(dataset_tags, "REQUIRE_DATASET_TAGS", False)
