@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DatasetItem, { type Dataset } from "@/components/DatasetItem";
 import DestinationBadge from "@/components/DestinationBadge";
+import DatasetTagChips from "@/components/DatasetTagChips";
 import InfoTooltip from "@/components/InfoTooltip";
 import { formatAuthors } from "@/lib/format-authors";
 import { useFitToViewport } from "@/lib/use-fit-to-viewport";
@@ -624,6 +625,8 @@ function PublicationCard({
 
       {(pub.organisms.length > 0 ||
         pub.sspsygeneGrants.length > 0 ||
+        pub.modelSystems.length > 0 ||
+        pub.anatomy.length > 0 ||
         pub.tables.length === 0) && (
         <div
           style={{
@@ -677,6 +680,10 @@ function PublicationCard({
               {o}
             </span>
           ))}
+          <DatasetTagChips
+            tags={{ modelSystems: pub.modelSystems, anatomy: pub.anatomy }}
+            maxRegions={6}
+          />
         </div>
       )}
 
@@ -999,6 +1006,7 @@ function CollapsibleDatasetCard({
                 <span>{assays.map((a) => assayTypeLabels[a] ?? a).join(", ")}</span>
               )}
               <span>{colCount} columns</span>
+              <DatasetTagChips tags={ds} compact />
             </span>
           </span>
         </button>

@@ -265,6 +265,16 @@ deployTo:
                                     # dataset may list both, either, or neither.
 
 # ============================================================================
+# Dataset tags — what biological system the data come from
+# (see "Dataset tags" below for the allowed values)
+# ============================================================================
+model_system: ineurons              # exactly one value
+anatomy:                            # UBERON ids; omit only for `curated`
+  - UBERON:0000955                  #   brain
+stage: in_vitro                     # optional
+stage_detail: "NGN2 day 28"         # optional short free text
+
+# ============================================================================
 # Tables — this is where the actual data is defined
 # One dataset can have multiple tables (e.g. different experiments from
 # the same paper). Each table becomes a separate entry on the website.
@@ -1109,6 +1119,69 @@ Rules, and why they are the way they are:
 If you are not sure whether data is cleared for public release, ship it as
 `deployTo: [dev]` (or `[dev, int]`) and add `prod` in a follow-up commit once
 it is. Widening is a one-line change; un-publishing is not.
+
+### Dataset tags: model system, anatomy, stage
+
+Tags describe the biological system the data come from. They show as chips on
+/full-datasets and /publications and drive the species / model system / region
+filters on /full-datasets. Put them at the **top level, directly after the
+`deployTo:` block**:
+
+```yaml
+deployTo:
+  - dev
+model_system: ineurons            # required, exactly one value (list below)
+anatomy:                          # UBERON CURIEs; required unless model_system: curated
+  - UBERON:0000955                # brain
+stage: in_vitro                   # optional, one value (list below)
+stage_detail: "NGN2 induction, day 28"   # optional short free text
+```
+
+**`model_system`** (exactly one):
+
+| Value | Use for |
+| --- | --- |
+| `in_vivo` | tissue from a living animal (mouse in vivo Perturb-seq, zebrafish larvae) |
+| `postmortem` | human postmortem tissue |
+| `organoid` | brain organoids / assembloids |
+| `primary_culture` | primary cells cultured from tissue (e.g. fetal cortical radial glia) |
+| `ineurons` | iPSC/ESC-derived or directly induced **neurons** — NGN2 iNeurons, iPSC-derived glutamatergic / GABAergic neurons. Prefer this for any stem-cell-derived neuronal culture. |
+| `ipsc_other` | other stem-cell-derived 2D cultures that are not neurons (iPSC astrocytes, NPCs) |
+| `cell_line` | immortalized lines (HEK293T, ...) |
+| `curated` | non-experimental resources: databases, human genetics / association studies, curated gene lists (ClinVar, SFARI, MGI, ...) |
+
+**`anatomy`** — a list of UBERON ids. Choose the most specific term the source
+supports, but no more specific than it says. Organoids and stem-cell-derived
+cells get their *intended regional identity* (cortical organoid →
+`UBERON:0000956` cerebral cortex or `UBERON:0001950` neocortex; NGN2 iNeurons
+with no regional identity → `UBERON:0000955` brain). Whole brain →
+`UBERON:0000955`; whole larva → `UBERON:0000468` multicellular organism;
+HEK293T → `UBERON:0002113` kidney. Curated datasets omit `anatomy`. Look ids up
+in [`data/ontology/uberon_terms.tsv`](../data/ontology/uberon_terms.tsv) (or
+EBI OLS) — never guess one. Note `UBERON:0001851` "cortex" is the generic organ
+cortex (kidney, adrenal, ...), *not* the cerebral cortex. The region filter
+matches subregions automatically: picking "cerebral cortex" also finds datasets
+tagged neocortex or a Brodmann area.
+
+**`stage`** (optional): `embryonic`, `fetal`, `postnatal`, `adult`, `larval`,
+`in_vitro`. For cell culture / organoids use `in_vitro` and give the age in
+`stage_detail` ("organoid day 60", "NGN2 day 28"). `stage_detail` is short
+free text (E14.5, P28, 5–7 dpf, "GW 17–20"). Omit both if the source doesn't
+say, or the dataset is curated.
+
+**Per-table overrides.** Any of the four keys can also go inside a `- table:`
+entry when one table differs; per key, the table value replaces the dataset
+value. One key is table-only: **`anatomy_column`** names the column whose rows
+say which region they come from (e.g. a per-Brodmann-area table); the table's
+`anatomy` then lists the union of regions the column covers.
+
+**Validation.** An unknown `model_system` / `stage` value, or an `anatomy` id
+not in the vendored UBERON list, fails `load-db` naming your file. An
+`anatomy_column` that isn't a column of the table fails too. A missing
+`model_system`, or missing `anatomy` on a non-curated dataset, is currently a
+warning and will become an error. If a real UBERON term is missing from the
+vendored list, ask a developer to add it (`data/ontology/makeDoc.txt`) rather
+than editing the TSV by hand.
 
 ---
 

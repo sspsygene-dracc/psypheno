@@ -4,6 +4,7 @@ import InfoTooltip from "@/components/InfoTooltip";
 import DatasetLinkAnchor from "@/components/DatasetLinkAnchor";
 import DestinationBadge from "@/components/DestinationBadge";
 import { type DatasetLink } from "@/lib/links";
+import type { DatasetTags } from "@/lib/dataset-tags";
 
 export type Dataset = {
   table_name: string;
@@ -33,7 +34,7 @@ export type Dataset = {
   // Instances this dataset's config.yaml allows it on (#225). null for a DB
   // built before #225, which renders no badge.
   destinations?: string[] | null;
-};
+} & Partial<DatasetTags>;
 
 type DatasetItemProps = {
   dataset: Dataset;

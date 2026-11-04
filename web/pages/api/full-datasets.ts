@@ -1,8 +1,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getDb } from "@/lib/db";
+import { columnExists, getDb } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 import { parseDatasetLinks } from "@/lib/links";
 import { loadDestinations } from "@/lib/destinations";
+import { parseTags, tagSelectSql, type RawTagColumns } from "@/lib/dataset-tags";
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,6 +15,7 @@ export default async function handler(
 
   try {
     const db = getDb();
+    const tagColumns = tagSelectSql((c) => columnExists(db, "data_tables", c));
 
     const rows = db
       .prepare(
@@ -21,7 +23,8 @@ export default async function handler(
                 links, categories, source, assay, organism,
                 publication_first_author, publication_last_author, publication_author_count, publication_authors,
                 publication_year, publication_journal, publication_doi, publication_sspsygene_grants,
-                preprocessing IS NOT NULL AS has_preprocessing
+                preprocessing IS NOT NULL AS has_preprocessing,
+                ${tagColumns}
          FROM data_tables
          ORDER BY table_name ASC`
       )
@@ -50,7 +53,7 @@ export default async function handler(
       publication_doi: string | null;
       publication_sspsygene_grants: string | null;
       has_preprocessing: 0 | 1;
-    }>;
+    } & RawTagColumns>;
 
     // Per-table deployTo (#225) — drives the "not on production" badge.
     const destinations = loadDestinations(db);
@@ -61,6 +64,12 @@ export default async function handler(
         publication_sspsygene_grants,
         links,
         has_preprocessing,
+        model_system,
+        anatomy,
+        anatomy_closure,
+        anatomy_column,
+        stage,
+        stage_detail,
         ...rest
       } = r;
       let authors: string[] = [];
@@ -87,6 +96,14 @@ export default async function handler(
         publication_authors: authors,
         publication_sspsygene_grants: grants,
         has_preprocessing: has_preprocessing === 1,
+        ...parseTags({
+          model_system,
+          anatomy,
+          anatomy_closure,
+          anatomy_column,
+          stage,
+          stage_detail,
+        }),
         destinations: destinations.get(r.table_name) ?? null,
       };
     });

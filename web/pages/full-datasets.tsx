@@ -9,6 +9,12 @@ import InfoTooltip from "@/components/InfoTooltip";
 import type { Dataset } from "@/components/DatasetItem";
 import type { DatasetLink } from "@/lib/links";
 import DestinationBadge from "@/components/DestinationBadge";
+import DatasetTagChips from "@/components/DatasetTagChips";
+import {
+  MODEL_SYSTEM_LABELS,
+  matchesRegion,
+  modelSystemLabel,
+} from "@/lib/dataset-tags";
 
 type DatasetData = {
   tableName: string;
@@ -67,6 +73,11 @@ export default function FullDatasets() {
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("none");
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [tagFilters, setTagFilters] = useState<TagFilters>(NO_TAG_FILTERS);
+  const filteredDatasets = useMemo(
+    () => datasets.filter((d) => datasetMatchesFilters(d, tagFilters)),
+    [datasets, tagFilters],
+  );
   const hydratedFromQuery = useRef(false);
   const pageAbort = useRef<AbortController | null>(null);
   const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -385,9 +396,21 @@ export default function FullDatasets() {
           )}
 
           {!loading && !error && (
-            <DatasetPicker
+            <DatasetFilters
               datasets={datasets}
+              filters={tagFilters}
+              onChange={setTagFilters}
+              matchCount={filteredDatasets.length}
+            />
+          )}
+
+          {!loading && !error && (
+            <DatasetPicker
+              datasets={filteredDatasets}
               selectedTableName={selectedDataset}
+              selectedDataset={
+                datasets.find((d) => d.table_name === selectedDataset) ?? null
+              }
               onSelect={setSelectedDataset}
             />
           )}
@@ -427,6 +450,22 @@ export default function FullDatasets() {
                     {datasetData?.source && (
                       <InfoTooltip text={`Source: ${datasetData.source}`} size={14} />
                     )}
+                    {(() => {
+                      const ds = datasets.find(
+                        (d) => d.table_name === selectedDataset,
+                      );
+                      return ds ? (
+                        <DatasetTagChips
+                          tags={ds}
+                          maxRegions={8}
+                          style={{
+                            display: "flex",
+                            marginTop: 6,
+                            fontWeight: 500,
+                          }}
+                        />
+                      ) : null;
+                    })()}
                   </div>
                   <div
                     style={{
@@ -592,13 +631,197 @@ function datasetLabel(d: Dataset): string {
   return d.medium_label ?? d.short_label ?? d.table_name;
 }
 
+// ── Tag filters (species / model system / region) ──────────────────────
+
+type TagFilters = { species: string; modelSystem: string; region: string };
+const NO_TAG_FILTERS: TagFilters = { species: "", modelSystem: "", region: "" };
+
+function datasetMatchesFilters(d: Dataset, f: TagFilters): boolean {
+  if (f.species && d.gene_species !== f.species) return false;
+  if (f.modelSystem && d.model_system !== f.modelSystem) return false;
+  // A region matches the term itself or any subregion (ancestor closure).
+  if (f.region && !matchesRegion(d.anatomy_closure, f.region)) return false;
+  return true;
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+type FilterOption = { value: string; label: string; count: number };
+
+function DatasetFilters({
+  datasets,
+  filters,
+  onChange,
+  matchCount,
+}: {
+  datasets: Dataset[];
+  filters: TagFilters;
+  onChange: (f: TagFilters) => void;
+  matchCount: number;
+}) {
+  // Each facet's counts honor the *other* active filters, so a count is what
+  // picking that option would leave.
+  const countWith = (patch: Partial<TagFilters>) =>
+    datasets.filter((d) => datasetMatchesFilters(d, { ...filters, ...patch }))
+      .length;
+
+  const speciesOptions: FilterOption[] = useMemo(() => {
+    const keys = Array.from(new Set(datasets.map((d) => d.gene_species)))
+      .filter(Boolean)
+      .sort();
+    return keys.map((k) => ({
+      value: k,
+      label: capitalize(k),
+      count: countWith({ species: k }),
+    }));
+  }, [datasets, filters]);
+
+  const modelSystemOptions: FilterOption[] = useMemo(() => {
+    const present = new Set(
+      datasets.map((d) => d.model_system).filter((m): m is string => !!m),
+    );
+    // Vocabulary order (MODEL_SYSTEM_LABELS), not alphabetical.
+    return Object.keys(MODEL_SYSTEM_LABELS)
+      .filter((k) => present.has(k))
+      .map((k) => ({
+        value: k,
+        label: modelSystemLabel(k),
+        count: countWith({ modelSystem: k }),
+      }));
+  }, [datasets, filters]);
+
+  const regionOptions: FilterOption[] = useMemo(() => {
+    // Offer the terms datasets are actually tagged with; each also matches
+    // datasets tagged with any of its subregions.
+    const labels = new Map<string, string>();
+    for (const d of datasets) {
+      for (const t of d.anatomy ?? []) labels.set(t.id, t.label);
+    }
+    return Array.from(labels.entries())
+      .map(([id, label]) => ({
+        value: id,
+        label,
+        count: countWith({ region: id }),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [datasets, filters]);
+
+  const active =
+    filters.species !== "" ||
+    filters.modelSystem !== "" ||
+    filters.region !== "";
+
+  const selectStyle: React.CSSProperties = {
+    padding: "6px 8px",
+    border: "1px solid #d1d5db",
+    borderRadius: 8,
+    fontSize: 13,
+    background: "#ffffff",
+    color: "#1f2937",
+    maxWidth: 240,
+  };
+  const labelStyle: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    fontSize: 12,
+    fontWeight: 600,
+    color: "#374151",
+  };
+
+  const facet = (
+    id: string,
+    label: string,
+    key: keyof TagFilters,
+    options: FilterOption[],
+    anyLabel: string,
+  ) => (
+    <label htmlFor={id} style={labelStyle}>
+      {label}
+      <select
+        id={id}
+        value={filters[key]}
+        onChange={(e) => onChange({ ...filters, [key]: e.target.value })}
+        style={selectStyle}
+        disabled={options.length === 0}
+      >
+        <option value="">{options.length === 0 ? "— none tagged —" : anyLabel}</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label} ({o.count})
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 12,
+        alignItems: "flex-end",
+        marginBottom: 16,
+      }}
+    >
+      {facet("filter-species", "Species", "species", speciesOptions, "All species")}
+      {facet(
+        "filter-model-system",
+        "Model system",
+        "modelSystem",
+        modelSystemOptions,
+        "All model systems",
+      )}
+      {facet("filter-region", "Region", "region", regionOptions, "All regions")}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          fontSize: 13,
+          color: "#6b7280",
+          paddingBottom: 6,
+        }}
+      >
+        <span>
+          {matchCount} of {datasets.length} datasets
+        </span>
+        {active && (
+          <button
+            type="button"
+            onClick={() => onChange(NO_TAG_FILTERS)}
+            style={{
+              padding: "4px 10px",
+              background: "#ffffff",
+              border: "1px solid #d1d5db",
+              color: "#1f2937",
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DatasetPicker({
   datasets,
   selectedTableName,
+  selectedDataset,
   onSelect,
 }: {
   datasets: Dataset[];
   selectedTableName: string | null;
+  /** Looked up in the unfiltered list, so a filter never hides the current pick. */
+  selectedDataset: Dataset | null;
   onSelect: (tableName: string | null) => void;
 }) {
   const [query, setQuery] = useState("");
@@ -607,10 +830,7 @@ function DatasetPicker({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const selected = useMemo(
-    () => datasets.find((d) => d.table_name === selectedTableName) ?? null,
-    [datasets, selectedTableName],
-  );
+  const selected = selectedDataset;
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -803,6 +1023,11 @@ function DatasetPicker({
                   {d.organism ?? d.gene_species}
                   {d.assay && ` · ${d.assay}`}
                 </div>
+                <DatasetTagChips
+                  tags={d}
+                  compact
+                  style={{ display: "flex", marginTop: 4 }}
+                />
               </button>
             );
           })}

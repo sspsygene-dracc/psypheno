@@ -5,6 +5,12 @@ import type { Dataset } from "@/components/DatasetItem";
 import { parseDatasetLinks, type DatasetLink } from "@/lib/links";
 import { loadDestinations } from "@/lib/destinations";
 import { isRestricted } from "@/lib/destination-labels";
+import {
+  parseTags,
+  tagSelectSql,
+  type AnatomyTerm,
+  type RawTagColumns,
+} from "@/lib/dataset-tags";
 
 export type PublicationTableEntry = {
   tableName: string;
@@ -28,6 +34,9 @@ export type PublicationEntry = {
   organisms: string[];
   assays: string[];
   sspsygeneGrants: string[];
+  /** Union of the tables' (or the link-only dataset's) tags, first-seen order. */
+  modelSystems: string[];
+  anatomy: AnatomyTerm[];
   tables: PublicationTableEntry[];
   /**
    * Paper-level links and blurb from a link-only dataset (#242) — a paper
@@ -63,6 +72,7 @@ export default async function handler(
     const titleColumn = columnExists(db, "data_tables", "publication_title")
       ? "publication_title"
       : "NULL AS publication_title";
+    const tagColumns = tagSelectSql((c) => columnExists(db, "data_tables", c));
 
     const rows = db
       .prepare(
@@ -73,7 +83,8 @@ export default async function handler(
            ${titleColumn},
            publication_doi, publication_pmid, publication_year, publication_journal,
            publication_first_author, publication_last_author, publication_author_count,
-           publication_authors, publication_sspsygene_grants
+           publication_authors, publication_sspsygene_grants,
+           ${tagColumns}
          FROM data_tables
          WHERE publication_doi IS NOT NULL
          ORDER BY publication_year DESC, publication_first_author ASC, table_name ASC`,
@@ -104,9 +115,21 @@ export default async function handler(
       publication_author_count: number | null;
       publication_authors: string | null;
       publication_sspsygene_grants: string | null;
-    }>;
+    } & RawTagColumns>;
 
     const byDoi = new Map<string, PublicationEntry>();
+
+    const mergeTags = (
+      entry: PublicationEntry,
+      tags: ReturnType<typeof parseTags>,
+    ) => {
+      if (tags.model_system && !entry.modelSystems.includes(tags.model_system)) {
+        entry.modelSystems.push(tags.model_system);
+      }
+      for (const t of tags.anatomy) {
+        if (!entry.anatomy.some((a) => a.id === t.id)) entry.anatomy.push(t);
+      }
+    };
 
     const parseStringArray = (raw: string | null): string[] => {
       if (!raw) return [];
@@ -137,6 +160,8 @@ export default async function handler(
           organisms: [],
           assays: [],
           sspsygeneGrants: parseStringArray(r.publication_sspsygene_grants),
+          modelSystems: [],
+          anatomy: [],
           tables: [],
           links: [],
           description: null,
@@ -156,6 +181,7 @@ export default async function handler(
       const tableLinks = parseDatasetLinks(r.links);
       const tableDestinations = destinations.get(r.table_name) ?? [];
       if (!isRestricted(tableDestinations)) entry.restricted = false;
+      const tags = parseTags(r);
       const dataset: Dataset = {
         destinations: tableDestinations,
         table_name: r.table_name,
@@ -179,7 +205,9 @@ export default async function handler(
         publication_year: r.publication_year,
         publication_journal: r.publication_journal,
         publication_doi: r.publication_doi,
+        ...tags,
       };
+      mergeTags(entry, tags);
       entry.tables.push({
         tableName: r.table_name,
         label: r.medium_label || r.table_name,
@@ -201,10 +229,15 @@ export default async function handler(
                   publication_first_author, publication_last_author,
                   publication_author_count, publication_authors, publication_year,
                   publication_journal, publication_doi, publication_pmid,
-                  publication_sspsygene_grants
+                  publication_sspsygene_grants,
+                  ${tagSelectSql(
+                    (c) =>
+                      c !== "anatomy_column" &&
+                      columnExists(db, "link_only_publications", c),
+                  )}
              FROM link_only_publications`,
         )
-        .all() as Array<{
+        .all() as Array<RawTagColumns & {
         dataset: string;
         deploy_to: string;
         description: string | null;
@@ -235,12 +268,15 @@ export default async function handler(
           organisms: [],
           assays: [],
           sspsygeneGrants: parseStringArray(r.publication_sspsygene_grants),
+          modelSystems: [],
+          anatomy: [],
           tables: [],
           links: [],
           description: null,
           linkOnlyDestinations: [],
           restricted: true,
         };
+        mergeTags(entry, parseTags(r));
         if (!existing) byDoi.set(r.publication_doi, entry);
         const destinationsForRow = r.deploy_to.split(",").filter(Boolean);
         for (const link of parseDatasetLinks(r.links)) {
