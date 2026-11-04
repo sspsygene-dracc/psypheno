@@ -29,6 +29,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: primary_culture
+anatomy:
+  - UBERON:0000956  # cerebral cortex
+stage: fetal
+stage_detail: "GW16–22 donor tissue, differentiation day 7"
 tables:
   - table: ding_2026_deg_human
     shortLabel: ding_2026_deg_human
@@ -49,6 +54,7 @@ tables:
     separator: "\t"
     organism: "Homo sapiens (primary fetal cortical RG culture)"
     organism_key: human
+    stage_detail: "GW16–18 donor tissue, differentiation day 7"
     assay: perturbation_deg
     condition:
       - autism

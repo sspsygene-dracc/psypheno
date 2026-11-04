@@ -2,6 +2,10 @@ deployTo:
   - dev
   - int
   - prod
+model_system: ineurons
+anatomy:
+  - UBERON:0000955  # brain
+stage: in_vitro
 
 publication:
   authors:

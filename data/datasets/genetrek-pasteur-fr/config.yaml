@@ -57,6 +57,7 @@ deployTo:
   - dev
   - int
   - prod
+model_system: curated
 tables:
   - table: genetrek_pasteur
     shortLabel: genetrek_pasteur

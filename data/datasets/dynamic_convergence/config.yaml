@@ -55,6 +55,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: ineurons
+anatomy:
+  - UBERON:0000955  # brain
+stage: in_vitro
+stage_detail: "iNPC + iGLUT day 7/21, iGABA day 36"
 tables:
   - table: dynamic_convergence_S2
     changelog:
@@ -174,6 +179,11 @@ tables:
        off_avg_stim5: "Visual-startle (lights-off): average response to stimulus #5 (habituation endpoint) — signed −log10(p) (mutant vs WT)"
     organism: Danio rerio (crispant mutants)
     organism_key: zebrafish
+    model_system: in_vivo
+    anatomy:
+      - UBERON:0000468  # multicellular organism
+    stage: larval
+    stage_detail: "5–7 dpf"
     in_path: HumanName_Baseline_behavior_pvalues_cleaned.csv
     separator: ","
     gene_mappings:

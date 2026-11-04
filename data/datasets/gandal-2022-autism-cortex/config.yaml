@@ -56,6 +56,30 @@ deployTo:
   - dev
   - int
   - prod
+model_system: postmortem
+anatomy:
+  - UBERON:0013535  # Brodmann (1909) area 4
+  - UBERON:0006472  # Brodmann (1909) area 6
+  - UBERON:0013540  # Brodmann (1909) area 9
+  - UBERON:0006481  # Brodmann (1909) area 44
+  - UBERON:0006482  # Brodmann (1909) area 45
+  - UBERON:0006101  # Brodmann (1909) area 24
+  - UBERON:0006479  # Brodmann (1909) area 38
+  - UBERON:0006095  # anterior transverse temporal area 41
+  - UBERON:0006096  # posterior transverse temporal area 42
+  - UBERON:0013553  # Brodmann (1909) area 22
+  - UBERON:0013551  # Brodmann (1909) area 20
+  - UBERON:0006478  # Brodmann (1909) area 37
+  - UBERON:0006100  # Brodmann (1909) area 3
+  - UBERON:0006099  # Brodmann (1909) area 1
+  - UBERON:0013533  # Brodmann (1909) area 2
+  - UBERON:0006471  # Brodmann (1909) area 5
+  - UBERON:0013538  # Brodmann (1909) area 7
+  - UBERON:0006480  # Brodmann (1909) area 39
+  - UBERON:0013573  # Brodmann (1909) area 40
+  - UBERON:8440010  # Brodmann (1909) area 17
+stage: postnatal
+stage_detail: "ages 2–68 years"
 tables:
   - table: gandal_2022_bulk_de_per_region
     shortLabel: gandal_2022_bulk_de_per_region
@@ -183,6 +207,11 @@ tables:
     separator: "\t"
     organism: "Homo sapiens (postmortem cortex snRNA-seq, 27 cell types × 11 regions)"
     organism_key: human
+    anatomy:
+      - UBERON:0000451  # prefrontal cortex
+      - UBERON:0001872  # parietal lobe
+      - UBERON:0002021  # occipital lobe
+    anatomy_column: region
     assay: expression
     condition:
       - autism

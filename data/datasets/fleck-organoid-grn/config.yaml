@@ -31,6 +31,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: organoid
+anatomy:
+  - UBERON:0000955  # brain
+stage: in_vitro
+stage_detail: "organoid day 4 to 2 months"
 tables:
   - table: fleck_2023_organoid_grn
     shortLabel: fleck_2023_organoid_grn

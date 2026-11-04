@@ -2,6 +2,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: organoid
+anatomy:
+  - UBERON:0001893  # telencephalon
+stage: in_vitro
+stage_detail: "organoid 4 months"
 
 publication:
   authors:

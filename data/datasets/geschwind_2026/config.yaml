@@ -1,5 +1,10 @@
 deployTo:
   - dev
+model_system: ineurons
+anatomy:
+  - UBERON:0000955  # brain
+stage: in_vitro
+stage_detail: "NGN2 day 28"
 
 # DRAFT — unpublished SSPsyGene consortium data; no DOI yet.
 # Update publication block when paper is submitted/posted.

@@ -43,6 +43,13 @@ deployTo:
   - dev
   - int
   - prod
+# Kadoshima et al. 2013 cortical organoid protocol (paper ref. 9); paper calls them
+# 'brain organoids'. scRNA-seq DE at DIV52.
+model_system: organoid
+anatomy:
+  - UBERON:0000956  # cerebral cortex
+stage: in_vitro
+stage_detail: "organoid DIV52"
 tables:
   - table: brain_organoid_atlas_patient_list
     changelog:

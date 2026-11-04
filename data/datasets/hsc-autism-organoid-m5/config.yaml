@@ -38,6 +38,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: organoid
+anatomy:
+  - UBERON:0000956  # cerebral cortex
+stage: in_vitro
+stage_detail: "cortical organoid day 25–100"
 tables:
   - table: hsc_asd_organoid_m5_DE_targets_M5_TFs
     overview_matrix: true  # #212 overview matrix source
@@ -63,6 +68,11 @@ tables:
       - human cortical organoids
     organism: Homo sapiens (hiPSC-derived neural progenitors)
     organism_key: human
+    model_system: ipsc_other
+    anatomy:
+      - UBERON:0000955  # brain
+    stage: in_vitro
+    stage_detail: "NGN2-induced hNPCs, 7 days post-transduction"
     in_path: supplementary_table_12_DE_targets_M5_TFs.tsv
     separator: "\t"
     gene_mappings:

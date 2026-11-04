@@ -2,6 +2,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: ineurons
+anatomy:
+  - UBERON:0000955  # brain
+stage: in_vitro
+stage_detail: "day 35, KCl 0/1/6 h"
 
 publication:
   authors:

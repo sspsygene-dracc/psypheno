@@ -147,6 +147,11 @@ deployTo:
   - dev
   - int
   - prod
+model_system: ineurons
+anatomy:
+  - UBERON:0000955  # brain
+stage: in_vitro
+stage_detail: "NGN2 iGLUT / ASCL1+DLX2 iGABA, DIV14–49"
 tables:
   - table: fernando_2025_patient_splicing
     # Deliberately NOT an overview-matrix source. Fernando 2025 perturbs a single
