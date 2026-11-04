@@ -369,16 +369,10 @@ function buildCollatedResponse(args: {
       "FROM overview.overview_matrix_collated_columns " +
       "WHERE collate_group = ? ORDER BY sort_rank ASC LIMIT ?"
   );
-  // Sign counts over all measuring studies; absent in older overview DBs.
-  const hasSignsAll = (
-    db.prepare("PRAGMA overview.table_info(overview_matrix_collated_cells)").all() as Array<{
-      name: string;
-    }>
-  ).some((c) => c.name === "n_pos_all");
   const cellStmt = db
     .prepare(
       `SELECT c.target_gene_id, c.central_gene_id, c.k, c.n, c.n_up, c.n_down,
-              c.n_inferred, ${hasSignsAll ? "c.n_pos_all, c.n_neg_all" : "NULL, NULL"}
+              c.n_inferred
          FROM (SELECT target_gene_id FROM overview.overview_matrix_collated_columns
                 WHERE collate_group = ? ORDER BY sort_rank ASC LIMIT ?) kept
          CROSS JOIN overview.overview_matrix_collated_cells c
@@ -439,13 +433,11 @@ function buildCollatedResponse(args: {
       });
     }
     sections.push({ key: g.collate_group, label: g.label, span: rows.length });
-    for (const [target, geneId, k, n, nUp, nDown, nInferred, nPosAll, nNegAll] of cellStmt.all(
+    for (const [target, geneId, k, n, nUp, nDown, nInferred] of cellStmt.all(
       g.collate_group,
       readouts,
       g.collate_group
-    ) as Array<
-      [number, number, number, number, number, number, number, number | null, number | null]
-    >) {
+    ) as Array<[number, number, number, number, number, number, number]>) {
       const gene = byId.get(geneId);
       if (!gene) continue;
       gene.cells[keyOf(target)] = {
@@ -455,7 +447,6 @@ function buildCollatedResponse(args: {
         nUp,
         nDown,
         ...(nInferred > 0 ? { nInferred } : {}),
-        ...(nPosAll !== null && nNegAll !== null ? { nPosAll, nNegAll } : {}),
       };
     }
   }
@@ -469,7 +460,6 @@ function buildCollatedResponse(args: {
       summaryAvailable: true,
       collatedAvailable: true,
       collatedStudies: studies,
-      collatedSignsAvailable: hasSignsAll,
       collatedStudiesInSeveralSections: studies
         .filter((st) => (sectionsPerStudy.get(st.study) ?? 0) > 1)
         .map((st) => st.label),

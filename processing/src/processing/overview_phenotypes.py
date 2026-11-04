@@ -210,8 +210,7 @@ def materialize_phenotype_collated(
 
     labels = {study: " + ".join(sorted(p)) for study, p in label_parts.items()}
     term_ids = {term: -(i + 1) for i, term in enumerate(PHENOTYPE_TERMS)}
-    # k, n, n_up, n_down, n_pos_all, n_neg_all
-    cells: dict[tuple[str, int], list[int]] = defaultdict(lambda: [0] * 6)
+    cells: dict[tuple[str, int], list[int]] = defaultdict(lambda: [0, 0, 0, 0])
     contrib = []
     for (term, gene, study), tests in by_pair.items():
         best = min(tests, key=lambda t: (t.fdr, t.p))
@@ -224,12 +223,6 @@ def materialize_phenotype_collated(
             cell[0] += 1
             if len(signs) == 1:
                 cell[2 if next(iter(signs)) else 3] += 1
-        # The study's vote over all studies: its significant direction, or for
-        # a non-significant study the sign of its strongest test. A study whose
-        # significant measures disagree has no single direction and abstains.
-        vote = None if len(signs) > 1 else best.effect
-        if vote:
-            cell[4 if vote > 0 else 5] += 1
         contrib.append(
             (
                 COLLATE_GROUP,
@@ -241,7 +234,7 @@ def materialize_phenotype_collated(
                 len(tests),
                 min(fdrs),
                 min(t.p for t in tests),
-                vote,
+                None if len(signs) > 1 else best.effect,
                 int(significant),
                 None,
             )
@@ -267,12 +260,10 @@ def materialize_phenotype_collated(
         ],
     )
     conn.executemany(
-        "INSERT INTO overview_matrix_collated_cells "
-        "(collate_group, target_gene_id, central_gene_id, k, n, n_up, n_down, "
-        " n_inferred, n_pos_all, n_neg_all) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
+        "INSERT INTO overview_matrix_collated_cells VALUES (?, ?, ?, ?, ?, ?, ?, 0)",
         [
-            (COLLATE_GROUP, term_ids[term], gene, *counts)
-            for (term, gene), counts in cells.items()
+            (COLLATE_GROUP, term_ids[term], gene, k, n, n_up, n_down)
+            for (term, gene), (k, n, n_up, n_down) in cells.items()
         ],
     )
     conn.executemany(
@@ -282,7 +273,7 @@ def materialize_phenotype_collated(
     )
 
     totals: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
-    for (term, _), (k, n, *_) in cells.items():
+    for (term, _), (k, n, _, _) in cells.items():
         total = totals[term]
         total[0] += int(k >= 2)
         total[1] += k

@@ -133,20 +133,13 @@ function AgreementLegend() {
         do the studies agree on direction?
       </span>
       <span style={{ display: "inline-flex", gap: 12, flexWrap: "wrap" }}>
-        {swatch(AGREEMENT_COLORS.strong.agree, "agree")}
-        {swatch(AGREEMENT_COLORS.strong.disagree, "disagree")}
+        {swatch(AGREEMENT_COLORS.agree, "agree")}
+        {swatch(AGREEMENT_COLORS.disagree, "disagree")}
         <span style={{ color: "#9ca3af" }}>among 2+ significant studies</span>
       </span>
       <span style={{ display: "inline-flex", gap: 12, flexWrap: "wrap" }}>
-        {swatch(AGREEMENT_COLORS.pale.agree, "agree")}
-        {swatch(AGREEMENT_COLORS.pale.disagree, "disagree")}
-        <span style={{ color: "#9ca3af" }}>
-          by effect sign, counting non-significant studies
-        </span>
-      </span>
-      <span style={{ display: "inline-flex", gap: 12, flexWrap: "wrap" }}>
         {swatch(AGREEMENT_NOTHING_TO_COMPARE, "nothing to compare")}
-        <span style={{ color: "#9ca3af" }}>only one study has a result with a direction</span>
+        <span style={{ color: "#9ca3af" }}>only one study found it significant</span>
       </span>
       <span style={{ color: "#9ca3af", fontSize: 11 }}>
         a whole tile in one color = no study found it significant
@@ -174,7 +167,7 @@ function CellKey({ lowerMode }: { lowerMode: LowerTriangleMode }) {
           points="34,0 34,34 0,34"
           fill={rgbCss(
             lowerMode === "agreement"
-              ? AGREEMENT_COLORS.strong.agree
+              ? AGREEMENT_COLORS.agree
               : scaleColorRGB("direction_agreement", 1, null)
           )}
         />
@@ -482,14 +475,12 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             with significant measures in both directions counts as having no
             single direction and adds to neither side.{" "}The <strong>Lower triangle:
             Agreement</strong>{" "}switch recolors that triangle by concordance
-            instead: purple where studies agree on direction, orange where they
-            disagree &mdash; strong when two or more significant studies are
-            compared, pale when the comparison relies on effect signs that
-            include non-significant studies (each study votes with its strongest
-            test; inferred measurements have no effect size and don&rsquo;t
-            vote). A significant cell with only one study to go on gets a grey
-            lower triangle (nothing to compare); a tile stays one color only
-            when no study found the pair significant. Cells measured by a single
+            instead: purple where two or more significant studies agree on
+            direction, orange where they disagree. Non-significant studies
+            don&rsquo;t take part, since the sign of a non-significant effect is
+            close to a coin flip. A significant cell with only one significant
+            study gets a grey lower triangle (nothing to compare); a tile stays
+            one color only when no study found the pair significant. Cells measured by a single
             study are faded, since 1 of 1 is not convergence. Studies that
             publish only their hits contribute their inferred
             tested-but-not-significant pairs to <em>n</em>{" "}(below). Phenotype
@@ -821,8 +812,7 @@ export default function MatrixPage() {
                 </ToggleButton>
                 <ToggleButton
                   active={lowerMode === "agreement"}
-                  /* Overview DBs built before the all-study sign counts. */
-                  disabled={loading || (data != null && !data.meta.collatedSignsAvailable)}
+                  disabled={loading}
                   onClick={() => setLowerMode("agreement")}
                 >
                   Agreement

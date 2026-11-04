@@ -219,19 +219,8 @@ function collatedValueText(cell: MatrixCell, lowerMode: LowerTriangleMode): stri
 /** The agreement view's reading of a cell, for the popover. */
 function agreementText(cell: MatrixCell): string {
   const a = cellAgreement(cell);
-  const pos = cell.nPosAll ?? 0;
-  const neg = cell.nNegAll ?? 0;
-  const signs =
-    cell.nPosAll === undefined
-      ? ""
-      : ` (effect signs over all studies: ${pos} up, ${neg} down` +
-        (cell.nInferred ? "; inferred measurements have no effect size" : "") +
-        ")";
-  if (!a) return `nothing to compare: only one study has a result with a direction${signs}`;
-  if (a.strength === "strong") {
-    return `significant studies ${a.agreement === "agree" ? "agree" : "disagree"} on direction${signs}`;
-  }
-  return `studies ${a.agreement === "agree" ? "agree" : "disagree"} on effect sign, counting non-significant ones${signs}`;
+  if (!a) return "nothing to compare: fewer than two studies found it significant";
+  return `significant studies ${a === "agree" ? "agree" : "disagree"} on direction`;
 }
 
 function fmtStat(v: number | null): string {

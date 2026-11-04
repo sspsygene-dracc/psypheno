@@ -72,52 +72,34 @@ export type MetricDomains = Record<string, [number, number] | null>;
 export type LowerTriangleMode = "direction" | "agreement";
 
 export type Agreement = "agree" | "disagree";
-export type AgreementStrength = "strong" | "pale";
 
 /**
  * Agreement view colors (purple = agree, orange = disagree; a colorblind-safe
- * pair that doesn't reuse the direction view's blue/red). Strong = among the
- * significant studies; pale = by effect sign over every measuring study.
+ * pair that doesn't reuse the direction view's blue/red).
  */
-export const AGREEMENT_COLORS: Record<
-  AgreementStrength,
-  Record<Agreement, [number, number, number]>
-> = {
-  strong: { agree: [94, 60, 153], disagree: [230, 97, 1] },
-  pale: { agree: [203, 192, 226], disagree: [253, 196, 140] },
+export const AGREEMENT_COLORS: Record<Agreement, [number, number, number]> = {
+  agree: [94, 60, 153],
+  disagree: [230, 97, 1],
 };
 
 /**
  * Agreement view: lower triangle of a cell with a significant study but no
- * second study to compare it with. Keeps every significant cell split, so the
- * two views read the same way.
+ * second significant study to compare it with. Keeps every significant cell
+ * split, so the two views read the same way.
  */
 export const AGREEMENT_NOTHING_TO_COMPARE: [number, number, number] = [196, 200, 207];
 
 /**
- * Do the studies behind a collated cell agree on direction?
- *
- * - Strong: two or more significant studies. They agree when all of them went
- *   the same way; a significant study with no single direction counts as
- *   disagreement.
- * - Pale: otherwise, when two or more studies carry an effect sign
- *   (significant or not). They agree when the signs are all the same.
- * - null: fewer than two studies to compare.
+ * Do the significant studies behind a collated cell agree on direction?
+ * Needs two or more significant studies: they agree when all of them went the
+ * same way; a significant study with no single direction counts as
+ * disagreement. Non-significant studies don't take part — the sign of a
+ * non-significant effect is close to a coin flip. null: nothing to compare.
  */
-export function cellAgreement(
-  cell: MatrixCell
-): { agreement: Agreement; strength: AgreementStrength } | null {
+export function cellAgreement(cell: MatrixCell): Agreement | null {
   const k = cell.k ?? 0;
-  if (k >= 2) {
-    const agree = cell.nUp === k || cell.nDown === k;
-    return { agreement: agree ? "agree" : "disagree", strength: "strong" };
-  }
-  const pos = cell.nPosAll ?? 0;
-  const neg = cell.nNegAll ?? 0;
-  if (pos + neg >= 2) {
-    return { agreement: pos > 0 && neg > 0 ? "disagree" : "agree", strength: "pale" };
-  }
-  return null;
+  if (k < 2) return null;
+  return cell.nUp === k || cell.nDown === k ? "agree" : "disagree";
 }
 
 export interface ColorGrid {
@@ -171,7 +153,7 @@ export function buildColorGrid(
           // lower half is neutral grey. Only a cell with no significant study
           // and nothing to compare stays one color.
           const a = cellAgreement(cell);
-          if (a) lower = AGREEMENT_COLORS[a.strength][a.agreement];
+          if (a) lower = AGREEMENT_COLORS[a];
           else if (cell.k > 0) lower = AGREEMENT_NOTHING_TO_COMPARE;
         } else if (cell.k > 0) {
           const signed = (cell.nUp ?? 0) + (cell.nDown ?? 0);
