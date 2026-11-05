@@ -7,6 +7,8 @@ import DatasetDescription from "@/components/DatasetDescription";
 import DatasetToc from "@/components/DatasetToc";
 import GeneInfoBox, { type LlmResult } from "@/components/GeneInfoBox";
 import InfoTooltip from "@/components/InfoTooltip";
+import OrthologNote from "@/components/OrthologNote";
+import type { OrthologNotes } from "@/lib/orthologs";
 import DestinationBadge from "@/components/DestinationBadge";
 import GeneSignificanceSummary, {
   type CombinedPvalues,
@@ -57,6 +59,7 @@ type GeneInfoData = {
   llmResult: LlmResult | null;
   combinedPvalues: CombinedPvalues | null;
   contributingTables: ContributingTable[];
+  orthologNotes: OrthologNotes | null;
 };
 
 export default function GeneResults({
@@ -112,6 +115,7 @@ export default function GeneResults({
           llmResult: d.llmResult ?? null,
           combinedPvalues: d.combinedPvalues ?? null,
           contributingTables: d.contributingTables ?? [],
+          orthologNotes: d.orthologNotes ?? null,
         });
       })
       .catch(() => {});
@@ -145,6 +149,7 @@ export default function GeneResults({
           llmResult: d.llmResult ?? null,
           combinedPvalues: d.combinedPvalues ?? null,
           contributingTables: d.contributingTables ?? [],
+          orthologNotes: d.orthologNotes ?? null,
         });
       })
       .catch(() => {});
@@ -497,7 +502,9 @@ export default function GeneResults({
         {perturbedGene && perturbedGene.kind !== "control" && (
           <GeneSidePanel
             label="Perturbed"
-            geneSymbol={perturbedGene.humanSymbol ?? "—"}
+            geneSymbol={
+              perturbedGene.humanSymbol ?? perturbedGene.displayLabel ?? "—"
+            }
             info={perturbedInfo}
             assayTypeLabels={assayTypeLabels}
             tone="perturbed"
@@ -506,7 +513,9 @@ export default function GeneResults({
         {targetGene && targetGene.kind !== "control" && (
           <GeneSidePanel
             label="Target"
-            geneSymbol={targetGene.humanSymbol ?? "—"}
+            geneSymbol={
+              targetGene.humanSymbol ?? targetGene.displayLabel ?? "—"
+            }
             info={targetInfo}
             assayTypeLabels={assayTypeLabels}
             tone="target"
@@ -960,6 +969,10 @@ function GeneSidePanel({
       >
         {label} gene: {geneSymbol}
       </div>
+      <OrthologNote
+        notes={info?.orthologNotes}
+        direction={tone === "perturbed" ? "perturbed" : "target"}
+      />
       <GeneInfoBox
         geneDescription={info?.geneDescription ?? null}
         llmResult={info?.llmResult ?? null}

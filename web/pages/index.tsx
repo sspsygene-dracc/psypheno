@@ -14,6 +14,7 @@ import { TableResult } from "@/lib/table_result";
 import {
   SearchSuggestion,
   buildAllControlsSuggestion,
+  urlSymbol,
 } from "@/state/SearchSuggestion";
 
 export default function Home() {
@@ -84,7 +85,13 @@ export default function Home() {
       const suggestions: SearchSuggestion[] = Array.isArray(data.suggestions)
         ? data.suggestions
         : [];
-      const exact = suggestions.find((s) => s.humanSymbol === symbol);
+      // A mouse-only gene (no human symbol) is in the URL by its mouse symbol;
+      // match it exactly so /?target=Adh1 doesn't land on human ADH1A.
+      const exact =
+        suggestions.find((s) => s.humanSymbol === symbol) ??
+        suggestions.find(
+          (s) => !s.humanSymbol && (s.mouseSymbols ?? []).includes(symbol),
+        );
       return exact || suggestions[0] || null;
     } catch (_) {
       return null;
@@ -125,7 +132,7 @@ export default function Home() {
       let nextTarget: SearchSuggestion | null | undefined = undefined;
 
       if (qPerturbed) {
-        if (perturbed?.humanSymbol !== qPerturbed) {
+        if (urlSymbol(perturbed) !== qPerturbed) {
           const sp = await resolveSymbol(qPerturbed);
           if (cancelled) return;
           if (sp) nextPerturbed = sp;
@@ -135,7 +142,7 @@ export default function Home() {
       }
 
       if (qTarget) {
-        if (target?.humanSymbol !== qTarget) {
+        if (urlSymbol(target) !== qTarget) {
           const st = await resolveSymbol(qTarget);
           if (cancelled) return;
           if (st) nextTarget = st;
@@ -160,8 +167,8 @@ export default function Home() {
     if (!hydratedFromQuery.current) return;
 
     const nextQuery: Record<string, string> = {};
-    if (perturbed?.humanSymbol) nextQuery.perturbed = perturbed.humanSymbol;
-    if (target?.humanSymbol) nextQuery.target = target.humanSymbol;
+    if (urlSymbol(perturbed)) nextQuery.perturbed = urlSymbol(perturbed)!;
+    if (urlSymbol(target)) nextQuery.target = urlSymbol(target)!;
     if (restriction.assay) nextQuery.assay = restriction.assay;
     if (restriction.condition) nextQuery.condition = restriction.condition;
     if (restriction.organism) nextQuery.organism = restriction.organism;
@@ -248,6 +255,7 @@ export default function Home() {
       return "CONTROL (all controls)";
     }
     const mouseStr = gene.mouseSymbols?.join(", ");
+    if (mouseStr && !gene.humanSymbol) return `${mouseStr} (mouse)`;
     if (mouseStr) {
       return `${gene.humanSymbol} (human) / ${mouseStr} (mouse)`;
     }

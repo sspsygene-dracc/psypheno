@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb, getMetaStatus } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
+import { getOrthologNotes } from "@/lib/orthologs";
 import {
   sanitizeIdentifier,
   parseLinkTablesForDirection,
@@ -335,6 +336,7 @@ export default async function handler(
       contributingTables,
       geneDescription,
       llmResult,
+      orthologNotes: getOrthologNotes(db, centralGeneId),
     });
   } catch (err) {
     console.error("combined-pvalues handler error", err);

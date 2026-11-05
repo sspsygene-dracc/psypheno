@@ -21,6 +21,15 @@ export interface SearchSuggestion {
 }
 
 /**
+ * The symbol a gene goes by in the home page URL (`/?perturbed=…`): its HGNC
+ * symbol, else (a mouse-only gene) its first mouse symbol.
+ */
+export function urlSymbol(s: SearchSuggestion | null | undefined): string | null {
+  if (!s) return null;
+  return s.humanSymbol ?? s.mouseSymbols?.[0] ?? null;
+}
+
+/**
  * Build the synthetic "all controls" suggestion. Lives here (not in
  * lib/suggestions.ts) because the home page needs to construct it
  * client-side during URL hydration, and lib/suggestions.ts pulls in
