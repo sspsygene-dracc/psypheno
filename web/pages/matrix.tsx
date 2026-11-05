@@ -429,7 +429,11 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             genes, then qualifying columns are ranked by how many perturbed genes
             they are significant in (most convergent first), ties broken by the
             strongest p-value, and the top N per dataset are kept. Phenotype columns
-            aren&rsquo;t filtered this way &mdash; every distinct phenotype is shown.
+            aren&rsquo;t filtered this way &mdash; every distinct phenotype is shown.{" "}A
+            study that perturbed a single gene can never meet the
+            two-perturbation bar, so it is shown as a compact block instead: one
+            column per condition (e.g. genotype &times; time point), whose cell
+            counts the readouts significant in that condition.
           </dd>
 
           <dt style={METHODS_TERM}>The Summary view</dt>
@@ -544,9 +548,6 @@ export default function MatrixPage() {
   const [mode, setMode] = useState<MatrixMode>("expanded");
   const [colsPerDataset, setColsPerDataset] = useState(25);
   const [readouts, setReadouts] = useState(100);
-  // By study view: single-gene studies with several conditions as a compact
-  // block (one column per condition) — the #16 prototype.
-  const [compact, setCompact] = useState(false);
   // By-readout view: lower triangle shows direction (default) or agreement.
   const [lowerMode, setLowerMode] = useState<LowerTriangleMode>("direction");
   // The per-study views remember which one was last shown, so toggling the
@@ -572,7 +573,7 @@ export default function MatrixPage() {
     setLoading(true);
     fetch(
       `/api/collated-matrix?colsPerDataset=${colsPerDataset}&mode=${mode}` +
-        `&readouts=${readouts}&compact=${compact ? 1 : 0}`
+        `&readouts=${readouts}`
     )
       .then((res) => {
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -593,7 +594,7 @@ export default function MatrixPage() {
     return () => {
       cancelled = true;
     };
-  }, [colsPerDataset, mode, readouts, compact]);
+  }, [colsPerDataset, mode, readouts]);
 
   const genes = data?.genes ?? [];
   const sections = data?.sections ?? [];
@@ -775,15 +776,6 @@ export default function MatrixPage() {
             >
               Unhide all datasets
             </ToggleButton>
-            {mode === "expanded" && (
-              <ToggleButton
-                active={compact}
-                disabled={loading}
-                onClick={() => setCompact((v) => !v)}
-              >
-                Single-gene studies as compact blocks
-              </ToggleButton>
-            )}
           </div>
 
           <div

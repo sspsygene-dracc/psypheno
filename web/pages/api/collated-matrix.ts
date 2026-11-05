@@ -49,10 +49,11 @@ const querySchema = z.object({
   /**
    * Expanded mode: show studies that declare condition columns (one perturbed
    * gene, several genotypes / time points) as one compact column per condition.
+   * On by default; `compact=0` turns it off.
    */
   compact: z
     .enum(["0", "1"])
-    .default("0")
+    .default("1")
     .transform((v) => v === "1"),
 });
 
