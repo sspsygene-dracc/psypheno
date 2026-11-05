@@ -191,11 +191,32 @@ export interface CollatedMatrixMeta {
   metrics: MetricPresence[];
 }
 
+/**
+ * What a source table can be grouped by in the By study view ("Group columns
+ * by"), from its dataset tags. Raw keys; web/lib/matrix-grouping.ts supplies the
+ * labels and group order. Null / empty = not tagged.
+ */
+export interface MatrixDatasetGroups {
+  /** dataset_tags MODEL_SYSTEMS key. */
+  modelSystem: string | null;
+  /** Coarse region key (data_tables.anatomy_region); null = no anatomy terms. */
+  region: string | null;
+  /** Organism(s) the experiment was done in (organism_key, else gene_species). */
+  species: string[];
+  /** dataset_tags EXPERIMENT_TYPES key. */
+  experimentType: string | null;
+}
+
 export interface CollatedMatrixResponse {
   sections: MatrixSection[];
   columns: MatrixColumn[];
   genes: MatrixGeneRow[];
   meta: CollatedMatrixMeta;
+  /**
+   * By study views (expanded, summary): grouping keys per source table, keyed
+   * by `MatrixColumn.sourceTable`. Absent in the collated view.
+   */
+  datasetGroups?: Record<string, MatrixDatasetGroups>;
 }
 
 /**

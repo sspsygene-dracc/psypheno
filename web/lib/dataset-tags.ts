@@ -48,6 +48,75 @@ export const STAGE_LABELS: Record<string, string> = {
   in_vitro: "In vitro",
 };
 
+/**
+ * `experiment_type` values (dataset_tags.EXPERIMENT_TYPES), in display order:
+ * how the genes were perturbed, or what kind of study it is.
+ */
+export const EXPERIMENT_TYPE_LABELS: Record<string, string> = {
+  crispr_ko: "CRISPR knockout",
+  crispri: "CRISPRi",
+  crispra: "CRISPRa",
+  knockdown: "RNAi / ASO knockdown",
+  overexpression: "Overexpression",
+  isogenic_variant: "Engineered variant",
+  patient_lines: "Patient-derived lines",
+  drug_treatment: "Drug treatment",
+  multiple: "Several perturbation types",
+  observational: "Observational",
+  human_genetics: "Human genetics",
+  curated: "Curated resource",
+  other: "Other",
+};
+
+export const EXPERIMENT_TYPE_DESCRIPTIONS: Record<string, string> = {
+  crispr_ko:
+    "Cas9 knockout / loss-of-function edits: pooled CRISPR-KO screens, in vivo Perturb-seq, KO lines, mutant and crispant zebrafish",
+  crispri: "CRISPR interference (dCas9-KRAB)",
+  crispra: "CRISPR activation",
+  knockdown: "RNAi (shRNA / siRNA) or antisense-oligo knockdown",
+  overexpression: "Exogenous expression of a wild-type gene, e.g. tagged AP-MS baits",
+  isogenic_variant: "Engineered disease variant vs the wild-type allele in the same background",
+  patient_lines: "Patient-derived iPSCs / neurons / organoids vs control lines",
+  drug_treatment: "Pharmacological treatment",
+  multiple: "One table combining several perturbation types",
+  observational: "No manipulation: postmortem case vs control, markers, inferred networks",
+  human_genetics: "Association statistics from human sequencing cohorts",
+  curated: "Databases and curated gene lists",
+  other: "Other experiment type",
+};
+
+export function experimentTypeLabel(key: string): string {
+  return EXPERIMENT_TYPE_LABELS[key] ?? key;
+}
+
+/**
+ * Coarse anatomical regions (`data_tables.anatomy_region`, derived by
+ * DatasetTags.coarse_region in dataset_tags.py), in display order. A table is
+ * assigned the first region that covers *all* of its UBERON terms.
+ */
+export const ANATOMY_REGION_LABELS: Record<string, string> = {
+  cerebral_cortex: "Cerebral cortex",
+  forebrain: "Other forebrain",
+  brain: "Brain (whole or unspecified)",
+  whole_organism: "Whole organism",
+  other_tissue: "Non-brain tissue",
+};
+
+export const ANATOMY_REGION_DESCRIPTIONS: Record<string, string> = {
+  cerebral_cortex: "All anatomy terms in the cerebral cortex or a cerebral lobe",
+  forebrain: "All terms in the forebrain, not all in the cortex (e.g. telencephalon)",
+  brain: "All terms in the brain, not all in the forebrain — incl. whole brain",
+  whole_organism: "Whole animal (e.g. zebrafish larva behavior)",
+  other_tissue: "Tissue or cell line outside the brain (e.g. HEK293T: kidney)",
+};
+
+/** Organism keys (globals.yaml `organismTypes`), in display order. */
+export const SPECIES_LABELS: Record<string, string> = {
+  human: "Human",
+  mouse: "Mouse",
+  zebrafish: "Zebrafish",
+};
+
 export function modelSystemLabel(key: string): string {
   return MODEL_SYSTEM_LABELS[key] ?? key;
 }

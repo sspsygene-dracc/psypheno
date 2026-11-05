@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
-import { getDb, tableExists } from "@/lib/db";
+import { columnExists, getDb, tableExists } from "@/lib/db";
 import { setReadCacheHeaders } from "@/lib/cache-headers";
 import { loadDestinations, restrictionLabel } from "@/lib/destinations";
 import {
@@ -8,6 +8,7 @@ import {
   type CollatedMatrixResponse,
   type MatrixCell,
   type MatrixColumn,
+  type MatrixDatasetGroups,
   type MatrixGeneRow,
   type MatrixMode,
   type MatrixSection,
@@ -83,6 +84,20 @@ function truncateOnWord(text: string, max: number): string {
   const cut = text.slice(0, max);
   const lastSpace = cut.lastIndexOf(" ");
   return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.\u2013-]+$/, "")}…`;
+}
+
+/** The grouping tags of just the tables that have columns in the response. */
+function groupsForColumns(
+  columns: MatrixColumn[],
+  all: Record<string, MatrixDatasetGroups>
+): Record<string, MatrixDatasetGroups> {
+  const out: Record<string, MatrixDatasetGroups> = {};
+  for (const c of columns) {
+    if (!(c.sourceTable in out) && all[c.sourceTable]) {
+      out[c.sourceTable] = all[c.sourceTable];
+    }
+  }
+  return out;
 }
 
 interface ModalityRow {
@@ -584,21 +599,50 @@ export default async function handler(
     ];
     const labelByModality = new Map(modalities.map((m) => [m.key, m.label]));
 
-    // Fuller dataset identity for the author-year label + band tooltip.
+    // Fuller dataset identity for the author-year label + band tooltip, and the
+    // dataset tags the By study view can group its columns by. Tag columns a
+    // DB predates read as NULL (→ "not tagged" groups) instead of failing.
     const datasetMeta = new Map<string, DatasetMeta>();
+    const datasetGroups: Record<string, MatrixDatasetGroups> = {};
     const destinations = loadDestinations(db);
+    const optional = (c: string) =>
+      columnExists(db, "data_tables", c) ? c : `NULL AS ${c}`;
     for (const r of db
-      .prepare("SELECT table_name, medium_label, source FROM data_tables")
+      .prepare(
+        "SELECT table_name, medium_label, source, gene_species, organism_key, " +
+          [optional("model_system"), optional("anatomy_region"), optional("experiment_type")].join(
+            ", "
+          ) +
+          " FROM data_tables"
+      )
       .all() as Array<{
       table_name: string;
       medium_label: string | null;
       source: string | null;
+      gene_species: string | null;
+      organism_key: string | null;
+      model_system: string | null;
+      anatomy_region: string | null;
+      experiment_type: string | null;
     }>) {
       datasetMeta.set(r.table_name, {
         mediumLabel: r.medium_label,
         citation: r.source,
         restriction: restrictionLabel(destinations.get(r.table_name)),
       });
+      // Species = the organism the experiment was done in. organism_key, not
+      // gene_species: zebrafish tables map their genes to human orthologs, so
+      // their gene_species reads "human".
+      const organisms = (r.organism_key ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      datasetGroups[r.table_name] = {
+        modelSystem: r.model_system,
+        region: r.anatomy_region,
+        species: organisms.length ? organisms : r.gene_species ? [r.gene_species] : [],
+        experimentType: r.experiment_type,
+      };
     }
 
     const sections: MatrixSection[] = [];
@@ -685,6 +729,7 @@ export default async function handler(
         builtAt: info.get("built_at") ?? null,
         K,
       });
+      body.datasetGroups = groupsForColumns(body.columns, datasetGroups);
       setReadCacheHeaders(res);
       return res.status(200).json(body);
     }
@@ -910,6 +955,7 @@ export default async function handler(
         builtAt: info.get("built_at") ?? null,
         metrics: metricsPresent,
       },
+      datasetGroups: groupsForColumns(columns, datasetGroups),
     };
 
     setReadCacheHeaders(res);

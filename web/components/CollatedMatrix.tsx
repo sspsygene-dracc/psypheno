@@ -21,6 +21,13 @@ import {
   type LowerTriangleMode,
   type MetricDomains,
 } from "@/lib/matrix-canvas";
+import {
+  bandRowHeight,
+  datasetBands,
+  wrappedLineCount,
+  type ColumnGroupBand,
+  type ColumnGroupKey,
+} from "@/lib/matrix-grouping";
 
 export type { MetricDomains };
 
@@ -56,8 +63,10 @@ export type { MetricDomains };
  * wheel keeps its existing meaning — the label strip's own scroll).
  *
  * Header modes: with columns grouped by dataset (`bandsVisible`) a band row
- * ("experiment · author-year", with a hide control) sits above per-column labels.
- * When columns are clustered (`!bandsVisible`) the grouping is gone, so the
+ * ("experiment · author-year", with a hide control) sits above per-column labels,
+ * and `groupBands` (the page's "Group columns by" choice) stacks one more band
+ * row on top of it — e.g. "iNeurons" over "Perturb-seq · Cui 2026". When columns
+ * are clustered (`!bandsVisible`, no `groupBands`) the grouping is gone, so the
  * dataset folds into each column's single vertical label.
  */
 
@@ -76,6 +85,14 @@ const BAND_PAD_V = 9; // 3px top padding + breathing room under the last line
 // Horizontal chrome inside a band: 4px padding each side, the 2px flex gap, and
 // the ~15px hide button — none of it available to the heading text.
 const BAND_CHROME_W = 25;
+// The "Group columns by" row above the dataset bands. Groups usually span
+// several datasets, so one line is the common case; it wraps (up to the max)
+// only for a narrow group such as a single compact study.
+const GROUP_H_MIN = 22;
+const GROUP_H_MAX = 50;
+const GROUP_CHROME_W = 10; // 4px padding each side + the 2px group divider
+const GROUP_CHAR_PX = 6.2; // ~advance of one 11.5px bold char
+const GROUP_LABEL_MIN_W = 90; // how much of a scrolled-past group's label stays visible
 // The column-label strip shows this fixed height; when the longest label needs
 // more (folded "modality · author · gene" labels in clustered mode run long),
 // the strip scrolls vertically on its own instead of making the header taller.
@@ -104,39 +121,6 @@ function canScroll(el: HTMLElement, axis: "x" | "y", delta: number): boolean {
   const max =
     axis === "x" ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight;
   return delta < 0 ? pos > 0.5 : pos < max - 0.5;
-}
-
-/**
- * Lines `text` wraps to in a box `perLine` characters wide, by the same greedy
- * word wrapping the browser does. Counting `length / perLine` instead
- * under-counts: "Behavioral · Fernandez Garcia 2026" is 34 characters, but at 10
- * characters per line its unbreakable words leave ragged ends and it takes five
- * lines, not four.
- */
-function wrappedLineCount(text: string, perLine: number): number {
-  if (perLine <= 0) return 1;
-  let lines = 1;
-  let used = 0;
-  for (const word of text.split(/\s+/)) {
-    if (!word) continue;
-    if (used > 0 && used + 1 + word.length > perLine) {
-      lines++;
-      used = 0;
-    }
-    if (word.length > perLine) {
-      // Longer than the box: breaks mid-word (or overflows, which costs the
-      // same height). Rounding up here errs toward a taller band, not a clipped one.
-      if (used > 0) {
-        lines++;
-        used = 0;
-      }
-      lines += Math.ceil(word.length / perLine) - 1;
-      used = word.length % perLine || perLine;
-    } else {
-      used = used === 0 ? word.length : used + 1 + word.length;
-    }
-  }
-  return lines;
 }
 
 function fmtValue(metric: string, value: number): string {
@@ -392,15 +376,6 @@ function PhenotypeContains({ contains }: { contains: NonNullable<MatrixColumn["c
   );
 }
 
-interface BandGroup {
-  gkey: string;
-  bandLabel: string;
-  sourceTable: string;
-  tooltip: string | null;
-  span: number;
-  startCol: number;
-}
-
 const VLABEL_STYLE = {
   writingMode: "vertical-rl",
   transform: "rotate(180deg)",
@@ -518,6 +493,8 @@ export default function CollatedMatrix({
   summary = false,
   lowerMode = "direction",
   panelHeight = DEFAULT_PANEL_H,
+  groupBands = null,
+  groupBy = "modality",
 }: {
   sections: MatrixSection[];
   columns: MatrixColumn[];
@@ -542,6 +519,14 @@ export default function CollatedMatrix({
    * the matrix.
    */
   panelHeight?: number | string;
+  /**
+   * By study views: the "Group columns by" band row, stacked above the dataset
+   * bands (computed by groupColumns over the same `columns`). Null / omitted =
+   * no group row (clustered columns, the by-readout view).
+   */
+  groupBands?: ColumnGroupBand[] | null;
+  /** Which key `groupBands` groups by (drops the modality from dataset bands). */
+  groupBy?: ColumnGroupKey;
 }) {
   const nRows = genes.length;
   const nCols = columns.length;
@@ -593,45 +578,53 @@ export default function CollatedMatrix({
   const stripVisibleH = summary ? labelStripH : LABEL_STRIP_VISIBLE;
   const stripContentH = Math.max(labelStripH, stripVisibleH);
 
-  const bandLayout = useMemo<BandGroup[]>(() => {
-    const groups: BandGroup[] = [];
-    columns.forEach((c, j) => {
-      const gkey = `${c.section}|${c.sourceTable}`;
-      const last = groups[groups.length - 1];
-      if (last && last.gkey === gkey) {
-        last.span++;
-        return;
-      }
-      const modality = sectionLabel.get(c.section) ?? c.section;
-      groups.push({
-        gkey,
-        bandLabel: `${modality} · ${c.sourceLabel}`,
-        sourceTable: c.sourceTable,
-        tooltip: [c.sourceMediumLabel ?? c.sourceLabel, c.sourceCitation]
-          .filter(Boolean)
-          .join(" — "),
-        span: 1,
-        startCol: j,
-      });
-    });
-    return groups;
-  }, [columns, sectionLabel]);
+  // Dataset band row. Under a modality group row the modality already heads
+  // the band above, so the dataset band drops it (just "Cui 2026").
+  const datasetBandsWithModality = !groupBands || groupBy !== "modality";
+  const bandLayout = useMemo(
+    () => datasetBands(columns, sectionLabel, { withModality: datasetBandsWithModality }),
+    [columns, sectionLabel, datasetBandsWithModality]
+  );
 
   // Tall enough for the band that wraps to the most lines (see BAND_H_MIN).
-  const bandH = useMemo(() => {
-    let maxLines = 1;
-    for (const g of bandLayout) {
-      const textW = g.span * colW - BAND_CHROME_W;
-      const perLine = Math.max(1, Math.floor(textW / BAND_CHAR_PX));
-      maxLines = Math.max(maxLines, wrappedLineCount(g.bandLabel, perLine));
-    }
-    return Math.min(
-      BAND_H_MAX,
-      Math.max(BAND_H_MIN, maxLines * BAND_LINE_H + BAND_PAD_V)
-    );
-  }, [bandLayout, colW]);
+  const bandH = useMemo(
+    () =>
+      bandRowHeight(
+        bandLayout.map((b) => ({ label: b.bandLabel, span: b.span })),
+        colW,
+        {
+          chromeW: BAND_CHROME_W,
+          charPx: BAND_CHAR_PX,
+          lineH: BAND_LINE_H,
+          padV: BAND_PAD_V,
+          minH: BAND_H_MIN,
+          maxH: BAND_H_MAX,
+        }
+      ),
+    [bandLayout, colW]
+  );
 
-  const HEADER_H = (bandsVisible ? bandH : 0) + stripVisibleH;
+  const groupH = useMemo(
+    () =>
+      groupBands && groupBands.length
+        ? bandRowHeight(groupBands, colW, {
+            chromeW: GROUP_CHROME_W,
+            charPx: GROUP_CHAR_PX,
+            lineH: BAND_LINE_H,
+            padV: BAND_PAD_V,
+            minH: GROUP_H_MIN,
+            maxH: GROUP_H_MAX,
+          })
+        : 0,
+    [groupBands, colW]
+  );
+
+  const HEADER_H = groupH + (bandsVisible ? bandH : 0) + stripVisibleH;
+  // Group boundaries, so the dataset bands below can continue the divider.
+  const groupStarts = useMemo(
+    () => new Set((groupBands ?? []).map((g) => g.startCol)),
+    [groupBands]
+  );
 
   // Every cell's color, precomputed once per data/order change (packed RGB +
   // present-mask). Scrolling never recomputes a color.
@@ -646,6 +639,7 @@ export default function CollatedMatrix({
   const headerRef = useRef<HTMLDivElement>(null);
   const rowLabelsColRef = useRef<HTMLDivElement>(null);
   const bandInnerRef = useRef<HTMLDivElement>(null);
+  const groupInnerRef = useRef<HTMLDivElement>(null);
   const labelStripRef = useRef<HTMLDivElement>(null);
   const labelInnerRef = useRef<HTMLDivElement>(null);
   const rowLabelsInnerRef = useRef<HTMLDivElement>(null);
@@ -657,6 +651,9 @@ export default function CollatedMatrix({
   // Visible spans of columns / rows for windowing the DOM header + gene column.
   const [colWindow, setColWindow] = useState({ start: 0, end: 0 });
   const [rowWindow, setRowWindow] = useState({ start: 0, end: 0 });
+  // Leftmost visible column: a wide group band scrolled partly out of view
+  // shifts its label right so the group stays named.
+  const [firstVisibleCol, setFirstVisibleCol] = useState(0);
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
   // The phenotype column whose label was clicked, and where.
   const [containsOpen, setContainsOpen] = useState<{
@@ -734,6 +731,8 @@ export default function CollatedMatrix({
       const vh = el.clientHeight;
       if (bandInnerRef.current)
         bandInnerRef.current.style.transform = `translateX(${-sl}px)`;
+      if (groupInnerRef.current)
+        groupInnerRef.current.style.transform = `translateX(${-sl}px)`;
       if (labelInnerRef.current)
         labelInnerRef.current.style.transform = `translateX(${-sl}px)`;
       if (rowLabelsInnerRef.current)
@@ -748,6 +747,9 @@ export default function CollatedMatrix({
       const rEnd = Math.min(nRows, Math.ceil((st + vh) / ROW_H) + ROW_OVERSCAN);
       setColWindow((p) => (p.start === cStart && p.end === cEnd ? p : { start: cStart, end: cEnd }));
       setRowWindow((p) => (p.start === rStart && p.end === rEnd ? p : { start: rStart, end: rEnd }));
+      // First *fully* visible column, so a shifted group label never starts
+      // under the panel's left edge.
+      setFirstVisibleCol(Math.ceil(sl / colW));
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(frame);
@@ -1042,6 +1044,76 @@ export default function CollatedMatrix({
           flexDirection: "column",
         }}
       >
+        {/* "Group columns by" row, stacked above the dataset bands. */}
+        {groupH > 0 && groupBands && (
+          <div
+            data-testid="matrix-group-row"
+            style={{
+              height: groupH,
+              flexShrink: 0,
+              overflow: "hidden",
+              position: "relative",
+            }}
+          >
+            <div
+              ref={groupInnerRef}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: nCols * colW,
+                height: groupH,
+                willChange: "transform",
+              }}
+            >
+              {groupBands
+                .filter(
+                  (g) => g.startCol < colWindow.end && g.startCol + g.span > colWindow.start
+                )
+                .map((g, idx) => {
+                  const width = g.span * colW;
+                  // Keep the label in view while its group is scrolled past.
+                  const shift = Math.max(
+                    0,
+                    Math.min(
+                      (firstVisibleCol - g.startCol) * colW,
+                      width - GROUP_LABEL_MIN_W
+                    )
+                  );
+                  return (
+                    <div
+                      key={g.key}
+                      title={g.tooltip ? `${g.label} — ${g.tooltip}` : g.label}
+                      style={{
+                        position: "absolute",
+                        left: g.startCol * colW,
+                        top: 0,
+                        width,
+                        height: groupH,
+                        background: "#e5e7eb",
+                        // A heavier divider between groups than between datasets.
+                        borderLeft:
+                          g.startCol === 0 && idx === 0 ? "none" : "2px solid #9ca3af",
+                        borderBottom: "1px solid #d1d5db",
+                        boxSizing: "border-box",
+                        padding: "3px 4px",
+                        paddingLeft: 4 + shift,
+                        overflow: "hidden",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        lineHeight: 1.15,
+                        color: "#111827",
+                        whiteSpace: "normal",
+                      }}
+                    >
+                      {g.label}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
         {/* Dataset bands (grouped mode only) — fixed, doesn't scroll. */}
         {bandsVisible && (
           <div
@@ -1078,7 +1150,10 @@ export default function CollatedMatrix({
                       width: g.span * colW,
                       height: bandH,
                       background: "#f3f4f6",
-                      borderLeft: "1px solid #e5e7eb",
+                      borderLeft:
+                        g.startCol > 0 && groupStarts.has(g.startCol)
+                          ? "2px solid #9ca3af"
+                          : "1px solid #e5e7eb",
                       borderBottom: "1px solid #e5e7eb",
                       boxSizing: "border-box",
                       padding: "3px 4px",

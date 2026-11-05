@@ -18,6 +18,11 @@ import {
   scaleFor,
 } from "@/lib/matrix-color-scales";
 import { orderColumns, orderRows } from "@/lib/matrix-clustering";
+import {
+  COLUMN_GROUP_OPTIONS,
+  groupColumns,
+  type ColumnGroupKey,
+} from "@/lib/matrix-grouping";
 import type {
   CollatedMatrixResponse,
   MatrixMode,
@@ -511,9 +516,35 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             data&rdquo;. No p-values or effect sizes are imputed.
           </dd>
 
+          <dt style={METHODS_TERM}>Grouping columns</dt>
+          <dd style={METHODS_DEF}>
+            In the by-study views, <em>Group columns by</em>{" "}sorts whole
+            datasets into groups, shown as a band above the dataset headings:
+            by <strong>modality</strong>{" "}(the default), or by a dataset
+            tag &mdash; <strong>model system</strong>, <strong>region</strong>,{" "}
+            <strong>species</strong>{" "}(the organism the experiment was done
+            in) or <strong>experiment type</strong>{" "}(how the genes were
+            perturbed: CRISPR knockout, CRISPRi, CRISPRa, knockdown, patient
+            lines, &hellip;). Groups come in a fixed order; inside a group the
+            columns keep their usual order, by modality and then dataset. Tags
+            are set per table, so a paper whose tables differ can land in two
+            groups. <strong>Region</strong>{" "}is coarse on purpose: a table can
+            carry several anatomy (UBERON) terms, and it goes to the first of{" "}
+            <em>cerebral cortex</em>{" "}(including the cerebral lobes),{" "}
+            <em>other forebrain</em>{" "}and <em>brain (whole or unspecified)</em>{" "}
+            that contains <em>all</em>{" "}of them &mdash; so a table tagged with
+            both cortex and striatum counts as other forebrain. Tables outside
+            the brain are <em>whole organism</em>{" "}(e.g. zebrafish larva
+            behavior) or <em>non-brain tissue</em>{" "}(e.g. HEK293T cells,
+            tagged kidney); tables without anatomy terms (curated resources)
+            form their own group. Clustering the columns replaces the grouping
+            with a similarity order.
+          </dd>
+
           <dt style={METHODS_TERM}>Clustering rows and columns</dt>
           <dd style={{ ...METHODS_DEF, marginBottom: 0 }}>
-            By default rows are alphabetical and columns are grouped by dataset. The{" "}
+            By default rows are alphabetical and columns are grouped by modality
+            and dataset (see above). The{" "}
             <em>Cluster</em>{" "}toggles reorder rows and/or columns so similar profiles
             sit together, computed in your browser over the currently visible
             datasets and columns. Cells at their metric&rsquo;s{" "}
@@ -559,6 +590,8 @@ export default function MatrixPage() {
   const [clusterRows, setClusterRows] = useState(false);
   const [clusterCols, setClusterCols] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  // By study views: which dataset property groups the columns.
+  const [groupBy, setGroupBy] = useState<ColumnGroupKey>("modality");
 
   const toggleHide = (sourceTable: string) =>
     setHidden((prev) => {
@@ -615,12 +648,26 @@ export default function MatrixPage() {
     [columns, hidden]
   );
 
+  // "Group columns by" (By study only). Clustering replaces the grouping, and
+  // the by-readout view's sections are readout kinds, not datasets.
+  const sectionLabel = useMemo(
+    () => new Map(sections.map((s) => [s.key, s.label])),
+    [sections]
+  );
+  const grouped = useMemo(
+    () =>
+      mode === "collated" || clusterCols
+        ? null
+        : groupColumns(visibleColumns, groupBy, sectionLabel, data?.datasetGroups),
+    [mode, clusterCols, visibleColumns, groupBy, sectionLabel, data]
+  );
+
   const orderedColumns = useMemo(
     () =>
       clusterCols
         ? orderColumns(genes, visibleColumns).map((i) => visibleColumns[i])
-        : visibleColumns,
-    [clusterCols, genes, visibleColumns]
+        : (grouped?.columns ?? visibleColumns),
+    [clusterCols, genes, visibleColumns, grouped]
   );
 
   const orderedGenes = useMemo(
@@ -778,6 +825,39 @@ export default function MatrixPage() {
             </ToggleButton>
           </div>
 
+          {mode !== "collated" && (
+            <div
+              role="group"
+              aria-label="Group columns by"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+                marginBottom: 10,
+              }}
+            >
+              <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
+                Group columns by:
+              </span>
+              {COLUMN_GROUP_OPTIONS.map((o) => (
+                <ToggleButton
+                  key={o.key}
+                  active={!clusterCols && groupBy === o.key}
+                  disabled={loading || clusterCols}
+                  onClick={() => setGroupBy(o.key)}
+                >
+                  {o.label}
+                </ToggleButton>
+              ))}
+              {clusterCols && (
+                <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                  off while columns are clustered
+                </span>
+              )}
+            </div>
+          )}
+
           <div
             style={{
               display: "flex",
@@ -923,6 +1003,8 @@ export default function MatrixPage() {
                 summary={mode === "summary"}
                 lowerMode={mode === "collated" ? lowerMode : "direction"}
                 onToggleHide={toggleHide}
+                groupBands={grouped?.groups ?? null}
+                groupBy={groupBy}
               />
             </div>
           )}
