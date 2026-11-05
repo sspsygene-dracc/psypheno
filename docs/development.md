@@ -97,6 +97,39 @@ gone stale. It is a UUID rather than the source file's (mtime, size) because
 promotion *copies* these files: `cp` gives the target's main DB a fresh mtime,
 which used to mark every correctly-promoted meta DB permanently stale.
 
+**`meta-analysis` skips the work when its inputs are unchanged.** Every
+`load-db` mints a new build UUID, so judged by UUID alone the meta DB would go
+stale (and need a 10+ minute rebuild) after every dataset build. Instead the
+meta DB also records an *input fingerprint* (`meta_analysis_info.input_fingerprint`,
+with the per-component breakdown in `input_fingerprint_detail`). When a rerun
+computes the same fingerprint, it copies the existing meta DB, re-stamps its
+`source_build_uuid` with the new build's, and swaps it back in (same atomic,
+group-writable swap as a full build) — seconds, no p-value scans, no R. This is
+what `deploy --include-meta-analysis`, `deploy-meta-analysis` and
+`promote-dev-to-prod`'s stale-meta refresh all call, so they benefit too.
+
+The fingerprint (`processing/combined_pvalues/fingerprint.py`) covers:
+
+- per meta table, a content hash computed by `load-db` and stored in
+  `data_tables.meta_input_hash`: the `id`, p-value and effect columns' values
+  and the link tables' `(central_gene_id, id)` pairs — i.e. what landed in the
+  DB, so preprocessing / gene-resolution / loader changes are all caught;
+- the table catalog the run would use (after the `metaAnalysisAssays`,
+  `meta_analysis: false` and prod-destination filters) and the assay list;
+- `(id, kind, human_symbol, hgnc_id)` of every gene those link tables reference;
+- the HGNC / NIMH / TF reference files used for gene flags;
+- a code version: the `combined_pvalues` package, the R script and the meta
+  orchestration in `sq_load.py`.
+
+Anything not fingerprintable (a dataset DB built before `meta_input_hash`
+existed, or a meta DB from a run where an R job failed) always rebuilds. The R
+installation itself (package versions) is *not* fingerprinted — the same
+assumption the R result cache makes. `sspsygene meta-analysis --force` (or
+`--no-r-cache`, which implies it; `deploy-meta-analysis --force` on the servers)
+always rebuilds. The progress lines carry elapsed seconds, so the cost of each
+stage of a real rebuild is visible in the log. The overview DB has no such
+fingerprint yet — it is cheap to rebuild.
+
 ### Fast iteration with `--test`
 
 `sspsygene load-db --test` runs the **full** pipeline (every dataset, every

@@ -972,8 +972,13 @@ def _step_meta_analysis_site(
     label: str,
     no_r_cache: bool = False,
     env_vars: dict[str, str] | None = None,
+    force: bool = False,
 ) -> None:
     """Run `sspsygene meta-analysis` on one psygene site.
+
+    The command itself skips the computation (re-stamping the existing meta DB
+    through the same group-writable atomic swap) when the inputs are unchanged;
+    `force` passes --force to always rebuild.
 
     Reads that site's already-built sspsygene.db and writes its sibling
     sspsygene-meta.db via atomic swap (issue #176). No build / restart needed:
@@ -986,7 +991,9 @@ def _step_meta_analysis_site(
     env_prefix = ""
     if env_vars:
         env_prefix = " ".join(f"{k}={v}" for k, v in env_vars.items()) + " "
-    flags = " --no-r-cache" if no_r_cache else ""
+    flags = (" --no-r-cache" if no_r_cache else "") + (
+        " --force" if force else ""
+    )
     cmd = (
         f"cd {path} && "
         f"{CONDA_INIT} && "
@@ -1008,6 +1015,7 @@ def run_deploy_meta_analysis(
     instances: str | None = None,
     no_r_cache: bool = False,
     allow_undeployed_commits: bool = False,
+    force: bool = False,
 ) -> None:
     """Refresh sspsygene-meta.db on the selected psygene sites (issue #176).
 
@@ -1035,6 +1043,7 @@ def run_deploy_meta_analysis(
             label=INSTANCE_LABELS[inst],
             no_r_cache=no_r_cache,
             env_vars=INSTANCE_ENVS[inst],
+            force=force,
         )
 
     click.secho("\nMeta-analysis deployment complete!", fg="green", bold=True)

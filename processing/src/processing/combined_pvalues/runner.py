@@ -15,6 +15,7 @@ with `sq_load.py` and the test suite.
 
 import os
 import sqlite3
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -91,11 +92,25 @@ class MetaAnalysisRun:
         # p-value table", the legacy behavior the test suite exercises.
         self.src_schema = src_schema
         self.deg_assays = deg_assays
+        # False once any R job returned no result (R unavailable / failed). The
+        # caller must then not record an input fingerprint: the output is
+        # missing its combined columns, and a matching fingerprint would
+        # re-stamp that broken DB forever instead of recomputing it.
+        self.r_complete = True
+        self._t0 = time.monotonic()
+
+    def _echo(self, msg: str) -> None:
+        """Progress line prefixed with seconds since the run started, so the
+        cost of each stage is visible in deploy logs."""
+        click.echo(f"[{time.monotonic() - self._t0:7.1f}s] {msg}")
 
     # -- top-level pipeline --------------------------------------------------
 
-    def run(self) -> None:
-        click.echo("\nComputing combined p-values...")
+    def run(self) -> bool:
+        """Run the pipeline; returns `self.r_complete`."""
+        self._t0 = time.monotonic()
+        click.echo("")
+        self._echo("Computing combined p-values...")
 
         # Re-evaluate R availability fresh each run (and only once across this
         # run's parallel R jobs — see r_runner.prepare_r). If R can't be set up,
@@ -106,10 +121,10 @@ class MetaAnalysisRun:
         source_tables = self._load_source_tables()
         if not source_tables:
             click.echo("  No tables with pvalue_column configured, skipping.")
-            return
+            return self.r_complete
 
         flagger = self._load_gene_flagger()
-        click.echo(f"  Found {len(source_tables)} tables with p-value columns")
+        self._echo(f"Found {len(source_tables)} tables with p-value columns")
 
         groups = self._build_compute_groups(source_tables)
 
@@ -120,9 +135,14 @@ class MetaAnalysisRun:
 
         collected = self._derive_collected_groups(groups, masters, tables_4col)
 
+        self._echo(f"Derived {len(collected)} groups")
+
         r_results_by_idx = self._run_r_jobs(collected)
+        self._echo("R jobs done")
 
         self._write_all_results(collected, r_results_by_idx, flagger)
+        self._echo("Wrote combined p-value tables")
+        return self.r_complete
 
     # -- stages --------------------------------------------------------------
 
@@ -215,9 +235,9 @@ class MetaAnalysisRun:
         Six scans total: target/perturbed × any/up/down. Each filtered group
         downstream is derived from its matching master via `filter_collected`.
         """
-        click.echo(
-            "\n  Collecting p-values "
-            "(6 master scans by direction × regulation)..."
+        click.echo("")
+        self._echo(
+            "Collecting p-values (6 master scans by direction × regulation)..."
         )
         masters: dict[MasterKey, CollectedPvalues] = {}
         regulations: tuple[Regulation, ...] = ("any", "up", "down")
@@ -231,6 +251,10 @@ class MetaAnalysisRun:
                     direction=direction,
                     regulation=regulation,
                     src_schema=self.src_schema,
+                )
+                self._echo(
+                    f"Master scan done: direction={direction}{rlbl} "
+                    f"({len(masters[(direction, regulation)].all_pvalues)} genes)"
                 )
         return masters
 
@@ -344,8 +368,9 @@ class MetaAnalysisRun:
             f" ({total_groups - len(r_jobs)} duplicate(s) deduplicated)"
             if total_groups > len(r_jobs) else ""
         )
-        click.echo(
-            f"\n  Launching {len(r_jobs)} R meta-analysis job(s) "
+        click.echo("")
+        self._echo(
+            f"Launching {len(r_jobs)} R meta-analysis job(s) "
             f"with {max_workers} parallel workers{dedup_note}..."
         )
 
@@ -378,11 +403,14 @@ class MetaAnalysisRun:
                     members = bucket_members[key]
                     try:
                         result = future.result()
+                        if result is None:
+                            self.r_complete = False
                         fanout = result if result is not None else {}
                     except Exception as e:  # pylint: disable=broad-exception-caught
                         tqdm.write(click.style(
                             f"  {label}R job failed: {e}", fg="red",
                         ))
+                        self.r_complete = False
                         fanout = {}
                     for m in members:
                         r_results_by_idx[m] = fanout
@@ -396,7 +424,8 @@ class MetaAnalysisRun:
         r_results_by_idx: dict[int, dict[int, GeneCombinedPvalues]],
         flagger: GeneFlagger,
     ) -> None:
-        click.echo("\n  Writing results to database...")
+        click.echo("")
+        self._echo("Writing results to database...")
         self._ensure_groups_metadata_table()
 
         for i, cg in enumerate(collected):
@@ -478,15 +507,15 @@ def compute_combined_pvalues(
     use_r_cache: bool = True,
     src_schema: str = "main",
     deg_assays: set[str] | None = None,
-) -> None:
+) -> bool:
     """Compute and store combined p-values per gene across the meta-analysis
     datasets, then separately per assay / condition / organism (and their
-    combinations).
+    combinations). Returns False if any R job produced no result.
 
     `src_schema` selects where the dataset tables are read from ("main", or an
     ATTACH alias when writing to a separate meta DB). `deg_assays`, when set,
     restricts the combination to those assay keys (see `MetaAnalysisRun`)."""
-    MetaAnalysisRun(
+    return MetaAnalysisRun(
         conn,
         hgnc_path=hgnc_path,
         no_index=no_index,
@@ -496,3 +525,17 @@ def compute_combined_pvalues(
         src_schema=src_schema,
         deg_assays=deg_assays,
     ).run()
+
+
+def load_meta_source_tables(
+    conn: sqlite3.Connection,
+    *,
+    src_schema: str = "main",
+    deg_assays: set[str] | None = None,
+) -> list[SourceTableRow]:
+    """The exact source-table catalog a `MetaAnalysisRun` with these settings
+    would combine. Used by the input fingerprint so it and the build can never
+    disagree on which tables count."""
+    return MetaAnalysisRun(
+        conn, src_schema=src_schema, deg_assays=deg_assays
+    )._load_source_tables()

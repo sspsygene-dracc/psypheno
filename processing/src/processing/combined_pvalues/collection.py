@@ -7,6 +7,7 @@ shared by collection and the R writer.
 """
 
 import sqlite3
+import time
 
 import click
 
@@ -85,6 +86,8 @@ def collect_pvalues_for_tables(
     for table_name, pvalue_cols_raw, link_tables_raw, effect_col_raw in (
         tables_with_pvalues
     ):
+        table_started = time.monotonic()
+        n_rows = 0
         table_name = sanitize_identifier(table_name)
         pvalue_cols = [sanitize_identifier(c) for c in pvalue_cols_raw.split(",")]
         link_table_names = parse_link_tables_for_direction(
@@ -136,6 +139,7 @@ def collect_pvalues_for_tables(
                     )
                     continue
 
+                n_rows += len(rows)
                 for gene_id, pval in rows:
                     if gene_id is None:
                         continue
@@ -144,7 +148,10 @@ def collect_pvalues_for_tables(
                     collected.all_pvalues[gene_id].append(pval_float)
 
         col_label = ", ".join(pvalue_cols) if len(pvalue_cols) > 1 else pvalue_cols[0]
-        click.echo(f"  {label}Processed {table_name}.{col_label}")
+        click.echo(
+            f"  {label}Processed {table_name}.{col_label} "
+            f"({n_rows} rows, {time.monotonic() - table_started:.1f}s)"
+        )
 
     return collected
 

@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import sqlite3
 import sys
+import time
 from typing import Any
 
 import click
@@ -12,7 +13,16 @@ import yaml
 
 from processing.build_info import read_build_uuid, write_build_info
 from processing.central_gene_table import get_central_gene_table
-from processing.combined_pvalues.runner import compute_combined_pvalues
+from processing.combined_pvalues.fingerprint import (
+    compute_fingerprint,
+    fingerprint_digest,
+    table_content_hash,
+)
+from processing.combined_pvalues.reuse import restamp_meta_db, reuse_decision
+from processing.combined_pvalues.runner import (
+    compute_combined_pvalues,
+    load_meta_source_tables,
+)
 from processing.ensembl_symbol_table import compute_ensembl_to_symbol
 from processing.exports import write_exports
 from processing.gene_descriptions import copy_gene_descriptions
@@ -375,7 +385,11 @@ def load_data_tables(
         anatomy_region TEXT,
         stage TEXT,
         stage_detail TEXT,
-        experiment_type TEXT)"""
+        experiment_type TEXT,
+        -- Content key of what the meta-analysis reads from this table and its
+        -- link tables (combined_pvalues/fingerprint.py); NULL without a
+        -- pvalue_column. Lets `meta-analysis` skip an unchanged rerun.
+        meta_input_hash TEXT)"""
     )
     log = get_sspsygene_logger()
     loaded: list[str] = []
@@ -565,6 +579,12 @@ def load_data_tables(
             ),
             "anatomy_column": table_config.tags.anatomy_column,
             "anatomy_region": table_config.tags.coarse_region(),
+            "meta_input_hash": table_content_hash(
+                data_and_meta.data,
+                data_and_meta.link_tables,
+                table_config.pvalue_column,
+                table_config.effect_column,
+            ),
         }
         columns = ", ".join(row.keys())
         placeholders = ", ".join(f":{col}" for col in row.keys())
@@ -1060,6 +1080,7 @@ META_SCHEMA_VERSION = "2"
 def _write_meta_analysis_info(
     conn: sqlite3.Connection,
     deg_assays: set[str] | None,
+    fingerprint: dict[str, Any] | None = None,
 ) -> None:
     """Record provenance + a fingerprint of the source dataset DB into the meta
     DB, so the web app can detect when the meta-analysis has drifted from the
@@ -1073,7 +1094,12 @@ def _write_meta_analysis_info(
     both the promotion copy and `subset-db`.
 
     Advisory only — the banner never blocks rendering, and a source DB with no
-    build_info (predating #225) records no fingerprint rather than failing."""
+    build_info (predating #225) records no fingerprint rather than failing.
+
+    `fingerprint` (combined_pvalues/fingerprint.py) describes the meta DB's
+    *inputs*; a later `meta-analysis` whose inputs match re-stamps this file
+    instead of recomputing it. Pass None when the run is incomplete (an R job
+    failed) so the next run recomputes rather than reuses."""
     built_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
     info: dict[str, str] = {
         "schema_version": META_SCHEMA_VERSION,
@@ -1083,6 +1109,9 @@ def _write_meta_analysis_info(
     source_uuid = read_build_uuid(conn, "src")
     if source_uuid is not None:
         info["source_build_uuid"] = source_uuid
+    if fingerprint is not None:
+        info["input_fingerprint"] = fingerprint_digest(fingerprint)
+        info["input_fingerprint_detail"] = json.dumps(fingerprint, sort_keys=True)
     conn.execute(
         "CREATE TABLE meta_analysis_info (key TEXT PRIMARY KEY, value TEXT)"
     )
@@ -1103,12 +1132,18 @@ def run_meta_analysis(
     tf_list_path: Path | None = None,
     use_r_cache: bool = True,
     deg_assays: set[str] | None = None,
+    force: bool = False,
 ) -> None:
     """Compute the combined-p-value meta-analysis into a standalone meta DB.
 
     Reads the already-built dataset DB at `main_db` (ATTACHed read-only as
     `src`), computes the combined p-values restricted to `deg_assays`, and
     atomically swaps the result onto `meta_db`. Never touches `main_db`.
+
+    Unless `force`, first compares the inputs' fingerprint with the one the
+    existing meta DB records: if they match, the existing file is what a
+    rebuild would produce, so it is only re-stamped with the dataset DB's new
+    build UUID (seconds instead of a full rebuild).
 
     The dataset DB must already exist — this is the second of the two
     independent command chains in issue #176 (`load-db` then `meta-analysis`)."""
@@ -1117,6 +1152,62 @@ def run_meta_analysis(
         raise ValueError(
             f"Dataset DB not found at {main_db}; run `sspsygene load-db` first."
         )
+    t0 = time.monotonic()
+
+    def echo(msg: str, **style: Any) -> None:
+        click.echo(click.style(f"[{time.monotonic() - t0:7.1f}s] {msg}", **style))
+
+    def fingerprint_of(conn: sqlite3.Connection) -> dict[str, Any] | None:
+        source_tables = load_meta_source_tables(
+            conn, src_schema="src", deg_assays=deg_assays
+        )
+        return compute_fingerprint(
+            conn,
+            source_tables,
+            src_schema="src",
+            deg_assays=deg_assays,
+            hgnc_path=hgnc_path,
+            nimh_csv_path=nimh_csv_path,
+            tf_list_path=tf_list_path,
+            no_index=no_index,
+        )
+
+    # Fingerprint + build UUID read through one ATTACH, so they describe the
+    # same dataset DB file even if load-db swaps a new one in meanwhile.
+    probe = sqlite3.connect(":memory:", uri=True)
+    try:
+        probe.execute(f"ATTACH DATABASE 'file:{main_db}?mode=ro' AS src")
+        fingerprint = fingerprint_of(probe)
+        fingerprint_uuid = read_build_uuid(probe, "src")
+    finally:
+        probe.close()
+    echo("Computed meta-analysis input fingerprint")
+
+    if force:
+        echo("--force: rebuilding the meta DB regardless of its inputs")
+    else:
+        reusable, reason = reuse_decision(meta_db, fingerprint, META_SCHEMA_VERSION)
+        if reusable:
+            changed = restamp_meta_db(
+                meta_db,
+                fingerprint_uuid,
+                staging_path=_staging_path,
+                checkpoint_and_swap=_checkpoint_and_swap,
+            )
+            echo(
+                "Meta-analysis inputs unchanged — "
+                + (
+                    f"re-stamped {meta_db} for dataset build {fingerprint_uuid}"
+                    if changed
+                    else f"{meta_db} is already current"
+                )
+                + " (no recomputation; use --force to rebuild)",
+                fg="green",
+                bold=True,
+            )
+            return
+        echo(f"Rebuilding the meta DB: {reason}")
+
     meta_db.parent.mkdir(parents=True, exist_ok=True)
     staging = _staging_path(meta_db)
 
@@ -1126,7 +1217,11 @@ def run_meta_analysis(
         # without ever locking or mutating the file the web app serves. URI
         # attach is honored because NewSqlite3 opens the connection with uri=True.
         conn.execute(f"ATTACH DATABASE 'file:{main_db}?mode=ro' AS src")
-        compute_combined_pvalues(
+        if read_build_uuid(conn, "src") != fingerprint_uuid:
+            # The dataset DB was swapped since the probe: fingerprint the file
+            # this build actually reads.
+            fingerprint = fingerprint_of(conn)
+        complete = compute_combined_pvalues(
             conn,
             hgnc_path=hgnc_path,
             no_index=no_index,
@@ -1136,19 +1231,26 @@ def run_meta_analysis(
             src_schema="src",
             deg_assays=deg_assays,
         )
+        if not complete:
+            echo(
+                "Some R jobs produced no result — not recording an input "
+                "fingerprint, so the next run recomputes instead of reusing "
+                "this meta DB.",
+                fg="yellow",
+                bold=True,
+            )
         # Must run while `src` is still ATTACHed — it reads the source's
         # build_info.build_uuid through it.
-        _write_meta_analysis_info(conn, deg_assays)
+        _write_meta_analysis_info(
+            conn, deg_assays, fingerprint if complete else None
+        )
         # Detach before the context manager's PRAGMA optimize / commit so those
         # never reach across into the read-only source DB.
         conn.execute("DETACH DATABASE src")
+        echo("Optimizing meta DB")
 
     _checkpoint_and_swap(staging, meta_db)
-    click.echo(
-        click.style(
-            f"Wrote meta-analysis to {meta_db}", fg="green", bold=True
-        )
-    )
+    echo(f"Wrote meta-analysis to {meta_db}", fg="green", bold=True)
 
 
 def run_overview_matrix(

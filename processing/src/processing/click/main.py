@@ -209,16 +209,29 @@ def load_db(
     default=False,
     help="Bypass the R meta-analysis result cache (processing/r-cache/). "
     "Forces every R job to re-run; useful when iterating on the R script "
-    "before its bytes change.",
+    "before its bytes change. Implies --force.",
 )
-def meta_analysis(no_index: bool, no_r_cache: bool) -> None:
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Rebuild even when the meta-analysis inputs are unchanged. By "
+    "default an existing meta DB whose recorded input fingerprint matches the "
+    "current dataset DB is only re-stamped with the new build UUID.",
+)
+def meta_analysis(no_index: bool, no_r_cache: bool, force: bool) -> None:
     """Compute the combined-p-value meta-analysis into sspsygene-meta.db.
 
     Reads the already-built dataset DB (sspsygene.db) and writes a separate
     meta DB on its own cadence (issue #176). The combination is restricted to
     the assay types listed under `metaAnalysisAssays` in globals.yaml — the
     differential-expression assays whose p-values are comparable (issue #187).
-    Run `sspsygene load-db` first if the dataset DB doesn't exist yet."""
+    Run `sspsygene load-db` first if the dataset DB doesn't exist yet.
+
+    Skips the computation when its inputs are unchanged (same per-table
+    content hashes, assay list, gene identities, reference files and code):
+    the existing meta DB is then just re-stamped for the new dataset build.
+    Pass --force to always rebuild."""
     from processing.sq_load import run_meta_analysis
 
     _echo_sspsygene_env("start")
@@ -245,6 +258,7 @@ def meta_analysis(no_index: bool, no_r_cache: bool) -> None:
             tf_list_path=config.gene_map_config.tf_list_file,
             use_r_cache=not no_r_cache,
             deg_assays=deg_assays,
+            force=force or no_r_cache,
         )
         _echo_sspsygene_env("end")
     except ValueError as e:
@@ -700,11 +714,19 @@ def deploy(
     help="Bypass the R meta-analysis result cache on the server, forcing "
     "every R job to re-run.",
 )
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Rebuild each site's meta DB even when its inputs are unchanged "
+    "(passes --force to `sspsygene meta-analysis`).",
+)
 def deploy_meta_analysis(
     no_push: bool,
     allow_undeployed_commits: bool,
     instances: str | None,
     no_r_cache: bool,
+    force: bool,
 ) -> None:
     """Refresh sspsygene-meta.db on psygene sites (separate from `deploy`).
 
@@ -719,6 +741,7 @@ def deploy_meta_analysis(
         instances=instances,
         no_r_cache=no_r_cache,
         allow_undeployed_commits=allow_undeployed_commits,
+        force=force,
     )
 
 
