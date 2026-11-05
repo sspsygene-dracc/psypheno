@@ -25,6 +25,7 @@ deployTo:
   - int
   - prod
 model_system: curated
+experiment_type: curated
 tables:
   - table: sfari_animal_genes
     changelog:

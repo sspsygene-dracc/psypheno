@@ -30,6 +30,7 @@ deployTo:
   - int
   - prod
 model_system: primary_culture
+experiment_type: crispri
 anatomy:
   - UBERON:0000956  # cerebral cortex
 stage: fetal

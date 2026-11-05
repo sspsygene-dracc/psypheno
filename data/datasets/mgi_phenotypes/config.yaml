@@ -28,6 +28,7 @@ deployTo:
   - int
   - prod
 model_system: curated
+experiment_type: curated
 tables:
   - table: mgi_high_level_phenotypes
     changelog:

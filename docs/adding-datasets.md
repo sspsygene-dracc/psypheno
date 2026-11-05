@@ -273,6 +273,7 @@ anatomy:                            # UBERON ids; omit only for `curated`
   - UBERON:0000955                  #   brain
 stage: in_vitro                     # optional
 stage_detail: "NGN2 day 28"         # optional short free text
+experiment_type: crispri            # exactly one value
 
 # ============================================================================
 # Tables — this is where the actual data is defined
@@ -1120,11 +1121,12 @@ If you are not sure whether data is cleared for public release, ship it as
 `deployTo: [dev]` (or `[dev, int]`) and add `prod` in a follow-up commit once
 it is. Widening is a one-line change; un-publishing is not.
 
-### Dataset tags: model system, anatomy, stage
+### Dataset tags: model system, anatomy, stage, experiment type
 
-Tags describe the biological system the data come from. They show as chips on
-/full-datasets and /publications and drive the species / model system / region
-filters on /full-datasets. Put them at the **top level, directly after the
+Tags describe the biological system the data come from and the kind of
+experiment that produced them. They show as chips on /full-datasets and
+/publications, drive the species / model system / region filters on
+/full-datasets, and the "Group columns by" control on /matrix. Put them at the **top level, directly after the
 `deployTo:` block**:
 
 ```yaml
@@ -1135,6 +1137,7 @@ anatomy:                          # UBERON CURIEs; required unless model_system:
   - UBERON:0000955                # brain
 stage: in_vitro                   # optional, one value (list below)
 stage_detail: "NGN2 induction, day 28"   # optional short free text
+experiment_type: crispri          # required, exactly one value (list below)
 ```
 
 **`model_system`** (exactly one):
@@ -1169,17 +1172,40 @@ tagged neocortex or a Brodmann area.
 free text (E14.5, P28, 5–7 dpf, "GW 17–20"). Omit both if the source doesn't
 say, or the dataset is curated.
 
-**Per-table overrides.** Any of the four keys can also go inside a `- table:`
+**`experiment_type`** (exactly one) — for perturbation studies, *how the genes
+were perturbed*; for everything else, what kind of study it is:
+
+| Value | Use for |
+| --- | --- |
+| `crispr_ko` | Cas9 knockout / loss-of-function edits: pooled CRISPR-KO screens, in vivo Perturb-seq with Cas9, engineered KO lines, stable mutant and F0 crispant zebrafish |
+| `crispri` | CRISPR interference (dCas9-KRAB), incl. CRISPRi Perturb-seq / CROP-seq |
+| `crispra` | CRISPR activation |
+| `knockdown` | RNAi (shRNA / siRNA) or antisense-oligo knockdown |
+| `overexpression` | exogenous expression of a wild-type gene, e.g. tagged AP-MS baits |
+| `isogenic_variant` | an engineered disease variant compared with the wild-type allele in the same background (knock-in lines, mutant vs wild-type constructs) |
+| `patient_lines` | patient-derived iPSCs / neurons / organoids compared with control lines |
+| `drug_treatment` | pharmacological treatment |
+| `multiple` | one table that combines several of the above (e.g. CRISPRa and shRNA arms in one DEG table) |
+| `observational` | no experimental manipulation: postmortem case vs control, age associations, cell-type markers, networks inferred from unperturbed samples |
+| `human_genetics` | association statistics from human sequencing cohorts (exome TADA, de novo / inherited burden) |
+| `curated` | databases and curated gene lists (ClinVar, SFARI, MGI, ...) |
+| `other` | none of the above — say what it is in a YAML comment |
+
+Pick per **table**: if a paper's tables come from different experiment kinds
+(a CRISPRi screen next to patient-line organoids), set the dataset value to
+the common one and override the others.
+
+**Per-table overrides.** Any of the five keys can also go inside a `- table:`
 entry when one table differs; per key, the table value replaces the dataset
 value. One key is table-only: **`anatomy_column`** names the column whose rows
 say which region they come from (e.g. a per-Brodmann-area table); the table's
 `anatomy` then lists the union of regions the column covers.
 
-**Validation.** An unknown `model_system` / `stage` value, or an `anatomy` id
-not in the vendored UBERON list, fails `load-db` naming your file. An
-`anatomy_column` that isn't a column of the table fails too. A missing
-`model_system`, or missing `anatomy` on a non-curated dataset, is currently a
-warning and will become an error. If a real UBERON term is missing from the
+**Validation.** An unknown `model_system` / `stage` / `experiment_type` value,
+or an `anatomy` id not in the vendored UBERON list, fails `load-db` naming your
+file. An `anatomy_column` that isn't a column of the table fails too. A missing
+`model_system` or `experiment_type`, or missing `anatomy` on a non-curated
+dataset, is an error as well. If a real UBERON term is missing from the
 vendored list, ask a developer to add it (`data/ontology/makeDoc.txt`) rather
 than editing the TSV by hand.
 

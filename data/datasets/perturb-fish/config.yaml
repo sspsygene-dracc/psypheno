@@ -34,6 +34,7 @@ deployTo:
   - int
   - prod
 model_system: ipsc_other
+experiment_type: crispri
 anatomy:
   - UBERON:0000955  # brain
 stage: in_vitro

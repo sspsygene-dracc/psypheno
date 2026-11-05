@@ -148,6 +148,7 @@ deployTo:
   - int
   - prod
 model_system: ineurons
+experiment_type: patient_lines
 anatomy:
   - UBERON:0000955  # brain
 stage: in_vitro
@@ -222,6 +223,7 @@ tables:
         message: "Merged the separate iGLUT and iGABA tables into this one (cell_type column) after a table-count review -- see DRAFT note 5."
 
   - table: fernando_2025_isogenic_splicing
+    experiment_type: multiple  # shRNA knockdown, ASO and beta-estradiol arms
     # Deliberately NOT an overview-matrix source. Fernando 2025 perturbs a single
     # gene (NRXN1), so it can never clear the matrix's >=2-distinct-perturbed-groups
     # convergence bar — it yields zero expanded columns, and its summary column is one
@@ -297,6 +299,7 @@ tables:
         message: "Merged the separate shRNA and therapeutic tables into this one (manipulation column) after a table-count review -- see DRAFT note 5."
 
   - table: fernando_2025_nrxn_locus_splicing
+    experiment_type: multiple  # patient lines, shRNA, ASO and beta-estradiol comparisons
     # Deliberately NOT an overview-matrix source. Fernando 2025 perturbs a single
     # gene (NRXN1), so it can never clear the matrix's >=2-distinct-perturbed-groups
     # convergence bar — it yields zero expanded columns, and its summary column is one

@@ -32,6 +32,7 @@ deployTo:
   - int
   - prod
 model_system: organoid
+experiment_type: observational
 anatomy:
   - UBERON:0000955  # brain
 stage: in_vitro

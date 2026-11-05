@@ -59,7 +59,14 @@ def _substitute_ensgs(value: object, symbol_map: dict[str, str]) -> object:
 
 # Dataset-tag columns (dataset_tags.py). Selected only when present so exports
 # of a hand-built / older data_tables schema keep working.
-_TAG_COLUMNS = ("model_system", "anatomy", "anatomy_column", "stage", "stage_detail")
+_TAG_COLUMNS = (
+    "model_system",
+    "anatomy",
+    "anatomy_column",
+    "stage",
+    "stage_detail",
+    "experiment_type",
+)
 
 
 def _list_data_tables(conn: sqlite3.Connection) -> list[sqlite3.Row]:

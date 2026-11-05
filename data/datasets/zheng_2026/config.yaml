@@ -2,6 +2,7 @@ deployTo:
   - dev
   - int
 model_system: in_vivo
+experiment_type: crispr_ko
 anatomy:
   - UBERON:0000956  # cerebral cortex
 stage: postnatal

@@ -103,6 +103,7 @@ deployTo:
   - int
   - prod
 model_system: postmortem
+experiment_type: observational
 anatomy:
   - UBERON:0000451  # prefrontal cortex
 stage: adult

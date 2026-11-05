@@ -1,4 +1,5 @@
-"""Dataset tags: model_system / anatomy / stage parsing, overrides, validation."""
+"""Dataset tags: model_system / anatomy / stage / experiment_type parsing,
+overrides, validation, coarse regions."""
 
 from __future__ import annotations
 
@@ -128,6 +129,8 @@ def test_anatomy_closure_and_labels() -> None:
         ({"model_system": "in_vivo", "anatomy": [BRAIN, BRAIN]}, "more than once"),
         ({"model_system": "in_vivo", "anatomy": {"id": BRAIN}}, "list of UBERON"),
         ({"model_system": "in_vivo", "anatomy": [BRAIN], "stage_detail": ""}, "stage_detail"),
+        ({"model_system": "in_vivo", "experiment_type": "CRISPRi"}, "experiment_type"),
+        ({"model_system": "in_vivo", "experiment_type": ["crispri"]}, "experiment_type"),
     ],
 )
 def test_unknown_dataset_level_values_fail_naming_the_file(
@@ -172,18 +175,18 @@ def test_missing_model_system_errors_when_required(
     tmp_path: Path, require_tags: None
 ) -> None:
     with pytest.raises(ValueError, match="no model_system"):
-        _load(tmp_path, anatomy=[BRAIN])
+        _load(tmp_path, anatomy=[BRAIN], experiment_type="crispri")
 
 
 def test_missing_anatomy_errors_when_required(
     tmp_path: Path, require_tags: None
 ) -> None:
     with pytest.raises(ValueError, match="no anatomy terms"):
-        _load(tmp_path, model_system="organoid")
+        _load(tmp_path, model_system="organoid", experiment_type="crispri")
 
 
 def test_curated_needs_no_anatomy(tmp_path: Path, require_tags: None) -> None:
-    cfg = _load(tmp_path, model_system="curated")
+    cfg = _load(tmp_path, model_system="curated", experiment_type="curated")
     assert cfg.tables[0].tags.model_system == "curated"
     assert cfg.tables[0].tags.anatomy == ()
 
@@ -195,6 +198,7 @@ def test_table_override_to_curated_drops_anatomy_requirement(
         tmp_path,
         tables=[_table("t1", model_system="curated")],
         model_system="curated",
+        experiment_type="curated",
     )
     assert cfg.tables[0].tags.model_system == "curated"
 
@@ -202,8 +206,14 @@ def test_table_override_to_curated_drops_anatomy_requirement(
 def test_fully_tagged_dataset_loads_with_switch_on(
     tmp_path: Path, require_tags: None
 ) -> None:
-    cfg = _load(tmp_path, model_system="cell_line", anatomy=[KIDNEY])
+    cfg = _load(
+        tmp_path,
+        model_system="cell_line",
+        anatomy=[KIDNEY],
+        experiment_type="overexpression",
+    )
     assert cfg.tables[0].tags.anatomy == (KIDNEY,)
+    assert cfg.tables[0].tags.experiment_type == "overexpression"
 
 
 # ── anatomy_column ──────────────────────────────────────────────────────
@@ -279,3 +289,108 @@ def test_link_only_dataset_carries_tags(tmp_path: Path) -> None:
     assert cfg.link_only[0].tags == DatasetTags(
         model_system="in_vivo", anatomy=(BRAIN,), stage="adult"
     )
+
+
+# ── experiment_type ─────────────────────────────────────────────────────
+
+
+def test_experiment_type_inherits_and_overrides_per_table(tmp_path: Path) -> None:
+    cfg = _load(
+        tmp_path,
+        tables=[_table("t1"), _table("t2", experiment_type="multiple")],
+        model_system="ineurons",
+        anatomy=[BRAIN],
+        experiment_type="crispra",
+    )
+    t1, t2 = cfg.tables
+    assert t1.tags.experiment_type == "crispra"
+    assert t2.tags.experiment_type == "multiple"
+    # Overriding experiment_type leaves the other keys inherited.
+    assert t2.tags.model_system == "ineurons"
+
+
+def test_unknown_table_level_experiment_type_fails(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="experiment_type 'rnai'"):
+        _load(
+            tmp_path,
+            tables=[_table("t1", experiment_type="rnai")],
+            model_system="ineurons",
+            anatomy=[BRAIN],
+            experiment_type="crispri",
+        )
+
+
+def test_missing_experiment_type_errors_when_required(
+    tmp_path: Path, require_tags: None
+) -> None:
+    with pytest.raises(ValueError, match="no experiment_type"):
+        _load(tmp_path, model_system="ineurons", anatomy=[BRAIN])
+
+
+def test_missing_experiment_type_warns_while_switch_is_off(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(dataset_tags, "REQUIRE_DATASET_TAGS", False)
+    with caplog.at_level(logging.WARNING):
+        _load(tmp_path, model_system="ineurons", anatomy=[BRAIN])
+    assert "no experiment_type" in caplog.text
+
+
+def test_experiment_type_recognized_without_unknown_key_warnings(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        _load(
+            tmp_path,
+            tables=[_table("t1", experiment_type="crispri")],
+            model_system="ineurons",
+            anatomy=[BRAIN],
+            experiment_type="crispr_ko",
+        )
+    assert "unknown" not in caplog.text
+
+
+def test_every_real_dataset_carries_a_valid_experiment_type() -> None:
+    """The backfill: every live config.yaml resolves an experiment_type."""
+    data_root = Path(__file__).resolve().parents[2] / "data"
+    cfg = TablesConfig.from_yaml_root(data_root, Path("datasets"))
+    assert cfg.tables
+    missing = [t.table for t in cfg.tables if t.tags.experiment_type is None]
+    assert missing == []
+    assert {t.tags.experiment_type for t in cfg.tables} <= set(
+        dataset_tags.EXPERIMENT_TYPES
+    )
+
+
+# ── Coarse regions ──────────────────────────────────────────────────────
+
+FOREBRAIN = "UBERON:0001890"
+TELENCEPHALON = "UBERON:0001893"
+PARIETAL_LOBE = "UBERON:0001872"
+PREFRONTAL_CORTEX = "UBERON:0000451"
+WHOLE_ORGANISM = "UBERON:0000468"
+
+
+@pytest.mark.parametrize(
+    "anatomy, region",
+    [
+        ((NEOCORTEX,), "cerebral_cortex"),
+        ((CEREBRAL_CORTEX,), "cerebral_cortex"),
+        # Lobes count as cortex although UBERON files them under the hemisphere.
+        ((PREFRONTAL_CORTEX, PARIETAL_LOBE), "cerebral_cortex"),
+        ((TELENCEPHALON,), "forebrain"),
+        ((FOREBRAIN,), "forebrain"),
+        # Every term must be covered: cortex + other forebrain -> forebrain.
+        ((NEOCORTEX, TELENCEPHALON), "forebrain"),
+        ((BRAIN,), "brain"),
+        ((NEOCORTEX, BRAIN), "brain"),
+        ((WHOLE_ORGANISM,), "whole_organism"),
+        ((KIDNEY,), "other_tissue"),
+        ((), None),
+    ],
+)
+def test_coarse_region(anatomy: tuple[str, ...], region: str | None) -> None:
+    tags = DatasetTags(model_system="in_vivo", anatomy=anatomy)
+    assert tags.coarse_region() == region
+    if region is not None:
+        assert region in dataset_tags.COARSE_REGION_KEYS

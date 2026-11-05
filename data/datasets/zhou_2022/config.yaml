@@ -49,6 +49,7 @@ deployTo:
   - int
   - prod
 model_system: curated
+experiment_type: human_genetics
 tables:
   - table: zhou_2022_gene_meta
     changelog:

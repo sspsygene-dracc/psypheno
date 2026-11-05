@@ -3,6 +3,7 @@ deployTo:
   - int
   - prod
 model_system: in_vivo
+experiment_type: crispr_ko
 anatomy:
   - UBERON:0000955  # brain
 stage: postnatal

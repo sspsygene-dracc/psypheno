@@ -57,6 +57,7 @@ deployTo:
   - int
   - prod
 model_system: postmortem
+experiment_type: observational
 anatomy:
   - UBERON:0013535  # Brodmann (1909) area 4
   - UBERON:0006472  # Brodmann (1909) area 6

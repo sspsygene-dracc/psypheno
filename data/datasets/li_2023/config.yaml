@@ -3,6 +3,7 @@ deployTo:
   - int
   - prod
 model_system: organoid
+experiment_type: crispr_ko
 anatomy:
   - UBERON:0001893  # telencephalon
 stage: in_vitro

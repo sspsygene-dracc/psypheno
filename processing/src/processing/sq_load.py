@@ -288,7 +288,8 @@ def _load_preprocessing_for_table(in_path: Path) -> dict[str, object] | None:
 
 
 def _tag_columns(tags: DatasetTags) -> tuple[Any, ...]:
-    """(model_system, anatomy, anatomy_closure, stage, stage_detail) DB values.
+    """(model_system, anatomy, anatomy_closure, stage, stage_detail,
+    experiment_type) DB values.
 
     `anatomy` is a JSON list of {id, label} in config order (chips);
     `anatomy_closure` a JSON list of the tagged ids plus all their is_a/part_of
@@ -299,6 +300,7 @@ def _tag_columns(tags: DatasetTags) -> tuple[Any, ...]:
         json.dumps(tags.anatomy_closure()) if tags.anatomy else None,
         tags.stage,
         tags.stage_detail,
+        tags.experiment_type,
     )
 
 
@@ -364,12 +366,16 @@ def load_data_tables(
         preprocessing TEXT,
         -- Dataset tags (dataset_tags.py), effective per table (table-level
         -- keys override the dataset's). anatomy / anatomy_closure are JSON.
+        -- anatomy_region is derived: the coarse region of the anatomy terms
+        -- (DatasetTags.coarse_region), for grouping matrix columns.
         model_system TEXT,
         anatomy TEXT,
         anatomy_closure TEXT,
         anatomy_column TEXT,
+        anatomy_region TEXT,
         stage TEXT,
-        stage_detail TEXT)"""
+        stage_detail TEXT,
+        experiment_type TEXT)"""
     )
     log = get_sspsygene_logger()
     loaded: list[str] = []
@@ -552,11 +558,13 @@ def load_data_tables(
                         "anatomy_closure",
                         "stage",
                         "stage_detail",
+                        "experiment_type",
                     ),
                     _tag_columns(table_config.tags),
                 )
             ),
             "anatomy_column": table_config.tags.anatomy_column,
+            "anatomy_region": table_config.tags.coarse_region(),
         }
         columns = ", ".join(row.keys())
         placeholders = ", ".join(f":{col}" for col in row.keys())
@@ -706,13 +714,14 @@ def load_link_only_publications(
         anatomy TEXT,
         anatomy_closure TEXT,
         stage TEXT,
-        stage_detail TEXT)"""
+        stage_detail TEXT,
+        experiment_type TEXT)"""
     )
     for entry in link_only:
         pub = entry.publication
         cur.execute(
             "INSERT INTO link_only_publications VALUES "
-            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 entry.dataset,
                 ",".join(i for i in INSTANCE_ORDER if i in entry.deploy_to),

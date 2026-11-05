@@ -1,6 +1,7 @@
 deployTo:
   - dev
 model_system: in_vivo
+experiment_type: crispr_ko
 anatomy:
   - UBERON:0000468  # multicellular organism
 stage: larval

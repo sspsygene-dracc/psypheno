@@ -58,6 +58,7 @@ deployTo:
   - int
   - prod
 model_system: curated
+experiment_type: curated
 tables:
   - table: genetrek_pasteur
     shortLabel: genetrek_pasteur

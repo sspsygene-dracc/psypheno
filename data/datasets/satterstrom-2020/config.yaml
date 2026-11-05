@@ -77,6 +77,7 @@ deployTo:
   - int
   - prod
 model_system: curated
+experiment_type: human_genetics
 tables:
   # ---- Table 1: Autosomal TADA statistics (17,484 genes) ------------------
   - table: satterstrom_2020_tada

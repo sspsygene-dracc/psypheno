@@ -111,11 +111,13 @@ _KNOWN_TABLE_KEYS: frozenset[str] = frozenset(
         "_deploy_to",
         "_dataset",
         # Dataset tags (dataset_tags.py): per-table overrides of the dataset's
-        # model_system / anatomy / stage / stage_detail, plus anatomy_column.
+        # model_system / anatomy / stage / stage_detail / experiment_type, plus
+        # anatomy_column.
         "model_system",
         "anatomy",
         "stage",
         "stage_detail",
+        "experiment_type",
         "anatomy_column",
         # Internal: the dataset-level tags, validated and stamped in by
         # TablesConfig.from_yaml_root.

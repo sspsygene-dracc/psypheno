@@ -43,6 +43,7 @@ deployTo:
   - int
   - prod
 model_system: curated
+experiment_type: curated
 tables:
   - table: clinvar_gene_summary
     shortLabel: clinvar_gene_summary

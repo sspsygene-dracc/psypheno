@@ -107,11 +107,13 @@ _KNOWN_DATASET_KEYS = frozenset(
         # Link-only datasets (#242): a paper with no data table, only links.
         "links",
         "description",
-        # Dataset tags (model system / anatomy / stage) — see dataset_tags.py.
+        # Dataset tags (model system / anatomy / stage / experiment type) — see
+        # dataset_tags.py.
         "model_system",
         "anatomy",
         "stage",
         "stage_detail",
+        "experiment_type",
     }
 )
 

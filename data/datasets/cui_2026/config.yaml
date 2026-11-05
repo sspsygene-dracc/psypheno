@@ -1,6 +1,7 @@
 deployTo:
   - dev
 model_system: ineurons
+experiment_type: crispr_ko
 anatomy:
   - UBERON:0001890  # forebrain
 stage: in_vitro

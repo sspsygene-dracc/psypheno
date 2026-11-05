@@ -1,4 +1,4 @@
-"""Dataset tags: model system, anatomy (UBERON), developmental stage.
+"""Dataset tags: model system, anatomy (UBERON), stage, experiment type.
 
 Tags describe the biological system a dataset's data come from. They are set at
 dataset level in `data/datasets/<name>/config.yaml` (top-level keys) and may be
@@ -9,6 +9,7 @@ value replaces the dataset value; a key a table does not set is inherited.
     anatomy: [UBERON:0001950]     # UBERON CURIEs from data/ontology/uberon_terms.tsv
     stage: in_vitro               # optional, one of STAGES
     stage_detail: "NGN2 day 28"   # optional short free text
+    experiment_type: crispri      # one of EXPERIMENT_TYPES
     anatomy_column: brodmann_area # optional, table level only
 
 See docs/adding-datasets.md ("Dataset tags") for how to choose values.
@@ -53,13 +54,69 @@ STAGES: tuple[str, ...] = (
     "in_vitro",
 )
 
+# What kind of experiment produced a table's data — for perturbation studies,
+# how the genes were perturbed. One value per table: a table that mixes several
+# perturbation kinds (e.g. CRISPRa and shRNA arms in one DEG table) is
+# `multiple`. Order is the display order (e.g. /matrix "Group columns by").
+EXPERIMENT_TYPES: tuple[str, ...] = (
+    "crispr_ko",  # Cas9 knockout / loss-of-function edits, incl. mutant & crispant fish
+    "crispri",  # CRISPR interference (dCas9-KRAB)
+    "crispra",  # CRISPR activation
+    "knockdown",  # RNAi (shRNA/siRNA) or antisense-oligo knockdown
+    "overexpression",  # exogenous wild-type gene / tagged bait expression
+    "isogenic_variant",  # engineered disease variant vs wild-type, same background
+    "patient_lines",  # patient-derived cells / organoids vs control lines
+    "drug_treatment",  # pharmacological treatment
+    "multiple",  # one table combining several of the above
+    "observational",  # no manipulation: postmortem case vs control, markers, ...
+    "human_genetics",  # association statistics from human sequencing cohorts
+    "curated",  # databases and curated gene lists
+    "other",
+)
+
 # Model systems that do not need anatomy terms (non-experimental resources).
 ANATOMY_OPTIONAL_MODEL_SYSTEMS: frozenset[str] = frozenset({"curated"})
 
 # Keys accepted at both dataset and table level.
-TAG_KEYS: tuple[str, ...] = ("model_system", "anatomy", "stage", "stage_detail")
+TAG_KEYS: tuple[str, ...] = (
+    "model_system",
+    "anatomy",
+    "stage",
+    "stage_detail",
+    "experiment_type",
+)
 # Accepted at table level only.
 TABLE_ONLY_TAG_KEYS: tuple[str, ...] = ("anatomy_column",)
+
+# Coarse anatomical regions (/matrix "Group columns by: Region"). A table can
+# carry several UBERON terms; it is assigned the FIRST region below that covers
+# ALL of its terms, a term being covered when it is one of the region's anchor
+# terms or lies under one (is_a/part_of closure). The cerebral lobes are listed
+# with cerebral cortex because UBERON files a lobe under the cerebral hemisphere
+# rather than the cortex, yet datasets tag lobes for cortical samples. Tables
+# whose terms are not all in the brain go to `whole_organism` when they are
+# tagged with the whole organism, otherwise to `other_tissue` (e.g. HEK293T →
+# kidney); tables without anatomy (curated resources) get no region.
+COARSE_REGIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (
+        "cerebral_cortex",
+        (
+            "UBERON:0000956",  # cerebral cortex
+            "UBERON:0016525",  # frontal lobe
+            "UBERON:0001871",  # temporal lobe
+            "UBERON:0001872",  # parietal lobe
+            "UBERON:0002021",  # occipital lobe
+        ),
+    ),
+    ("forebrain", ("UBERON:0001890",)),  # other forebrain (telencephalon, ...)
+    ("brain", ("UBERON:0000955",)),  # whole brain / unspecified brain region
+)
+WHOLE_ORGANISM = "UBERON:0000468"
+COARSE_REGION_KEYS: tuple[str, ...] = (
+    *(key for key, _ in COARSE_REGIONS),
+    "whole_organism",
+    "other_tissue",
+)
 
 _DEFAULT_UBERON_TSV = (
     Path(__file__).resolve().parents[3] / "data" / "ontology" / "uberon_terms.tsv"
@@ -112,6 +169,7 @@ class DatasetTags:
     stage: str | None = None
     stage_detail: str | None = None
     anatomy_column: str | None = None
+    experiment_type: str | None = None
 
     def anatomy_terms(self) -> list[dict[str, str]]:
         """[{id, label}] in config order — the DB/API representation."""
@@ -129,6 +187,22 @@ class DatasetTags:
         for t in self.anatomy:
             out |= terms[t].ancestors
         return sorted(out)
+
+    def coarse_region(self) -> str | None:
+        """One of COARSE_REGION_KEYS (rule at COARSE_REGIONS), or None."""
+        if not self.anatomy:
+            return None
+        terms = uberon_terms()
+
+        def covered(term: str, anchors: tuple[str, ...]) -> bool:
+            return term in anchors or not terms[term].ancestors.isdisjoint(anchors)
+
+        for key, anchors in COARSE_REGIONS:
+            if all(covered(t, anchors) for t in self.anatomy):
+                return key
+        if WHOLE_ORGANISM in self.anatomy:
+            return "whole_organism"
+        return "other_tissue"
 
 
 def validate_tag_values(raw: dict[str, Any], *, context: str) -> dict[str, Any]:
@@ -190,6 +264,14 @@ def validate_tag_values(raw: dict[str, Any], *, context: str) -> dict[str, Any]:
                 f"got {detail!r}."
             )
         out["stage_detail"] = detail.strip()
+    if "experiment_type" in raw:
+        et = raw["experiment_type"]
+        if not isinstance(et, str) or et not in EXPERIMENT_TYPES:
+            raise ValueError(
+                f"{context}: experiment_type {et!r} is not one of "
+                f"{', '.join(EXPERIMENT_TYPES)}."
+            )
+        out["experiment_type"] = et
     return out
 
 
@@ -202,8 +284,8 @@ def resolve_table_tags(
 ) -> DatasetTags:
     """Layer a table's tag overrides over its dataset's (already validated) tags.
 
-    Also applies the completeness rule: a missing model_system, or no anatomy on
-    a non-curated table, is a warning while REQUIRE_DATASET_TAGS is False and an
+    Also applies the completeness rule: a missing model_system or
+    experiment_type, or no anatomy on a non-curated table, is a warning while REQUIRE_DATASET_TAGS is False and an
     error once it is True.
     """
     merged = dict(dataset_tags)
@@ -226,6 +308,7 @@ def resolve_table_tags(
         stage=merged.get("stage"),
         stage_detail=merged.get("stage_detail"),
         anatomy_column=anatomy_column,
+        experiment_type=merged.get("experiment_type"),
     )
 
     problems: list[str] = []
@@ -238,6 +321,10 @@ def resolve_table_tags(
         and tags.model_system not in ANATOMY_OPTIONAL_MODEL_SYSTEMS
     ):
         problems.append("no anatomy terms (required unless model_system is curated)")
+    if tags.experiment_type is None:
+        problems.append(
+            f"no experiment_type (one of {', '.join(EXPERIMENT_TYPES)})"
+        )
     if anatomy_column is not None and not tags.anatomy:
         problems.append(
             "anatomy_column is set but anatomy is empty — list the union of "
