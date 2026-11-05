@@ -443,3 +443,32 @@ def test_guard_rejects_a_missing_link_only_row(
         conn.close()
     with pytest.raises(DestinationGuardError, match="MISSING 1 dataset"):
         verify_destination(out, "prod", config_root=root)
+
+
+def test_candidate_orthologs_are_copied_verbatim(
+    superset: tuple[Path, Path], tmp_path: Path
+) -> None:
+    """central_gene.candidate_human_orthologs is a property of the gene, not of
+    the datasets, so a surviving gene keeps it unchanged."""
+    src, config_root = superset
+    value = '[{"hgnc_id": "HGNC:1", "symbol": "FOO1", "central_gene_id": 1}]'
+    conn = sqlite3.connect(src)
+    try:
+        gene_id = conn.execute(
+            "SELECT central_gene_id FROM central_gene_usage "
+            "WHERE matched_name = 'Tcf4' LIMIT 1"
+        ).fetchone()[0]
+        conn.execute(
+            "UPDATE central_gene SET candidate_human_orthologs = ? WHERE id = ?",
+            (value, gene_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    out = tmp_path / "prod.db"
+    subset_db(src, out, "prod", config_root=config_root)
+    assert _rows(
+        out,
+        "SELECT id, candidate_human_orthologs FROM central_gene "
+        "WHERE candidate_human_orthologs IS NOT NULL",
+    ) == {(gene_id, value)}

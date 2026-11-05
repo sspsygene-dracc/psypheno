@@ -88,6 +88,13 @@ class CentralGeneTableEntry:
     # tables allowed on prod, it must recompute dataset_names / num_datasets
     # and re-intersect the synonym columns without re-running gene resolution.
     usages: set[tuple[str, str, str]] = field(default_factory=set)
+    # Mouse-only entries whose MGI gene has several human orthologs and no
+    # single best match (`CentralGeneTable.unresolved_orthologs`): the
+    # candidates, as {"hgnc_id", "symbol", "central_gene_id"} dicts sorted by
+    # symbol. Empty for every other entry.
+    candidate_human_orthologs: list[dict[str, str | int]] = field(
+        default_factory=list
+    )
 
     def add_used_name(
         self, species: Literal["human", "mouse"], name: str, dataset_name: str
@@ -346,7 +353,35 @@ class CentralGeneTable:
             mgi_accession_id_to_hgnc=mgi_accession_id_to_hgnc,
             mgi_accession_id_to_ensembl=mgi_accession_id_to_ensembl,
         )
+        self.attach_candidate_orthologs()
         self.build_reference_loci(gene_map)
+
+    def attach_candidate_orthologs(self) -> None:
+        """Copy `unresolved_orthologs` onto the mouse-only entries they belong
+        to, resolving each HGNC id to its human entry (symbol + row id) so the
+        web app can name and link the candidates. HGNC ids with no human entry
+        (withdrawn since the homology report was written) are dropped."""
+        unresolved = getattr(self, "unresolved_orthologs", {})
+        if not unresolved:
+            return
+        human_by_hgnc = {
+            e.hgnc_id: e for e in self.entries if e.hgnc_id and e.human_symbol
+        }
+        for entry in self.entries:
+            if entry.human_symbol is not None or not entry.mouse_mgi_accession_ids:
+                continue
+            hgnc_ids: set[str] = set()
+            for mgi in entry.mouse_mgi_accession_ids:
+                hgnc_ids |= unresolved.get(mgi, set())
+            candidates = [human_by_hgnc[h] for h in hgnc_ids if h in human_by_hgnc]
+            entry.candidate_human_orthologs = [
+                {
+                    "hgnc_id": str(h.hgnc_id),
+                    "symbol": str(h.human_symbol),
+                    "central_gene_id": h.row_id,
+                }
+                for h in sorted(candidates, key=lambda h: str(h.human_symbol))
+            ]
 
     def build_reference_loci(self, gene_map) -> None:
         """Index the GENCODE / NCBI loci HGNC doesn't name.

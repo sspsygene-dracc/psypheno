@@ -1,6 +1,8 @@
 """Mouse genes the HGNC homology report links to several human genes
 (central_gene_table.resolve_multi_orthologs)."""
 
+import json
+import sqlite3
 from pathlib import Path
 
 from processing.central_gene_table import (
@@ -105,3 +107,65 @@ def test_parse_reads_both_orientations_and_needs_both_flags(tmp_path: Path) -> N
         "MGI:1": {"HGNC:9109"},
         "MGI:2": {"HGNC:30060"},
     }
+
+
+def _mouse_only(row_id: int, symbol: str, mgi: str) -> CentralGeneTableEntry:
+    return CentralGeneTableEntry(
+        row_id=row_id,
+        human_symbol=None,
+        human_entrez_gene=None,
+        human_ensembl_gene=None,
+        hgnc_id=None,
+        mouse_symbols={symbol},
+        mouse_mgi_accession_ids={MGIAcessionID(mgi)},
+        mouse_ensembl_genes=set(),
+        human_synonyms=set(),
+        mouse_synonyms=set(),
+    )
+
+
+_FOO_CANDIDATES = [
+    {"hgnc_id": "HGNC:1", "symbol": "FOO1", "central_gene_id": 6},
+    {"hgnc_id": "HGNC:2", "symbol": "FOO2", "central_gene_id": 7},
+]
+
+
+def test_unresolved_candidates_are_attached_to_the_mouse_only_entry() -> None:
+    table = _table({"MGI:4": "Bar", "MGI:5": "Baz"})
+    table.resolve_multi_orthologs(
+        {
+            MGIAcessionID("MGI:4"): {"HGNC:2", "HGNC:1", "HGNC:999"},
+            MGIAcessionID("MGI:5"): {"HGNC:9110"},
+        },
+        {},
+    )
+    bar = _mouse_only(100, "Bar", "MGI:4")
+    baz = _mouse_only(101, "Baz", "MGI:5")
+    table.entries += [bar, baz]
+    table.attach_candidate_orthologs()
+    # Sorted by symbol; HGNC:999 has no human entry and is dropped.
+    assert bar.candidate_human_orthologs == _FOO_CANDIDATES
+    assert baz.candidate_human_orthologs == []
+    assert all(not e.candidate_human_orthologs for e in table.entries[:8])
+
+
+def test_load_gene_tables_stores_candidates_as_json(monkeypatch) -> None:
+    from processing import sq_load
+
+    table = _table({"MGI:4": "Bar"})
+    table.resolve_multi_orthologs(
+        {MGIAcessionID("MGI:4"): {"HGNC:1", "HGNC:2"}}, {}
+    )
+    bar = _mouse_only(100, "Bar", "MGI:4")
+    table.entries.append(bar)
+    table.attach_candidate_orthologs()
+    bar.add_used_name("mouse", "Bar", "t")
+    table.entries[6].add_used_name("human", "FOO1", "t")
+    monkeypatch.setattr(sq_load, "get_central_gene_table", lambda: table)
+    conn = sqlite3.connect(":memory:")
+    sq_load.load_gene_tables(conn, no_index=True)
+    rows = dict(
+        conn.execute("SELECT id, candidate_human_orthologs FROM central_gene")
+    )
+    assert rows[6] is None
+    assert json.loads(rows[100]) == _FOO_CANDIDATES
