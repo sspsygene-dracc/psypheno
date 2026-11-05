@@ -12,7 +12,9 @@ import DestinationBadge from "@/components/DestinationBadge";
 import DatasetTagChips from "@/components/DatasetTagChips";
 import {
   MODEL_SYSTEM_LABELS,
-  matchesRegion,
+  matchesRegionFilter,
+  REGION_GROUPS,
+  regionFilterValue,
   modelSystemLabel,
 } from "@/lib/dataset-tags";
 
@@ -640,7 +642,7 @@ function datasetMatchesFilters(d: Dataset, f: TagFilters): boolean {
   if (f.species && d.gene_species !== f.species) return false;
   if (f.modelSystem && d.model_system !== f.modelSystem) return false;
   // A region matches the term itself or any subregion (ancestor closure).
-  if (f.region && !matchesRegion(d.anatomy_closure, f.region)) return false;
+  if (f.region && !matchesRegionFilter(d, f.region)) return false;
   return true;
 }
 
@@ -692,21 +694,17 @@ function DatasetFilters({
       }));
   }, [datasets, filters]);
 
-  const regionOptions: FilterOption[] = useMemo(() => {
-    // Offer the terms datasets are actually tagged with; each also matches
-    // datasets tagged with any of its subregions.
-    const labels = new Map<string, string>();
-    for (const d of datasets) {
-      for (const t of d.anatomy ?? []) labels.set(t.id, t.label);
-    }
-    return Array.from(labels.entries())
-      .map(([id, label]) => ({
-        value: id,
-        label,
-        count: countWith({ region: id }),
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [datasets, filters]);
+  const regionOptions: FilterOption[] = useMemo(
+    () =>
+      // A short fixed hierarchy (REGION_GROUPS), indented, each counting its
+      // subregions; groups nothing falls under are left out.
+      REGION_GROUPS.map((g) => ({
+        value: regionFilterValue(g),
+        label: "\u00a0\u00a0".repeat(g.depth) + g.label,
+        count: countWith({ region: regionFilterValue(g) }),
+      })).filter((o) => o.count > 0 || o.value === filters.region),
+    [datasets, filters],
+  );
 
   const active =
     filters.species !== "" ||

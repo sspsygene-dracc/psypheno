@@ -144,3 +144,48 @@ export function matchesRegion(
 ): boolean {
   return !!closure && closure.includes(regionId);
 }
+
+/**
+ * The Region filter's options: a short fixed hierarchy of grouping terms
+ * instead of every term in use (20 Brodmann areas, and "multicellular
+ * organism", which nearly everything falls under). A grouping term matches a
+ * dataset tagged with it or any of its subregions (`anatomy_closure`);
+ * `exact` entries match only datasets tagged with that very term. `depth`
+ * indents the option.
+ */
+export const REGION_GROUPS: ReadonlyArray<{
+  id: string;
+  label: string;
+  depth: number;
+  exact?: boolean;
+}> = [
+  { id: "UBERON:0000955", label: "Brain", depth: 0 },
+  { id: "UBERON:0001890", label: "Forebrain", depth: 1 },
+  { id: "UBERON:0001893", label: "Telencephalon", depth: 2 },
+  { id: "UBERON:0000956", label: "Cerebral cortex", depth: 3 },
+  { id: "UBERON:0001870", label: "Frontal cortex", depth: 4 },
+  { id: "UBERON:0000451", label: "Prefrontal cortex", depth: 5 },
+  { id: "UBERON:0016538", label: "Temporal cortex", depth: 4 },
+  { id: "UBERON:0001872", label: "Parietal lobe", depth: 4 },
+  { id: "UBERON:0002021", label: "Occipital lobe", depth: 4 },
+  { id: "UBERON:0003027", label: "Cingulate cortex", depth: 4 },
+  { id: "UBERON:0000468", label: "Whole animal", depth: 0, exact: true },
+  { id: "UBERON:0002113", label: "Kidney (cell line)", depth: 0, exact: true },
+];
+
+/** Region filter value for a REGION_GROUPS entry. */
+export function regionFilterValue(group: { id: string; exact?: boolean }): string {
+  return group.exact ? `exact:${group.id}` : group.id;
+}
+
+/** Does a dataset match a Region filter value (see regionFilterValue)? */
+export function matchesRegionFilter(
+  tags: { anatomy?: readonly AnatomyTerm[]; anatomy_closure?: readonly string[] },
+  value: string,
+): boolean {
+  if (value.startsWith("exact:")) {
+    const id = value.slice("exact:".length);
+    return (tags.anatomy ?? []).some((t) => t.id === id);
+  }
+  return matchesRegion(tags.anatomy_closure, value);
+}

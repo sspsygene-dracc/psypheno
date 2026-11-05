@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   matchesRegion,
+  matchesRegionFilter,
+  REGION_GROUPS,
+  regionFilterValue,
   parseTags,
   stageLabel,
   tagSelectSql,
@@ -45,5 +48,30 @@ describe("dataset tags", () => {
     const sql = tagSelectSql((c) => c === "model_system");
     expect(sql).toContain("model_system,");
     expect(sql).toContain("NULL AS anatomy_closure");
+  });
+});
+
+describe("matchesRegionFilter", () => {
+  const brodmann9 = {
+    anatomy: [{ id: "UBERON:0013540", label: "Brodmann (1909) area 9" }],
+    anatomy_closure: ["UBERON:0013540", "UBERON:0000451", "UBERON:0001870", "UBERON:0000956", "UBERON:0000955", "UBERON:0000468"],
+  };
+  const larva = {
+    anatomy: [{ id: "UBERON:0000468", label: "multicellular organism" }],
+    anatomy_closure: ["UBERON:0000468"],
+  };
+
+  it("matches a grouping term through subregions", () => {
+    expect(matchesRegionFilter(brodmann9, "UBERON:0001870")).toBe(true);
+    expect(matchesRegionFilter(brodmann9, "UBERON:0016538")).toBe(false);
+  });
+
+  it("matches an exact entry only when tagged with that term itself", () => {
+    expect(matchesRegionFilter(larva, regionFilterValue({ id: "UBERON:0000468", exact: true }))).toBe(true);
+    expect(matchesRegionFilter(brodmann9, regionFilterValue({ id: "UBERON:0000468", exact: true }))).toBe(false);
+  });
+
+  it("only lists regions in the vendored hierarchy order", () => {
+    expect(REGION_GROUPS[0].label).toBe("Brain");
   });
 });
