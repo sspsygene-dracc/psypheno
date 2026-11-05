@@ -398,7 +398,12 @@ def materialize_collated(
         )
         labels = dict(
             conn.execute(
-                f"SELECT id, human_symbol FROM {src_schema}.central_gene "
+                # No human symbol (a mouse gene without a mapped human
+                # ortholog, e.g. Pmch): label it by its first mouse symbol.
+                f"SELECT id, COALESCE(NULLIF(human_symbol, ''), "
+                f"NULLIF(TRIM(SUBSTR(mouse_symbols || ',', 1, "
+                f"INSTR(mouse_symbols || ',', ',') - 1)), '')) "
+                f"FROM {src_schema}.central_gene "
                 f"WHERE id IN ({','.join('?' for _ in ranked)})",
                 [r[0] for r in ranked],
             ).fetchall()
