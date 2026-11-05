@@ -25,3 +25,13 @@ SSPSYGENE_DATA_DIR="$(cd ../.. && pwd)/data" \
 PYTHONPATH=../../processing/src \
     ../../processing/.venv-claude/bin/python \
     -m processing.build_gencode_clone_map
+
+# Alliance of Genome Resources combined orthology (release 9.0.0, "Stringent"
+# filter), reduced to mouse-human pairs. Its IsBestScore / IsBestRevScore flags
+# pick ONE human ortholog for a mouse gene that HGNC_AllianceHomology.rpt links
+# to several (central_gene_table.resolve_multi_orthologs). ~800 KB gzipped.
+wget 'https://fms.alliancegenome.org/download/ORTHOLOGY-ALLIANCE_COMBINED.tsv.gz'
+gzip -dc ORTHOLOGY-ALLIANCE_COMBINED.tsv.gz | grep -v '^#' \
+    | awk -F'\t' 'NR==1 || ($3=="NCBITaxon:10090" && $7=="NCBITaxon:9606") || ($3=="NCBITaxon:9606" && $7=="NCBITaxon:10090")' \
+    | gzip -9 > alliance_orthology_mouse_human.tsv.gz
+rm ORTHOLOGY-ALLIANCE_COMBINED.tsv.gz

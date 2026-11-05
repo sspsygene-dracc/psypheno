@@ -58,6 +58,14 @@ class GeneMapConfig:
         self.gencode_gtf_files: list[Path] = [
             self.super_base_dir / rel for rel in gencode
         ]
+        # Alliance orthology (mouse–human pairs with best / best-reverse flags):
+        # picks one human ortholog for a mouse gene the HGNC homology report
+        # links to several. Optional: without it, only a same-symbol match
+        # resolves such a gene.
+        orthology = gene_map_config.get("alliance_orthology_file")
+        self.alliance_orthology_file: Path | None = (
+            self.super_base_dir / orthology if orthology else None
+        )
         ncbi = gene_map_config.get("ncbi_gene_info")
         self.ncbi_gene_info_file: Path | None = (
             self.super_base_dir / ncbi if ncbi else None

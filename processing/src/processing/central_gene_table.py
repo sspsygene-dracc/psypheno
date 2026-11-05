@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 import csv
+import gzip
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -323,6 +325,20 @@ class CentralGeneTable:
                 gene_map.alliance_homology_file, description="Alliance homology"
             )
         )
+        best_orthologs = (
+            parse_alliance_best_orthologs(gene_map.alliance_orthology_file)
+            if gene_map.alliance_orthology_file is not None
+            and gene_map.alliance_orthology_file.exists()
+            else {}
+        )
+        if not best_orthologs:
+            logging.getLogger(__name__).warning(
+                "Alliance orthology file missing; mouse genes with several human "
+                "orthologs resolve only by a same-symbol match"
+            )
+        mgi_accession_id_to_hgnc = self.resolve_multi_orthologs(
+            mgi_accession_id_to_hgnc, best_orthologs
+        )
         hgnc_to_human_entrez = self.get_hgnc_id_to_human_entrez_id()
         self.parse_mgi(
             require_shared_input(gene_map.mgi_file, description="MGI EntrezGene"),
@@ -406,11 +422,66 @@ class CentralGeneTable:
             )
             self._assigned_row_ids.add(self.entries[-1].row_id)
 
+    def resolve_multi_orthologs(
+        self,
+        mgi_accession_id_to_hgnc: dict[MGIAcessionID, set[str]],
+        best_orthologs: dict[str, set[str]],
+    ) -> dict[MGIAcessionID, set[str]]:
+        """Reduce each mouse gene's human orthologs to at most one.
+
+        Linking a mouse gene to every listed ortholog would turn one mouse
+        result into several pieces of human evidence (pseudogenes, paralogs:
+        Pmch -> PMCH, PMCHL1, PMCHL2). So:
+
+        1. the Alliance best-and-best-reverse ortholog, when there is exactly
+           one among the candidates;
+        2. otherwise (none, or a tie) the candidate whose symbol is the mouse
+           symbol in upper case (Nomo1 -> NOMO1 out of NOMO1 / NOMO2);
+        3. otherwise none: the mouse gene keeps its own row.
+
+        `self.unresolved_orthologs` records the candidates of case 3.
+        """
+        log = logging.getLogger(__name__)
+        symbol_by_hgnc = {
+            e.hgnc_id: e.human_symbol for e in self.entries if e.hgnc_id and e.human_symbol
+        }
+        self.unresolved_orthologs: dict[MGIAcessionID, set[str]] = {}
+        resolved: dict[MGIAcessionID, set[str]] = {}
+        counts = {"best": 0, "symbol": 0, "unresolved": 0}
+        for mgi, hgnc_ids in mgi_accession_id_to_hgnc.items():
+            if len(hgnc_ids) <= 1:
+                resolved[mgi] = hgnc_ids
+                continue
+            best = hgnc_ids & best_orthologs.get(str(mgi), set())
+            if len(best) == 1:
+                resolved[mgi] = best
+                counts["best"] += 1
+                continue
+            mouse_symbol = self._mouse_symbol_by_mgi.get(mgi, "")
+            pool = best or hgnc_ids
+            same = {h for h in pool if symbol_by_hgnc.get(h, "").upper() == mouse_symbol.upper()}
+            if mouse_symbol and len(same) == 1:
+                resolved[mgi] = same
+                counts["symbol"] += 1
+                continue
+            self.unresolved_orthologs[mgi] = hgnc_ids
+            resolved[mgi] = set()
+            counts["unresolved"] += 1
+        log.info(
+            "Mouse genes with several human orthologs: %d by Alliance best match, "
+            "%d by same symbol, %d left mouse-only",
+            counts["best"],
+            counts["symbol"],
+            counts["unresolved"],
+        )
+        return resolved
+
     def parse_mgi_homology(
         self,
         alliance_homology_fname: Path,
     ) -> tuple[dict[MGIAcessionID, set[str]], dict[MGIAcessionID, set[EnsemblGene]]]:
         mgi_accession_id_to_hgnc: dict[MGIAcessionID, set[str]] = defaultdict(set)
+        self._mouse_symbol_by_mgi: dict[MGIAcessionID, str] = {}
         mgi_accession_id_to_ensembl: dict[MGIAcessionID, set[EnsemblGene]] = (
             defaultdict(set)
         )
@@ -418,8 +489,13 @@ class CentralGeneTable:
             reader = csv.DictReader(f, delimiter="\t")
             for row in reader:
                 mgi_accession_id = MGIAcessionID(row["MGI Accession ID"])
-                hgnc_id = row["HGNC ID"]
-                mgi_accession_id_to_hgnc[mgi_accession_id].add(hgnc_id)
+                self._mouse_symbol_by_mgi[mgi_accession_id] = row["Marker Symbol"]
+                # One row per mouse gene; several human orthologs come
+                # pipe-separated in one field ("HGNC:9110|HGNC:9111|HGNC:9109").
+                for hgnc_id in row["HGNC ID"].split("|"):
+                    hgnc_id = hgnc_id.strip()
+                    if hgnc_id and hgnc_id != "null":
+                        mgi_accession_id_to_hgnc[mgi_accession_id].add(hgnc_id)
                 ensembl_id_str = row["Ensembl Gene ID"]
                 if not (ensembl_id_str == "" or ensembl_id_str == "null"):
                     assert ensembl_id_str.startswith(
@@ -552,3 +628,22 @@ def get_central_gene_table() -> CentralGeneTable:
         _CENTRAL_GENE_TABLE = CentralGeneTable()
         _CENTRAL_GENE_TABLE.construct()
     return _CENTRAL_GENE_TABLE
+
+
+def parse_alliance_best_orthologs(path: Path) -> dict[str, set[str]]:
+    """MGI id -> HGNC ids that are its Alliance best *and* best-reverse
+    human ortholog. Reads the mouse–human subset of the Alliance combined
+    orthology file (gzip or plain TSV, `#` comment lines allowed)."""
+    opener = gzip.open if path.suffix == ".gz" else open
+    best: dict[str, set[str]] = defaultdict(set)
+    with opener(path, "rt", encoding="utf-8") as f:
+        rows = csv.DictReader((line for line in f if not line.startswith("#")), delimiter="\t")
+        for row in rows:
+            if row.get("IsBestScore") != "Yes" or row.get("IsBestRevScore") != "Yes":
+                continue
+            g1, g2 = row["Gene1ID"], row["Gene2ID"]
+            if g1.startswith("MGI:") and g2.startswith("HGNC:"):
+                best[g1].add(g2)
+            elif g1.startswith("HGNC:") and g2.startswith("MGI:"):
+                best[g2].add(g1)
+    return best
