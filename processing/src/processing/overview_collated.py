@@ -378,6 +378,15 @@ def materialize_collated(
             GROUP BY collate_group, target, gene"""
     )
 
+    gene_columns = {
+        row[1] for row in conn.execute(f"PRAGMA {src_schema}.table_info(central_gene)")
+    }
+    label_expr = (
+        "COALESCE(NULLIF(human_symbol, ''), NULLIF(TRIM(SUBSTR(mouse_symbols || ',', "
+        "1, INSTR(mouse_symbols || ',', ',') - 1)), ''))"
+        if "mouse_symbols" in gene_columns
+        else "human_symbol"
+    )
     groups = sorted({s.collate_group for s in sources})
     for group in groups:
         ranked = conn.execute(
@@ -400,10 +409,7 @@ def materialize_collated(
             conn.execute(
                 # No human symbol (a mouse gene without a mapped human
                 # ortholog, e.g. Pmch): label it by its first mouse symbol.
-                f"SELECT id, COALESCE(NULLIF(human_symbol, ''), "
-                f"NULLIF(TRIM(SUBSTR(mouse_symbols || ',', 1, "
-                f"INSTR(mouse_symbols || ',', ',') - 1)), '')) "
-                f"FROM {src_schema}.central_gene "
+                f"SELECT id, {label_expr} FROM {src_schema}.central_gene "
                 f"WHERE id IN ({','.join('?' for _ in ranked)})",
                 [r[0] for r in ranked],
             ).fetchall()
