@@ -7,6 +7,8 @@ import {
   REGION_SPECIES,
   TRAY_GROUPS,
   countFill,
+  datasetsWithGene,
+  geneRoleIn,
   isBroader,
   isSpecific,
   placement,
@@ -309,6 +311,27 @@ describe("in-vitro tray", () => {
     expect(mouse(forebrain)).not.toContain("midbrain");
     expect(mouse(forebrain)).toContain("striatum");
     expect(mouse(brain)).toContain("midbrain");
+  });
+});
+
+describe("gene view", () => {
+  it("keeps only the gene's tables and marks perturbed vs measured-only regions", () => {
+    const mouse = { gene_species: "mouse", model_system: "in_vivo" };
+    const cortexKO = ds(["UBERON:0000956"], { ...mouse, table_name: "ko" });
+    const cortexDE = ds(["UBERON:0000956"], { ...mouse, table_name: "de" });
+    const brainDE = ds(["UBERON:0000955"], { ...mouse, table_name: "brain_de" });
+    const roles = new Map([
+      ["de", { perturbed: false, measured: true }],
+      ["brain_de", { perturbed: false, measured: true }],
+    ]);
+    const shown = datasetsWithGene([cortexKO, cortexDE, brainDE], roles);
+    expect(shown.map((d) => d.table_name)).toEqual(["de", "brain_de"]);
+    const c = regionCounts(shown, "mouse");
+    expect(geneRoleIn(c.get("cortex")!.specific, roles)).toBe("measured");
+    expect(geneRoleIn(c.get("striatum")!.specific, roles)).toBeNull();
+    roles.set("ko", { perturbed: true, measured: false });
+    const c2 = regionCounts(datasetsWithGene([cortexKO, cortexDE, brainDE], roles), "mouse");
+    expect(geneRoleIn(c2.get("cortex")!.specific, roles)).toBe("perturbed");
   });
 });
 

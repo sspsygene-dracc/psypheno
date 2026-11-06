@@ -13,8 +13,20 @@ import {
   type StudyKind,
 } from "@/lib/brain-regions";
 import type { RegionGenesResponse, RegionGenesTable } from "@/pages/api/region-genes";
+import type { GeneRegionsTable } from "@/pages/api/gene-regions";
 
 export type AssayLabeler = (d: Dataset) => string;
+
+/** Gene view: the gene and how it occurs in each table. */
+export type GeneInPanel = {
+  symbol: string;
+  roles: ReadonlyMap<string, Pick<GeneRegionsTable, "perturbed" | "measured" | "nSig" | "nMeasured" | "sigRule">>;
+};
+
+const ROLE_STYLE = {
+  perturbed: { color: "#1e3a8a", background: "#dbeafe" },
+  measured: { color: "#374151", background: "#f3f4f6" },
+} as const;
 
 /** /full-datasets?select=<short label>, the same slug that page writes. */
 export function datasetHref(d: Dataset): string {
@@ -79,10 +91,13 @@ function shortTermLabel(t: { label: string }): string {
 function DatasetRow({
   d,
   inMatrix,
+  gene,
 }: {
   d: Dataset;
   inMatrix: boolean;
+  gene?: GeneInPanel | null;
 }) {
+  const role = gene?.roles.get(d.table_name);
   const stage = stageLabel({ stage: d.stage ?? null, stage_detail: d.stage_detail ?? null });
   const allTerms = (d.anatomy ?? []).map(shortTermLabel);
   const terms =
@@ -100,6 +115,34 @@ function DatasetRow({
         </Link>
         <KindChip kind={studyKind(d)} />
       </div>
+      {gene && role && (
+        <div data-gene-role style={{ fontSize: 12, marginTop: 2, color: "#111827" }}>
+          {role.perturbed && (
+            <Link
+              href={`/?perturbed=${encodeURIComponent(gene.symbol)}`}
+              style={{ ...chip, ...ROLE_STYLE.perturbed, textDecoration: "none" }}
+              title={`${gene.symbol} is a perturbed gene in this dataset`}
+            >
+              {gene.symbol} perturbed
+            </Link>
+          )}{" "}
+          {role.measured && (
+            <Link
+              href={`/?target=${encodeURIComponent(gene.symbol)}`}
+              style={{ ...chip, ...ROLE_STYLE.measured, textDecoration: "none" }}
+              title={`${gene.symbol} is a measured gene (readout / DE gene / associated gene) in this dataset`}
+            >
+              {gene.symbol} measured
+            </Link>
+          )}
+          {role.nSig !== undefined && role.nMeasured !== undefined && (
+            <span style={{ marginLeft: 6 }}>
+              {role.nSig.toLocaleString()} of {role.nMeasured.toLocaleString()} readouts significant
+              {role.sigRule ? ` (${sigRuleText(role.sigRule)})` : ""}
+            </span>
+          )}
+        </div>
+      )}
       <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
         {terms.length > 0 && (
           <span title={`Tagged anatomy: ${allTerms.join(", ")}`}>{terms.join(", ")}</span>
@@ -129,10 +172,12 @@ export function DatasetGroups({
   datasets,
   assayLabel,
   matrixTables,
+  gene = null,
 }: {
   datasets: Dataset[];
   assayLabel: AssayLabeler;
   matrixTables: ReadonlySet<string>;
+  gene?: GeneInPanel | null;
 }) {
   const systems = Object.keys(MODEL_SYSTEM_LABELS).filter((ms) =>
     datasets.some((d) => d.model_system === ms),
@@ -154,7 +199,7 @@ export function DatasetGroups({
                   {inSystem
                     .filter((d) => assayLabel(d) === a)
                     .map((d) => (
-                      <DatasetRow key={d.table_name} d={d} inMatrix={matrixTables.has(d.table_name)} />
+                      <DatasetRow key={d.table_name} d={d} inMatrix={matrixTables.has(d.table_name)} gene={gene} />
                     ))}
                 </ul>
               </div>

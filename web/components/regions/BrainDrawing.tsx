@@ -14,7 +14,51 @@ export type RegionPaint = {
   /** Specific dataset count, appended to the label. */
   count: number;
   label: string;
+  /** Draw the fill hatched (gene view: the gene was only measured here). */
+  hatch?: boolean;
 };
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * A diagonal-hatch pattern in `color`, sized for `el`'s coordinate system
+ * (atlas files draw at their own scale inside a transformed group, and a
+ * pattern is laid out in the user space of the element that uses it).
+ */
+function ensureHatch(root: SVGSVGElement, el: SVGGraphicsElement, color: string): string {
+  const rootA = root.getCTM()?.a ?? 1;
+  const elA = el.getCTM()?.a ?? 1;
+  const ratio = elA ? rootA / elA : 1;
+  const id = `rg-hatch-${color.replace(/[^0-9a-f]/gi, "")}-${Math.round(ratio * 100)}`;
+  if (root.querySelector(`#${id}`)) return id;
+  let defs = root.querySelector("defs[data-region-defs]");
+  if (!defs) {
+    defs = document.createElementNS(SVG_NS, "defs");
+    defs.setAttribute("data-region-defs", "");
+    root.insertBefore(defs, root.firstChild);
+  }
+  const size = 7 * ratio;
+  const pattern = document.createElementNS(SVG_NS, "pattern");
+  pattern.setAttribute("id", id);
+  pattern.setAttribute("patternUnits", "userSpaceOnUse");
+  pattern.setAttribute("width", String(size));
+  pattern.setAttribute("height", String(size));
+  pattern.setAttribute("patternTransform", "rotate(45)");
+  const rect = document.createElementNS(SVG_NS, "rect");
+  rect.setAttribute("width", String(size));
+  rect.setAttribute("height", String(size));
+  rect.setAttribute("fill", color);
+  const line = document.createElementNS(SVG_NS, "line");
+  line.setAttribute("x1", "0");
+  line.setAttribute("y1", "0");
+  line.setAttribute("x2", "0");
+  line.setAttribute("y2", String(size));
+  line.setAttribute("stroke", "#ffffff");
+  line.setAttribute("stroke-width", String(size * 0.4));
+  pattern.append(rect, line);
+  defs.appendChild(pattern);
+  return id;
+}
 
 // Drawings are static assets; fetch each once per page load.
 const svgCache = new Map<string, Promise<string>>();
@@ -96,7 +140,7 @@ export default function BrainDrawing({
     for (const el of regions) {
       const key = el.getAttribute("data-region")!;
       const p = paint(key);
-      el.style.fill = p.fill;
+      el.style.fill = p.hatch ? `url(#${ensureHatch(root, el, p.fill)})` : p.fill;
       // data-region-stroke="fill": the file draws a region as many pieces and
       // ships its own merged outlines, so hide the internal piece boundaries.
       const strokeFill = root.getAttribute("data-region-stroke") === "fill";
@@ -168,7 +212,14 @@ export default function BrainDrawing({
       if (!t.hasAttribute("text-anchor")) t.setAttribute("text-anchor", "middle");
       if (!t.hasAttribute("font-size")) t.style.fontSize = "13px";
       t.style.fontWeight = "600";
-      t.style.fill = t.getAttribute("data-ink") === "auto" ? p.ink : "#374151";
+      const ink = t.getAttribute("data-ink") === "auto" ? p.ink : "#374151";
+      t.style.fill = ink;
+      // A halo in the opposite tone keeps labels readable on hatched fills
+      // and across region boundaries.
+      t.style.stroke = ink === "#ffffff" ? "rgba(17,24,39,0.45)" : "rgba(255,255,255,0.85)";
+      t.style.strokeWidth = "3px";
+      t.style.strokeLinejoin = "round";
+      t.style.setProperty("paint-order", "stroke");
       t.style.pointerEvents = "none";
       t.style.userSelect = "none";
     }

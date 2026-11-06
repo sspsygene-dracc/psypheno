@@ -22,7 +22,9 @@ import {
   TRAY_GROUPS,
   countFill,
   countInk,
+  datasetsWithGene,
   findRegion,
+  geneRoleIn,
   regionCounts,
   studyKind,
   trayCoversRegion,
@@ -35,6 +37,7 @@ import {
 } from "@/lib/brain-regions";
 import { SPECIES_LABELS, modelSystemLabel } from "@/lib/dataset-tags";
 import type { RegionGenesResponse } from "@/pages/api/region-genes";
+import type { GeneRegionsResponse, GeneRegionsTable } from "@/pages/api/gene-regions";
 import type { Modality } from "@/pages/api/modalities";
 
 /**
@@ -46,11 +49,13 @@ import type { Modality } from "@/pages/api/modalities";
  * patterned towards, so they never read as actual brain tissue.
  *
  * URL: ?species=human|mouse|zebrafish &view=lateral|medial &region=<key> (a
- * region key from lib/brain-regions.ts, its UBERON id, or invitro:<group>).
- * A gene-first view (?gene=SYMBOL: colour by where that gene's data come
- * from) is not built yet — see the note rendered when ?gene= is present and
- * regionCounts(), which takes the dataset list the gene view would filter.
+ * region key from lib/brain-regions.ts, its UBERON id, or invitro:<group>)
+ * &gene=SYMBOL (gene view: only the tables where that gene was perturbed or
+ * measured, from /api/gene-regions; solid = perturbed there, hatched = only
+ * measured).
  */
+
+type GeneContext = { symbol: string; roles: ReadonlyMap<string, GeneRegionsTable> };
 
 type Selection =
   | { kind: "region"; region: RegionDef }
@@ -87,6 +92,8 @@ export default function RegionsPage() {
   const [trayHover, setTrayHover] = useState<string | null>(null);
   const [genes, setGenes] = useState<RegionGenesResponse | null>(null);
   const [genesLoading, setGenesLoading] = useState(false);
+  const [geneData, setGeneData] = useState<GeneRegionsResponse | null>(null);
+  const [geneLoading, setGeneLoading] = useState(false);
   const drawingBox = useRef<HTMLDivElement | null>(null);
 
   const species = parseSpecies(router.query.species);
@@ -142,9 +149,40 @@ export default function RegionsPage() {
     };
   }, [modalities, assayTypes]);
 
-  const counts = useMemo(() => regionCounts(datasets, species), [datasets, species]);
-  const tray = useMemo(() => trayGroups(datasets), [datasets]);
-  const unplaced = useMemo(() => unplacedTissue(datasets, species), [datasets, species]);
+  // Gene view: fetch where the gene occurs, then run the same region logic on
+  // just those tables.
+  useEffect(() => {
+    if (!geneParam) {
+      setGeneData(null);
+      return;
+    }
+    const ctrl = new AbortController();
+    setGeneLoading(true);
+    fetch(`/api/gene-regions?gene=${encodeURIComponent(geneParam)}`, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j: GeneRegionsResponse) => setGeneData(j))
+      .catch((e) => {
+        if (e?.name !== "AbortError") setGeneData({ gene: null, tables: [] });
+      })
+      .finally(() => {
+        if (!ctrl.signal.aborted) setGeneLoading(false);
+      });
+    return () => ctrl.abort();
+  }, [geneParam]);
+
+  const geneRoles = useMemo(
+    () => new Map((geneData?.tables ?? []).map((t) => [t.table, t])),
+    [geneData],
+  );
+  const geneMode = !!geneParam;
+  const viewDatasets = useMemo(
+    () => (geneMode ? (geneData ? datasetsWithGene(datasets, geneRoles) : []) : datasets),
+    [geneMode, geneData, datasets, geneRoles],
+  );
+
+  const counts = useMemo(() => regionCounts(viewDatasets, species), [viewDatasets, species]);
+  const tray = useMemo(() => trayGroups(viewDatasets), [viewDatasets]);
+  const unplaced = useMemo(() => unplacedTissue(viewDatasets, species), [viewDatasets, species]);
   const wholeRegion = REGIONS[species].find((r) => r.pseudo);
 
   const setQuery = (patch: Record<string, string | null>) => {
@@ -207,9 +245,11 @@ export default function RegionsPage() {
   }, [trayHover, selection, species]);
 
   const paint = (key: string) => {
-    const n = counts.get(key)?.specific.length ?? 0;
+    const specific = counts.get(key)?.specific ?? [];
+    const n = specific.length;
     const label = findRegion(species, key)?.label ?? key;
-    return { fill: countFill(n), ink: countInk(n), count: n, label };
+    const hatch = geneMode && geneRoleIn(specific, geneRoles) === "measured";
+    return { fill: countFill(n), ink: hatch ? "#1f2937" : countInk(n), count: n, label, hatch };
   };
 
   const onHover = (key: string | null, e?: { clientX: number; clientY: number }) => {
@@ -237,14 +277,19 @@ export default function RegionsPage() {
           their region is the identity they were patterned towards, not tissue.
         </p>
 
-        {geneParam && (
-          <div
-            role="note"
-            style={{ ...card, background: "#fffbeb", borderColor: "#fde68a", padding: 10, marginBottom: 12, fontSize: 13 }}
-          >
-            The gene view (where <strong>{geneParam}</strong>&rsquo;s data come from) is not available
-            yet; showing all datasets. Search the gene on the <Link href={`/?perturbed=${encodeURIComponent(geneParam)}`}>home page</Link> instead.
-          </div>
+        <GeneBox
+          gene={geneParam}
+          onSubmit={(g) => setQuery({ gene: g, region: null })}
+          onClear={() => setQuery({ gene: null, region: null })}
+        />
+        {geneMode && (
+          <GeneBanner
+            query={geneParam!}
+            data={geneData}
+            loading={geneLoading}
+            datasets={datasets}
+            shown={viewDatasets}
+          />
         )}
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
@@ -305,7 +350,7 @@ export default function RegionsPage() {
                 )}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                <Legend />
+                <Legend hatch={geneMode} />
                 <span style={{ fontSize: 12, color: "#6b7280" }}>
                   {drawing.caption}
                   {drawing.credit && (
@@ -364,11 +409,12 @@ export default function RegionsPage() {
                   matrixTables={matrixTables}
                   genes={genes}
                   genesLoading={genesLoading}
+                  gene={geneMode && geneData?.gene ? { symbol: geneData.gene.symbol, roles: geneRoles } : null}
                   onSelectTray={(k) => selectRegion(`invitro:${k}`)}
                   onClose={() => selectRegion(null)}
                 />
               ) : (
-                <Intro datasets={datasets} />
+                <Intro datasets={viewDatasets} geneSymbol={geneMode ? (geneData?.gene?.symbol ?? null) : null} />
               )}
             </div>
           </div>
@@ -392,9 +438,107 @@ function toggleStyle(active: boolean): CSSProperties {
   };
 }
 
-function Legend() {
+function GeneBox({
+  gene,
+  onSubmit,
+  onClear,
+}: {
+  gene: string | null;
+  onSubmit: (g: string) => void;
+  onClear: () => void;
+}) {
+  const [value, setValue] = useState(gene ?? "");
+  useEffect(() => setValue(gene ?? ""), [gene]);
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#4b5563" }}>
+    <form
+      role="search"
+      aria-label="Gene view"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const v = value.trim();
+        if (v) onSubmit(v);
+      }}
+      style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 10, flexWrap: "wrap", fontSize: 13 }}
+    >
+      <label htmlFor="regions-gene" style={{ fontWeight: 600, color: "#374151" }}>
+        Where are a gene&rsquo;s data from?
+      </label>
+      <input
+        id="regions-gene"
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Gene symbol, e.g. SHANK3"
+        autoComplete="off"
+        spellCheck={false}
+        style={{ padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, width: 200 }}
+      />
+      <button type="submit" style={toggleStyle(false)}>
+        Show
+      </button>
+      {gene && (
+        <button type="button" onClick={onClear} style={toggleStyle(false)}>
+          All datasets
+        </button>
+      )}
+    </form>
+  );
+}
+
+function GeneBanner({
+  query,
+  data,
+  loading,
+  datasets,
+  shown,
+}: {
+  query: string;
+  data: GeneRegionsResponse | null;
+  loading: boolean;
+  datasets: Dataset[];
+  shown: Dataset[];
+}) {
+  const box: CSSProperties = {
+    ...card,
+    background: "#f8fafc",
+    padding: "8px 12px",
+    marginBottom: 12,
+    fontSize: 13,
+  };
+  if (loading || !data) return <div style={box}>Looking up {query}…</div>;
+  if (!data.gene) {
+    return (
+      <div role="note" style={{ ...box, background: "#fffbeb", borderColor: "#fde68a" }}>
+        No gene matches &ldquo;{query}&rdquo;.
+      </div>
+    );
+  }
+  const onPage = new Set(shown.map((d) => d.table_name));
+  const roles = data.tables.filter((t) => onPage.has(t.table));
+  const nPert = roles.filter((t) => t.perturbed).length;
+  const nMeas = roles.filter((t) => t.measured && !t.perturbed).length;
+  const offPage = data.tables.filter(
+    (t) => !onPage.has(t.table) && datasets.some((d) => d.table_name === t.table),
+  ).length;
+  const sym = data.gene.symbol;
+  return (
+    <div role="status" style={box}>
+      <strong>{sym}</strong>: in {roles.length} dataset{roles.length === 1 ? "" : "s"} on this page —
+      perturbed in {nPert}, measured (as a readout / DE / associated gene) in {nMeas}.
+      {" "}Regions are coloured by those datasets only: <strong>solid</strong> = {sym} was perturbed
+      there, <strong>hatched</strong> = only measured there.
+      {offPage > 0 && ` ${offPage} more without anatomy tags (e.g. curated resources) are not shown.`}
+      {" "}
+      <Link href={`/?perturbed=${encodeURIComponent(sym)}`} style={{ color: "#1d4ed8" }}>
+        all {sym} results
+      </Link>
+    </div>
+  );
+}
+
+function Legend({ hatch }: { hatch?: boolean }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#4b5563", flexWrap: "wrap" }}>
       Datasets:
       {COUNT_BINS.map((b) => (
         <span key={b.label} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
@@ -412,6 +556,21 @@ function Legend() {
         />
         in-vitro identity
       </span>
+      {hatch && (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 6 }}>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 14,
+              height: 14,
+              borderRadius: 3,
+              border: "1px solid #d1d5db",
+              background: `repeating-linear-gradient(45deg, ${COUNT_BINS[2].fill} 0 3px, #ffffff 3px 5px)`,
+            }}
+          />
+          gene only measured
+        </span>
+      )}
     </span>
   );
 }
@@ -547,6 +706,7 @@ function SelectionPanel({
   matrixTables,
   genes,
   genesLoading,
+  gene,
   onSelectTray,
   onClose,
 }: {
@@ -559,6 +719,8 @@ function SelectionPanel({
   matrixTables: ReadonlySet<string>;
   genes: RegionGenesResponse | null;
   genesLoading: boolean;
+  /** Gene view: the gene and its role per table. */
+  gene: GeneContext | null;
   onSelectTray: (key: string) => void;
   onClose: () => void;
 }) {
@@ -623,11 +785,11 @@ function SelectionPanel({
             No {isTray ? "" : "tissue "}datasets tagged here yet.
           </p>
         ) : (
-          <DatasetGroups datasets={specific} assayLabel={assayLabel} matrixTables={matrixTables} />
+          <DatasetGroups datasets={specific} assayLabel={assayLabel} matrixTables={matrixTables} gene={gene} />
         )}
       </PanelSection>
 
-      {specific.length > 0 && (
+      {specific.length > 0 && !gene && (
         <PanelSection title="Perturbed genes and what changed">
           <PerturbedGenes datasets={specific} genes={genes} loading={genesLoading} />
         </PanelSection>
@@ -640,8 +802,8 @@ function SelectionPanel({
           </p>
           <details>
             <summary style={{ cursor: "pointer", fontSize: 13 }}>Show</summary>
-            <DatasetGroups datasets={broader} assayLabel={assayLabel} matrixTables={matrixTables} />
-            <PerturbedGenes datasets={broader} genes={genes} loading={genesLoading} />
+            <DatasetGroups datasets={broader} assayLabel={assayLabel} matrixTables={matrixTables} gene={gene} />
+            {!gene && <PerturbedGenes datasets={broader} genes={genes} loading={genesLoading} />}
           </details>
         </PanelSection>
       )}
@@ -677,7 +839,7 @@ function SelectionPanel({
   );
 }
 
-function Intro({ datasets }: { datasets: Dataset[] }) {
+function Intro({ datasets, geneSymbol }: { datasets: Dataset[]; geneSymbol: string | null }) {
   const lines = REGION_SPECIES.map((s) => {
     const c = regionCounts(datasets, s);
     const n = new Set(Array.from(c.values()).flatMap((v) => [...v.specific, ...v.broader].map((d) => d.table_name))).size;
@@ -687,7 +849,9 @@ function Intro({ datasets }: { datasets: Dataset[] }) {
     <div style={{ fontSize: 13, color: "#4b5563" }}>
       <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 6px", color: "#1f2937" }}>Pick a region</h2>
       <p style={{ margin: "0 0 6px" }}>
-        Hover a region for its dataset count; click it for the datasets and perturbed genes.
+        {geneSymbol
+          ? `Hover a region for how many ${geneSymbol} datasets come from it; click it for those datasets and what changed.`
+          : "Hover a region for its dataset count; click it for the datasets and perturbed genes."}
       </p>
       <p style={{ margin: "0 0 6px" }}>
         Human tissue data is postmortem case-vs-control; perturbations come from mouse and

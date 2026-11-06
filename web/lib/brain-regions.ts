@@ -517,6 +517,41 @@ export function studyKind(d: RegionDataset): StudyKind {
   return "other";
 }
 
+// ── Gene view (/regions?gene=X) ─────────────────────────────────────────
+
+/** How a gene occurs in a table (from /api/gene-regions). */
+export type GeneRole = { perturbed: boolean; measured: boolean };
+
+/**
+ * The gene view draws only the tables that contain the gene; this restricts
+ * a dataset list to them. Everything else (regionCounts, trayGroups, the
+ * panel) then works unchanged on the result.
+ */
+export function datasetsWithGene<D extends RegionDataset>(
+  datasets: readonly D[],
+  roles: ReadonlyMap<string, GeneRole>,
+): D[] {
+  return datasets.filter((d) => roles.has(d.table_name));
+}
+
+/**
+ * A region's role for the gene: "perturbed" if any of its tables perturbed
+ * it (drawn solid), "measured" if it only appears as a measured gene there
+ * (drawn hatched), null if the region has none of the gene's tables.
+ */
+export function geneRoleIn(
+  datasets: readonly RegionDataset[],
+  roles: ReadonlyMap<string, GeneRole>,
+): "perturbed" | "measured" | null {
+  let measured = false;
+  for (const d of datasets) {
+    const r = roles.get(d.table_name);
+    if (r?.perturbed) return "perturbed";
+    if (r?.measured) measured = true;
+  }
+  return measured ? "measured" : null;
+}
+
 // ── Colour scale ────────────────────────────────────────────────────────
 
 /** Fill for a region with `n` specific datasets (single-hue sequential). */
