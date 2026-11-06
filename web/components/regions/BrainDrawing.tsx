@@ -137,6 +137,11 @@ export default function BrainDrawing({
     const overlay = document.createElementNS("http://www.w3.org/2000/svg", "g");
     overlay.setAttribute(OVERLAY, "");
     overlay.setAttribute("pointer-events", "none");
+    // Insert the overlay first, so ring positions can be measured relative
+    // to it (below).
+    const firstLabel = root.querySelector("text[data-label-for]");
+    root.insertBefore(overlay, firstLabel?.parentNode === root ? firstLabel : null);
+    const overlayCtm = (overlay as unknown as SVGGraphicsElement).getCTM?.() ?? null;
     const order: RingStyle[] = ["invitro", "cover", "selected"];
     const sorted = [...rings].sort((a, b) => order.indexOf(a.style) - order.indexOf(b.style));
     for (const { key, style } of sorted) {
@@ -162,10 +167,14 @@ export default function BrainDrawing({
         ring.style.setProperty("vector-effect", "non-scaling-stroke");
         // The overlay sits at the root; carry over any transform the original
         // inherits from its groups (e.g. an atlas drawn at its own scale).
+        // Measured against the overlay group, not the <svg>: browsers disagree
+        // on whether the outermost <svg>'s CTM includes its viewBox scaling,
+        // and using it scaled the ring twice in some (it landed enlarged and
+        // off the region). Overlay and original share the same viewport, so
+        // that scaling cancels out here in every browser.
         const ctm = el.getCTM?.();
-        const rootCtm = root.getCTM?.();
-        if (ctm && rootCtm) {
-          const m = rootCtm.inverse().multiply(ctm);
+        if (ctm && overlayCtm) {
+          const m = overlayCtm.inverse().multiply(ctm);
           ring.setAttribute("transform", `matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`);
         }
         // Keep any clip-path an ancestor group applied.
@@ -174,8 +183,6 @@ export default function BrainDrawing({
         overlay.appendChild(ring);
       }
     }
-    const firstLabel = root.querySelector("text[data-label-for]");
-    root.insertBefore(overlay, firstLabel?.parentNode === root ? firstLabel : null);
 
     for (const t of Array.from(root.querySelectorAll<SVGTextElement>("text[data-label-for]"))) {
       const key = t.getAttribute("data-label-for")!;
