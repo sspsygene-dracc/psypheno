@@ -248,6 +248,18 @@ export const REGION_GROUPS: ReadonlyArray<{
   { id: "UBERON:0001872", label: "Parietal lobe", depth: 4 },
   { id: "UBERON:0002021", label: "Occipital lobe", depth: 4 },
   { id: "UBERON:0003027", label: "Cingulate cortex", depth: 4 },
+  // Structures the /regions drawings show (lib/brain-regions.ts filterGroup),
+  // so a region there can link here. Options nothing is tagged with are
+  // hidden in the filter, so these cost nothing until a dataset uses them.
+  { id: "UBERON:0002022", label: "Insula", depth: 4 },
+  { id: "UBERON:0002421", label: "Hippocampal formation", depth: 4 },
+  { id: "UBERON:0002264", label: "Olfactory bulb", depth: 3 },
+  { id: "UBERON:0002435", label: "Striatum", depth: 3 },
+  { id: "UBERON:0001897", label: "Thalamus", depth: 2 },
+  { id: "UBERON:0001898", label: "Hypothalamus", depth: 2 },
+  { id: "UBERON:0001891", label: "Midbrain", depth: 1 },
+  { id: "UBERON:0002028", label: "Hindbrain", depth: 1 },
+  { id: "UBERON:0002037", label: "Cerebellum", depth: 2 },
   { id: "UBERON:0000468", label: "Whole animal", depth: 0, exact: true },
   { id: "UBERON:0002113", label: "Kidney (cell line)", depth: 0, exact: true },
 ];
@@ -255,6 +267,21 @@ export const REGION_GROUPS: ReadonlyArray<{
 /** Region filter value for a REGION_GROUPS entry. */
 export function regionFilterValue(group: { id: string; exact?: boolean }): string {
   return group.exact ? `exact:${group.id}` : group.id;
+}
+
+/**
+ * A ?region= URL value for /full-datasets' Region filter: kept if it is the
+ * filter value of a REGION_GROUPS entry, else "" (no filter).
+ */
+export function parseRegionFilterParam(v: unknown): string {
+  if (typeof v !== "string") return "";
+  return REGION_GROUPS.some((g) => regionFilterValue(g) === v) ? v : "";
+}
+
+/** /full-datasets with its Region filter preset to a REGION_GROUPS id. */
+export function fullDatasetsRegionHref(groupId: string): string | null {
+  const g = REGION_GROUPS.find((x) => x.id === groupId);
+  return g ? `/full-datasets?region=${encodeURIComponent(regionFilterValue(g))}` : null;
 }
 
 /** Does a dataset match a Region filter value (see regionFilterValue)? */

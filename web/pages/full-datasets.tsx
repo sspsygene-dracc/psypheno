@@ -15,6 +15,7 @@ import {
   experimentTypeLabel,
   MODEL_SYSTEM_LABELS,
   matchesRegionFilter,
+  parseRegionFilterParam,
   REGION_GROUPS,
   regionFilterValue,
   modelSystemLabel,
@@ -83,6 +84,12 @@ export default function FullDatasets() {
     [datasets, tagFilters],
   );
   const hydratedFromQuery = useRef(false);
+  // State twin of hydratedFromQuery for the URL-sync effect. The sync effect
+  // runs in the same commit as the hydration effect, before the hydrated
+  // selection has landed, and would rewrite the URL from the stale (empty)
+  // state, dropping ?select= / ?region=. As state, this only turns true on
+  // the next render, together with the hydrated selection.
+  const [urlSyncReady, setUrlSyncReady] = useState(false);
   const pageAbort = useRef<AbortController | null>(null);
   const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -105,9 +112,21 @@ export default function FullDatasets() {
   // Hydrate selected dataset from ?select= or ?open= URL param once datasets
   // are loaded. Both params now have the same effect: select the dataset and
   // show its full data table.
+  // ?region=<Region filter value> (e.g. from /regions) presets the Region
+  // filter; hydrated as soon as the router is ready so the filter doesn't
+  // flash "All regions" while the dataset list loads.
+  const regionHydrated = useRef(false);
+  useEffect(() => {
+    if (!router.isReady || regionHydrated.current) return;
+    regionHydrated.current = true;
+    const region = parseRegionFilterParam(router.query.region);
+    if (region) setTagFilters((f) => ({ ...f, region }));
+  }, [router.isReady]);
+
   useEffect(() => {
     if (!router.isReady || hydratedFromQuery.current || loading) return;
     hydratedFromQuery.current = true;
+    setUrlSyncReady(true);
     const openParam = router.query.open;
     const selectParam = router.query.select;
     const param =
@@ -126,28 +145,24 @@ export default function FullDatasets() {
     if (match) setSelectedDataset(match.table_name);
   }, [router.isReady, loading, datasets]);
 
-  // Keep URL in sync when the user selects a dataset
+  // Keep the URL in sync with the selected dataset (?select=) and the Region
+  // filter (?region=, so a /regions link survives selecting a dataset).
   useEffect(() => {
-    if (!router.isReady || !hydratedFromQuery.current) return;
+    if (!router.isReady || !urlSyncReady) return;
     const ds = datasets.find((d) => d.table_name === selectedDataset);
     const slug = ds?.short_label ? slugFromLabel(ds.short_label) : null;
-    const currentSelect = router.query.select as string | undefined;
-    if (slug) {
-      if (currentSelect !== slug) {
-        router.replace(
-          { pathname: router.pathname, query: { select: slug } },
-          undefined,
-          { shallow: true }
-        );
-      }
-    } else if (currentSelect) {
-      router.replace(
-        { pathname: router.pathname, query: {} },
-        undefined,
-        { shallow: true }
-      );
+    const next: Record<string, string> = {};
+    if (slug) next.select = slug;
+    if (tagFilters.region) next.region = tagFilters.region;
+    const q = router.query;
+    const inSync =
+      q.select === next.select && q.region === next.region && q.open === undefined;
+    if (!inSync) {
+      router.replace({ pathname: router.pathname, query: next }, undefined, {
+        shallow: true,
+      });
     }
-  }, [selectedDataset, datasets, router.isReady]);
+  }, [selectedDataset, datasets, router.isReady, urlSyncReady, tagFilters.region]);
 
   // Mirror the sort the API reports it applied, so the column header shows
   // the default FDR/p-value sort (and "none" after cycling snaps back to it).
