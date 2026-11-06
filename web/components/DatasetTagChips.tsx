@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import {
+  EXPERIMENT_TYPE_DESCRIPTIONS,
+  experimentTypeLabel,
   MODEL_SYSTEM_DESCRIPTIONS,
   modelSystemLabel,
   stageLabel,
@@ -16,6 +18,7 @@ const PALETTE = {
   model: { color: "#5b21b6", background: "#ede9fe" },
   region: { color: "#92400e", background: "#fef3c7" },
   stage: { color: "#374151", background: "#f3f4f6" },
+  experiment: { color: "#115e59", background: "#ccfbf1" },
 } as const;
 
 /**
@@ -41,7 +44,8 @@ export default function DatasetTagChips({
     stage: tags.stage ?? null,
     stage_detail: tags.stage_detail ?? null,
   });
-  if (systems.length === 0 && anatomy.length === 0 && !stage) return null;
+  const experiment = tags.experiment_type ?? null;
+  if (systems.length === 0 && anatomy.length === 0 && !stage && !experiment) return null;
 
   const size: CSSProperties = compact
     ? { fontSize: 11, padding: "0 7px" }
@@ -70,6 +74,16 @@ export default function DatasetTagChips({
           {modelSystemLabel(ms)}
         </span>
       ))}
+      {experiment && (
+        <span
+          title={`Experiment type: ${
+            EXPERIMENT_TYPE_DESCRIPTIONS[experiment] ?? experimentTypeLabel(experiment)
+          }`}
+          style={{ ...chipBase, ...size, ...PALETTE.experiment }}
+        >
+          {experimentTypeLabel(experiment)}
+        </span>
+      )}
       {shown.map((t) => (
         <span
           key={t.id}

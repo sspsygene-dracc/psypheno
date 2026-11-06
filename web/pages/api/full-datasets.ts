@@ -70,6 +70,7 @@ export default async function handler(
         anatomy_column,
         stage,
         stage_detail,
+        experiment_type,
         ...rest
       } = r;
       let authors: string[] = [];
@@ -103,6 +104,7 @@ export default async function handler(
           anatomy_column,
           stage,
           stage_detail,
+          experiment_type,
         }),
         destinations: destinations.get(r.table_name) ?? null,
       };

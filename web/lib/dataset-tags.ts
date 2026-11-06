@@ -15,6 +15,8 @@ export type DatasetTags = {
   anatomy_column: string | null;
   stage: string | null;
   stage_detail: string | null;
+  /** dataset_tags EXPERIMENT_TYPES key (how the genes were perturbed, if at all). */
+  experiment_type: string | null;
 };
 
 export const MODEL_SYSTEM_LABELS: Record<string, string> = {
@@ -135,6 +137,7 @@ export const EMPTY_TAGS: DatasetTags = {
   anatomy_column: null,
   stage: null,
   stage_detail: null,
+  experiment_type: null,
 };
 
 /** The raw DB columns, as selected by `tagSelectSql`. */
@@ -145,6 +148,7 @@ export type RawTagColumns = {
   anatomy_column?: string | null;
   stage: string | null;
   stage_detail: string | null;
+  experiment_type?: string | null;
 };
 
 const TAG_COLUMNS = [
@@ -154,6 +158,7 @@ const TAG_COLUMNS = [
   "anatomy_column",
   "stage",
   "stage_detail",
+  "experiment_type",
 ] as const;
 
 /**
@@ -200,6 +205,7 @@ export function parseTags(r: RawTagColumns): DatasetTags {
     anatomy_column: r.anatomy_column ?? null,
     stage: r.stage ?? null,
     stage_detail: r.stage_detail ?? null,
+    experiment_type: r.experiment_type ?? null,
   };
 }
 

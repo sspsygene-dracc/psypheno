@@ -11,6 +11,8 @@ import type { DatasetLink } from "@/lib/links";
 import DestinationBadge from "@/components/DestinationBadge";
 import DatasetTagChips from "@/components/DatasetTagChips";
 import {
+  EXPERIMENT_TYPE_LABELS,
+  experimentTypeLabel,
   MODEL_SYSTEM_LABELS,
   matchesRegionFilter,
   REGION_GROUPS,
@@ -635,12 +637,23 @@ function datasetLabel(d: Dataset): string {
 
 // ── Tag filters (species / model system / region) ──────────────────────
 
-type TagFilters = { species: string; modelSystem: string; region: string };
-const NO_TAG_FILTERS: TagFilters = { species: "", modelSystem: "", region: "" };
+type TagFilters = {
+  species: string;
+  modelSystem: string;
+  experimentType: string;
+  region: string;
+};
+const NO_TAG_FILTERS: TagFilters = {
+  species: "",
+  modelSystem: "",
+  experimentType: "",
+  region: "",
+};
 
 function datasetMatchesFilters(d: Dataset, f: TagFilters): boolean {
   if (f.species && d.gene_species !== f.species) return false;
   if (f.modelSystem && d.model_system !== f.modelSystem) return false;
+  if (f.experimentType && d.experiment_type !== f.experimentType) return false;
   // A region matches the term itself or any subregion (ancestor closure).
   if (f.region && !matchesRegionFilter(d, f.region)) return false;
   return true;
@@ -694,6 +707,20 @@ function DatasetFilters({
       }));
   }, [datasets, filters]);
 
+  const experimentTypeOptions: FilterOption[] = useMemo(() => {
+    const present = new Set(
+      datasets.map((d) => d.experiment_type).filter((m): m is string => !!m),
+    );
+    // Vocabulary order (EXPERIMENT_TYPE_LABELS), not alphabetical.
+    return Object.keys(EXPERIMENT_TYPE_LABELS)
+      .filter((k) => present.has(k))
+      .map((k) => ({
+        value: k,
+        label: experimentTypeLabel(k),
+        count: countWith({ experimentType: k }),
+      }));
+  }, [datasets, filters]);
+
   const regionOptions: FilterOption[] = useMemo(
     () =>
       // A short fixed hierarchy (REGION_GROUPS), indented, each counting its
@@ -709,6 +736,7 @@ function DatasetFilters({
   const active =
     filters.species !== "" ||
     filters.modelSystem !== "" ||
+    filters.experimentType !== "" ||
     filters.region !== "";
 
   const selectStyle: React.CSSProperties = {
@@ -772,6 +800,13 @@ function DatasetFilters({
         "modelSystem",
         modelSystemOptions,
         "All model systems",
+      )}
+      {facet(
+        "filter-experiment-type",
+        "Experiment type",
+        "experimentType",
+        experimentTypeOptions,
+        "All experiment types",
       )}
       {facet("filter-region", "Region", "region", regionOptions, "All regions")}
       <div
