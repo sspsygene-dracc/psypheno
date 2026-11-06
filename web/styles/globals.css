@@ -4,6 +4,12 @@
   box-sizing: border-box;
 }
 
+/* Always reserve the scrollbar's space, so pages don't shift sideways when
+   their content grows past the viewport (e.g. switching views on /regions). */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
