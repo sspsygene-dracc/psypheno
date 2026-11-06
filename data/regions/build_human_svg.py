@@ -43,6 +43,13 @@ LABEL_NAMES = {
 }
 
 
+# Lobe outlines: gap-closing radius and the smallest island / hole kept, in
+# SVG units (the drawing is WIDTH units wide).
+CLOSE = 2.0
+MIN_ISLAND = 20.0
+MIN_HOLE = 60.0
+
+
 def fmt(v: float) -> str:
     return f"{v:.1f}".rstrip("0").rstrip(".")
 
@@ -99,13 +106,22 @@ def main(argv: list[str]) -> int:
         lines.append('  <g fill="none" stroke="#374151" stroke-width="1.6" stroke-linejoin="round" pointer-events="none">')
         label_at: dict[str, tuple[float, float]] = {}
         for lobe, polys in shapes.items():
-            u = unary_union([p.buffer(0.6) for p in polys]).buffer(-0.6)
+            # The atlas's parcels don't tile exactly: hairline gaps separate
+            # neighbours. Close them (grow, union, shrink back) with mitred
+            # joins so corners keep their shape, then drop the specks the
+            # gaps leave behind: small islands and holes. Without this the
+            # outline carried dark dots and dashes inside the lobes and
+            # drifted off the coloured parcels.
+            u = unary_union([p.buffer(CLOSE, join_style="mitre") for p in polys]).buffer(
+                -CLOSE, join_style="mitre"
+            )
             geoms = list(u.geoms) if isinstance(u, MultiPolygon) else [u]
             segs = []
             for g in geoms:
-                if g.area < 4:
+                if g.area < MIN_ISLAND:
                     continue
-                for ring in [g.exterior, *g.interiors]:
+                rings = [g.exterior, *(r for r in g.interiors if Polygon(r).area >= MIN_HOLE)]
+                for ring in rings:
                     segs.append("M" + " L".join(f"{fmt(x)},{fmt(y)}" for x, y in ring.coords) + "Z")
             lines.append(f'    <path data-outline="{lobe}" d="{" ".join(segs)}"/>')
             biggest = max(geoms, key=lambda g: g.area)
