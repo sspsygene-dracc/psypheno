@@ -32,9 +32,8 @@ const RING_CSS: Record<
   RingStyle,
   { stroke: string; width: string; dash: string | null; halo?: string }
 > = {
-  // A white halo under the dark line keeps the selection visible on the
-  // darkest fills too (a plain dark ring vanished on a 5+ region).
-  selected: { stroke: "#111827", width: "2.5", dash: null, halo: "7" },
+  // Bright, so it shows on the darkest and the palest fills alike.
+  selected: { stroke: "#f43f5e", width: "4", dash: null },
   cover: { stroke: "#d97706", width: "3.5", dash: "9 5" },
   invitro: { stroke: IN_VITRO_STROKE, width: "3", dash: "5 3" },
 };
@@ -133,10 +132,6 @@ export default function BrainDrawing({
       el.setAttribute("role", "button");
       el.setAttribute("aria-label", p.ariaLabel);
       el.setAttribute("aria-pressed", String(selectedKey === key));
-      // With a region selected, fade the others so the selection stands out
-      // by contrast as well as by its ring.
-      el.style.opacity = selectedKey && selectedKey !== key ? "0.4" : "1";
-      el.style.transition = "opacity 0.15s";
     }
 
     // Rings: copies of the region elements drawn on top, so a neighbour
@@ -258,8 +253,14 @@ export default function BrainDrawing({
       }}
       onKeyDown={onKey}
       onFocus={(e) => {
-        const key = keyAt(e.target);
-        if (key) onHover(key);
+        // Keyboard focus only: a mouse click also focuses the region, and
+        // the card must not pop up away from the pointer then. Place it at
+        // the focused region.
+        const el = e.target as Element;
+        const key = keyAt(el);
+        if (!key || !el.matches?.(":focus-visible")) return;
+        const r = el.getBoundingClientRect();
+        onHover(key, { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
       }}
       onBlur={() => onHover(null)}
       // Reserve the drawing's space while the file loads (no layout shift).
