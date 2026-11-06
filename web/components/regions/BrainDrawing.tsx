@@ -28,8 +28,13 @@ export type RegionPaint = {
 export type RingStyle = "selected" | "cover" | "invitro";
 export type Ring = { key: string; style: RingStyle };
 
-const RING_CSS: Record<RingStyle, { stroke: string; width: string; dash: string | null }> = {
-  selected: { stroke: "#111827", width: "3", dash: null },
+const RING_CSS: Record<
+  RingStyle,
+  { stroke: string; width: string; dash: string | null; halo?: string }
+> = {
+  // A white halo under the dark line keeps the selection visible on the
+  // darkest fills too (a plain dark ring vanished on a 5+ region).
+  selected: { stroke: "#111827", width: "2.5", dash: null, halo: "7" },
   cover: { stroke: "#d97706", width: "3.5", dash: "9 5" },
   invitro: { stroke: IN_VITRO_STROKE, width: "3", dash: "5 3" },
 };
@@ -128,6 +133,10 @@ export default function BrainDrawing({
       el.setAttribute("role", "button");
       el.setAttribute("aria-label", p.ariaLabel);
       el.setAttribute("aria-pressed", String(selectedKey === key));
+      // With a region selected, fade the others so the selection stands out
+      // by contrast as well as by its ring.
+      el.style.opacity = selectedKey && selectedKey !== key ? "0.4" : "1";
+      el.style.transition = "opacity 0.15s";
     }
 
     // Rings: copies of the region elements drawn on top, so a neighbour
@@ -165,6 +174,14 @@ export default function BrainDrawing({
         ring.style.strokeWidth = css.width;
         if (css.dash) ring.style.strokeDasharray = css.dash;
         ring.style.setProperty("vector-effect", "non-scaling-stroke");
+        let halo: SVGGraphicsElement | null = null;
+        if (css.halo) {
+          halo = ring.cloneNode(false) as SVGGraphicsElement;
+          halo.setAttribute("data-ring", `${style}-halo`);
+          halo.style.stroke = "#ffffff";
+          halo.style.strokeWidth = css.halo;
+          halo.style.strokeLinejoin = "round";
+        }
         // The overlay sits at the root; carry over any transform the original
         // inherits from its groups (e.g. an atlas drawn at its own scale).
         // Measured against the overlay group, not the <svg>: browsers disagree
@@ -180,6 +197,11 @@ export default function BrainDrawing({
         // Keep any clip-path an ancestor group applied.
         const clip = el.closest("[clip-path]")?.getAttribute("clip-path");
         if (clip && !ring.getAttribute("clip-path")) ring.setAttribute("clip-path", clip);
+        if (halo) {
+          if (ring.getAttribute("transform")) halo.setAttribute("transform", ring.getAttribute("transform")!);
+          if (ring.getAttribute("clip-path")) halo.setAttribute("clip-path", ring.getAttribute("clip-path")!);
+          overlay.appendChild(halo);
+        }
         overlay.appendChild(ring);
       }
     }
