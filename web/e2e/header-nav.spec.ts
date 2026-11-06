@@ -7,10 +7,12 @@ const PRIMARY_LINKS = [
   { label: "Home", path: "/" },
   { label: "Full datasets", path: "/full-datasets" },
   { label: "Publications", path: "/publications" },
-  { label: "Most Significant Genes", path: "/most-significant" },
+  { label: "Overview matrix", path: "/matrix" },
+  { label: "Brain regions", path: "/regions" },
 ] as const;
 
 const OTHER_LINKS = [
+  { label: "Most Significant Genes", path: "/most-significant" },
   { label: "All Genes", path: "/all-genes" },
   { label: "Significant Rows", path: "/significant-rows" },
   { label: "Meta-Analysis Methods", path: "/methods" },

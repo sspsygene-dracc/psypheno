@@ -7,13 +7,14 @@ const PRIMARY_LINKS = [
   { href: "/", label: "Home" },
   { href: "/full-datasets", label: "Full datasets" },
   { href: "/publications", label: "Publications" },
-  { href: "/most-significant", label: "Most Significant Genes" },
   { href: "/matrix", label: "Overview matrix" },
+  { href: "/regions", label: "Brain regions" },
 ];
 
 // Everything else is reachable via the "Other" dropdown on desktop, and
 // flat in the mobile menu.
 const OTHER_LINKS = [
+  { href: "/most-significant", label: "Most Significant Genes" },
   { href: "/all-genes", label: "All Genes" },
   { href: "/significant-rows", label: "Significant Rows" },
   { href: "/methods", label: "Meta-Analysis Methods" },
