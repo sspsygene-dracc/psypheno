@@ -16,6 +16,10 @@ export default async function handler(
   try {
     const db = getDb();
     const tagColumns = tagSelectSql((c) => columnExists(db, "data_tables", c));
+    // organism_key feeds /regions (species of the samples, and
+    // perturbation vs case-control); NULL for a DB that predates them.
+    const optional = (c: string) =>
+      columnExists(db, "data_tables", c) ? c : `NULL AS ${c}`;
 
     const rows = db
       .prepare(
@@ -24,7 +28,7 @@ export default async function handler(
                 publication_first_author, publication_last_author, publication_author_count, publication_authors,
                 publication_year, publication_journal, publication_doi, publication_sspsygene_grants,
                 preprocessing IS NOT NULL AS has_preprocessing,
-                ${tagColumns}
+                ${tagColumns}, ${optional("organism_key")}
          FROM data_tables
          ORDER BY table_name ASC`
       )
@@ -53,6 +57,8 @@ export default async function handler(
       publication_doi: string | null;
       publication_sspsygene_grants: string | null;
       has_preprocessing: 0 | 1;
+      organism_key: string | null;
+      experiment_type: string | null;
     } & RawTagColumns>;
 
     // Per-table deployTo (#225) — drives the "not on production" badge.
@@ -71,6 +77,7 @@ export default async function handler(
         stage,
         stage_detail,
         experiment_type,
+        organism_key,
         ...rest
       } = r;
       let authors: string[] = [];
@@ -97,6 +104,9 @@ export default async function handler(
         publication_authors: authors,
         publication_sspsygene_grants: grants,
         has_preprocessing: has_preprocessing === 1,
+        organism_key: organism_key
+          ? organism_key.split(",").map((k) => k.trim()).filter(Boolean)
+          : [],
         ...parseTags({
           model_system,
           anatomy,

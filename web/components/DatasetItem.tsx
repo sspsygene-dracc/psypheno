@@ -34,6 +34,9 @@ export type Dataset = {
   // Instances this dataset's config.yaml allows it on (#225). null for a DB
   // built before #225, which renders no badge.
   destinations?: string[] | null;
+  /** organismTypes keys of the samples (may differ from gene_species). */
+  organism_key?: string[];
+  experiment_type?: string | null;
 } & Partial<DatasetTags>;
 
 type DatasetItemProps = {

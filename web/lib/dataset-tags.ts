@@ -4,6 +4,8 @@
 
 // No server imports here: the pages import this module client-side.
 
+import { closureHits } from "@/lib/brain-regions";
+
 export type AnatomyTerm = { id: string; label: string };
 
 export type DatasetTags = {
@@ -211,13 +213,15 @@ export function parseTags(r: RawTagColumns): DatasetTags {
 
 /**
  * True when a dataset tagged with `closure` falls under region `regionId`:
- * tagged with that term itself or any subregion / subtype of it.
+ * tagged with that term itself or any subregion / subtype of it — including
+ * the Brodmann areas UBERON fails to file under their lobe, which
+ * CURATED_PART_OF (lib/brain-regions.ts) adds by hand.
  */
 export function matchesRegion(
   closure: readonly string[] | undefined,
   regionId: string,
 ): boolean {
-  return !!closure && closure.includes(regionId);
+  return closureHits(closure, regionId);
 }
 
 /**

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 360">
+  <!-- PLACEHOLDER schematic, hand-authored for SSPsyGene; not traced from any
+       atlas. Contract: see web/public/regions/README.txt. -->
+  <defs>
+    <clipPath id="human-lateral-outline">
+      <path d="M 62,205 C 32,150 48,78 125,48 C 195,20 305,24 372,54 C 432,80 474,132 462,188 C 456,216 432,236 396,240 C 362,244 338,252 318,264 C 292,284 222,292 172,274 C 142,264 122,246 128,226 C 112,226 92,222 80,216 C 72,212 66,210 62,205 Z"/>
+    </clipPath>
+  </defs>
+  <path data-region="brainstem" d="M 286,262 C 296,296 300,326 304,352 L 338,352 C 334,322 332,292 330,262 Z"/>
+  <path data-region="cerebellum" d="M 316,262 C 345,244 405,240 446,226 C 466,252 452,292 410,302 C 368,310 330,296 316,262 Z"/>
+  <path fill="#e5e7eb" pointer-events="none" d="M 62,205 C 32,150 48,78 125,48 C 195,20 305,24 372,54 C 432,80 474,132 462,188 C 456,216 432,236 396,240 C 362,244 338,252 318,264 C 292,284 222,292 172,274 C 142,264 122,246 128,226 C 112,226 92,222 80,216 C 72,212 66,210 62,205 Z"/>
+  <g clip-path="url(#human-lateral-outline)">
+    <polygon data-region="frontal" points="0,0 258,0 206,166 132,215 0,228"/>
+    <polygon data-region="parietal" points="258,0 400,0 380,110 362,204 300,150 206,166"/>
+    <polygon data-region="temporal" points="0,228 132,215 206,166 300,150 362,204 376,360 0,360"/>
+    <polygon data-region="occipital" points="400,0 520,0 520,360 376,360 362,204 380,110"/>
+  </g>
+  <path fill="none" stroke="#9ca3af" stroke-width="1.2" pointer-events="none" d="M 62,205 C 32,150 48,78 125,48 C 195,20 305,24 372,54 C 432,80 474,132 462,188 C 456,216 432,236 396,240 C 362,244 338,252 318,264 C 292,284 222,292 172,274 C 142,264 122,246 128,226 C 112,226 92,222 80,216 C 72,212 66,210 62,205 Z"/>
+  <text data-label-for="frontal" data-ink="auto" x="135" y="128">Frontal</text>
+  <text data-label-for="parietal" data-ink="auto" x="310" y="96">Parietal</text>
+  <text data-label-for="temporal" data-ink="auto" x="240" y="236">Temporal</text>
+  <text data-label-for="occipital" data-ink="auto" x="420" y="168">Occipital</text>
+  <text data-label-for="cerebellum" data-ink="auto" x="400" y="284">Cerebellum</text>
+  <text data-label-for="brainstem" x="346" y="342" text-anchor="start">Brainstem</text>
+</svg>

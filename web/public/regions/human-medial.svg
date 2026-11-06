@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 360">
+  <!-- PLACEHOLDER schematic, hand-authored for SSPsyGene; not traced from any
+       atlas. Medial surface, brainstem and cerebellum removed.
+       Contract: see web/public/regions/README.txt. -->
+  <defs>
+    <clipPath id="human-medial-outline">
+      <path d="M 62,205 C 32,150 48,78 125,48 C 195,20 305,24 372,54 C 432,80 474,132 462,188 C 456,216 432,236 396,240 C 362,244 338,252 318,264 C 292,284 222,292 172,274 C 142,264 122,246 128,226 C 112,226 92,222 80,216 C 72,212 66,210 62,205 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#human-medial-outline)">
+    <polygon data-region="frontal" points="0,0 255,0 255,120 175,210 0,232"/>
+    <polygon data-region="parietal" points="255,0 388,0 356,140 300,150 255,120"/>
+    <polygon data-region="occipital" points="388,0 520,0 520,360 382,360 334,196 356,140"/>
+    <polygon data-region="temporal" points="0,232 175,210 255,120 300,150 356,140 334,196 382,360 0,360"/>
+  </g>
+  <path data-region="cingulate" d="M 152,205 C 136,122 212,80 292,82 C 352,84 384,124 368,182 L 342,170 C 352,132 330,110 290,110 C 226,108 176,128 180,205 Z"/>
+  <!-- subcortical interior and corpus callosum: not mapped; opaque, so they
+       keep the pointer (no pointer-events="none") -->
+  <path fill="#e5e7eb" d="M 180,205 C 176,128 226,110 290,110 C 330,110 352,132 342,170 C 330,204 300,228 258,230 C 220,232 186,222 180,205 Z"/>
+  <path fill="#c4c9d1" d="M 184,196 C 180,136 228,118 290,118 C 326,118 344,136 336,164 C 332,176 320,174 322,162 C 326,144 312,134 288,134 C 238,134 202,148 202,190 C 202,202 186,206 184,196 Z"/>
+  <path fill="none" stroke="#9ca3af" stroke-width="1.2" pointer-events="none" d="M 62,205 C 32,150 48,78 125,48 C 195,20 305,24 372,54 C 432,80 474,132 462,188 C 456,216 432,236 396,240 C 362,244 338,252 318,264 C 292,284 222,292 172,274 C 142,264 122,246 128,226 C 112,226 92,222 80,216 C 72,212 66,210 62,205 Z"/>
+  <text data-label-for="frontal" data-ink="auto" x="110" y="120">Frontal</text>
+  <text data-label-for="parietal" data-ink="auto" x="318" y="62">Parietal</text>
+  <text data-label-for="occipital" data-ink="auto" x="418" y="176">Occipital</text>
+  <text data-label-for="temporal" data-ink="auto" x="250" y="262">Temporal</text>
+  <text data-label-for="cingulate" data-ink="auto" x="302" y="101">Cingulate</text>
+</svg>

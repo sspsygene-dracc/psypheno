@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 260">
+  <!-- PLACEHOLDER schematic, hand-authored for SSPsyGene; not traced from any
+       atlas. Contract: see web/public/regions/README.txt. -->
+  <path fill="#dfe3e8" stroke="#9ca3af" stroke-width="1.2" pointer-events="none" d="M 28,140 C 28,100 70,90 100,96 C 140,48 230,30 306,40 C 340,44 356,62 360,88 C 396,66 448,76 464,108 C 476,134 468,166 452,180 C 480,182 506,188 512,198 C 512,214 498,224 470,224 C 420,228 360,232 320,232 C 290,232 270,222 262,222 C 238,226 200,226 176,212 C 150,196 120,180 98,176 C 64,186 28,172 28,140 Z"/>
+  <path data-region="olfactory_bulb" d="M 30,140 C 30,108 62,96 92,106 C 104,120 104,160 92,172 C 62,182 30,170 30,140 Z"/>
+  <path data-region="cortex" d="M 92,106 C 125,58 225,36 302,46 C 334,50 352,66 354,90 L 336,96 C 334,80 318,70 296,70 C 230,64 160,84 120,128 L 100,160 C 104,138 102,120 92,106 Z"/>
+  <path data-region="hippocampus" d="M 214,96 C 250,76 312,72 334,98 C 342,116 336,138 318,150 C 312,134 306,112 292,104 C 268,96 240,104 222,116 C 212,112 208,102 214,96 Z"/>
+  <path data-region="striatum" d="M 122,130 C 150,100 200,98 214,112 C 220,140 204,170 176,178 C 150,182 126,168 118,152 C 116,142 118,136 122,130 Z"/>
+  <path data-region="thalamus" d="M 216,124 C 238,110 278,112 296,128 C 302,148 290,168 262,172 C 236,174 214,160 212,144 C 212,136 213,130 216,124 Z"/>
+  <path data-region="hypothalamus" d="M 178,182 C 206,172 250,174 272,180 C 278,196 262,214 234,218 C 206,220 184,208 178,196 Z"/>
+  <path data-region="midbrain" d="M 300,124 C 322,106 346,108 356,124 C 362,150 354,180 336,192 C 316,196 296,186 292,166 C 290,150 294,134 300,124 Z"/>
+  <path data-region="cerebellum" d="M 360,98 C 392,74 440,82 458,110 C 470,138 460,170 432,180 C 404,186 374,176 362,156 C 352,138 352,114 360,98 Z"/>
+  <path data-region="hindbrain" d="M 276,196 C 300,190 330,194 352,184 C 380,186 420,184 450,182 C 470,182 496,188 506,196 C 506,210 494,218 470,218 C 420,222 360,226 320,226 C 296,226 278,214 276,196 Z"/>
+  <g stroke="#6b7280" stroke-width="1" pointer-events="none">
+    <line x1="392" y1="40" x2="300" y2="84"/>
+    <line x1="226" y1="240" x2="226" y2="214"/>
+    <line x1="420" y1="238" x2="420" y2="216"/>
+  </g>
+  <text data-label-for="olfactory_bulb" x="64" y="196">Olfactory bulb</text>
+  <text data-label-for="cortex" x="200" y="34">Cortex</text>
+  <text data-label-for="hippocampus" x="392" y="36">Hippocampus</text>
+  <text data-label-for="striatum" data-ink="auto" x="166" y="144">Striatum</text>
+  <text data-label-for="thalamus" data-ink="auto" x="256" y="148">Thalamus</text>
+  <text data-label-for="hypothalamus" x="226" y="252">Hypothalamus</text>
+  <text data-label-for="midbrain" data-ink="auto" x="328" y="156">Midbrain</text>
+  <text data-label-for="cerebellum" data-ink="auto" x="412" y="134">Cerebellum</text>
+  <text data-label-for="hindbrain" x="420" y="250">Pons / medulla</text>
+</svg>
