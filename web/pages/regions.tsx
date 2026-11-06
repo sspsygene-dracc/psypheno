@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -49,7 +49,7 @@ import {
   type SourceKey,
   type StudyKind,
 } from "@/lib/brain-regions";
-import { fullDatasetsRegionHref, modelSystemLabel } from "@/lib/dataset-tags";
+import { fullDatasetsRegionHref } from "@/lib/dataset-tags";
 import type { SearchSuggestion } from "@/state/SearchSuggestion";
 import type { RegionGenesResponse } from "@/pages/api/region-genes";
 import type { GeneRef, GeneRegionsResponse } from "@/pages/api/gene-regions";
@@ -122,13 +122,11 @@ export default function RegionsPage() {
   const [modalities, setModalities] = useState<Modality[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hover, setHover] = useState<{ key: string; x: number; y: number } | null>(null);
   const [bucketHover, setBucketHover] = useState<string | null>(null);
   const [genes, setGenes] = useState<RegionGenesResponse | null>(null);
   const [genesLoading, setGenesLoading] = useState(false);
   const [geneData, setGeneData] = useState<GeneRegionsResponse | null>(null);
   const [geneLoading, setGeneLoading] = useState(false);
-  const drawingBox = useRef<HTMLDivElement | null>(null);
 
   const view = parseView(router.query);
   const drawings: readonly RegionDrawing[] = REGION_DRAWINGS[view];
@@ -324,15 +322,6 @@ export default function RegionsPage() {
     };
   };
 
-  const onHover = (key: string | null, e?: { clientX: number; clientY: number }) => {
-    if (!key) return setHover(null);
-    const box = drawingBox.current?.getBoundingClientRect();
-    if (e && box) setHover({ key, x: e.clientX - box.left, y: e.clientY - box.top });
-    else setHover((h) => (h && h.key === key ? h : { key, x: 20, y: 20 }));
-  };
-
-  const hovered = hover ? findRegion(view, hover.key) : undefined;
-  const hoveredTally = hover ? tallies.get(hover.key) : undefined;
   const noneTally = tallies.get(noneRegion.key)!;
 
   return (
@@ -458,18 +447,15 @@ export default function RegionsPage() {
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 560px", minWidth: 320, display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={card}>
-              <div ref={drawingBox} style={{ position: "relative" }}>
+              <div style={{ position: "relative" }}>
                 <BrainDrawing
                   drawing={drawing}
                   paint={paint}
                   rings={rings}
                   selectedKey={selection?.kind === "drawn" ? selection.key : null}
-                  onHover={onHover}
+                  onHover={() => {}}
                   onSelect={(k) => selectRegion(k)}
                 />
-                {hover && hovered && hoveredTally && (
-                  <HoverCard x={hover.x} y={hover.y} region={hovered} tally={hoveredTally} assayLabel={assayLabel} />
-                )}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
                 <Legend />
@@ -779,56 +765,6 @@ function Legend() {
   );
 }
 
-function HoverCard({
-  x,
-  y,
-  region,
-  tally,
-  assayLabel,
-}: {
-  x: number;
-  y: number;
-  region: RegionDef;
-  tally: { specific: Dataset[]; broader: Dataset[] };
-  assayLabel: AssayLabeler;
-}) {
-  const { tissue, inVitro } = splitInVitro(tally.specific);
-  const bySystem = countBy(tissue, (d) => modelSystemLabel(d.model_system ?? ""));
-  const byAssay = countBy(tally.specific, assayLabel);
-  return (
-    <div
-      role="tooltip"
-      style={{
-        position: "absolute",
-        left: x + 14,
-        top: y + 14,
-        pointerEvents: "none",
-        background: "#111827",
-        color: "#f9fafb",
-        borderRadius: 8,
-        padding: "8px 10px",
-        fontSize: 12,
-        lineHeight: 1.5,
-        maxWidth: 300,
-        boxShadow: "0 4px 12px rgba(0,0,0,.2)",
-        zIndex: 5,
-      }}
-    >
-      <div style={{ fontWeight: 700, fontSize: 13 }}>{region.label}</div>
-      <div>
-        {plural(tissue.length, "tissue dataset")}
-        {bySystem.length > 0 && `: ${bySystem.map(([k, n]) => `${n} ${k.toLowerCase()}`).join(", ")}`}
-      </div>
-      {inVitro.length > 0 && <div style={{ color: "#ddd6fe" }}>+ {inVitro.length} in vitro (intended identity)</div>}
-      {byAssay.length > 0 && <div style={{ color: "#d1d5db" }}>{byAssay.map(([k, n]) => `${n} ${k}`).join(" · ")}</div>}
-      {tally.broader.length > 0 && (
-        <div style={{ color: "#d1d5db" }}>+ {tally.broader.length} broader (whole cortex / brain), not counted</div>
-      )}
-      <div style={{ color: "#9ca3af", marginTop: 2 }}>Click for details</div>
-    </div>
-  );
-}
-
 /**
  * The coarse buckets: datasets tagged above the drawn level. Each shows the
  * same colour scale as the regions; hovering outlines what it spans.
@@ -1099,8 +1035,8 @@ function Intro({ datasets, view, geneMode }: { datasets: Dataset[]; view: BrainV
       <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 6px", color: "#1f2937" }}>Pick a region</h2>
       <p style={{ margin: "0 0 6px" }}>
         {geneMode
-          ? "Regions are coloured by the gene's datasets only. Hover a region for its count; click it for the datasets."
-          : "Hover a region for its dataset count; click it for the datasets, links to the Full datasets page and the matrix, and the perturbed genes with what changed."}
+          ? "Regions are coloured by the gene's datasets only; the label shows the count. Click a region for its datasets."
+          : "Each label shows the region's dataset count. Click a region for its datasets, links to the Full datasets page and the matrix, and the perturbed genes with what changed."}
       </p>
       <p style={{ margin: "0 0 6px" }}>
         Human tissue data is postmortem, mostly case vs control; perturbations come from mouse and
