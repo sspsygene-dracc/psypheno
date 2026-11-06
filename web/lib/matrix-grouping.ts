@@ -302,3 +302,40 @@ export function bandRowHeight(
   }
   return Math.min(opts.maxH, Math.max(opts.minH, maxLines * opts.lineH + opts.padV));
 }
+
+// ── ?tables= restriction (links from /regions) ──────────────────────────
+
+/**
+ * /matrix?tables=a,b: the source tables the By study view is restricted to;
+ * null = no restriction (param absent, or nothing valid in it).
+ */
+export function parseTablesParam(v: unknown): ReadonlySet<string> | null {
+  if (typeof v !== "string") return null;
+  const tables = v
+    .split(",")
+    .map((t) => t.trim())
+    .filter((t) => /^[A-Za-z0-9_]+$/.test(t));
+  return tables.length > 0 ? new Set(tables) : null;
+}
+
+/**
+ * The columns of the restricted tables, and the gene rows with a value in at
+ * least one of them (rows empty across the shown tables would only be
+ * noise). No restriction = everything unchanged.
+ */
+export function restrictToTables<
+  C extends { key: string; sourceTable: string },
+  G extends { cells: Record<string, unknown> },
+>(
+  columns: readonly C[],
+  genes: readonly G[],
+  tables: ReadonlySet<string> | null,
+): { columns: C[]; genes: G[] } {
+  if (!tables) return { columns: [...columns], genes: [...genes] };
+  const cols = columns.filter((c) => tables.has(c.sourceTable));
+  const keys = cols.map((c) => c.key);
+  return {
+    columns: cols,
+    genes: genes.filter((g) => keys.some((k) => g.cells[k] !== undefined)),
+  };
+}

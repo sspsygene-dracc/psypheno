@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
+import Link from "next/link";
+import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CollatedMatrix, { type MetricDomains } from "@/components/CollatedMatrix";
@@ -21,6 +23,8 @@ import { orderColumns, orderRows } from "@/lib/matrix-clustering";
 import {
   COLUMN_GROUP_OPTIONS,
   groupColumns,
+  parseTablesParam,
+  restrictToTables,
   type ColumnGroupKey,
 } from "@/lib/matrix-grouping";
 import type {
@@ -575,6 +579,69 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
   );
 }
 
+/** The "only these datasets" note for /matrix?tables=..., with a way out. */
+function TablesFilterNote({
+  tables,
+  allColumns,
+  collated,
+}: {
+  tables: ReadonlySet<string>;
+  allColumns: CollatedMatrixResponse["columns"];
+  collated: boolean;
+}) {
+  const labels = new Map<string, string>();
+  for (const c of allColumns) {
+    if (!labels.has(c.sourceTable)) {
+      labels.set(c.sourceTable, c.sourceMediumLabel ?? c.sourceLabel);
+    }
+  }
+  const shown = [...tables].filter((t) => labels.has(t));
+  const missing = [...tables].filter((t) => !labels.has(t));
+  return (
+    <div
+      role="note"
+      data-tables-filter
+      style={{
+        background: "#eff6ff",
+        border: "1px solid #bfdbfe",
+        borderRadius: 8,
+        padding: "8px 12px",
+        fontSize: 13,
+        color: "#1f2937",
+        marginBottom: 10,
+        maxWidth: 1000,
+      }}
+    >
+      {collated ? (
+        <>
+          A dataset selection is active (
+          {shown.length} dataset{shown.length === 1 ? "" : "s"}), but it applies
+          to the <strong>By study</strong> view only; this view pools readouts
+          across all studies.
+        </>
+      ) : (
+        <>
+          <strong>
+            Showing {shown.length} of {labels.size} datasets
+          </strong>{" "}
+          (selected on the Brain regions page; the others are hidden, and so
+          are genes with no data in these):{" "}
+          {shown.map((t) => labels.get(t)).join("; ") || "none of them are in the matrix"}.
+        </>
+      )}
+      {missing.length > 0 && (
+        <span style={{ color: "#6b7280" }}>
+          {" "}
+          Not in the matrix: {missing.join(", ")}.
+        </span>
+      )}{" "}
+      <Link href="/matrix" style={{ color: "#1d4ed8", fontWeight: 600 }}>
+        Show all datasets
+      </Link>
+    </div>
+  );
+}
+
 export default function MatrixPage() {
   const [mode, setMode] = useState<MatrixMode>("expanded");
   const [colsPerDataset, setColsPerDataset] = useState(25);
@@ -629,9 +696,22 @@ export default function MatrixPage() {
     };
   }, [colsPerDataset, mode, readouts]);
 
-  const genes = data?.genes ?? [];
+  // ?tables=a,b (e.g. from /regions): the By study views show only those
+  // source tables, and only the genes with data in them. The by-readout view
+  // pools readouts across studies, so the restriction doesn't apply there.
+  const router = useRouter();
+  const tablesFilter = useMemo(
+    () => parseTablesParam(router.query.tables),
+    [router.query.tables]
+  );
+  const restriction = mode === "collated" ? null : tablesFilter;
+  const restricted = useMemo(
+    () => restrictToTables(data?.columns ?? [], data?.genes ?? [], restriction),
+    [data, restriction]
+  );
+  const genes = restricted.genes;
   const sections = data?.sections ?? [];
-  const columns = data?.columns ?? [];
+  const columns = restricted.columns;
   const meta = data?.meta;
 
   const metricDomains: MetricDomains = useMemo(() => {
@@ -932,6 +1012,14 @@ export default function MatrixPage() {
               </>
             )}
           </div>
+
+          {tablesFilter && data && (
+            <TablesFilterNote
+              tables={tablesFilter}
+              allColumns={data.columns}
+              collated={mode === "collated"}
+            />
+          )}
 
           {loading && !data && (
             <div style={{ color: "#6b7280", marginTop: 16 }}>

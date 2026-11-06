@@ -5,8 +5,39 @@ import {
   datasetBands,
   groupColumns,
   NONE_KEY,
+  parseTablesParam,
+  restrictToTables,
   wrappedLineCount,
 } from "@/lib/matrix-grouping";
+
+describe("?tables= restriction", () => {
+  it("parses the param, dropping junk", () => {
+    expect(parseTablesParam(undefined)).toBeNull();
+    expect(parseTablesParam("")).toBeNull();
+    expect(parseTablesParam(["a"])).toBeNull();
+    expect(parseTablesParam("a; DROP")).toBeNull();
+    expect([...parseTablesParam("a_1, b,,c-d")!]).toEqual(["a_1", "b"]);
+  });
+
+  it("keeps the restricted tables' columns and the genes with data in them", () => {
+    const columns = [
+      { key: "x1", sourceTable: "x" },
+      { key: "y1", sourceTable: "y" },
+      { key: "y2", sourceTable: "y" },
+    ];
+    const genes = [
+      { id: 1, cells: { x1: 1 } },
+      { id: 2, cells: { y2: 3 } },
+      { id: 3, cells: {} },
+    ];
+    const r = restrictToTables(columns, genes, new Set(["y"]));
+    expect(r.columns.map((c) => c.key)).toEqual(["y1", "y2"]);
+    expect(r.genes.map((g) => g.id)).toEqual([2]);
+    const all = restrictToTables(columns, genes, null);
+    expect(all.columns).toHaveLength(3);
+    expect(all.genes).toHaveLength(3);
+  });
+});
 
 function col(section: string, table: string, label: string): MatrixColumn {
   return {
