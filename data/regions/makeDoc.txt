@@ -1,0 +1,70 @@
+#!/bin/zsh
+# Drawings for the /regions page (web/public/regions/*.svg).
+#
+# Fixed releases, refreshed only by hand. Re-running this regenerates the
+# committed SVGs; the downloads go to a scratch directory, not the repo.
+#
+# Mapping files (hand-curated, tested by web/lib/__tests__/brain-regions.test.ts):
+#   web/lib/regions/allen-mouse-regions.json   Allen structure -> mouse region key
+#   web/lib/regions/dkt-lobes.json             DKT parcel -> human lobe key
+#   web/lib/brain-regions.ts                   region key -> UBERON (+ also-counts-as terms)
+#
+# Geometry scripts need shapely + svgpathtools (python3 -m venv geo-venv &&
+# geo-venv/bin/pip install shapely svgpathtools). R only needs base R.
+
+set -e
+REPO=$(git rev-parse --show-toplevel)
+WORK=${WORK:-$(mktemp -d)}
+cd "$WORK"
+
+# ── Mouse: Allen Mouse Brain Atlas, P56 sagittal reference atlas ─────────
+# Source: Allen Institute for Brain Science, Allen Mouse Brain Atlas,
+# atlas id 2 ("Mouse, P56, Sagittal"), structure-boundary graphics (graphic
+# group 28, "Atlas - Adult Mouse"). Section: sub-image 100883804 = section
+# number 172, picked because it shows olfactory bulb, cortex, hippocampus,
+# striatum, thalamus, hypothalamus, midbrain, cerebellum, pons and medulla.
+# Terms: Allen Institute Terms of Use (non-commercial use with citation);
+# credit line shown under the drawing: "Image credit: Allen Institute",
+# linking https://alleninstitute.org/citation-policy/ .
+# Downloaded 2026-11-06.
+
+# List of the sagittal atlas images (section numbers / sub-image ids):
+curl -s -g -o mouse_sag_images.json \
+  "http://api.brain-map.org/api/v2/data/query.json?criteria=model::AtlasImage,rma::criteria,atlas_data_set(atlases[id\$eq2]),graphic_objects(graphic_group_label[id\$eq28]),rma::options[tabular\$eq'sub_images.id','sub_images.section_number'][order\$eq'sub_images.section_number'][num_rows\$eqall]"
+
+# The section's annotation SVG:
+curl -s -o sag_100883804.svg \
+  "http://api.brain-map.org/api/v2/svg_download/100883804?groups=28"
+
+# Structure ontology (structure graph 1), for structure_id_path:
+curl -s -g -o structures.json \
+  "http://api.brain-map.org/api/v2/data/query.json?criteria=model::Structure,rma::criteria,[graph_id\$eq1],rma::options[num_rows\$eqall][order\$eq'structures.graph_order']"
+
+geo-venv/bin/python "$REPO/data/regions/build_mouse_svg.py" \
+  sag_100883804.svg structures.json \
+  "$REPO/web/lib/regions/allen-mouse-regions.json" \
+  "$REPO/web/public/regions/mouse-sagittal.svg"
+
+# ── Human: ggsegDKT (Desikan-Killiany-Tourville cortical atlas) ──────────
+# Route taken: Allen's human reference atlases ("Human, 34 years, Cortex -
+# Mod. Brodmann" / "- Gyral", atlas ids 265297126 / 138322605) are 106
+# coronal sections each, with no lateral / medial surface drawing, so we use
+# ggseg's DKT atlas instead.
+# Source: https://github.com/ggseg/ggsegDKT , version 2.0.1,
+# commit fbd9416b407743cd8212a9495c6c99971ae466ba. Licence: CC0 1.0.
+# Atlas: Klein A, Tourville J (2012), 101 labeled brain images and a
+# consistent human cortical labeling protocol, Front Neurosci 6:171,
+# doi:10.3389/fnins.2012.00171. Credit shown under the drawing anyway.
+# Downloaded 2026-11-06.
+curl -sL -o sysdata.rda \
+  "https://raw.githubusercontent.com/ggseg/ggsegDKT/fbd9416b407743cd8212a9495c6c99971ae466ba/R/sysdata.rda"
+curl -sL -o LICENSE.md \
+  "https://raw.githubusercontent.com/ggseg/ggsegDKT/fbd9416b407743cd8212a9495c6c99971ae466ba/LICENSE.md"
+
+Rscript "$REPO/data/regions/export_dkt_polygons.R" sysdata.rda dkt.json
+geo-venv/bin/python "$REPO/data/regions/build_human_svg.py" \
+  dkt.json "$REPO/web/lib/regions/dkt-lobes.json" "$REPO/web/public/regions"
+
+# ── Zebrafish ────────────────────────────────────────────────────────────
+# web/public/regions/zebrafish-larva.svg is still a hand-drawn placeholder
+# (no source), see web/public/regions/README.txt.

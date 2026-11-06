@@ -1,0 +1,28 @@
+{
+  "_comment": [
+    "Allen Mouse Brain Atlas (P56, structure graph 1) structures -> /regions mouse region keys.",
+    "Hand-curated. Rules are tried in order; a drawn Allen structure goes to the FIRST rule",
+    "whose `allen` ids include the structure or one of its ancestors (structure_id_path).",
+    "Order matters: olfactory bulb and hippocampal formation sit under Allen's cortical plate,",
+    "so they come before the cortex rule. Structures matching no rule (pallidum, fiber",
+    "tracts, ventricles, ...) are drawn grey and are not clickable. A null region drops",
+    "the matched structures; an entry with exact=true matches only that structure, not its",
+    "descendants (OLF itself is drawn as a backdrop polygon around the olfactory bulb, so it",
+    "must not paint as cortex; its children such as piriform area still do).",
+    "`uberon` must equal the region's id in web/lib/brain-regions.ts (checked by the tests).",
+    "Used by data/regions/build_mouse_svg.py (generates web/public/regions/mouse-sagittal.svg)",
+    "and by web/lib/__tests__/brain-regions.test.ts."
+  ],
+  "rules": [
+    { "region": "olfactory_bulb", "uberon": "UBERON:0002264", "allen": [{ "id": 507, "acronym": "MOB" }, { "id": 151, "acronym": "AOB" }] },
+    { "region": null, "uberon": null, "allen": [{ "id": 698, "acronym": "OLF", "exact": true }] },
+    { "region": "hippocampus", "uberon": "UBERON:0002421", "allen": [{ "id": 1089, "acronym": "HPF" }] },
+    { "region": "cortex", "uberon": "UBERON:0000956", "allen": [{ "id": 315, "acronym": "Isocortex" }, { "id": 698, "acronym": "OLF" }, { "id": 703, "acronym": "CTXsp" }] },
+    { "region": "striatum", "uberon": "UBERON:0002435", "allen": [{ "id": 477, "acronym": "STR" }] },
+    { "region": "thalamus", "uberon": "UBERON:0001897", "allen": [{ "id": 549, "acronym": "TH" }] },
+    { "region": "hypothalamus", "uberon": "UBERON:0001898", "allen": [{ "id": 1097, "acronym": "HY" }] },
+    { "region": "midbrain", "uberon": "UBERON:0001891", "allen": [{ "id": 313, "acronym": "MB" }] },
+    { "region": "cerebellum", "uberon": "UBERON:0002037", "allen": [{ "id": 512, "acronym": "CB" }] },
+    { "region": "hindbrain", "uberon": "UBERON:0002028", "allen": [{ "id": 1065, "acronym": "HB" }] }
+  ]
+}

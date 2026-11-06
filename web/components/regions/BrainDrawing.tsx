@@ -97,9 +97,14 @@ export default function BrainDrawing({
       const key = el.getAttribute("data-region")!;
       const p = paint(key);
       el.style.fill = p.fill;
-      el.style.stroke = "#ffffff";
-      el.style.strokeWidth = "2";
+      // data-region-stroke="fill": the file draws a region as many pieces and
+      // ships its own merged outlines, so hide the internal piece boundaries.
+      const strokeFill = root.getAttribute("data-region-stroke") === "fill";
+      el.style.stroke = strokeFill ? p.fill : "#ffffff";
+      el.style.strokeWidth = strokeFill ? "0.6" : "1.5";
       el.style.strokeLinejoin = "round";
+      // Stroke widths in screen pixels, whatever scale the file's geometry has.
+      el.style.setProperty("vector-effect", "non-scaling-stroke");
       el.style.cursor = "pointer";
       el.style.outline = "none";
       el.setAttribute("tabindex", "0");
@@ -114,11 +119,20 @@ export default function BrainDrawing({
     const overlay = document.createElementNS("http://www.w3.org/2000/svg", "g");
     overlay.setAttribute(OVERLAY, "");
     overlay.setAttribute("pointer-events", "none");
-    for (const el of regions) {
-      const key = el.getAttribute("data-region")!;
+    const ringKeys = new Set(outlinedKeys);
+    if (selectedKey) ringKeys.add(selectedKey);
+    // Ring a region along the file's merged outline (data-outline="<key>")
+    // when it ships one, else along each of the region's pieces.
+    const ringSources = Array.from(ringKeys).flatMap((key) => {
+      const outline = root.querySelector<SVGGraphicsElement>(`[data-outline="${CSS.escape(key)}"]`);
+      return outline
+        ? [{ key, el: outline }]
+        : regions.filter((r) => r.getAttribute("data-region") === key).map((el) => ({ key, el }));
+    });
+    for (const { key, el } of ringSources) {
       const selected = selectedKey === key;
-      if (!selected && !outlinedKeys.has(key)) continue;
       const ring = el.cloneNode(false) as SVGGraphicsElement;
+      ring.removeAttribute("data-outline");
       ring.removeAttribute("data-region");
       ring.removeAttribute("tabindex");
       ring.removeAttribute("role");
@@ -129,13 +143,22 @@ export default function BrainDrawing({
       ring.style.stroke = selected ? "#111827" : "#7c3aed";
       ring.style.strokeWidth = selected ? "3" : "2.5";
       if (!selected) ring.style.strokeDasharray = "5 4";
+      ring.style.setProperty("vector-effect", "non-scaling-stroke");
+      // The overlay sits at the root; carry over any transform the original
+      // inherits from its groups (e.g. an atlas drawn at its own scale).
+      const ctm = (el as SVGGraphicsElement).getCTM?.();
+      const rootCtm = root.getCTM?.();
+      if (ctm && rootCtm) {
+        const m = rootCtm.inverse().multiply(ctm);
+        ring.setAttribute("transform", `matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`);
+      }
       // Keep any clip-path an ancestor group applied.
       const clip = el.closest("[clip-path]")?.getAttribute("clip-path");
       if (clip && !ring.getAttribute("clip-path")) ring.setAttribute("clip-path", clip);
       overlay.appendChild(ring);
     }
     const firstLabel = root.querySelector("text[data-label-for]");
-    root.insertBefore(overlay, firstLabel ?? null);
+    root.insertBefore(overlay, firstLabel?.parentNode === root ? firstLabel : null);
 
     for (const t of Array.from(root.querySelectorAll<SVGTextElement>("text[data-label-for]"))) {
       const key = t.getAttribute("data-label-for")!;
@@ -143,7 +166,7 @@ export default function BrainDrawing({
       if (!t.hasAttribute("data-name")) t.setAttribute("data-name", t.textContent ?? "");
       t.textContent = `${t.getAttribute("data-name")} (${p.count})`;
       if (!t.hasAttribute("text-anchor")) t.setAttribute("text-anchor", "middle");
-      t.style.fontSize = "13px";
+      if (!t.hasAttribute("font-size")) t.style.fontSize = "13px";
       t.style.fontWeight = "600";
       t.style.fill = t.getAttribute("data-ink") === "auto" ? p.ink : "#374151";
       t.style.pointerEvents = "none";

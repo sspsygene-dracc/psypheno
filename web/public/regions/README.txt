@@ -1,42 +1,54 @@
 Brain-region drawings for /regions
 ==================================
 
-Provenance
-----------
-human-lateral.svg, human-medial.svg, mouse-sagittal.svg, zebrafish-larva.svg
-are PLACEHOLDER schematics hand-authored for SSPsyGene from scratch (Bezier
-outlines and straight lobe boundaries). They are not traced from or derived
-from any atlas, plate or third-party drawing (no Allen Institute, Gray's
-Anatomy or SciDraw source), so they need no credit line. They are not to scale
-and not anatomically exact; the page labels them "schematic".
-
-When a drawing is replaced by real atlas geometry, record here: source URL,
-version, licence, the credit line shown under the drawing, and how the file
-was converted.
+Provenance (full download + conversion recipe: data/regions/makeDoc.txt)
+------------------------------------------------------------------------
+mouse-sagittal.svg
+    Allen Mouse Brain Atlas, P56 sagittal reference atlas (atlas id 2),
+    section 172 (sub-image 100883804), structure-boundary graphics (group 28),
+    downloaded from api.brain-map.org svg_download. Allen's polygons are kept
+    as is (coordinates rounded, uniformly scaled); each is tagged with its
+    Allen structure and merged into a region by
+    web/lib/regions/allen-mouse-regions.json. Allen Institute Terms of Use;
+    credit shown under the drawing: "Image credit: Allen Institute"
+    (https://alleninstitute.org/citation-policy/).
+human-lateral.svg, human-medial.svg
+    ggsegDKT 2.0.1 (Desikan-Killiany-Tourville atlas; Klein & Tourville 2012),
+    CC0, https://github.com/ggseg/ggsegDKT . Left-hemisphere lateral and
+    right-hemisphere medial views; DKT parcels grouped into lobes by
+    web/lib/regions/dkt-lobes.json.
+zebrafish-larva.svg
+    PLACEHOLDER schematic, hand-drawn for SSPsyGene; no source.
 
 Contract for a drawing file (what the page relies on)
 -----------------------------------------------------
-- A standalone <svg> with a viewBox. Any shapes, groups, clip paths.
+- A standalone <svg> with a viewBox. Any shapes, groups, transforms, clip paths.
 - Every clickable region is an element with data-region="<key>", where <key>
-  is a region key of that species in web/lib/brain-regions.ts (REGIONS). Several
-  elements may share a key (e.g. a region split into polygons); they colour,
-  hover and select together. Elements without data-region are decoration.
-- Decoration that should let the pointer through to a region underneath
-  carries pointer-events="none".
+  is a region key of that species in web/lib/brain-regions.ts (REGIONS). Many
+  elements may share a key (e.g. a region made of several atlas structures);
+  they colour, hover and select together. Elements without data-region are
+  decoration.
+- Optional data-outline="<key>" element: the region's merged outline, used
+  for the selection / in-vitro rings instead of every piece.
+- Optional data-region-stroke="fill" on the root: piece boundaries inside a
+  region are hidden (stroked in the fill colour); use with data-outline.
+- Decoration that should let the pointer through carries
+  pointer-events="none".
 - Optional labels: <text data-label-for="<key>">Name</text>. The page appends
-  the dataset count. data-ink="auto" switches the text to white on dark fills
-  (for labels drawn inside their region).
-- No scripts, no external references (the file is inlined into the page).
+  the dataset count; data-ink="auto" switches to white on dark fills.
+- No scripts, event handlers or external references (the file is inlined
+  into the page; the tests check this).
 
 Plugging in a new drawing
 -------------------------
-1. Put the SVG here, with data-region attributes as above (for an Allen
-   reference-atlas SVG or ggseg polygons, map each structure to a region key —
-   add new keys to REGIONS if the drawing is finer than today's map).
-2. Register it in web/lib/region-drawings.ts (species, view key, title, src,
-   orientation caption).
-3. If it introduces new regions, add RegionDefs (UBERON id, match terms,
-   within terms) to REGIONS, and Brodmann-style fixes to CURATED_PART_OF.
-4. `npx vitest run lib/__tests__/brain-regions.test.ts` checks every
-   data-region key exists in REGIONS and every region is drawn somewhere.
+1. Put the SVG here following the contract (for atlas geometry, tag each
+   structure with data-region via a hand-curated structure -> region map,
+   as allen-mouse-regions.json / dkt-lobes.json do).
+2. Register it in web/lib/region-drawings.ts (species, view key, label,
+   title, src, caption, credit).
+3. New regions: add RegionDefs (UBERON id, match / exact terms, within
+   terms) to REGIONS in web/lib/brain-regions.ts.
+4. Record the download and conversion in data/regions/makeDoc.txt.
+5. `npx vitest run lib/__tests__/brain-regions.test.ts` checks every
+   data-region key exists, every region is drawn, and the files are safe.
 Nothing in the page, the panel, the tray or the API depends on the paths.

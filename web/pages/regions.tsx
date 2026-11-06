@@ -308,6 +308,14 @@ export default function RegionsPage() {
                 <Legend />
                 <span style={{ fontSize: 12, color: "#6b7280" }}>
                   {drawing.caption}
+                  {drawing.credit && (
+                    <>
+                      {" · "}
+                      <a href={drawing.credit.href} target="_blank" rel="noopener noreferrer" style={{ color: "#4b5563" }}>
+                        {drawing.credit.text}
+                      </a>
+                    </>
+                  )}
                 </span>
               </div>
               {wholeRegion && (

@@ -178,12 +178,14 @@ const HUMAN_REGIONS: RegionDef[] = [
     note: "Medial surface; incl. anterior cingulate cortex (BA24).",
   },
   {
-    key: "cerebellum",
-    label: "Cerebellum",
-    uberon: "UBERON:0002037",
-    match: ["UBERON:0002037"],
-    within: [HINDBRAIN, BRAIN],
+    key: "insula",
+    label: "Insula",
+    uberon: "UBERON:0002022",
+    match: ["UBERON:0002022"],
+    within: CORTEX_WITHIN,
   },
+  // The human drawings (ggsegDKT) show the cortex only: a dataset tagged with
+  // a subcortical structure would be listed under "not placed on this drawing".
   {
     key: "whole",
     label: "Whole brain / cortex (unspecified)",
@@ -193,13 +195,6 @@ const HUMAN_REGIONS: RegionDef[] = [
     within: [],
     pseudo: true,
     note: "Datasets tagged only with a broad term (brain, cerebral cortex, ...), not a specific lobe.",
-  },
-  {
-    key: "brainstem",
-    label: "Brainstem",
-    uberon: "UBERON:0002298",
-    match: ["UBERON:0002298", "UBERON:0001891", "UBERON:0000988", "UBERON:0001896"],
-    within: [BRAIN],
   },
 ];
 
@@ -526,7 +521,7 @@ export function studyKind(d: RegionDataset): StudyKind {
 
 /** Fill for a region with `n` specific datasets (single-hue sequential). */
 export const COUNT_BINS: ReadonlyArray<{ min: number; label: string; fill: string }> = [
-  { min: 0, label: "0", fill: "#f1f3f5" },
+  { min: 0, label: "0", fill: "#e1e5ea" },
   { min: 1, label: "1", fill: "#cfe1f3" },
   { min: 2, label: "2", fill: "#93bde4" },
   { min: 3, label: "3–4", fill: "#4f93d0" },

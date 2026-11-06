@@ -21,6 +21,8 @@ import {
 } from "@/lib/brain-regions";
 import { matchesRegionFilter } from "@/lib/dataset-tags";
 import { REGION_DRAWINGS, svgRegionKeys } from "@/lib/region-drawings";
+import allenMap from "@/lib/regions/allen-mouse-regions.json";
+import dktLobes from "@/lib/regions/dkt-lobes.json";
 
 const drawingKeys = (src: string) =>
   svgRegionKeys(fs.readFileSync(path.resolve(__dirname, "../../public", `.${src}`), "utf8"));
@@ -155,6 +157,73 @@ describe("region map", () => {
   });
 });
 
+describe("atlas structure maps", () => {
+  const svgFile = (name: string) =>
+    fs.readFileSync(path.resolve(__dirname, "../../public/regions", name), "utf8");
+  /** Attributes of every <path> in an SVG string. */
+  const pathAttrs = (svg: string) =>
+    Array.from(svg.matchAll(/<path\b([^>]*)>/g), (m) =>
+      Object.fromEntries(Array.from(m[1].matchAll(/([\w-]+)="([^"]*)"/g), (a) => [a[1], a[2]])),
+    );
+
+  it("maps Allen structures to mouse regions with matching UBERON ids", () => {
+    for (const rule of allenMap.rules) {
+      if (rule.region === null) continue;
+      const r = REGIONS.mouse.find((x) => x.key === rule.region);
+      expect(r, rule.region).toBeDefined();
+      expect(rule.uberon).toBe(r!.uberon);
+    }
+    // Every drawn mouse region comes from some rule.
+    const ruled = new Set(allenMap.rules.map((r) => r.region));
+    for (const r of REGIONS.mouse) if (!r.pseudo) expect(ruled.has(r.key), r.key).toBe(true);
+  });
+
+  it("tags every Allen polygon in the mouse drawing by the first matching rule", () => {
+    const paths = pathAttrs(svgFile("mouse-sagittal.svg")).filter((a) => a["data-allen-id"]);
+    expect(paths.length).toBeGreaterThan(100);
+    const regionFor = (sid: number, ancestors: number[]): string | null => {
+      for (const rule of allenMap.rules) {
+        for (const a of rule.allen) {
+          if ("exact" in a && a.exact ? sid === a.id : ancestors.includes(a.id)) return rule.region;
+        }
+      }
+      return null;
+    };
+    for (const a of paths) {
+      const ancestors = a["data-allen-path"].split("/").filter(Boolean).map(Number);
+      const expected = regionFor(Number(a["data-allen-id"]), ancestors);
+      expect(a["data-region"] ?? null, `${a["data-allen-acronym"]} (${a["data-allen-id"]})`).toBe(expected);
+    }
+    // Spot checks against Allen's hierarchy.
+    const regionsOf = (re: RegExp) =>
+      new Set(paths.filter((p) => re.test(p["data-allen-acronym"])).map((p) => p["data-region"]));
+    expect(regionsOf(/^(CA\d|DG)/)).toEqual(new Set(["hippocampus"])); // Ammon's horn, dentate gyrus
+    expect(regionsOf(/^(ACB|LS[crv])$/)).toEqual(new Set(["striatum"])); // accumbens, lateral septum
+    expect(regionsOf(/^(MO\d|SS)/)).toEqual(new Set(["cortex"])); // motor / somatosensory areas
+    expect(regionsOf(/^OLF$/)).toEqual(new Set([undefined]));
+  });
+
+  it("maps every DKT parcel to at most one human lobe", () => {
+    const seen = new Map<string, string>();
+    for (const [lobe, parcels] of Object.entries(dktLobes.lobes)) {
+      expect(REGIONS.human.some((r) => r.key === lobe), lobe).toBe(true);
+      for (const p of parcels) {
+        expect(seen.has(p), `${p} in ${seen.get(p)} and ${lobe}`).toBe(false);
+        seen.set(p, lobe);
+      }
+    }
+    for (const file of ["human-lateral.svg", "human-medial.svg"]) {
+      const parcels = pathAttrs(svgFile(file)).filter((a) => a["data-dkt"]);
+      expect(parcels.length, file).toBeGreaterThan(15);
+      for (const a of parcels) {
+        expect(a["data-region"] ?? null, `${file}: ${a["data-dkt"]}`).toBe(seen.get(a["data-dkt"]) ?? null);
+      }
+    }
+    // The cingulate parcels carry the anterior cingulate datasets.
+    expect(seen.get("caudalanteriorcingulate")).toBe("cingulate");
+  });
+});
+
 describe("matching", () => {
   it("separates specific from broader datasets", () => {
     const cortex = ds(["UBERON:0000956"], { gene_species: "mouse", model_system: "in_vivo" });
@@ -233,7 +302,7 @@ describe("in-vitro tray", () => {
     const [cortical, forebrain, brain, nonNeural] = TRAY_GROUPS;
     const human = (g: typeof cortical) =>
       REGIONS.human.filter((r) => !r.pseudo && trayCoversRegion(g, r)).map((r) => r.key);
-    expect(human(cortical)).toEqual(HUMAN_LOBES);
+    expect(human(cortical)).toEqual([...HUMAN_LOBES, "insula"]);
     expect(human(nonNeural)).toEqual([]);
     const mouse = (g: typeof cortical) =>
       REGIONS.mouse.filter((r) => !r.pseudo && trayCoversRegion(g, r)).map((r) => r.key);

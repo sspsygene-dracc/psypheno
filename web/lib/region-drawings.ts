@@ -16,6 +16,14 @@ export type RegionDrawing = {
   src: string;
   /** Caption under the drawing. */
   caption: string;
+  /** Credit line required by the drawing's source, shown under it. */
+  credit?: { text: string; href: string };
+};
+
+// ggsegDKT is CC0 (no credit required); we credit it anyway.
+const DKT_CREDIT = {
+  text: "Atlas: ggsegDKT (Desikan-Killiany-Tourville; Klein & Tourville 2012), CC0",
+  href: "https://github.com/ggseg/ggsegDKT",
 };
 
 export const REGION_DRAWINGS: Readonly<Record<RegionSpecies, readonly RegionDrawing[]>> = {
@@ -23,25 +31,34 @@ export const REGION_DRAWINGS: Readonly<Record<RegionSpecies, readonly RegionDraw
     {
       key: "lateral",
       label: "Lateral",
-      title: "Human brain, lateral view (left hemisphere)",
+      title: "Human cortex, lateral view of the left hemisphere (DKT atlas)",
       src: "/regions/human-lateral.svg",
-      caption: "Lateral view · anterior to the left · schematic placeholder, not to scale",
+      caption:
+        "Lateral view, left hemisphere · anterior to the left · DKT cortical parcels (thin lines) grouped into lobes (dark outlines)",
+      credit: DKT_CREDIT,
     },
     {
       key: "medial",
       label: "Medial",
-      title: "Human brain, medial view (brainstem and cerebellum removed)",
+      title: "Human cortex, medial view of the right hemisphere (DKT atlas)",
       src: "/regions/human-medial.svg",
-      caption: "Medial view · anterior to the left · schematic placeholder, not to scale",
+      caption:
+        "Medial view, right hemisphere · anterior to the left · DKT cortical parcels grouped into lobes; grey = medial wall",
+      credit: DKT_CREDIT,
     },
   ],
   mouse: [
     {
       key: "sagittal",
       label: "Sagittal",
-      title: "Mouse brain, sagittal view",
+      title: "Mouse brain, sagittal section (Allen Mouse Brain Atlas, P56)",
       src: "/regions/mouse-sagittal.svg",
-      caption: "Sagittal section · anterior to the left · schematic placeholder, not to scale",
+      caption:
+        "Allen Mouse Brain Atlas, P56 sagittal reference atlas, section 172 · anterior to the left · Allen structures merged into the regions our datasets are tagged with",
+      credit: {
+        text: "Image credit: Allen Institute",
+        href: "https://alleninstitute.org/citation-policy/",
+      },
     },
   ],
   zebrafish: [

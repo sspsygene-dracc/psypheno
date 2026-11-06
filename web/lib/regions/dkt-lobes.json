@@ -1,0 +1,43 @@
+{
+  "_comment": [
+    "DKT (Desikan-Killiany-Tourville) cortical parcels -> /regions human region keys (lobes).",
+    "Hand-curated, following the usual FreeSurfer lobe grouping (Klein & Tourville 2012):",
+    "paracentral goes with frontal (it is mostly BA4/6 on the medial surface); the four",
+    "cingulate parcels form their own region because our datasets tag the anterior cingulate.",
+    "Parcels listed nowhere (the medial wall, 'unknown') are drawn grey and not clickable.",
+    "Each key must be a human region in web/lib/brain-regions.ts (checked by the tests), and",
+    "the lobe's UBERON id lives there. Used by data/regions/build_human_svg.py."
+  ],
+  "lobes": {
+    "frontal": [
+      "superiorfrontal",
+      "rostralmiddlefrontal",
+      "caudalmiddlefrontal",
+      "parsopercularis",
+      "parstriangularis",
+      "parsorbitalis",
+      "lateralorbitofrontal",
+      "medialorbitofrontal",
+      "precentral",
+      "paracentral"
+    ],
+    "parietal": ["superiorparietal", "inferiorparietal", "supramarginal", "postcentral", "precuneus"],
+    "temporal": [
+      "superiortemporal",
+      "middletemporal",
+      "inferiortemporal",
+      "transversetemporal",
+      "fusiform",
+      "parahippocampal",
+      "entorhinal"
+    ],
+    "occipital": ["lateraloccipital", "lingual", "cuneus", "pericalcarine"],
+    "cingulate": [
+      "rostralanteriorcingulate",
+      "caudalanteriorcingulate",
+      "posteriorcingulate",
+      "isthmuscingulate"
+    ],
+    "insula": ["insula"]
+  }
+}
