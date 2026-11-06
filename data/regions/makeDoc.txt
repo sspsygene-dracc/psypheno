@@ -66,5 +66,7 @@ geo-venv/bin/python "$REPO/data/regions/build_human_svg.py" \
   dkt.json "$REPO/web/lib/regions/dkt-lobes.json" "$REPO/web/public/regions"
 
 # ── Zebrafish ────────────────────────────────────────────────────────────
-# web/public/regions/zebrafish-larva.svg is still a hand-drawn placeholder
-# (no source), see web/public/regions/README.txt.
+# No zebrafish drawing: zebrafish data is shown on the human (and mouse)
+# drawings through the source toggle, at the level its anatomy tags allow
+# (whole brain / not region-specific). Human and mouse data can't be mapped
+# onto zebrafish anatomy, so a zebrafish view would only ever show fish data.

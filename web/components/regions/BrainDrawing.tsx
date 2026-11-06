@@ -7,58 +7,32 @@ import {
   type MouseEvent,
 } from "react";
 import type { RegionDrawing } from "@/lib/region-drawings";
+import { IN_VITRO_STROKE } from "@/lib/brain-regions";
 
 export type RegionPaint = {
   fill: string;
   ink: string;
-  /** Specific dataset count, appended to the label. */
-  count: number;
-  label: string;
-  /** Draw the fill hatched (gene view: the gene was only measured here). */
-  hatch?: boolean;
+  /** Text appended to the region's label, e.g. "3" or "3 + 2 in vitro". */
+  countText: string;
+  /** Accessible description, e.g. "Frontal lobe: 3 tissue datasets". */
+  ariaLabel: string;
 };
 
-const SVG_NS = "http://www.w3.org/2000/svg";
-
 /**
- * A diagonal-hatch pattern in `color`, sized for `el`'s coordinate system
- * (atlas files draw at their own scale inside a transformed group, and a
- * pattern is laid out in the user space of the element that uses it).
+ * Rings drawn over regions:
+ *   selected — the region whose panel is open (solid, dark);
+ *   cover    — spanned by the hovered / selected coarse bucket (long dashes, amber);
+ *   invitro  — has in-vitro datasets (short dashes, violet), so organoids and
+ *              iPSC models never read as tissue.
  */
-function ensureHatch(root: SVGSVGElement, el: SVGGraphicsElement, color: string): string {
-  const rootA = root.getCTM()?.a ?? 1;
-  const elA = el.getCTM()?.a ?? 1;
-  const ratio = elA ? rootA / elA : 1;
-  const id = `rg-hatch-${color.replace(/[^0-9a-f]/gi, "")}-${Math.round(ratio * 100)}`;
-  if (root.querySelector(`#${id}`)) return id;
-  let defs = root.querySelector("defs[data-region-defs]");
-  if (!defs) {
-    defs = document.createElementNS(SVG_NS, "defs");
-    defs.setAttribute("data-region-defs", "");
-    root.insertBefore(defs, root.firstChild);
-  }
-  const size = 7 * ratio;
-  const pattern = document.createElementNS(SVG_NS, "pattern");
-  pattern.setAttribute("id", id);
-  pattern.setAttribute("patternUnits", "userSpaceOnUse");
-  pattern.setAttribute("width", String(size));
-  pattern.setAttribute("height", String(size));
-  pattern.setAttribute("patternTransform", "rotate(45)");
-  const rect = document.createElementNS(SVG_NS, "rect");
-  rect.setAttribute("width", String(size));
-  rect.setAttribute("height", String(size));
-  rect.setAttribute("fill", color);
-  const line = document.createElementNS(SVG_NS, "line");
-  line.setAttribute("x1", "0");
-  line.setAttribute("y1", "0");
-  line.setAttribute("x2", "0");
-  line.setAttribute("y2", String(size));
-  line.setAttribute("stroke", "#ffffff");
-  line.setAttribute("stroke-width", String(size * 0.4));
-  pattern.append(rect, line);
-  defs.appendChild(pattern);
-  return id;
-}
+export type RingStyle = "selected" | "cover" | "invitro";
+export type Ring = { key: string; style: RingStyle };
+
+const RING_CSS: Record<RingStyle, { stroke: string; width: string; dash: string | null }> = {
+  selected: { stroke: "#111827", width: "3", dash: null },
+  cover: { stroke: "#d97706", width: "3.5", dash: "9 5" },
+  invitro: { stroke: IN_VITRO_STROKE, width: "3", dash: "5 3" },
+};
 
 // Drawings are static assets; fetch each once per page load.
 const svgCache = new Map<string, Promise<string>>();
@@ -81,22 +55,21 @@ const OVERLAY = "data-region-overlay";
  * One drawing with clickable regions. The geometry is a vendored SVG whose
  * clickable elements carry data-region="<key>" (contract in
  * web/public/regions/README.txt); this component only finds those elements,
- * paints them, and reports hover / click by key — it knows nothing about the
+ * paints them, and reports hover / click by key. It knows nothing about the
  * shapes, so any SVG following the contract drops in.
  */
 export default function BrainDrawing({
   drawing,
   paint,
+  rings,
   selectedKey,
-  outlinedKeys,
   onHover,
   onSelect,
 }: {
   drawing: RegionDrawing;
   paint: (key: string) => RegionPaint;
+  rings: readonly Ring[];
   selectedKey: string | null;
-  /** Regions an in-vitro tray group is hovered for (dotted outline). */
-  outlinedKeys: ReadonlySet<string>;
   onHover: (key: string | null, pos?: { clientX: number; clientY: number }) => void;
   onSelect: (key: string) => void;
 }) {
@@ -126,7 +99,7 @@ export default function BrainDrawing({
     if (box.current) box.current.innerHTML = svgText ?? "";
   }, [svgText]);
 
-  // Paint after every render that changes colours, selection or outlines.
+  // Paint after every render that changes colours, selection or rings.
   useEffect(() => {
     const root = box.current?.querySelector("svg");
     if (!ready || !root) return;
@@ -137,13 +110,13 @@ export default function BrainDrawing({
     root.style.display = "block";
 
     const regions = Array.from(root.querySelectorAll<SVGGraphicsElement>("[data-region]"));
+    const strokeFill = root.getAttribute("data-region-stroke") === "fill";
     for (const el of regions) {
       const key = el.getAttribute("data-region")!;
       const p = paint(key);
-      el.style.fill = p.hatch ? `url(#${ensureHatch(root, el, p.fill)})` : p.fill;
+      el.style.fill = p.fill;
       // data-region-stroke="fill": the file draws a region as many pieces and
       // ships its own merged outlines, so hide the internal piece boundaries.
-      const strokeFill = root.getAttribute("data-region-stroke") === "fill";
       el.style.stroke = strokeFill ? p.fill : "#ffffff";
       el.style.strokeWidth = strokeFill ? "0.6" : "1.5";
       el.style.strokeLinejoin = "round";
@@ -153,53 +126,53 @@ export default function BrainDrawing({
       el.style.outline = "none";
       el.setAttribute("tabindex", "0");
       el.setAttribute("role", "button");
-      el.setAttribute("aria-label", `${p.label}: ${p.count} dataset${p.count === 1 ? "" : "s"}`);
+      el.setAttribute("aria-label", p.ariaLabel);
       el.setAttribute("aria-pressed", String(selectedKey === key));
     }
 
-    // Selection / intended-identity rings: copies of the region elements
-    // drawn on top, so a neighbour painted later never covers them.
+    // Rings: copies of the region elements drawn on top, so a neighbour
+    // painted later never covers them. In-vitro rings first, so the
+    // selection / coverage rings sit on top of them.
     root.querySelectorAll(`[${OVERLAY}]`).forEach((n) => n.remove());
     const overlay = document.createElementNS("http://www.w3.org/2000/svg", "g");
     overlay.setAttribute(OVERLAY, "");
     overlay.setAttribute("pointer-events", "none");
-    const ringKeys = new Set(outlinedKeys);
-    if (selectedKey) ringKeys.add(selectedKey);
-    // Ring a region along the file's merged outline (data-outline="<key>")
-    // when it ships one, else along each of the region's pieces.
-    const ringSources = Array.from(ringKeys).flatMap((key) => {
+    const order: RingStyle[] = ["invitro", "cover", "selected"];
+    const sorted = [...rings].sort((a, b) => order.indexOf(a.style) - order.indexOf(b.style));
+    for (const { key, style } of sorted) {
+      // Ring a region along the file's merged outline (data-outline="<key>")
+      // when it ships one, else along each of the region's pieces.
       const outline = root.querySelector<SVGGraphicsElement>(`[data-outline="${CSS.escape(key)}"]`);
-      return outline
-        ? [{ key, el: outline }]
-        : regions.filter((r) => r.getAttribute("data-region") === key).map((el) => ({ key, el }));
-    });
-    for (const { key, el } of ringSources) {
-      const selected = selectedKey === key;
-      const ring = el.cloneNode(false) as SVGGraphicsElement;
-      ring.removeAttribute("data-outline");
-      ring.removeAttribute("data-region");
-      ring.removeAttribute("tabindex");
-      ring.removeAttribute("role");
-      ring.removeAttribute("aria-label");
-      ring.removeAttribute("aria-pressed");
-      ring.style.cssText = "";
-      ring.style.fill = "none";
-      ring.style.stroke = selected ? "#111827" : "#7c3aed";
-      ring.style.strokeWidth = selected ? "3" : "2.5";
-      if (!selected) ring.style.strokeDasharray = "5 4";
-      ring.style.setProperty("vector-effect", "non-scaling-stroke");
-      // The overlay sits at the root; carry over any transform the original
-      // inherits from its groups (e.g. an atlas drawn at its own scale).
-      const ctm = (el as SVGGraphicsElement).getCTM?.();
-      const rootCtm = root.getCTM?.();
-      if (ctm && rootCtm) {
-        const m = rootCtm.inverse().multiply(ctm);
-        ring.setAttribute("transform", `matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`);
+      const sources = outline ? [outline] : regions.filter((r) => r.getAttribute("data-region") === key);
+      const css = RING_CSS[style];
+      for (const el of sources) {
+        const ring = el.cloneNode(false) as SVGGraphicsElement;
+        ring.removeAttribute("data-outline");
+        ring.removeAttribute("data-region");
+        ring.removeAttribute("tabindex");
+        ring.removeAttribute("role");
+        ring.removeAttribute("aria-label");
+        ring.removeAttribute("aria-pressed");
+        ring.setAttribute("data-ring", style);
+        ring.style.cssText = "";
+        ring.style.fill = "none";
+        ring.style.stroke = css.stroke;
+        ring.style.strokeWidth = css.width;
+        if (css.dash) ring.style.strokeDasharray = css.dash;
+        ring.style.setProperty("vector-effect", "non-scaling-stroke");
+        // The overlay sits at the root; carry over any transform the original
+        // inherits from its groups (e.g. an atlas drawn at its own scale).
+        const ctm = el.getCTM?.();
+        const rootCtm = root.getCTM?.();
+        if (ctm && rootCtm) {
+          const m = rootCtm.inverse().multiply(ctm);
+          ring.setAttribute("transform", `matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`);
+        }
+        // Keep any clip-path an ancestor group applied.
+        const clip = el.closest("[clip-path]")?.getAttribute("clip-path");
+        if (clip && !ring.getAttribute("clip-path")) ring.setAttribute("clip-path", clip);
+        overlay.appendChild(ring);
       }
-      // Keep any clip-path an ancestor group applied.
-      const clip = el.closest("[clip-path]")?.getAttribute("clip-path");
-      if (clip && !ring.getAttribute("clip-path")) ring.setAttribute("clip-path", clip);
-      overlay.appendChild(ring);
     }
     const firstLabel = root.querySelector("text[data-label-for]");
     root.insertBefore(overlay, firstLabel?.parentNode === root ? firstLabel : null);
@@ -208,14 +181,14 @@ export default function BrainDrawing({
       const key = t.getAttribute("data-label-for")!;
       const p = paint(key);
       if (!t.hasAttribute("data-name")) t.setAttribute("data-name", t.textContent ?? "");
-      t.textContent = `${t.getAttribute("data-name")} (${p.count})`;
+      t.textContent = `${t.getAttribute("data-name")} (${p.countText})`;
       if (!t.hasAttribute("text-anchor")) t.setAttribute("text-anchor", "middle");
       if (!t.hasAttribute("font-size")) t.style.fontSize = "13px";
       t.style.fontWeight = "600";
       const ink = t.getAttribute("data-ink") === "auto" ? p.ink : "#374151";
       t.style.fill = ink;
-      // A halo in the opposite tone keeps labels readable on hatched fills
-      // and across region boundaries.
+      // A halo in the opposite tone keeps labels readable across region
+      // boundaries.
       t.style.stroke = ink === "#ffffff" ? "rgba(17,24,39,0.45)" : "rgba(255,255,255,0.85)";
       t.style.strokeWidth = "3px";
       t.style.strokeLinejoin = "round";
@@ -260,7 +233,8 @@ export default function BrainDrawing({
         if (key) onHover(key);
       }}
       onBlur={() => onHover(null)}
-      style={{ minHeight: ready ? undefined : 240 }}
+      // Reserve the drawing's space while the file loads (no layout shift).
+      style={{ aspectRatio: `${drawing.viewBox[0]} / ${drawing.viewBox[1]}`, width: "100%" }}
     />
   );
 }

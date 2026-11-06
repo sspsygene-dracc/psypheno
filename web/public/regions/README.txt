@@ -17,14 +17,16 @@ human-lateral.svg, human-medial.svg
     CC0, https://github.com/ggseg/ggsegDKT . Left-hemisphere lateral and
     right-hemisphere medial views; DKT parcels grouped into lobes by
     web/lib/regions/dkt-lobes.json.
-zebrafish-larva.svg
-    PLACEHOLDER schematic, hand-drawn for SSPsyGene; no source.
+(No zebrafish drawing: zebrafish datasets appear on the human and mouse
+drawings through the page's source toggle, in the coarse "whole brain" /
+"not region-specific" buckets their tags allow.)
 
 Contract for a drawing file (what the page relies on)
 -----------------------------------------------------
 - A standalone <svg> with a viewBox. Any shapes, groups, transforms, clip paths.
 - Every clickable region is an element with data-region="<key>", where <key>
-  is a region key of that species in web/lib/brain-regions.ts (REGIONS). Many
+  is a `kind: "drawn"` region key of that brain view (human / mouse) in
+  web/lib/brain-regions.ts (REGIONS). Many
   elements may share a key (e.g. a region made of several atlas structures);
   they colour, hover and select together. Elements without data-region are
   decoration.
@@ -44,11 +46,16 @@ Plugging in a new drawing
 1. Put the SVG here following the contract (for atlas geometry, tag each
    structure with data-region via a hand-curated structure -> region map,
    as allen-mouse-regions.json / dkt-lobes.json do).
-2. Register it in web/lib/region-drawings.ts (species, view key, label,
-   title, src, caption, credit).
-3. New regions: add RegionDefs (UBERON id, match / exact terms, within
-   terms) to REGIONS in web/lib/brain-regions.ts.
+2. Register it in web/lib/region-drawings.ts (brain view, side key, label,
+   title, src, viewBox size, caption, credit).
+3. New regions: add `kind: "drawn"` RegionDefs (UBERON id, match / exact
+   terms, filterGroup for the /full-datasets link) to REGIONS in
+   web/lib/brain-regions.ts, and list them in the `covers` of the coarse
+   buckets that span them. A new brain view (e.g. a coronal section) is a
+   new BrainView key with its own REGIONS list: every tagged dataset is
+   mapped onto it through its UBERON terms automatically.
 4. Record the download and conversion in data/regions/makeDoc.txt.
 5. `npx vitest run lib/__tests__/brain-regions.test.ts` checks every
-   data-region key exists, every region is drawn, and the files are safe.
-Nothing in the page, the panel, the tray or the API depends on the paths.
+   data-region key exists, every drawn region is drawn, the viewBox matches
+   and the files are safe.
+Nothing in the page, the panel or the API depends on the paths.

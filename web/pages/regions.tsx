@@ -4,63 +4,73 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SearchBar from "@/components/SearchBar";
+import InfoTooltip from "@/components/InfoTooltip";
 import type { Dataset } from "@/components/DatasetItem";
-import BrainDrawing from "@/components/regions/BrainDrawing";
+import BrainDrawing, { type RegionPaint, type Ring } from "@/components/regions/BrainDrawing";
 import { REGION_DRAWINGS, type RegionDrawing } from "@/lib/region-drawings";
 import {
   DatasetGroups,
+  InVitroChip,
   KindChip,
   PanelSection,
   PerturbedGenes,
   UberonLink,
+  datasetTitle,
+  datasetHref,
+  geneSearchHref,
+  linkStyle,
   type AssayLabeler,
+  type GeneInPanel,
 } from "@/components/regions/RegionPanel";
 import {
+  ALL_SOURCES,
+  BRAIN_VIEWS,
+  BRAIN_VIEW_LABELS,
   COUNT_BINS,
+  IN_VITRO_ONLY_FILL,
+  IN_VITRO_STROKE,
   REGIONS,
-  REGION_SPECIES,
-  TRAY_GROUPS,
-  countFill,
+  SOURCES,
   countInk,
+  datasetSource,
   datasetsWithGene,
+  filterBySources,
   findRegion,
-  geneRoleIn,
-  regionCounts,
+  matrixTablesHref,
+  parseSources,
+  regionFill,
+  regionTallies,
+  sourcesParam,
+  splitInVitro,
   studyKind,
-  trayCoversRegion,
-  trayGroups,
-  unplacedTissue,
+  type BrainView,
   type RegionDef,
-  type RegionSpecies,
+  type SourceKey,
   type StudyKind,
-  type TrayGroup,
 } from "@/lib/brain-regions";
-import { SPECIES_LABELS, modelSystemLabel } from "@/lib/dataset-tags";
+import { fullDatasetsRegionHref, modelSystemLabel } from "@/lib/dataset-tags";
+import type { SearchSuggestion } from "@/state/SearchSuggestion";
 import type { RegionGenesResponse } from "@/pages/api/region-genes";
-import type { GeneRegionsResponse, GeneRegionsTable } from "@/pages/api/gene-regions";
+import type { GeneRef, GeneRegionsResponse } from "@/pages/api/gene-regions";
 import type { Modality } from "@/pages/api/modalities";
 
 /**
- * /regions — brain-region dataset navigator. One schematic drawing per
- * species, regions coloured by how many tissue datasets were sampled there;
- * click a region for its datasets and (for perturbation datasets) the
- * perturbed genes with their significant / measured readout counts. In-vitro
- * systems sit in a separate tray, grouped by the identity they were
- * patterned towards, so they never read as actual brain tissue.
+ * /regions — brain-region dataset navigator. One human brain (lateral and
+ * medial views of the DKT atlas) is the default; every dataset with an
+ * anatomy tag is mapped onto it through its UBERON terms, whatever species or
+ * model system it comes from (lib/brain-regions.ts has the rules). A mouse
+ * brain (Allen P56 sagittal section) is the optional second view. Source
+ * chips pick which datasets are counted; in-vitro data keep a dashed violet
+ * style everywhere so they never read as tissue. Datasets tagged above the
+ * drawn level sit in "coarse" buckets next to the drawing; datasets with no
+ * brain region at all in "Not region-specific".
  *
- * URL: ?species=human|mouse|zebrafish &view=lateral|medial &region=<key> (a
- * region key from lib/brain-regions.ts, its UBERON id, or invitro:<group>)
- * &gene=SYMBOL (gene view: only the tables where that gene was perturbed or
- * measured, from /api/gene-regions; solid = perturbed there, hatched = only
- * measured).
+ * URL: ?view=human|mouse &side=lateral|medial &sources=<SourceKey,...>
+ * &region=<region key> &perturbed=SYMBOL &target=SYMBOL (gene view, same
+ * semantics as the home page search) &gene=SYMBOL (old links: perturbed or
+ * measured). Old ?species=mouse and ?view=lateral|medial links still work.
  */
-
-type GeneContext = { symbol: string; roles: ReadonlyMap<string, GeneRegionsTable> };
-
-type Selection =
-  | { kind: "region"; region: RegionDef }
-  | { kind: "tray"; group: TrayGroup }
-  | null;
 
 const card: CSSProperties = {
   background: "#ffffff",
@@ -69,10 +79,9 @@ const card: CSSProperties = {
   padding: 16,
 };
 
-function parseSpecies(v: unknown): RegionSpecies {
-  return typeof v === "string" && (REGION_SPECIES as readonly string[]).includes(v)
-    ? (v as RegionSpecies)
-    : "human";
+function parseView(q: Record<string, unknown>): BrainView {
+  const v = q.view ?? q.species;
+  return v === "mouse" ? "mouse" : "human";
 }
 
 function countBy<T>(items: T[], key: (t: T) => string): Array<[string, number]> {
@@ -80,6 +89,31 @@ function countBy<T>(items: T[], key: (t: T) => string): Array<[string, number]> 
   for (const it of items) m.set(key(it), (m.get(key(it)) ?? 0) + 1);
   return Array.from(m.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** Drawing label count: "3" (tissue), or "3 + 2" (tissue + in vitro; see the legend). */
+function countText(tissue: number, inVitro: number): string {
+  return inVitro === 0 ? String(tissue) : `${tissue} + ${inVitro}`;
+}
+
+/** A SearchBar value for a symbol from the URL (the bar only shows its text). */
+function urlSuggestion(symbol: string | null): SearchSuggestion | null {
+  if (!symbol) return null;
+  return {
+    centralGeneId: 0,
+    searchQuery: symbol,
+    displayLabel: symbol,
+    humanSymbol: symbol,
+    mouseSymbols: null,
+    humanSynonyms: null,
+    mouseSynonyms: null,
+    datasetCount: 0,
+    kind: "gene",
+  };
+}
+
+const str = (v: unknown) => (typeof v === "string" && v !== "" ? v : null);
 
 export default function RegionsPage() {
   const router = useRouter();
@@ -89,31 +123,34 @@ export default function RegionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hover, setHover] = useState<{ key: string; x: number; y: number } | null>(null);
-  const [trayHover, setTrayHover] = useState<string | null>(null);
+  const [bucketHover, setBucketHover] = useState<string | null>(null);
   const [genes, setGenes] = useState<RegionGenesResponse | null>(null);
   const [genesLoading, setGenesLoading] = useState(false);
   const [geneData, setGeneData] = useState<GeneRegionsResponse | null>(null);
   const [geneLoading, setGeneLoading] = useState(false);
   const drawingBox = useRef<HTMLDivElement | null>(null);
 
-  const species = parseSpecies(router.query.species);
-  const drawings: readonly RegionDrawing[] = REGION_DRAWINGS[species];
-  const viewParam = typeof router.query.view === "string" ? router.query.view : null;
-  const drawing = drawings.find((d) => d.key === viewParam) ?? drawings[0];
-  const geneParam = typeof router.query.gene === "string" ? router.query.gene : null;
+  const view = parseView(router.query);
+  const drawings: readonly RegionDrawing[] = REGION_DRAWINGS[view];
+  const sideParam = str(router.query.side) ?? str(router.query.view);
+  const drawing = drawings.find((d) => d.key === sideParam) ?? drawings[0];
+  const sources = useMemo(() => parseSources(router.query.sources), [router.query.sources]);
 
-  const regionParam = typeof router.query.region === "string" ? router.query.region : null;
-  const selection: Selection = useMemo(() => {
+  const qPerturbed = str(router.query.perturbed);
+  const qTarget = str(router.query.target);
+  const qGene = qPerturbed || qTarget ? null : str(router.query.gene);
+  const geneMode = !!(qPerturbed || qTarget || qGene);
+  const geneKey = geneMode ? `${qPerturbed ?? ""}|${qTarget ?? ""}|${qGene ?? ""}` : "";
+
+  const regionParam = str(router.query.region);
+  const selection: RegionDef | null = useMemo(() => {
     if (!regionParam) return null;
-    if (regionParam.startsWith("invitro:")) {
-      const g = TRAY_GROUPS.find((t) => t.key === regionParam.slice("invitro:".length));
-      return g ? { kind: "tray", group: g } : null;
-    }
-    const r =
-      findRegion(species, regionParam) ??
-      REGIONS[species].find((x) => x.uberon === regionParam && !x.pseudo);
-    return r ? { kind: "region", region: r } : null;
-  }, [regionParam, species]);
+    return (
+      findRegion(view, regionParam) ??
+      REGIONS[view].find((x) => x.uberon === regionParam && x.kind === "drawn") ??
+      null
+    );
+  }, [regionParam, view]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,69 +186,92 @@ export default function RegionsPage() {
     };
   }, [modalities, assayTypes]);
 
-  // Gene view: fetch where the gene occurs, then run the same region logic on
-  // just those tables.
+  // Gene view: fetch which tables the query matches, then run the same
+  // region logic on just those tables.
   useEffect(() => {
-    if (!geneParam) {
+    if (!geneKey) {
       setGeneData(null);
       return;
     }
     const ctrl = new AbortController();
+    const params = new URLSearchParams();
+    if (qPerturbed) params.set("perturbed", qPerturbed);
+    if (qTarget) params.set("target", qTarget);
+    if (qGene) params.set("gene", qGene);
     setGeneLoading(true);
-    fetch(`/api/gene-regions?gene=${encodeURIComponent(geneParam)}`, { signal: ctrl.signal })
+    fetch(`/api/gene-regions?${params.toString()}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((j: GeneRegionsResponse) => setGeneData(j))
       .catch((e) => {
-        if (e?.name !== "AbortError") setGeneData({ gene: null, tables: [] });
+        if (e?.name !== "AbortError") {
+          setGeneData({ perturbed: null, target: null, either: null, notFound: [], tables: [], excluded: [] });
+        }
       })
       .finally(() => {
         if (!ctrl.signal.aborted) setGeneLoading(false);
       });
     return () => ctrl.abort();
-  }, [geneParam]);
+    // geneKey covers qPerturbed / qTarget / qGene.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geneKey]);
 
   const geneRoles = useMemo(
     () => new Map((geneData?.tables ?? []).map((t) => [t.table, t])),
     [geneData],
   );
-  const geneMode = !!geneParam;
-  const viewDatasets = useMemo(
-    () => (geneMode ? (geneData ? datasetsWithGene(datasets, geneRoles) : []) : datasets),
+  const gene: GeneInPanel | null =
+    geneMode && geneData && geneData.notFound.length === 0
+      ? { perturbed: geneData.perturbed, target: geneData.target, either: geneData.either, roles: geneRoles }
+      : null;
+
+  // Datasets before / after the source toggle (gene view: only the gene's tables).
+  const candidates = useMemo(
+    () =>
+      (geneMode ? (geneData ? datasetsWithGene(datasets, geneRoles) : []) : datasets).filter(
+        (d) => datasetSource(d) !== null,
+      ),
     [geneMode, geneData, datasets, geneRoles],
   );
+  const viewDatasets = useMemo(() => filterBySources(candidates, sources), [candidates, sources]);
+  const sourceCounts = useMemo(() => {
+    const m = new Map<SourceKey, number>();
+    for (const d of candidates) {
+      const s = datasetSource(d);
+      if (s) m.set(s, (m.get(s) ?? 0) + 1);
+    }
+    return m;
+  }, [candidates]);
 
-  const counts = useMemo(() => regionCounts(viewDatasets, species), [viewDatasets, species]);
-  const tray = useMemo(() => trayGroups(viewDatasets), [viewDatasets]);
-  const unplaced = useMemo(() => unplacedTissue(viewDatasets, species), [viewDatasets, species]);
-  const wholeRegion = REGIONS[species].find((r) => r.pseudo);
+  const tallies = useMemo(() => regionTallies(viewDatasets, view), [viewDatasets, view]);
+  const coarse = REGIONS[view].filter((r) => r.kind === "coarse");
+  const noneRegion = REGIONS[view].find((r) => r.kind === "none")!;
 
   const setQuery = (patch: Record<string, string | null>) => {
     const q: Record<string, string> = {};
     for (const [k, v] of Object.entries({ ...router.query, ...patch })) {
       if (typeof v === "string" && v !== "") q[k] = v;
     }
+    // Old-style params are rewritten to the current ones.
+    delete q.species;
+    if (q.view && q.view !== "human" && q.view !== "mouse") delete q.view;
+    if (q.view === "human") delete q.view;
     router.replace({ pathname: router.pathname, query: q }, undefined, { shallow: true, scroll: false });
   };
-
   const selectRegion = (key: string | null) => setQuery({ region: key });
 
-  // Datasets the panel lists, and so the tables whose genes it needs.
-  const panel = useMemo(() => {
-    if (!selection) return null;
-    if (selection.kind === "tray") {
-      return { specific: tray.get(selection.group.key) ?? [], broader: [] as Dataset[] };
-    }
-    return counts.get(selection.region.key) ?? { specific: [], broader: [] };
-  }, [selection, counts, tray]);
+  const toggleSource = (s: SourceKey) => {
+    const next = new Set(sources);
+    if (next.has(s)) next.delete(s);
+    else next.add(s);
+    if (next.size === 0) return; // keep at least one
+    setQuery({ sources: sourcesParam(next) });
+  };
 
-  const panelTables = useMemo(
-    () =>
-      panel
-        ? Array.from(new Set([...panel.specific, ...panel.broader].map((d) => d.table_name))).sort()
-        : [],
-    [panel],
-  );
-  const panelTablesKey = panelTables.join(",");
+  // Datasets the panel lists, and so the tables whose genes it needs.
+  const panel = selection ? (tallies.get(selection.key) ?? { specific: [], broader: [] }) : null;
+  const panelTablesKey = panel
+    ? Array.from(new Set([...panel.specific, ...panel.broader].map((d) => d.table_name))).sort().join(",")
+    : "";
 
   useEffect(() => {
     if (!panelTablesKey) {
@@ -237,19 +297,31 @@ export default function RegionsPage() {
     [genes],
   );
 
-  const outlinedKeys = useMemo(() => {
-    const g = TRAY_GROUPS.find((t) => t.key === trayHover) ??
-      (selection?.kind === "tray" ? selection.group : undefined);
-    if (!g) return new Set<string>();
-    return new Set(REGIONS[species].filter((r) => trayCoversRegion(g, r)).map((r) => r.key));
-  }, [trayHover, selection, species]);
+  const rings: Ring[] = useMemo(() => {
+    const out: Ring[] = [];
+    for (const r of REGIONS[view]) {
+      if (r.kind !== "drawn") continue;
+      if (splitInVitro(tallies.get(r.key)?.specific ?? []).inVitro.length > 0) {
+        out.push({ key: r.key, style: "invitro" });
+      }
+    }
+    const bucket = findRegion(view, bucketHover ?? "") ?? (selection?.kind === "coarse" ? selection : null);
+    for (const k of bucket?.covers ?? []) out.push({ key: k, style: "cover" });
+    if (selection?.kind === "drawn") out.push({ key: selection.key, style: "selected" });
+    return out;
+  }, [view, tallies, bucketHover, selection]);
 
-  const paint = (key: string) => {
-    const specific = counts.get(key)?.specific ?? [];
-    const n = specific.length;
-    const label = findRegion(species, key)?.label ?? key;
-    const hatch = geneMode && geneRoleIn(specific, geneRoles) === "measured";
-    return { fill: countFill(n), ink: hatch ? "#1f2937" : countInk(n), count: n, label, hatch };
+  const paint = (key: string): RegionPaint => {
+    const { tissue, inVitro } = splitInVitro(tallies.get(key)?.specific ?? []);
+    const label = findRegion(view, key)?.label ?? key;
+    return {
+      fill: regionFill(tissue.length, inVitro.length),
+      ink: tissue.length > 0 ? countInk(tissue.length) : "#1f2937",
+      countText: countText(tissue.length, inVitro.length),
+      ariaLabel: `${label}: ${plural(tissue.length, "tissue dataset")}${
+        inVitro.length ? `, ${inVitro.length} in vitro` : ""
+      }`,
+    };
   };
 
   const onHover = (key: string | null, e?: { clientX: number; clientY: number }) => {
@@ -259,8 +331,9 @@ export default function RegionsPage() {
     else setHover((h) => (h && h.key === key ? h : { key, x: 20, y: 20 }));
   };
 
-  const hovered = hover ? findRegion(species, hover.key) : undefined;
-  const hoveredCounts = hover ? counts.get(hover.key) : undefined;
+  const hovered = hover ? findRegion(view, hover.key) : undefined;
+  const hoveredTally = hover ? tallies.get(hover.key) : undefined;
+  const noneTally = tallies.get(noneRegion.key)!;
 
   return (
     <>
@@ -270,51 +343,67 @@ export default function RegionsPage() {
       <Header />
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 16px", color: "#1f2937" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>Brain regions</h1>
-        <p style={{ fontSize: 14, color: "#4b5563", marginTop: 0, maxWidth: 900 }}>
-          Where the datasets come from. Each drawing colours a region by the number of tissue
-          datasets sampled there; click a region to list them and, for perturbation datasets, the
-          perturbed genes with how many readouts changed. Stem-cell models are in the in-vitro tray:
-          their region is the identity they were patterned towards, not tissue.
+        <p style={{ fontSize: 14, color: "#4b5563", marginTop: 0, maxWidth: 960 }}>
+          {view === "human" ? (
+            <>
+              Where in the brain the datasets come from, shown on one human brain. Every dataset
+              with an anatomy tag is placed on the matching human region, whatever species or
+              model it comes from: anatomy terms (UBERON) are cross-species, so mouse cortex lands
+              on the human cortex and a cortical organoid on the cortex it was patterned towards.
+            </>
+          ) : (
+            <>
+              The same datasets mapped onto mouse anatomy instead: human lobe and Brodmann-area
+              data land on the mouse cerebral cortex, organoids on the region they were patterned
+              towards.
+            </>
+          )}{" "}
+          A region is coloured by its number of <strong>tissue</strong> datasets; <DashedSample />{" "}
+          marks <strong>in-vitro</strong> data (organoids, iPSC-derived cells, cultures), which
+          are an intended identity, not tissue. Datasets that name no{" "}
+          {view === "human" ? "lobe" : "drawn structure"} sit in the boxes under the drawing
+          instead of colouring every region. Click a region for its datasets.
         </p>
 
-        <GeneBox
-          gene={geneParam}
-          onSubmit={(g) => setQuery({ gene: g, region: null })}
-          onClear={() => setQuery({ gene: null, region: null })}
+        <GeneQuery
+          perturbed={qPerturbed}
+          target={qTarget}
+          onChange={(p) => setQuery({ ...p, gene: null, region: null })}
         />
         {geneMode && (
           <GeneBanner
-            query={geneParam!}
-            data={geneData}
             loading={geneLoading}
+            data={geneData}
+            query={{ perturbed: qPerturbed, target: qTarget, gene: qGene }}
             datasets={datasets}
             shown={viewDatasets}
+            candidates={candidates}
           />
         )}
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
-          <div role="tablist" aria-label="Species" style={{ display: "inline-flex", gap: 4 }}>
-            {REGION_SPECIES.map((s) => (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
+          <div role="tablist" aria-label="Brain" style={{ display: "inline-flex", gap: 4 }}>
+            {BRAIN_VIEWS.map((v) => (
               <button
-                key={s}
+                key={v}
                 role="tab"
                 type="button"
-                aria-selected={s === species}
-                onClick={() => setQuery({ species: s, view: null, region: null })}
-                style={toggleStyle(s === species)}
+                aria-selected={v === view}
+                onClick={() => setQuery({ view: v === "human" ? null : v, side: null, region: null })}
+                style={toggleStyle(v === view)}
               >
-                {SPECIES_LABELS[s] ?? s}
+                {BRAIN_VIEW_LABELS[v]}
               </button>
             ))}
           </div>
           {drawings.length > 1 && (
-            <div role="group" aria-label="View" style={{ display: "inline-flex", gap: 4, marginLeft: 12 }}>
+            <div role="group" aria-label="Side" style={{ display: "inline-flex", gap: 4, marginLeft: 12 }}>
               {drawings.map((d) => (
                 <button
                   key={d.key}
                   type="button"
                   aria-pressed={d.key === drawing.key}
-                  onClick={() => setQuery({ view: d.key })}
+                  onClick={() => setQuery({ side: d.key === drawings[0].key ? null : d.key })}
                   style={toggleStyle(d.key === drawing.key)}
                 >
                   {d.label}
@@ -324,33 +413,66 @@ export default function RegionsPage() {
           )}
         </div>
 
+        <div
+          role="group"
+          aria-label="Data sources"
+          style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 12, flexWrap: "wrap", fontSize: 13 }}
+        >
+          <span style={{ fontWeight: 600, color: "#374151" }}>Show data from:</span>
+          {SOURCES.map((s) => {
+            const on = sources.has(s.key);
+            const inVitro = s.key === "in_vitro";
+            return (
+              <button
+                key={s.key}
+                type="button"
+                data-source-chip={s.key}
+                aria-pressed={on}
+                title={s.description}
+                onClick={() => toggleSource(s.key)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 9999,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  border: inVitro ? `1.5px dashed ${IN_VITRO_STROKE}` : "1.5px solid #9ca3af",
+                  background: on ? (inVitro ? "#ede9fe" : "#1f2937") : "#ffffff",
+                  color: on ? (inVitro ? "#4c1d95" : "#ffffff") : "#6b7280",
+                }}
+              >
+                {on ? "✓ " : ""}
+                {s.label} ({sourceCounts.get(s.key) ?? 0})
+              </button>
+            );
+          })}
+          {sources.size < ALL_SOURCES.length && (
+            <button type="button" onClick={() => setQuery({ sources: null })} style={{ ...linkButton }}>
+              all sources
+            </button>
+          )}
+        </div>
+
         {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
 
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
-          <div style={{ flex: "1 1 560px", minWidth: 320 }}>
+          <div style={{ flex: "1 1 560px", minWidth: 320, display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={card}>
               <div ref={drawingBox} style={{ position: "relative" }}>
                 <BrainDrawing
                   drawing={drawing}
                   paint={paint}
-                  selectedKey={selection?.kind === "region" ? selection.region.key : null}
-                  outlinedKeys={outlinedKeys}
+                  rings={rings}
+                  selectedKey={selection?.kind === "drawn" ? selection.key : null}
                   onHover={onHover}
                   onSelect={(k) => selectRegion(k)}
                 />
-                {hover && hovered && (
-                  <HoverCard
-                    x={hover.x}
-                    y={hover.y}
-                    region={hovered}
-                    specific={hoveredCounts?.specific ?? []}
-                    broader={hoveredCounts?.broader ?? []}
-                    assayLabel={assayLabel}
-                  />
+                {hover && hovered && hoveredTally && (
+                  <HoverCard x={hover.x} y={hover.y} region={hovered} tally={hoveredTally} assayLabel={assayLabel} />
                 )}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                <Legend hatch={geneMode} />
+                <Legend />
                 <span style={{ fontSize: 12, color: "#6b7280" }}>
                   {drawing.caption}
                   {drawing.credit && (
@@ -363,58 +485,42 @@ export default function RegionsPage() {
                   )}
                 </span>
               </div>
-              {wholeRegion && (
-                <div style={{ marginTop: 10, fontSize: 13 }}>
-                  <button
-                    type="button"
-                    onClick={() => selectRegion(wholeRegion.key)}
-                    aria-pressed={selection?.kind === "region" && selection.region.key === wholeRegion.key}
-                    style={toggleStyle(selection?.kind === "region" && selection.region.key === wholeRegion.key)}
-                  >
-                    {wholeRegion.label}: {counts.get(wholeRegion.key)?.specific.length ?? 0} dataset
-                    {(counts.get(wholeRegion.key)?.specific.length ?? 0) === 1 ? "" : "s"}
-                  </button>
-                  <span style={{ color: "#6b7280", marginLeft: 8 }}>
-                    not drawn as a region, so they don&rsquo;t colour every area
-                  </span>
-                </div>
-              )}
-              {unplaced.length > 0 && (
-                <p style={{ fontSize: 12, color: "#6b7280", margin: "8px 0 0" }}>
-                  Not placed on this drawing: {unplaced.map((d) => d.medium_label ?? d.table_name).join(", ")}
-                </p>
-              )}
+              <CoarseBuckets
+                view={view}
+                buckets={coarse}
+                tallies={tallies}
+                selectedKey={selection?.key ?? null}
+                onHover={setBucketHover}
+                onSelect={selectRegion}
+              />
             </div>
+            <NotRegionSpecific
+              region={noneRegion}
+              datasets={noneTally.specific}
+              selected={selection?.key === noneRegion.key}
+              onSelect={() => selectRegion(noneRegion.key)}
+            />
           </div>
 
-          <div style={{ flex: "1 1 420px", minWidth: 320, display: "flex", flexDirection: "column", gap: 16 }}>
-            <InVitroTray
-              tray={tray}
-              selectedKey={selection?.kind === "tray" ? selection.group.key : null}
-              onHover={setTrayHover}
-              onSelect={(k) => selectRegion(`invitro:${k}`)}
-              loading={loading}
-            />
+          <div style={{ flex: "1 1 420px", minWidth: 320 }}>
             <div style={card} aria-live="polite">
               {loading ? (
                 <p style={{ margin: 0, color: "#6b7280" }}>Loading datasets…</p>
               ) : selection && panel ? (
                 <SelectionPanel
-                  selection={selection}
-                  species={species}
+                  region={selection}
+                  view={view}
                   specific={panel.specific}
                   broader={panel.broader}
-                  tray={tray}
                   assayLabel={assayLabel}
                   matrixTables={matrixTables}
                   genes={genes}
                   genesLoading={genesLoading}
-                  gene={geneMode && geneData?.gene ? { symbol: geneData.gene.symbol, roles: geneRoles } : null}
-                  onSelectTray={(k) => selectRegion(`invitro:${k}`)}
+                  gene={gene}
                   onClose={() => selectRegion(null)}
                 />
               ) : (
-                <Intro datasets={viewDatasets} geneSymbol={geneMode ? (geneData?.gene?.symbol ?? null) : null} />
+                <Intro datasets={viewDatasets} view={view} geneMode={geneMode} />
               )}
             </div>
           </div>
@@ -424,6 +530,16 @@ export default function RegionsPage() {
     </>
   );
 }
+
+const linkButton: CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "#1d4ed8",
+  cursor: "pointer",
+  fontSize: 13,
+  padding: "2px 4px",
+  textDecoration: "underline",
+};
 
 function toggleStyle(active: boolean): CSSProperties {
   return {
@@ -438,65 +554,118 @@ function toggleStyle(active: boolean): CSSProperties {
   };
 }
 
-function GeneBox({
-  gene,
-  onSubmit,
-  onClear,
-}: {
-  gene: string | null;
-  onSubmit: (g: string) => void;
-  onClear: () => void;
-}) {
-  const [value, setValue] = useState(gene ?? "");
-  useEffect(() => setValue(gene ?? ""), [gene]);
+function DashedSample() {
   return (
-    <form
-      role="search"
-      aria-label="Gene view"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const v = value.trim();
-        if (v) onSubmit(v);
+    <span
+      aria-hidden="true"
+      style={{
+        display: "inline-block",
+        width: 14,
+        height: 11,
+        borderRadius: 3,
+        background: IN_VITRO_ONLY_FILL,
+        border: `2px dashed ${IN_VITRO_STROKE}`,
+        verticalAlign: "-1px",
       }}
-      style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 10, flexWrap: "wrap", fontSize: 13 }}
-    >
-      <label htmlFor="regions-gene" style={{ fontWeight: 600, color: "#374151" }}>
-        Where are a gene&rsquo;s data from?
-      </label>
-      <input
-        id="regions-gene"
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="Gene symbol, e.g. SHANK3"
-        autoComplete="off"
-        spellCheck={false}
-        style={{ padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, width: 200 }}
-      />
-      <button type="submit" style={toggleStyle(false)}>
-        Show
-      </button>
-      {gene && (
-        <button type="button" onClick={onClear} style={toggleStyle(false)}>
-          All datasets
+    />
+  );
+}
+
+/**
+ * The gene view's two inputs, as on the home page: a perturbed gene, a
+ * measured (target) gene, or both for a perturbation → readout pair.
+ */
+function GeneQuery({
+  perturbed,
+  target,
+  onChange,
+}: {
+  perturbed: string | null;
+  target: string | null;
+  onChange: (p: { perturbed?: string | null; target?: string | null }) => void;
+}) {
+  const sym = (s: SearchSuggestion | null) => (s ? (s.humanSymbol ?? s.mouseSymbols?.[0] ?? s.searchQuery) : null);
+  // Stable objects: SearchBar resets its text whenever `value` changes identity.
+  const values = {
+    perturbed: useMemo(() => urlSuggestion(perturbed), [perturbed]),
+    target: useMemo(() => urlSuggestion(target), [target]),
+  };
+  const label: CSSProperties = { fontSize: 13, fontWeight: 600, color: "#374151", display: "flex", alignItems: "center", marginBottom: 4 };
+  const field = (
+    which: "perturbed" | "target",
+    title: string,
+    help: string,
+    value: string | null,
+  ) => (
+    <div style={{ flex: "1 1 260px", minWidth: 240, maxWidth: 340 }}>
+      <div style={label}>
+        <span>{title}</span>
+        <InfoTooltip size={13} text={help} />
+      </div>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div style={{ flex: 1 }}>
+          <SearchBar
+            placeholder={which === "perturbed" ? "e.g. SHANK3" : "e.g. CNR1"}
+            value={values[which]}
+            extraBody={{ direction: which }}
+            onSelect={(s) => onChange({ [which]: sym(s) })}
+          />
+        </div>
+        {/* Always rendered (hidden when empty) so the input doesn't resize. */}
+        <button
+          type="button"
+          onClick={() => onChange({ [which]: null })}
+          aria-label={`Clear ${title.toLowerCase()}`}
+          aria-hidden={!value}
+          tabIndex={value ? 0 : -1}
+          style={{ ...linkButton, visibility: value ? "visible" : "hidden" }}
+        >
+          Clear
         </button>
+      </div>
+    </div>
+  );
+  return (
+    <section
+      aria-label="Gene view"
+      style={{ ...card, background: "#f8fafc", padding: "10px 14px", marginBottom: 12, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}
+    >
+      {field(
+        "perturbed",
+        "Perturbed gene",
+        "Regions of the datasets in which this gene is a perturbed gene: listed in the dataset's perturbed-gene column, i.e. knocked out, knocked down, activated, overexpressed or carried as a variant. Postmortem tissue studies perturb nothing, so they never match here.",
+        perturbed,
       )}
-    </form>
+      {field(
+        "target",
+        "Measured (target) gene",
+        "Regions of the datasets in which this gene appears as a measured gene: a readout, differentially expressed gene or associated gene. Appearing does not mean significant.",
+        target,
+      )}
+      <p style={{ flex: "1 1 260px", fontSize: 12, color: "#4b5563", margin: 0 }}>
+        Fill in one field to see where a gene was <strong>perturbed</strong> or <strong>measured</strong>; fill in both for
+        the datasets that perturbed the first and measured the second (the home page&rsquo;s pair search).
+      </p>
+    </section>
   );
 }
 
 function GeneBanner({
-  query,
-  data,
   loading,
+  data,
+  query,
   datasets,
   shown,
+  candidates,
 }: {
-  query: string;
-  data: GeneRegionsResponse | null;
   loading: boolean;
+  data: GeneRegionsResponse | null;
+  query: { perturbed: string | null; target: string | null; gene: string | null };
   datasets: Dataset[];
+  /** The gene's tables that pass the source toggle. */
   shown: Dataset[];
+  /** The gene's tables on the page (any source). */
+  candidates: Dataset[];
 }) {
   const box: CSSProperties = {
     ...card,
@@ -504,73 +673,108 @@ function GeneBanner({
     padding: "8px 12px",
     marginBottom: 12,
     fontSize: 13,
+    lineHeight: 1.5,
   };
-  if (loading || !data) return <div style={box}>Looking up {query}…</div>;
-  if (!data.gene) {
+  if (loading || !data) return <div style={box}>Looking up the gene…</div>;
+  if (data.notFound.length > 0) {
     return (
       <div role="note" style={{ ...box, background: "#fffbeb", borderColor: "#fde68a" }}>
-        No gene matches &ldquo;{query}&rdquo;.
+        No gene matches {data.notFound.map((s) => `“${s}”`).join(" or ")}.
       </div>
     );
   }
-  const onPage = new Set(shown.map((d) => d.table_name));
-  const roles = data.tables.filter((t) => onPage.has(t.table));
-  const nPert = roles.filter((t) => t.perturbed).length;
-  const nMeas = roles.filter((t) => t.measured && !t.perturbed).length;
-  const offPage = data.tables.filter(
-    (t) => !onPage.has(t.table) && datasets.some((d) => d.table_name === t.table),
-  ).length;
-  const sym = data.gene.symbol;
+  const p: GeneRef | null = data.perturbed;
+  const t: GeneRef | null = data.target;
+  const e: GeneRef | null = data.either;
+  const onPage = new Set(candidates.map((d) => d.table_name));
+  const offPage = data.tables.filter((x) => !onPage.has(x.table) && datasets.some((d) => d.table_name === x.table)).length;
+  const hiddenBySource = candidates.length - shown.length;
+  const title = (table: string) => {
+    const d = datasets.find((x) => x.table_name === table);
+    return d ? datasetTitle(d) : table;
+  };
+  let what: React.ReactNode;
+  if (p && t) {
+    what = (
+      <>
+        Datasets with a row where <strong>{p.symbol}</strong> was <strong>perturbed</strong> and{" "}
+        <strong>{t.symbol}</strong> was <strong>measured</strong> as a readout
+      </>
+    );
+  } else if (p) {
+    what = (
+      <>
+        Datasets in which <strong>{p.symbol}</strong> was <strong>perturbed</strong>: it is in the dataset&rsquo;s
+        perturbed-gene column (knocked out, knocked down, activated, overexpressed or carried as a variant)
+      </>
+    );
+  } else if (t) {
+    what = (
+      <>
+        Datasets in which <strong>{t.symbol}</strong> was <strong>measured</strong>: it appears as a readout,
+        differentially expressed or associated gene (not necessarily significant)
+      </>
+    );
+  } else {
+    what = (
+      <>
+        Datasets in which <strong>{e?.symbol ?? query.gene}</strong> was perturbed <em>or</em> measured (an older
+        link; use the fields above to choose)
+      </>
+    );
+  }
+  const searchHref = p || t ? geneSearchHref(p, t) : e ? geneSearchHref(e, null) : "/";
   return (
-    <div role="status" style={box}>
-      <strong>{sym}</strong>: in {roles.length} dataset{roles.length === 1 ? "" : "s"} on this page —
-      perturbed in {nPert}, measured (as a readout / DE / associated gene) in {nMeas}.
-      {" "}Regions are coloured by those datasets only: <strong>solid</strong> = {sym} was perturbed
-      there, <strong>hatched</strong> = only measured there.
-      {offPage > 0 && ` ${offPage} more without anatomy tags (e.g. curated resources) are not shown.`}
-      {" "}
-      <Link href={`/?perturbed=${encodeURIComponent(sym)}`} style={{ color: "#1d4ed8" }}>
-        all {sym} results
+    <div role="status" data-gene-banner style={box}>
+      {what}: <strong>{shown.length}</strong> on this page
+      {hiddenBySource > 0 && <> ({hiddenBySource} more hidden by the source chips)</>}.
+      {offPage > 0 && ` ${offPage} more have no anatomy tag (e.g. curated resources) and are not shown here.`}{" "}
+      <Link href={searchHref} style={{ color: "#1d4ed8" }}>
+        all results in the gene search
       </Link>
+      {data.excluded.length > 0 && (
+        <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
+          Not counted as perturbed:{" "}
+          {data.excluded.map((x, i) => (
+            <span key={x.table}>
+              {i > 0 && "; "}
+              {title(x.table)}, where the gene is {x.reason}
+            </span>
+          ))}
+          .
+        </div>
+      )}
     </div>
   );
 }
 
-function Legend({ hatch }: { hatch?: boolean }) {
+function Legend() {
+  const swatch = (bg: string, border = "1px solid #d1d5db"): CSSProperties => ({
+    width: 14,
+    height: 14,
+    borderRadius: 3,
+    background: bg,
+    border,
+    boxSizing: "border-box",
+  });
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#4b5563", flexWrap: "wrap" }}>
-      Datasets:
+      Tissue datasets:
       {COUNT_BINS.map((b) => (
         <span key={b.label} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-          <span
-            aria-hidden="true"
-            style={{ width: 14, height: 14, borderRadius: 3, background: b.fill, border: "1px solid #d1d5db" }}
-          />
+          <span aria-hidden="true" style={swatch(b.fill)} />
           {b.label}
         </span>
       ))}
       <span style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 6 }}>
-        <span
-          aria-hidden="true"
-          style={{ width: 14, height: 14, borderRadius: 3, border: "2px dashed #7c3aed" }}
-        />
-        in-vitro identity
+        <span aria-hidden="true" style={swatch("#ffffff", `2px dashed ${IN_VITRO_STROKE}`)} />
+        has in-vitro data
       </span>
-      {hatch && (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 6 }}>
-          <span
-            aria-hidden="true"
-            style={{
-              width: 14,
-              height: 14,
-              borderRadius: 3,
-              border: "1px solid #d1d5db",
-              background: `repeating-linear-gradient(45deg, ${COUNT_BINS[2].fill} 0 3px, #ffffff 3px 5px)`,
-            }}
-          />
-          gene only measured
-        </span>
-      )}
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+        <span aria-hidden="true" style={swatch(IN_VITRO_ONLY_FILL, `2px dashed ${IN_VITRO_STROKE}`)} />
+        in vitro only
+      </span>
+      <span>· labels: tissue (+ in vitro)</span>
     </span>
   );
 }
@@ -579,25 +783,24 @@ function HoverCard({
   x,
   y,
   region,
-  specific,
-  broader,
+  tally,
   assayLabel,
 }: {
   x: number;
   y: number;
   region: RegionDef;
-  specific: Dataset[];
-  broader: Dataset[];
+  tally: { specific: Dataset[]; broader: Dataset[] };
   assayLabel: AssayLabeler;
 }) {
-  const bySystem = countBy(specific, (d) => modelSystemLabel(d.model_system ?? ""));
-  const byAssay = countBy(specific, assayLabel);
+  const { tissue, inVitro } = splitInVitro(tally.specific);
+  const bySystem = countBy(tissue, (d) => modelSystemLabel(d.model_system ?? ""));
+  const byAssay = countBy(tally.specific, assayLabel);
   return (
     <div
       role="tooltip"
       style={{
         position: "absolute",
-        left: Math.min(x + 14, 9999),
+        left: x + 14,
         top: y + 14,
         pointerEvents: "none",
         background: "#111827",
@@ -606,88 +809,107 @@ function HoverCard({
         padding: "8px 10px",
         fontSize: 12,
         lineHeight: 1.5,
-        maxWidth: 280,
+        maxWidth: 300,
         boxShadow: "0 4px 12px rgba(0,0,0,.2)",
         zIndex: 5,
       }}
     >
       <div style={{ fontWeight: 700, fontSize: 13 }}>{region.label}</div>
       <div>
-        {specific.length} dataset{specific.length === 1 ? "" : "s"}
+        {plural(tissue.length, "tissue dataset")}
         {bySystem.length > 0 && `: ${bySystem.map(([k, n]) => `${n} ${k.toLowerCase()}`).join(", ")}`}
       </div>
-      {byAssay.length > 0 && (
-        <div style={{ color: "#d1d5db" }}>{byAssay.map(([k, n]) => `${n} ${k}`).join(" · ")}</div>
-      )}
-      {broader.length > 0 && (
-        <div style={{ color: "#d1d5db" }}>
-          + {broader.length} broader (e.g. whole brain)
-        </div>
+      {inVitro.length > 0 && <div style={{ color: "#ddd6fe" }}>+ {inVitro.length} in vitro (intended identity)</div>}
+      {byAssay.length > 0 && <div style={{ color: "#d1d5db" }}>{byAssay.map(([k, n]) => `${n} ${k}`).join(" · ")}</div>}
+      {tally.broader.length > 0 && (
+        <div style={{ color: "#d1d5db" }}>+ {tally.broader.length} broader (whole cortex / brain), not counted</div>
       )}
       <div style={{ color: "#9ca3af", marginTop: 2 }}>Click for details</div>
     </div>
   );
 }
 
-function InVitroTray({
-  tray,
+/**
+ * The coarse buckets: datasets tagged above the drawn level. Each shows the
+ * same colour scale as the regions; hovering outlines what it spans.
+ */
+function CoarseBuckets({
+  view,
+  buckets,
+  tallies,
   selectedKey,
   onHover,
   onSelect,
-  loading,
 }: {
-  tray: Map<string, Dataset[]>;
+  view: BrainView;
+  buckets: readonly RegionDef[];
+  tallies: Map<string, { specific: Dataset[]; broader: Dataset[] }>;
   selectedKey: string | null;
   onHover: (key: string | null) => void;
   onSelect: (key: string) => void;
-  loading: boolean;
 }) {
   return (
-    <section
-      aria-label="In-vitro tray"
-      style={{ ...card, background: "#faf9ff", border: "1px dashed #a78bfa" }}
-    >
-      <h2 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 2px" }}>In-vitro tray</h2>
-      <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 10px" }}>
-        Organoids, iPSC-derived neurons, primary cultures and cell lines, grouped by intended
-        identity — what they were patterned towards, not a brain region they were taken from.
-        Hover to outline the matching regions.
+    <section aria-label="Broader than one region" style={{ marginTop: 14, borderTop: "1px solid #e5e7eb", paddingTop: 10 }}>
+      <h2 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 2px" }}>
+        {view === "human" ? "No lobe given" : "No subregion given"}
+      </h2>
+      <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 8px" }}>
+        {view === "human"
+          ? "These datasets are tagged with the whole cortex, forebrain or brain, not a lobe, so they are not counted in any lobe. Hover to outline what they span."
+          : "These datasets are tagged with the whole forebrain or brain, not a structure on the drawing, so they are not counted in any region. Hover to outline what they span."}
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8 }}>
-        {TRAY_GROUPS.map((g) => {
-          const items = tray.get(g.key) ?? [];
-          const systems = countBy(items, (d) => modelSystemLabel(d.model_system ?? ""));
-          const selected = selectedKey === g.key;
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 8 }}>
+        {buckets.map((b) => {
+          const items = tallies.get(b.key)?.specific ?? [];
+          const { tissue, inVitro } = splitInVitro(items);
+          const selected = selectedKey === b.key;
+          const fill = regionFill(tissue.length, inVitro.length);
           return (
             <button
-              key={g.key}
+              key={b.key}
               type="button"
-              data-tray={g.key}
+              data-bucket={b.key}
               aria-pressed={selected}
-              disabled={!loading && items.length === 0}
-              onMouseEnter={() => onHover(g.key)}
+              onMouseEnter={() => onHover(b.key)}
               onMouseLeave={() => onHover(null)}
-              onFocus={() => onHover(g.key)}
+              onFocus={() => onHover(b.key)}
               onBlur={() => onHover(null)}
-              onClick={() => onSelect(g.key)}
-              title={g.description}
+              onClick={() => onSelect(b.key)}
+              title={b.note}
               style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "flex-start",
                 textAlign: "left",
-                background: selected ? "#ede9fe" : "#ffffff",
-                border: `1.5px dashed ${selected ? "#7c3aed" : "#c4b5fd"}`,
+                // Amber, like the outline it draws on the regions it spans.
+                background: selected ? "#fffbeb" : "#ffffff",
+                border: selected ? "2px solid #d97706" : "1px solid #d1d5db",
                 borderRadius: 8,
-                padding: "8px 10px",
-                cursor: items.length ? "pointer" : "default",
-                opacity: items.length || loading ? 1 : 0.55,
+                padding: selected ? "6px 9px" : "7px 10px",
+                cursor: "pointer",
                 color: "#1f2937",
               }}
             >
-              <div style={{ fontSize: 13, fontWeight: 700 }}>
-                {g.label} <span style={{ fontWeight: 400, color: "#6b7280" }}>({items.length})</span>
-              </div>
-              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
-                {systems.length > 0 ? systems.map(([k, n]) => `${n} ${k}`).join(" · ") : g.description}
-              </div>
+              <span
+                aria-hidden="true"
+                style={{
+                  flex: "0 0 auto",
+                  width: 18,
+                  height: 18,
+                  marginTop: 1,
+                  borderRadius: 4,
+                  background: fill,
+                  boxSizing: "border-box",
+                  border: inVitro.length ? `2px dashed ${IN_VITRO_STROKE}` : "1px solid #d1d5db",
+                }}
+              />
+              <span>
+                <span style={{ display: "block", fontSize: 13, fontWeight: 700 }}>{b.label}</span>
+                <span style={{ display: "block", fontSize: 12, color: "#6b7280" }}>
+                  {plural(tissue.length, "tissue dataset")}
+                  {inVitro.length > 0 && ` · ${inVitro.length} in vitro`}
+                </span>
+              </span>
             </button>
           );
         })}
@@ -696,57 +918,100 @@ function InVitroTray({
   );
 }
 
+function NotRegionSpecific({
+  region,
+  datasets,
+  selected,
+  onSelect,
+}: {
+  region: RegionDef;
+  datasets: Dataset[];
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <section
+      aria-label="Not region-specific"
+      data-bucket={region.key}
+      style={{ ...card, background: "#f9fafb", borderStyle: "solid", borderColor: selected ? "#111827" : "#e5e7eb" }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+        <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>
+          {region.label} ({datasets.length})
+        </h2>
+        {datasets.length > 0 && (
+          <button type="button" onClick={onSelect} aria-pressed={selected} style={linkButton}>
+            details
+          </button>
+        )}
+      </div>
+      <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 6px" }}>{region.note}</p>
+      {datasets.length === 0 ? (
+        <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>None with the current selection.</p>
+      ) : (
+        <ul style={{ margin: 0, padding: 0, display: "flex", flexWrap: "wrap", gap: "2px 14px", fontSize: 13 }}>
+          {datasets.map((d) => (
+            <li key={d.table_name} style={{ listStyle: "none" }}>
+              <Link href={datasetHref(d)} style={linkStyle}>
+                {datasetTitle(d)}
+              </Link>{" "}
+              <span style={{ color: "#6b7280", fontSize: 12 }}>
+                ({(d.anatomy ?? []).map((t) => t.label).join(", ")})
+              </span>
+              {datasetSource(d) === "in_vitro" && (
+                <>
+                  {" "}
+                  <InVitroChip />
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function SelectionPanel({
-  selection,
-  species,
+  region,
+  view,
   specific,
   broader,
-  tray,
   assayLabel,
   matrixTables,
   genes,
   genesLoading,
   gene,
-  onSelectTray,
   onClose,
 }: {
-  selection: NonNullable<Selection>;
-  species: RegionSpecies;
+  region: RegionDef;
+  view: BrainView;
   specific: Dataset[];
   broader: Dataset[];
-  tray: Map<string, Dataset[]>;
   assayLabel: AssayLabeler;
   matrixTables: ReadonlySet<string>;
   genes: RegionGenesResponse | null;
   genesLoading: boolean;
-  /** Gene view: the gene and its role per table. */
-  gene: GeneContext | null;
-  onSelectTray: (key: string) => void;
+  gene: GeneInPanel | null;
   onClose: () => void;
 }) {
-  const isTray = selection.kind === "tray";
-  const title = isTray ? selection.group.label : selection.region.label;
-  const region = isTray ? null : selection.region;
   const kinds = countBy(specific, (d) => studyKind(d)) as Array<[StudyKind, number]>;
-  const covering = region
-    ? TRAY_GROUPS.filter((g) => trayCoversRegion(g, region) && (tray.get(g.key)?.length ?? 0) > 0)
-    : [];
-  // A "show all in /full-datasets" link (?region=<REGION_GROUPS id>) belongs
-  // here once /full-datasets reads ?region= from the URL.
+  const fullHref = region.filterGroup ? fullDatasetsRegionHref(region.filterGroup) : null;
+  const inMatrix = specific.filter((d) => matrixTables.has(d.table_name)).map((d) => d.table_name);
+  const subtitle =
+    region.kind === "drawn"
+      ? BRAIN_VIEW_LABELS[view]
+      : region.kind === "coarse"
+        ? "Not counted in any single region"
+        : "No brain region";
 
   return (
-    <div data-panel={isTray ? `invitro:${selection.group.key}` : selection.region.key}>
+    <div data-panel={region.key}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{title}</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{region.label}</h2>
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-            {isTray ? (
-              <>In vitro · intended identity, not measured anatomy</>
-            ) : (
-              <>
-                {SPECIES_LABELS[species]} · <UberonLink id={selection.region.uberon} />
-              </>
-            )}
+            {subtitle} · <UberonLink id={region.uberon} />
           </div>
         </div>
         <button
@@ -758,18 +1023,36 @@ function SelectionPanel({
           ×
         </button>
       </div>
-      {(isTray ? selection.group.description : region?.note) && (
-        <p style={{ fontSize: 13, color: "#4b5563", margin: "8px 0 0" }}>
-          {isTray ? selection.group.description : region?.note}
-        </p>
+      {region.note && <p style={{ fontSize: 13, color: "#4b5563", margin: "8px 0 0" }}>{region.note}</p>}
+
+      {(fullHref || specific.length > 0) && (
+        <div data-panel-links style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 10, fontSize: 13 }}>
+          {fullHref && (
+            <Link href={fullHref} style={linkStyle} data-link="full-datasets">
+              → All datasets in this region on the Full datasets page
+              <span style={{ color: "#6b7280" }}> (incl. subregions; every source)</span>
+            </Link>
+          )}
+          {specific.length > 0 &&
+            (inMatrix.length > 0 ? (
+              <Link href={matrixTablesHref(inMatrix)} style={linkStyle} data-link="matrix">
+                → {inMatrix.length === 1 ? "This dataset" : `These ${inMatrix.length} datasets`} in the
+                cross-modality matrix
+              </Link>
+            ) : (
+              <span style={{ color: "#6b7280" }}>
+                {genes && !genesLoading ? "None of these datasets is in the cross-modality matrix." : "Checking the matrix…"}
+              </span>
+            ))}
+        </div>
       )}
 
       <PanelSection
         title={
           <>
-            {specific.length} dataset{specific.length === 1 ? "" : "s"}
+            {plural(specific.length, "dataset")}
             {kinds.length > 0 && (
-              <span style={{ marginLeft: 8, display: "inline-flex", gap: 4, textTransform: "none", letterSpacing: 0 }}>
+              <span style={{ marginLeft: 8, display: "inline-flex", gap: 4, flexWrap: "wrap", textTransform: "none", letterSpacing: 0 }}>
                 {kinds.map(([k, n]) => (
                   <span key={k} style={{ display: "inline-flex", gap: 3, alignItems: "center", fontWeight: 400 }}>
                     <KindChip kind={k} /> {n}
@@ -781,9 +1064,7 @@ function SelectionPanel({
         }
       >
         {specific.length === 0 ? (
-          <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>
-            No {isTray ? "" : "tissue "}datasets tagged here yet.
-          </p>
+          <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>No datasets placed here with the current selection.</p>
         ) : (
           <DatasetGroups datasets={specific} assayLabel={assayLabel} matrixTables={matrixTables} gene={gene} />
         )}
@@ -796,9 +1077,9 @@ function SelectionPanel({
       )}
 
       {broader.length > 0 && (
-        <PanelSection title={`+ ${broader.length} broader dataset${broader.length === 1 ? "" : "s"}`}>
+        <PanelSection title={`+ ${plural(broader.length, "broader dataset")}`}>
           <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 6px" }}>
-            Sampled from a larger region that contains this one (e.g. whole brain), so not counted in the colour.
+            Tagged with a larger region that contains this one (e.g. the whole cortex or brain), so not counted in its colour.
           </p>
           <details>
             <summary style={{ cursor: "pointer", fontSize: 13 }}>Show</summary>
@@ -807,59 +1088,30 @@ function SelectionPanel({
           </details>
         </PanelSection>
       )}
-
-      {covering.length > 0 && (
-        <PanelSection title="Modelled in vitro">
-          <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 6px" }}>
-            Stem-cell models patterned towards this region (intended identity).
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {covering.map((g) => (
-              <button
-                key={g.key}
-                type="button"
-                onClick={() => onSelectTray(g.key)}
-                style={{
-                  fontSize: 12,
-                  border: "1.5px dashed #a78bfa",
-                  background: "#faf9ff",
-                  borderRadius: 6,
-                  padding: "3px 8px",
-                  cursor: "pointer",
-                }}
-              >
-                {g.label} ({tray.get(g.key)?.length ?? 0})
-              </button>
-            ))}
-          </div>
-        </PanelSection>
-      )}
-
     </div>
   );
 }
 
-function Intro({ datasets, geneSymbol }: { datasets: Dataset[]; geneSymbol: string | null }) {
-  const lines = REGION_SPECIES.map((s) => {
-    const c = regionCounts(datasets, s);
-    const n = new Set(Array.from(c.values()).flatMap((v) => [...v.specific, ...v.broader].map((d) => d.table_name))).size;
-    return `${SPECIES_LABELS[s]}: ${n} tissue dataset${n === 1 ? "" : "s"}`;
-  });
+function Intro({ datasets, view, geneMode }: { datasets: Dataset[]; view: BrainView; geneMode: boolean }) {
+  const bySource = SOURCES.map((s) => [s.label, datasets.filter((d) => datasetSource(d) === s.key).length] as const);
   return (
     <div style={{ fontSize: 13, color: "#4b5563" }}>
       <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 6px", color: "#1f2937" }}>Pick a region</h2>
       <p style={{ margin: "0 0 6px" }}>
-        {geneSymbol
-          ? `Hover a region for how many ${geneSymbol} datasets come from it; click it for those datasets and what changed.`
-          : "Hover a region for its dataset count; click it for the datasets and perturbed genes."}
+        {geneMode
+          ? "Regions are coloured by the gene's datasets only. Hover a region for its count; click it for the datasets."
+          : "Hover a region for its dataset count; click it for the datasets, links to the Full datasets page and the matrix, and the perturbed genes with what changed."}
       </p>
       <p style={{ margin: "0 0 6px" }}>
-        Human tissue data is postmortem case-vs-control; perturbations come from mouse and
-        zebrafish in vivo and from the in-vitro systems.
+        Human tissue data is postmortem, mostly case vs control; perturbations come from mouse and
+        zebrafish in vivo and from in-vitro systems, which mostly name no lobe.
+        {view === "human" && " Use the Mouse brain view to see them on mouse anatomy."}
       </p>
-      <p style={{ margin: 0 }}>{lines.join(" · ")}</p>
+      <p style={{ margin: 0 }}>
+        Shown: {bySource.map(([l, n]) => `${l} ${n}`).join(" · ")}
+      </p>
       <p style={{ margin: "8px 0 0", fontSize: 12, color: "#6b7280" }}>
-        Datasets without an anatomy tag (e.g. curated databases and gene lists) are not shown.
+        Datasets without an anatomy tag (curated databases and gene lists) are not on this page.
       </p>
     </div>
   );

@@ -4,16 +4,21 @@
 // lib/brain-regions.ts. To swap a drawing for real atlas geometry, replace the
 // file (or add one and point `src` at it) — no page code changes.
 
-import type { RegionSpecies } from "@/lib/brain-regions";
+import type { BrainView } from "@/lib/brain-regions";
 
 export type RegionDrawing = {
-  /** ?view= value; also the toggle label when a species has several. */
+  /** ?side= value; also the toggle label when a view has several drawings. */
   key: string;
   label: string;
   /** Accessible title. */
   title: string;
   /** Served path of the SVG (web/public/...). */
   src: string;
+  /**
+   * The SVG's viewBox width and height (the test checks they match), so the
+   * page reserves the drawing's space before the file has loaded.
+   */
+  viewBox: [number, number];
   /** Caption under the drawing. */
   caption: string;
   /** Credit line required by the drawing's source, shown under it. */
@@ -26,13 +31,14 @@ const DKT_CREDIT = {
   href: "https://github.com/ggseg/ggsegDKT",
 };
 
-export const REGION_DRAWINGS: Readonly<Record<RegionSpecies, readonly RegionDrawing[]>> = {
+export const REGION_DRAWINGS: Readonly<Record<BrainView, readonly RegionDrawing[]>> = {
   human: [
     {
       key: "lateral",
       label: "Lateral",
       title: "Human cortex, lateral view of the left hemisphere (DKT atlas)",
       src: "/regions/human-lateral.svg",
+      viewBox: [520, 357.1],
       caption:
         "Lateral view, left hemisphere · anterior to the left · DKT cortical parcels (thin lines) grouped into lobes (dark outlines)",
       credit: DKT_CREDIT,
@@ -42,6 +48,7 @@ export const REGION_DRAWINGS: Readonly<Record<RegionSpecies, readonly RegionDraw
       label: "Medial",
       title: "Human cortex, medial view of the right hemisphere (DKT atlas)",
       src: "/regions/human-medial.svg",
+      viewBox: [520, 359.7],
       caption:
         "Medial view, right hemisphere · anterior to the left · DKT cortical parcels grouped into lobes; grey = medial wall",
       credit: DKT_CREDIT,
@@ -53,21 +60,13 @@ export const REGION_DRAWINGS: Readonly<Record<RegionSpecies, readonly RegionDraw
       label: "Sagittal",
       title: "Mouse brain, sagittal section (Allen Mouse Brain Atlas, P56)",
       src: "/regions/mouse-sagittal.svg",
+      viewBox: [520, 271.1],
       caption:
         "Allen Mouse Brain Atlas, P56 sagittal reference atlas, section 172 · anterior to the left · Allen structures merged into the regions our datasets are tagged with",
       credit: {
         text: "Image credit: Allen Institute",
         href: "https://alleninstitute.org/citation-policy/",
       },
-    },
-  ],
-  zebrafish: [
-    {
-      key: "larva",
-      label: "Larva",
-      title: "Zebrafish larva, lateral view",
-      src: "/regions/zebrafish-larva.svg",
-      caption: "Lateral view · anterior to the left · schematic placeholder, not to scale",
     },
   ],
 };

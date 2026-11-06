@@ -1,15 +1,29 @@
-// Brain-region navigator (/regions): the drawn regions, the hand-curated
-// Brodmann → lobe map, and the rules that decide which datasets a region
-// "has". Pure functions, no server imports — the page imports this module
-// client-side, and lib/__tests__/brain-regions.test.ts checks it against the
-// vendored UBERON list and the dataset configs.
+// Brain-region navigator (/regions): the regions of each brain view, the
+// hand-curated Brodmann → lobe map, how every tagged dataset is mapped onto a
+// view, the source toggle, and the study-kind labels. Pure functions, no
+// server imports — the page imports this module client-side, and
+// lib/__tests__/brain-regions.test.ts checks it against the vendored UBERON
+// list and the dataset configs.
+//
+// The model: there is one brain per *view* (human = default, mouse =
+// optional), not one per species. Every dataset with an anatomy tag is
+// mapped onto the view through its UBERON terms, which are cross-species: a
+// mouse "cerebral cortex" dataset lands on the human cerebral cortex, and a
+// cortical organoid's intended identity likewise. A dataset whose tags name
+// a drawn region (a lobe; a mouse structure) is placed on that region. One
+// tagged only at a coarser level (e.g. "cerebral cortex", no lobe) is *not*
+// spread over the finer regions: it goes into a coarse bucket ("Cerebral
+// cortex, no lobe given", "Whole brain", ...) that the page shows next to the
+// drawing, and the regions the bucket spans list it as "broader". Tags with
+// no brain term at all (whole organism, a kidney cell line) go into "Not
+// region-specific".
 //
 // This is the region → UBERON map, kept apart from the geometry: the drawings
 // (vendored SVGs in web/public/regions/, registered in lib/region-drawings.ts)
 // only mark shapes with data-region="<key>"; everything about what a shape
-// means — its UBERON id, which tagged terms count for it (`match`, `exact`,
-// i.e. "also counts as"), which broader terms contain it (`within`) — lives
-// here. Swapping in atlas geometry means mapping its structures to these keys.
+// means — its UBERON id, which tagged terms count for it (`match`, `exact`) —
+// lives here. Swapping in atlas geometry means mapping its structures to
+// these keys.
 
 import type { AnatomyTerm } from "@/lib/dataset-tags";
 
@@ -28,7 +42,8 @@ import type { AnatomyTerm } from "@/lib/dataset-tags";
 // assign every Brodmann area we tag to its lobe here, by hand. Entries UBERON
 // already has are listed too, so this table is the full assignment and reads
 // on its own. Add a row when a dataset starts tagging a new Brodmann area
-// (the test fails until you do).
+// (the test fails until you do). (All of them are under "cerebral cortex" in
+// UBERON already, so the mouse cortex and the coarse buckets need no help.)
 //
 // Keys are the grouping terms (the same ids /full-datasets' Region filter
 // uses); values are tagged terms that count as part of them.
@@ -85,228 +100,300 @@ export function closureHits(
   return !!extra && extra.some((id) => closure.includes(id));
 }
 
-// ── Drawn regions ───────────────────────────────────────────────────────
+// ── Views and regions ───────────────────────────────────────────────────
 
-export type RegionSpecies = "human" | "mouse" | "zebrafish";
+/** A brain drawing the datasets are mapped onto. Human is the default. */
+export type BrainView = "human" | "mouse";
 
-export const REGION_SPECIES: readonly RegionSpecies[] = ["human", "mouse", "zebrafish"];
+export const BRAIN_VIEWS: readonly BrainView[] = ["human", "mouse"];
+
+export const BRAIN_VIEW_LABELS: Record<BrainView, string> = {
+  human: "Human brain",
+  mouse: "Mouse brain",
+};
+
+/**
+ * drawn  — a shape in the view's drawing(s);
+ * coarse — a bucket next to the drawing for datasets tagged above the drawn
+ *          level (e.g. "cerebral cortex" on the lobe drawing): listed, not
+ *          painted onto every region it spans;
+ * none   — "Not region-specific": no brain term at all (whole organism,
+ *          non-brain tissue / cell line). Catch-all, always last.
+ */
+export type RegionKind = "drawn" | "coarse" | "none";
 
 export type RegionDef = {
   /** Shape key in the drawings, and the ?region= value. */
   key: string;
   label: string;
+  kind: RegionKind;
   /** The region's own UBERON term (shown, linked to OLS). */
   uberon: string;
   /**
    * Grouping terms: a dataset whose closure hits any of these (closureHits,
-   * so CURATED_PART_OF applies) is specific to this region.
+   * so CURATED_PART_OF applies) is placed here.
    */
   match: readonly string[];
   /**
    * Terms that count only when tagged verbatim — for broad terms whose
-   * closure would sweep in everything (e.g. "multicellular organism" is an
-   * ancestor of every brain term).
+   * closure would sweep in too much.
    */
   exact?: readonly string[];
   /**
-   * Broader terms this region lies within. A dataset tagged with one of these
-   * (and not specific to the region) is listed as "broader" — e.g. a
-   * whole-brain dataset under every mouse region — instead of colouring it.
-   * Also drives the in-vitro tray's "intended identity" outline.
+   * Coarse buckets: the drawn regions the bucket spans. They list its
+   * datasets as "broader", and hovering the bucket outlines them.
    */
-  within: readonly string[];
-  /** One-line note in the region panel (what the shape stands for). */
-  note?: string;
+  covers?: readonly string[];
   /**
-   * Not a coloured shape: the brain outline, for datasets tagged only with a
-   * broad term ("brain", "cerebral cortex"). Rendered as a button under the
-   * drawing so those datasets stay reachable without painting every region.
+   * Drawn regions: other drawn regions this one lies inside (mouse
+   * hippocampus in the cortex); their datasets are "broader" here.
    */
-  pseudo?: boolean;
+  inside?: readonly string[];
+  /**
+   * REGION_GROUPS id (lib/dataset-tags.ts) for the /full-datasets?region=
+   * link; absent = no link (the "not region-specific" bucket).
+   */
+  filterGroup?: string;
+  /** One-line note in the region panel (what the shape / bucket stands for). */
+  note?: string;
 };
 
 const BRAIN = "UBERON:0000955";
 const FOREBRAIN = "UBERON:0001890";
-const TELENCEPHALON = "UBERON:0001893";
 const CEREBRAL_CORTEX = "UBERON:0000956";
 const CEREBRAL_HEMISPHERE = "UBERON:0001869";
-const DIENCEPHALON = "UBERON:0001894";
 const HINDBRAIN = "UBERON:0002028";
 const WHOLE_ORGANISM = "UBERON:0000468";
 
-const CORTEX_WITHIN = [CEREBRAL_CORTEX, CEREBRAL_HEMISPHERE, TELENCEPHALON, FOREBRAIN, BRAIN];
+const HUMAN_LOBES = ["frontal", "parietal", "temporal", "occipital", "cingulate", "insula"];
+
+const NOT_REGION_SPECIFIC: RegionDef = {
+  key: "none",
+  label: "Not region-specific",
+  kind: "none",
+  uberon: WHOLE_ORGANISM,
+  match: [],
+  note:
+    "Anatomy without any brain term: whole-animal readouts (e.g. zebrafish larval behaviour) and non-brain tissue or cell lines (e.g. HEK293T, kidney). These can't be placed on a brain region.",
+};
 
 const HUMAN_REGIONS: RegionDef[] = [
   {
     key: "frontal",
     label: "Frontal lobe",
+    kind: "drawn",
     uberon: "UBERON:0001870",
     match: ["UBERON:0001870", "UBERON:0016525"],
-    within: CORTEX_WITHIN,
+    filterGroup: "UBERON:0001870",
     note: "Frontal cortex incl. prefrontal (BA9), motor / premotor (BA4, BA6) and Broca's area (BA44, BA45).",
   },
   {
     key: "parietal",
     label: "Parietal lobe",
+    kind: "drawn",
     uberon: "UBERON:0001872",
     match: ["UBERON:0001872"],
-    within: CORTEX_WITHIN,
+    filterGroup: "UBERON:0001872",
     note: "Incl. somatosensory cortex (BA1–3), superior parietal (BA5, BA7), angular and supramarginal gyri (BA39, BA40).",
   },
   {
     key: "temporal",
     label: "Temporal lobe",
+    kind: "drawn",
     uberon: "UBERON:0016538",
     match: ["UBERON:0016538", "UBERON:0001871"],
-    within: CORTEX_WITHIN,
+    filterGroup: "UBERON:0016538",
     note: "Incl. auditory cortex (BA41, BA42), superior / inferior temporal gyri (BA22, BA20), fusiform (BA37) and temporal pole (BA38).",
   },
   {
     key: "occipital",
     label: "Occipital lobe",
+    kind: "drawn",
     uberon: "UBERON:0002021",
     match: ["UBERON:0002021"],
-    within: CORTEX_WITHIN,
+    filterGroup: "UBERON:0002021",
     note: "Incl. primary visual cortex (BA17), mostly on the medial surface.",
   },
   {
     key: "cingulate",
     label: "Cingulate cortex",
+    kind: "drawn",
     uberon: "UBERON:0003027",
     match: ["UBERON:0003027"],
-    within: CORTEX_WITHIN,
+    filterGroup: "UBERON:0003027",
     note: "Medial surface; incl. anterior cingulate cortex (BA24).",
   },
   {
     key: "insula",
     label: "Insula",
+    kind: "drawn",
     uberon: "UBERON:0002022",
     match: ["UBERON:0002022"],
-    within: CORTEX_WITHIN,
+    filterGroup: "UBERON:0002022",
   },
-  // The human drawings (ggsegDKT) show the cortex only: a dataset tagged with
-  // a subcortical structure would be listed under "not placed on this drawing".
+  // The human drawings (ggsegDKT) show the cortex only. Everything tagged
+  // above the lobe level goes in a bucket, narrowest first.
   {
-    key: "whole",
-    label: "Whole brain / cortex (unspecified)",
-    uberon: BRAIN,
-    match: [],
-    exact: [BRAIN, CEREBRAL_CORTEX, CEREBRAL_HEMISPHERE, TELENCEPHALON, FOREBRAIN],
-    within: [],
-    pseudo: true,
-    note: "Datasets tagged only with a broad term (brain, cerebral cortex, ...), not a specific lobe.",
+    key: "cortex",
+    label: "Cerebral cortex, no lobe given",
+    kind: "coarse",
+    uberon: CEREBRAL_CORTEX,
+    match: [CEREBRAL_CORTEX],
+    exact: [CEREBRAL_HEMISPHERE],
+    covers: HUMAN_LOBES,
+    filterGroup: CEREBRAL_CORTEX,
+    note:
+      "Tagged “cerebral cortex” without a lobe, e.g. mouse cortex, cortical organoids, fetal cortical cultures. They cover the whole cortex, so they are not counted in any lobe.",
   },
+  {
+    key: "forebrain",
+    label: "Forebrain, no lobe given",
+    kind: "coarse",
+    uberon: FOREBRAIN,
+    match: [FOREBRAIN],
+    covers: HUMAN_LOBES,
+    filterGroup: FOREBRAIN,
+    note:
+      "Tagged forebrain or telencephalon (e.g. forebrain-patterned neurons, telencephalic organoids), or a subcortical forebrain structure this cortical drawing does not show.",
+  },
+  {
+    key: "brain",
+    label: "Whole brain / no region given",
+    kind: "coarse",
+    uberon: BRAIN,
+    match: [BRAIN],
+    covers: HUMAN_LOBES,
+    filterGroup: BRAIN,
+    note:
+      "Tagged “brain”: whole-brain samples (mouse, zebrafish) and neural cells without a regional identity (e.g. NGN2 iNeurons), or a brain structure outside the forebrain that this drawing does not show.",
+  },
+  NOT_REGION_SPECIFIC,
 ];
+
+const MOUSE_DRAWN = [
+  "olfactory_bulb",
+  "cortex",
+  "hippocampus",
+  "striatum",
+  "thalamus",
+  "hypothalamus",
+  "midbrain",
+  "cerebellum",
+  "hindbrain",
+];
+const MOUSE_FOREBRAIN = MOUSE_DRAWN.slice(0, 6);
 
 const MOUSE_REGIONS: RegionDef[] = [
   {
     key: "olfactory_bulb",
     label: "Olfactory bulb",
+    kind: "drawn",
     uberon: "UBERON:0002264",
     match: ["UBERON:0002264"],
-    within: [TELENCEPHALON, FOREBRAIN, BRAIN],
+    filterGroup: "UBERON:0002264",
   },
   {
     key: "cortex",
     label: "Cerebral cortex",
+    kind: "drawn",
     uberon: CEREBRAL_CORTEX,
     match: [CEREBRAL_CORTEX],
-    within: [CEREBRAL_HEMISPHERE, TELENCEPHALON, FOREBRAIN, BRAIN],
-    note: "UBERON files the hippocampal formation under cerebral cortex, so hippocampus datasets count here too.",
+    filterGroup: CEREBRAL_CORTEX,
+    note:
+      "The mouse drawing has no lobes: human datasets from any cortical lobe or Brodmann area count here. UBERON files the hippocampal formation under the cerebral cortex, so hippocampus datasets count here too.",
   },
   {
     key: "hippocampus",
     label: "Hippocampal formation",
+    kind: "drawn",
     uberon: "UBERON:0002421",
     match: ["UBERON:0002421"],
-    within: CORTEX_WITHIN,
+    inside: ["cortex"],
+    filterGroup: "UBERON:0002421",
   },
   {
     key: "striatum",
     label: "Striatum",
+    kind: "drawn",
     uberon: "UBERON:0002435",
     match: ["UBERON:0002435"],
-    within: [TELENCEPHALON, FOREBRAIN, BRAIN],
+    filterGroup: "UBERON:0002435",
   },
   {
     key: "thalamus",
     label: "Thalamus",
+    kind: "drawn",
     uberon: "UBERON:0001897",
     match: ["UBERON:0001897"],
-    within: [DIENCEPHALON, FOREBRAIN, BRAIN],
+    filterGroup: "UBERON:0001897",
   },
   {
     key: "hypothalamus",
     label: "Hypothalamus",
+    kind: "drawn",
     uberon: "UBERON:0001898",
     match: ["UBERON:0001898"],
-    within: [DIENCEPHALON, FOREBRAIN, BRAIN],
+    filterGroup: "UBERON:0001898",
   },
   {
     key: "midbrain",
     label: "Midbrain",
+    kind: "drawn",
     uberon: "UBERON:0001891",
     match: ["UBERON:0001891"],
-    within: [BRAIN],
+    filterGroup: "UBERON:0001891",
   },
   {
     key: "cerebellum",
     label: "Cerebellum",
+    kind: "drawn",
     uberon: "UBERON:0002037",
     match: ["UBERON:0002037"],
-    within: [HINDBRAIN, BRAIN],
+    filterGroup: "UBERON:0002037",
   },
   {
     key: "hindbrain",
     label: "Pons and medulla",
+    kind: "drawn",
     uberon: HINDBRAIN,
     // Not closureHits(hindbrain): UBERON puts the cerebellum in the hindbrain,
     // and the cerebellum is drawn separately.
     match: ["UBERON:0000988", "UBERON:0001896"],
     exact: [HINDBRAIN, "UBERON:0002298"],
-    within: [BRAIN],
+    filterGroup: HINDBRAIN,
   },
   {
-    key: "whole",
-    label: "Whole brain (unspecified)",
-    uberon: BRAIN,
-    match: [],
-    exact: [BRAIN, FOREBRAIN, TELENCEPHALON, CEREBRAL_HEMISPHERE],
-    within: [],
-    pseudo: true,
-    note: "Datasets tagged only with a broad term (whole brain, forebrain, ...).",
-  },
-];
-
-const ZEBRAFISH_REGIONS: RegionDef[] = [
-  {
-    key: "larva",
-    label: "Whole larva",
-    uberon: WHOLE_ORGANISM,
-    // Every brain term has "multicellular organism" as an ancestor, so only a
-    // verbatim whole-organism tag (behaviour screens) counts here.
-    match: [],
-    exact: [WHOLE_ORGANISM],
-    within: [],
-    note: "Whole-animal readouts, e.g. larval behaviour.",
+    key: "forebrain",
+    label: "Forebrain, no subregion given",
+    kind: "coarse",
+    uberon: FOREBRAIN,
+    match: [FOREBRAIN],
+    covers: MOUSE_FOREBRAIN,
+    filterGroup: FOREBRAIN,
+    note:
+      "Tagged forebrain, telencephalon or cerebral hemisphere without a finer structure (e.g. forebrain-patterned neurons, telencephalic organoids).",
   },
   {
     key: "brain",
-    label: "Brain",
+    label: "Whole brain / no region given",
+    kind: "coarse",
     uberon: BRAIN,
     match: [BRAIN],
-    within: [WHOLE_ORGANISM],
+    covers: MOUSE_DRAWN,
+    filterGroup: BRAIN,
+    note:
+      "Tagged “brain”: whole-brain samples (mouse, zebrafish) and neural cells without a regional identity (e.g. NGN2 iNeurons).",
   },
+  NOT_REGION_SPECIFIC,
 ];
 
-export const REGIONS: Readonly<Record<RegionSpecies, readonly RegionDef[]>> = {
+export const REGIONS: Readonly<Record<BrainView, readonly RegionDef[]>> = {
   human: HUMAN_REGIONS,
   mouse: MOUSE_REGIONS,
-  zebrafish: ZEBRAFISH_REGIONS,
 };
 
-export function findRegion(species: RegionSpecies, key: string): RegionDef | undefined {
-  return REGIONS[species].find((r) => r.key === key);
+export function findRegion(view: BrainView, key: string): RegionDef | undefined {
+  return REGIONS[view].find((r) => r.key === key);
 }
 
 // ── Datasets ────────────────────────────────────────────────────────────
@@ -322,9 +409,9 @@ export type RegionDataset = {
   anatomy_closure?: readonly string[];
 };
 
-/** Model systems drawn on the anatomy (actual tissue). */
+/** Model systems that are actual tissue. */
 export const TISSUE_MODEL_SYSTEMS = ["postmortem", "in_vivo"] as const;
-/** Model systems shown in the in-vitro tray (intended identity only). */
+/** Model systems that are in vitro (their anatomy is an intended identity). */
 export const IN_VITRO_MODEL_SYSTEMS = [
   "organoid",
   "primary_culture",
@@ -332,22 +419,6 @@ export const IN_VITRO_MODEL_SYSTEMS = [
   "ipsc_other",
   "cell_line",
 ] as const;
-
-export type DatasetPlacement = "tissue" | "in_vitro" | "excluded";
-
-/**
- * Where a dataset goes on /regions. Curated resources (no anatomy) and
- * untagged tables are left off the page.
- */
-export function placement(d: RegionDataset): DatasetPlacement {
-  // Anything without an anatomy tag stays off the page, whatever its model
-  // system (curated resources have none by design).
-  if ((d.anatomy ?? []).length === 0) return "excluded";
-  const ms = d.model_system ?? "";
-  if ((TISSUE_MODEL_SYSTEMS as readonly string[]).includes(ms)) return "tissue";
-  if ((IN_VITRO_MODEL_SYSTEMS as readonly string[]).includes(ms)) return "in_vitro";
-  return "excluded";
-}
 
 /**
  * The species a dataset's samples come from: the table's organism_key when
@@ -359,138 +430,205 @@ export function datasetSpecies(d: RegionDataset): string {
   return keys.length > 0 ? keys[0] : d.gene_species;
 }
 
-/** Specific to a region: tagged with it, a subregion, or a curated member. */
+// ── Source toggle ───────────────────────────────────────────────────────
+
+export type SourceKey = "human_tissue" | "mouse_in_vivo" | "zebrafish_in_vivo" | "in_vitro";
+
+export const SOURCES: ReadonlyArray<{ key: SourceKey; label: string; description: string }> = [
+  {
+    key: "human_tissue",
+    label: "Human tissue",
+    description: "Human postmortem brain tissue",
+  },
+  {
+    key: "mouse_in_vivo",
+    label: "Mouse in vivo",
+    description: "Tissue from living mice",
+  },
+  {
+    key: "zebrafish_in_vivo",
+    label: "Zebrafish in vivo",
+    description: "Zebrafish larvae: whole brain or whole animal",
+  },
+  {
+    key: "in_vitro",
+    label: "In vitro",
+    description:
+      "iPSC-derived neurons and astrocytes, organoids, primary cultures and cell lines, placed by the identity they were patterned towards (not tissue they came from)",
+  },
+];
+
+export const ALL_SOURCES: readonly SourceKey[] = SOURCES.map((s) => s.key);
+
+/**
+ * Which source chip a dataset belongs to; null = not on the page (no anatomy
+ * tag, e.g. curated resources, or a model system / species outside the four
+ * sources).
+ */
+export function datasetSource(d: RegionDataset): SourceKey | null {
+  if ((d.anatomy ?? []).length === 0) return null;
+  const ms = d.model_system ?? "";
+  if ((IN_VITRO_MODEL_SYSTEMS as readonly string[]).includes(ms)) return "in_vitro";
+  if (!(TISSUE_MODEL_SYSTEMS as readonly string[]).includes(ms)) return null;
+  switch (datasetSpecies(d)) {
+    case "human":
+      return "human_tissue";
+    case "mouse":
+      return "mouse_in_vivo";
+    case "zebrafish":
+      return "zebrafish_in_vivo";
+    default:
+      return null;
+  }
+}
+
+export function isInVitro(d: RegionDataset): boolean {
+  return datasetSource(d) === "in_vitro";
+}
+
+/** ?sources=a,b → the selected sources; absent or nothing valid = all. */
+export function parseSources(v: unknown): ReadonlySet<SourceKey> {
+  if (typeof v !== "string" || v === "") return new Set(ALL_SOURCES);
+  const picked = v
+    .split(",")
+    .filter((s): s is SourceKey => (ALL_SOURCES as readonly string[]).includes(s));
+  return new Set(picked.length > 0 ? picked : ALL_SOURCES);
+}
+
+/** The ?sources= value for a selection; null when all are selected. */
+export function sourcesParam(sel: ReadonlySet<SourceKey>): string | null {
+  if (ALL_SOURCES.every((s) => sel.has(s))) return null;
+  return ALL_SOURCES.filter((s) => sel.has(s)).join(",");
+}
+
+/** Datasets on the page whose source is selected. */
+export function filterBySources<D extends RegionDataset>(
+  datasets: readonly D[],
+  sel: ReadonlySet<SourceKey>,
+): D[] {
+  return datasets.filter((d) => {
+    const s = datasetSource(d);
+    return s !== null && sel.has(s);
+  });
+}
+
+// ── Mapping a dataset onto a view ───────────────────────────────────────
+
+/** Tagged with the region's terms (or a subregion / curated member). */
 export function isSpecific(d: RegionDataset, r: RegionDef): boolean {
   if (r.exact && (d.anatomy ?? []).some((t) => r.exact!.includes(t.id))) return true;
   return r.match.some((id) => closureHits(d.anatomy_closure, id));
 }
 
-/** Covers a broader region the drawn one lies within (e.g. whole brain). */
-export function isBroader(d: RegionDataset, r: RegionDef): boolean {
-  if (isSpecific(d, r)) return false;
-  return (d.anatomy ?? []).some((t) => r.within.includes(t.id));
+/**
+ * Where a dataset goes on a view: the drawn regions it names, else the
+ * narrowest coarse bucket that holds it, else "not region-specific" (`none`).
+ * Returns region keys: one or more drawn keys, or exactly one other key.
+ */
+export function placeOnView(d: RegionDataset, view: BrainView): string[] {
+  const regions = REGIONS[view];
+  const drawn = regions.filter((r) => r.kind === "drawn" && isSpecific(d, r)).map((r) => r.key);
+  if (drawn.length > 0) return drawn;
+  const coarse = regions.find((r) => r.kind === "coarse" && isSpecific(d, r));
+  return [coarse ? coarse.key : "none"];
 }
 
-export type RegionCounts = {
-  specific: RegionDataset[];
-  broader: RegionDataset[];
+export type RegionTally<D> = {
+  /** Placed here. */
+  specific: D[];
+  /** Drawn regions: from a coarse bucket / enclosing region that spans this one. */
+  broader: D[];
 };
 
 /**
- * Per-region dataset lists for one species' tissue datasets. Regions with
- * nothing tagged get empty lists (drawn grey).
- *
- * The gene-first view (/regions?gene=X, not built yet) plugs in by passing
- * only the tables where that gene was perturbed or measured.
+ * Per-region dataset lists for a view, over the datasets passed in (the
+ * caller applies the source toggle and, in the gene view, the gene filter).
+ * Every region of the view gets an entry; empty ones are drawn grey.
  */
-export function regionCounts<D extends RegionDataset>(
+export function regionTallies<D extends RegionDataset>(
   datasets: readonly D[],
-  species: RegionSpecies,
-): Map<string, { specific: D[]; broader: D[] }> {
-  const tissue = datasets.filter(
-    (d) => placement(d) === "tissue" && datasetSpecies(d) === species,
-  );
-  const out = new Map<string, { specific: D[]; broader: D[] }>();
-  for (const r of REGIONS[species]) {
-    out.set(r.key, {
-      specific: tissue.filter((d) => isSpecific(d, r)),
-      broader: tissue.filter((d) => isBroader(d, r)),
-    });
-  }
-  return out;
-}
-
-/** Tissue datasets of a species that no drawn region claims (shown as a note). */
-export function unplacedTissue<D extends RegionDataset>(
-  datasets: readonly D[],
-  species: RegionSpecies,
-): D[] {
-  return datasets.filter(
-    (d) =>
-      placement(d) === "tissue" &&
-      datasetSpecies(d) === species &&
-      !REGIONS[species].some((r) => isSpecific(d, r) || isBroader(d, r)),
-  );
-}
-
-// ── In-vitro tray ───────────────────────────────────────────────────────
-
-export type TrayGroup = {
-  key: string;
-  label: string;
-  description: string;
-  /**
-   * The identity term: drawn regions matching or lying within it get the
-   * dotted "intended identity" outline. null = no brain region.
-   */
-  identity: string | null;
-};
-
-/** In order; a dataset goes in the first group it fits. */
-export const TRAY_GROUPS: readonly TrayGroup[] = [
-  {
-    key: "cortical",
-    label: "Cortical identity",
-    description: "Cortical organoids, cortical primary cultures",
-    identity: CEREBRAL_CORTEX,
-  },
-  {
-    key: "forebrain",
-    label: "Forebrain / telencephalic",
-    description: "Forebrain-patterned neurons, telencephalic organoids",
-    identity: FOREBRAIN,
-  },
-  {
-    key: "brain",
-    label: "Neural, no regional identity",
-    description: "Unpatterned organoids, NGN2 iNeurons, iPSC-derived astrocytes / NPCs",
-    identity: BRAIN,
-  },
-  {
-    key: "non_neural",
-    label: "Non-neural cell lines",
-    description: "E.g. HEK293T (kidney)",
-    identity: null,
-  },
-];
-
-export function trayGroupOf(d: RegionDataset): TrayGroup {
-  const c = d.anatomy_closure ?? [];
-  for (const g of TRAY_GROUPS) {
-    if (g.identity && closureHits(c, g.identity)) return g;
-  }
-  return TRAY_GROUPS[TRAY_GROUPS.length - 1];
-}
-
-export function trayGroups<D extends RegionDataset>(
-  datasets: readonly D[],
-): Map<string, D[]> {
-  const out = new Map<string, D[]>(TRAY_GROUPS.map((g) => [g.key, [] as D[]]));
+  view: BrainView,
+): Map<string, RegionTally<D>> {
+  const out = new Map<string, RegionTally<D>>();
+  for (const r of REGIONS[view]) out.set(r.key, { specific: [], broader: [] });
   for (const d of datasets) {
-    if (placement(d) !== "in_vitro") continue;
-    out.get(trayGroupOf(d).key)!.push(d);
+    for (const k of placeOnView(d, view)) out.get(k)!.specific.push(d);
+  }
+  for (const r of REGIONS[view]) {
+    if (r.kind !== "drawn") continue;
+    const t = out.get(r.key)!;
+    const seen = new Set(t.specific.map((d) => d.table_name));
+    const add = (ds: readonly D[]) => {
+      for (const d of ds) {
+        if (seen.has(d.table_name)) continue;
+        seen.add(d.table_name);
+        t.broader.push(d);
+      }
+    };
+    for (const k of r.inside ?? []) add(out.get(k)!.specific);
+    for (const c of REGIONS[view]) {
+      if (c.kind === "coarse" && (c.covers ?? []).includes(r.key)) add(out.get(c.key)!.specific);
+    }
   }
   return out;
 }
 
-/**
- * Does a tray group's intended identity cover drawn region `r`? (Used for the
- * dotted outline, and for the "modelled in vitro" list in a region panel.)
- */
-export function trayCoversRegion(g: TrayGroup, r: RegionDef): boolean {
-  if (!g.identity) return false;
-  return r.uberon === g.identity || r.match.includes(g.identity) || r.within.includes(g.identity);
+/** Tissue vs in-vitro split of a dataset list (for the colour and the ring). */
+export function splitInVitro<D extends RegionDataset>(
+  ds: readonly D[],
+): { tissue: D[]; inVitro: D[] } {
+  const tissue: D[] = [];
+  const inVitro: D[] = [];
+  for (const d of ds) (isInVitro(d) ? inVitro : tissue).push(d);
+  return { tissue, inVitro };
 }
 
-// ── Study kind (perturbation vs case-control) ───────────────────────────
+// ── Study kind ──────────────────────────────────────────────────────────
 
-export type StudyKind = "perturbation" | "case_control" | "observational" | "other";
+export type StudyKind =
+  | "perturbation"
+  | "case_control"
+  | "cell_type_reference"
+  | "age_association"
+  | "observational"
+  | "other";
 
 export const STUDY_KIND_LABELS: Record<StudyKind, string> = {
   perturbation: "Perturbation",
   case_control: "Case vs control",
+  cell_type_reference: "Cell-type reference",
+  age_association: "Age association",
   observational: "Observational",
   other: "Other",
+};
+
+export const STUDY_KIND_DESCRIPTIONS: Record<StudyKind, string> = {
+  perturbation: "Genes were experimentally perturbed (knockout, CRISPRi/a, knockdown, ...)",
+  case_control:
+    "Cases (e.g. autism, schizophrenia; postmortem tissue or patient-derived lines) compared with controls; no gene was perturbed",
+  cell_type_reference:
+    "Marker genes of cell types (each cluster vs all other clusters); not a disease comparison",
+  age_association:
+    "Genes whose expression changes with donor age (observational); not a disease comparison",
+  observational:
+    "No manipulation and no case/control comparison (e.g. regulatory networks inferred from unperturbed cells)",
+  other: "Experiment type not tagged",
+};
+
+/**
+ * Per-table study kinds where the rule in studyKind() gets it wrong, each
+ * checked against the dataset config. The rule labels all postmortem tissue
+ * "case vs control"; these postmortem tables are not disease comparisons.
+ * (The genuine case-control postmortem tables, psychscreen asd / bipolar /
+ * schizophrenia, gandal-2018, both gandal-2022 tables and velmeshev_2019,
+ * are left to the rule.)
+ */
+export const STUDY_KIND_OVERRIDES: Readonly<Record<string, StudyKind>> = {
+  // wamsley-postmortem-autism: per-cluster marker genes, each cell-type
+  // cluster vs all other clusters; a cell-type reference, not ASD vs control.
+  wamsley_2024_cluster_markers: "cell_type_reference",
+  // psychscreen: differential expression with donor age, not a diagnosis.
+  psychscreen_age_deg: "age_association",
 };
 
 const PERTURBATION_TYPES = new Set([
@@ -505,11 +643,14 @@ const PERTURBATION_TYPES = new Set([
 ]);
 
 /**
- * Postmortem tissue and patient-derived lines are case vs control (no gene
- * manipulated); a perturbation experiment_type is a perturbation; the rest
+ * STUDY_KIND_OVERRIDES first; then a perturbation experiment_type is a
+ * perturbation, postmortem tissue and patient-derived lines are case vs
+ * control (no gene manipulated), and other observational studies are
  * observational.
  */
 export function studyKind(d: RegionDataset): StudyKind {
+  const o = STUDY_KIND_OVERRIDES[d.table_name];
+  if (o) return o;
   const et = d.experiment_type ?? "";
   if (PERTURBATION_TYPES.has(et)) return "perturbation";
   if (d.model_system === "postmortem" || et === "patient_lines") return "case_control";
@@ -517,44 +658,42 @@ export function studyKind(d: RegionDataset): StudyKind {
   return "other";
 }
 
-// ── Gene view (/regions?gene=X) ─────────────────────────────────────────
-
-/** How a gene occurs in a table (from /api/gene-regions). */
-export type GeneRole = { perturbed: boolean; measured: boolean };
+// ── Gene view (/regions?perturbed=X&target=Y) ───────────────────────────
 
 /**
- * The gene view draws only the tables that contain the gene; this restricts
- * a dataset list to them. Everything else (regionCounts, trayGroups, the
- * panel) then works unchanged on the result.
+ * Tables whose "perturbed" gene column is not a perturbation. The gene view
+ * does not count a gene in that column as perturbed: /api/gene-regions
+ * leaves the table out of the perturbed matches and lists it under
+ * `excluded`, so the page can say why.
  */
+export const NOT_PERTURBED_TABLES: Readonly<Record<string, string>> = {
+  // fleck-organoid-grn: the "tf" column holds Pando-inferred regulators from
+  // multi-omic profiling of *unperturbed* organoids. The config's
+  // `assay: perturbation` and `perturbed_or_target: perturbed` are a
+  // mislabel: the TF is a regulator in an inferred network, nothing was
+  // knocked out.
+  fleck_2023_organoid_grn:
+    "an inferred transcription-factor regulator in a gene-regulatory network from unperturbed organoids (Fleck 2023), not a perturbation",
+};
+
+/** The gene view keeps only the tables the gene query matched. */
 export function datasetsWithGene<D extends RegionDataset>(
   datasets: readonly D[],
-  roles: ReadonlyMap<string, GeneRole>,
+  tables: { has: (table: string) => boolean },
 ): D[] {
-  return datasets.filter((d) => roles.has(d.table_name));
+  return datasets.filter((d) => tables.has(d.table_name));
 }
 
-/**
- * A region's role for the gene: "perturbed" if any of its tables perturbed
- * it (drawn solid), "measured" if it only appears as a measured gene there
- * (drawn hatched), null if the region has none of the gene's tables.
- */
-export function geneRoleIn(
-  datasets: readonly RegionDataset[],
-  roles: ReadonlyMap<string, GeneRole>,
-): "perturbed" | "measured" | null {
-  let measured = false;
-  for (const d of datasets) {
-    const r = roles.get(d.table_name);
-    if (r?.perturbed) return "perturbed";
-    if (r?.measured) measured = true;
-  }
-  return measured ? "measured" : null;
+// ── Links ───────────────────────────────────────────────────────────────
+
+/** /matrix restricted to some source tables (By study view). */
+export function matrixTablesHref(tables: readonly string[]): string {
+  return `/matrix?tables=${tables.map(encodeURIComponent).join(",")}`;
 }
 
 // ── Colour scale ────────────────────────────────────────────────────────
 
-/** Fill for a region with `n` specific datasets (single-hue sequential). */
+/** Fill for a region with `n` tissue datasets (single-hue sequential). */
 export const COUNT_BINS: ReadonlyArray<{ min: number; label: string; fill: string }> = [
   { min: 0, label: "0", fill: "#e1e5ea" },
   { min: 1, label: "1", fill: "#cfe1f3" },
@@ -562,6 +701,11 @@ export const COUNT_BINS: ReadonlyArray<{ min: number; label: string; fill: strin
   { min: 3, label: "3–4", fill: "#4f93d0" },
   { min: 5, label: "5+", fill: "#1f5f9e" },
 ];
+
+/** Fill for a region that has in-vitro datasets only (plus the dashed ring). */
+export const IN_VITRO_ONLY_FILL = "#ede9fe";
+/** Dashed ring / border colour that marks in-vitro data. */
+export const IN_VITRO_STROKE = "#7c3aed";
 
 export function countFill(n: number): string {
   let fill = COUNT_BINS[0].fill;
@@ -572,6 +716,16 @@ export function countFill(n: number): string {
 /** Text colour that reads on countFill(n). */
 export function countInk(n: number): string {
   return n >= 3 ? "#ffffff" : "#1f2937";
+}
+
+/**
+ * Fill for a region from its tissue / in-vitro counts: the count ramp over
+ * tissue datasets only; in-vitro-only regions get a pale violet (and the
+ * page adds the dashed in-vitro ring), so organoids never read as tissue.
+ */
+export function regionFill(tissue: number, inVitro: number): string {
+  if (tissue === 0 && inVitro > 0) return IN_VITRO_ONLY_FILL;
+  return countFill(tissue);
 }
 
 export function olsUrl(uberon: string): string {
