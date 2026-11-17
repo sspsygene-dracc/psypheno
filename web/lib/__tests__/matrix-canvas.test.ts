@@ -93,7 +93,7 @@ describe("agreement view", () => {
   const lowerOf = (cell: MatrixCell) =>
     unpack(buildColorGrid([row({ a: cell })], [col("a", "frac_sig")], {}, "agreement").packed2[0]);
 
-  it("shows significant studies agreeing in purple", () => {
+  it("shows significant studies agreeing in the agree colour", () => {
     const cell = { value: 1, k: 2, n: 2, nUp: 2, nDown: 0 };
     expect(cellAgreement(cell)).toBe("agree");
     expect(lowerOf(cell)).toEqual(AGREEMENT_COLORS.agree);

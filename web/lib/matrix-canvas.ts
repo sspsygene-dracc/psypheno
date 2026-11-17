@@ -1,3 +1,4 @@
+import { AGREEMENT } from "@/lib/palette";
 /**
  * Canvas cell rendering for the cross-modality matrix (#213).
  *
@@ -73,13 +74,10 @@ export type LowerTriangleMode = "direction" | "agreement";
 
 export type Agreement = "agree" | "disagree";
 
-/**
- * Agreement view colors (purple = agree, orange = disagree; a colorblind-safe
- * pair that doesn't reuse the direction view's blue/red).
- */
+/** Agreement view colors (agree = dark slate, disagree = orange); see palette. */
 export const AGREEMENT_COLORS: Record<Agreement, [number, number, number]> = {
-  agree: [94, 60, 153],
-  disagree: [230, 97, 1],
+  agree: AGREEMENT.agree,
+  disagree: AGREEMENT.disagree,
 };
 
 /**
@@ -87,7 +85,7 @@ export const AGREEMENT_COLORS: Record<Agreement, [number, number, number]> = {
  * second significant study to compare it with. Keeps every significant cell
  * split, so the two views read the same way.
  */
-export const AGREEMENT_NOTHING_TO_COMPARE: [number, number, number] = [196, 200, 207];
+export const AGREEMENT_NOTHING_TO_COMPARE: [number, number, number] = AGREEMENT.nothingToCompare;
 
 /**
  * Do the significant studies behind a collated cell agree on direction?

@@ -11,7 +11,9 @@ import {
   type Vision,
 } from "./colour-vision";
 import {
+  AGREEMENT,
   BOX,
+  COLUMN_TYPE,
   COVERAGE_BINS,
   DIRECTION,
   ERROR_TEXT,
@@ -111,6 +113,15 @@ export function pairChecks(): PairCheck[] {
   checks.push(...divergingEnds("direction", "muted RdBu", RAMP_DIRECTION_MUTED));
   checks.push(...divergingEnds("direction", "BrBG ratio", RAMP_RATIO));
 
+  // Agreement view (lower triangle), next to the breadth ramp (upper triangle).
+  add("direction", "agreement: agree vs disagree", AGREEMENT.agree, AGREEMENT.disagree);
+  add("direction", "agreement: agree vs nothing to compare", AGREEMENT.agree, AGREEMENT.nothingToCompare);
+  add("direction", "agreement: disagree vs nothing to compare", AGREEMENT.disagree, AGREEMENT.nothingToCompare);
+  for (const t of [0.5, 0.75, 1]) {
+    add("direction", `agreement: agree vs Purples ${t}`, AGREEMENT.agree, rampAt(RAMP_BREADTH, t));
+    add("direction", `agreement: disagree vs Purples ${t}`, AGREEMENT.disagree, rampAt(RAMP_BREADTH, t));
+  }
+
   // Ramps.
   checks.push(...rampSteps("significance ramp", "Greens", RAMP_SIGNIFICANCE));
   checks.push(...rampSteps("breadth ramp", "Purples", RAMP_BREADTH));
@@ -166,6 +177,11 @@ export function pairChecks(): PairCheck[] {
   // In vitro is a model system and shares its colours (plus a dashed border),
   // so it needs no pair of its own.
 
+  // Column-type chips: gene vs numeric by fill, numeric vs other by outline.
+  add("tags", "Column type gene vs numeric (fill)", COLUMN_TYPE.gene.background, COLUMN_TYPE.numeric.background, PILL_MIN);
+  add("tags", "Column type gene vs other (fill)", COLUMN_TYPE.gene.background, COLUMN_TYPE.other.background, PILL_MIN);
+  add("tags", "Column type numeric vs other (outline)", borderColour(COLUMN_TYPE.numeric), borderColour(COLUMN_TYPE.other), PILL_MIN);
+
   // Status badges are white with an outline; tags are filled with no outline.
   // What tells them apart is the badge's outline against the tag's fill.
   for (const [sk, s] of Object.entries(STATUS)) {
@@ -207,6 +223,7 @@ export function runContrastChecks(): ContrastCheck[] {
   pairs.push(["in-vitro group heading", IN_VITRO.pill.color, IN_VITRO.tint]);
   for (const [k, s] of Object.entries(STATUS)) pairs.push([`status ${k}`, s.color, s.background]);
   for (const [k, s] of Object.entries(ROLE)) pairs.push([`role ${k}`, s.color, s.background]);
+  for (const [k, s] of Object.entries(COLUMN_TYPE)) pairs.push([`column type ${k}`, s.color, s.background]);
   for (const [k, s] of Object.entries(BOX)) {
     pairs.push([`box ${k}`, s.color, s.background]);
     pairs.push([`box ${k}: link`, LINK.hover, s.background]);

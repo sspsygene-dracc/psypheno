@@ -28,6 +28,7 @@ import {
   type ColumnGroupBand,
   type ColumnGroupKey,
 } from "@/lib/matrix-grouping";
+import { ERROR_TEXT } from "@/lib/palette";
 
 export type { MetricDomains };
 
@@ -254,8 +255,8 @@ function CollatedCellDetail({
     };
   }, [group, perturbedId, targetId]);
 
-  if (failed) return <div style={{ color: "#dc2626", marginTop: 6 }}>Couldn&rsquo;t load studies.</div>;
-  if (rows === null) return <div style={{ color: "#9ca3af", marginTop: 6 }}>Loading studies&hellip;</div>;
+  if (failed) return <div style={{ color: ERROR_TEXT, marginTop: 6 }}>Couldn&rsquo;t load studies.</div>;
+  if (rows === null) return <div style={{ color: "#6b7280", marginTop: 6 }}>Loading studies&hellip;</div>;
   return (
     <>
     <ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0 0" }}>
@@ -1184,7 +1185,7 @@ export default function CollatedMatrix({
                         padding: 1,
                         border: "none",
                         background: "transparent",
-                        color: "#9ca3af",
+                        color: "#6b7280",
                         cursor: "pointer",
                       }}
                     >
@@ -1325,7 +1326,7 @@ export default function CollatedMatrix({
                   background: i % 2 === 0 ? ROW_STRIPE_EVEN : ROW_STRIPE_ODD,
                   fontSize: 11,
                   fontWeight: 500,
-                  color: g.humanSymbol ? "#1f2937" : "#9ca3af",
+                  color: g.humanSymbol ? "#1f2937" : "#6b7280",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                 }}
@@ -1415,7 +1416,7 @@ export default function CollatedMatrix({
               ) : (
                 selGeneName
               )}{" "}
-              <span style={{ color: "#9ca3af", fontWeight: 400 }}>(perturbed)</span>
+              <span style={{ color: "#6b7280", fontWeight: 400 }}>(perturbed)</span>
             </div>
             <div style={{ marginTop: 1 }}>
               ×{" "}
@@ -1429,7 +1430,7 @@ export default function CollatedMatrix({
               ) : (
                 sel.col.label
               )}{" "}
-              <span style={{ color: "#9ca3af" }}>
+              <span style={{ color: "#6b7280" }}>
                 ({summary
                   ? "dataset"
                   : sel.col.columnIsGene

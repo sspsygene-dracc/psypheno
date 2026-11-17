@@ -73,6 +73,13 @@ export const IN_VITRO = {
   pill: { color: "#5b21b6", background: "#ede9fe", border: "1px dashed #7c3aed" },
 } as const;
 
+/** Column-type chips on dataset cards (monospace, square-ish). */
+export const COLUMN_TYPE = {
+  gene: { color: "#1e3a8a", background: "#dbeafe", border: "1px solid #bfdbfe" },
+  numeric: { color: "#334155", background: "#ffffff", border: "1px solid #94a3b8" },
+  other: { color: "#374151", background: "#f3f4f6", border: "1px solid #e5e7eb" },
+} as const satisfies Record<string, Pill>;
+
 // ── Status badges (outlined, never filled) ──────────────────────────────
 
 export const STATUS = {
@@ -131,6 +138,17 @@ export const RAMP_DIRECTION_MUTED: Ramp = [
   [1.0, [214, 96, 77]],
 ];
 
+/**
+ * Matrix "agreement" view (lower triangle): do the significant studies agree
+ * on direction? Dark slate / orange, so it reuses neither the direction
+ * blue/red nor the breadth purple that fills the upper triangle.
+ */
+export const AGREEMENT = {
+  agree: [63, 74, 90] as RGB,
+  disagree: [230, 97, 1] as RGB,
+  nothingToCompare: [196, 200, 207] as RGB,
+};
+
 /** ColorBrewer BrBG (teal below / brown above a ratio pivot). */
 export const RAMP_RATIO: Ramp = [
   [0.0, [1, 102, 94]],
@@ -168,8 +186,8 @@ export const COVERAGE_BINS: ReadonlyArray<{ min: number; label: string; fill: st
   { min: 0, label: "0", fill: "#e1e5ea", ink: "#1f2937" },
   { min: 1, label: "1", fill: "#b6d2ee", ink: "#1f2937" },
   { min: 2, label: "2", fill: "#74a9da", ink: "#1f2937" },
-  { min: 3, label: "3–4", fill: "#2f6fb0", ink: "#ffffff" },
-  { min: 5, label: "5+", fill: "#0b3b70", ink: "#ffffff" },
+  { min: 3, label: "3–4", fill: "#3b78b8", ink: "#ffffff" },
+  { min: 5, label: "5+", fill: "#1c4f8f", ink: "#ffffff" },
 ];
 
 /** Rings over regions: the open region, and the hovered coarse bucket. */

@@ -11,7 +11,15 @@
  * `overview_matrix_metric` in config.yaml.
  */
 
-type RGB = [number, number, number];
+import {
+  RAMP_BREADTH,
+  RAMP_DIRECTION_MUTED,
+  RAMP_DIVERGING,
+  RAMP_RATIO,
+  RAMP_SIGNIFICANCE,
+  rampAt,
+  type RGB,
+} from "@/lib/palette";
 
 export interface ColorScale {
   /** Legend title. */
@@ -41,71 +49,15 @@ export interface ColorScale {
   clusterNoiseFloor?: number;
 }
 
-// ColorBrewer YlOrRd — the significance ramp (red = most significant).
-const YLORRD: Array<[number, RGB]> = [
-  [0.0, [255, 255, 204]],
-  [0.25, [254, 217, 118]],
-  [0.5, [253, 141, 60]],
-  [0.75, [240, 59, 32]],
-  [1.0, [189, 0, 38]],
-];
-
-// Sequential purples — distinct from YlOrRd so an FDR bar reads apart from a p bar.
-const PURPLES: Array<[number, RGB]> = [
-  [0.0, [252, 251, 253]],
-  [0.5, [158, 154, 200]],
-  [1.0, [63, 0, 125]],
-];
-
-// Diverging blue → white → red (direction of a signed effect).
-const BLUE_RED: Array<[number, RGB]> = [
-  [0.0, [5, 48, 97]],
-  [0.5, [247, 247, 247]],
-  [1.0, [103, 0, 31]],
-];
-
-// Diverging teal → white → brown (below / above a ratio pivot).
-const TEAL_BROWN: Array<[number, RGB]> = [
-  [0.0, [1, 102, 94]],
-  [0.5, [245, 245, 245]],
-  [1.0, [140, 81, 10]],
-];
-
-// Sequential greens — the breadth ramp, deliberately not one of the
-// significance ramps above (a readout count is not a p-value).
-const GREENS: Array<[number, RGB]> = [
-  [0.0, [247, 252, 245]],
-  [0.5, [116, 196, 118]],
-  [1.0, [0, 68, 27]],
-];
-
-// ColorBrewer YlGnBu — the collated view's "share of studies" ramp. Calm on
-// purpose (feedback on the first mock-up: "fewer angry colors"), and distinct
-// from every significance ramp above: a share of studies is not a p-value.
-const YLGNBU: Array<[number, RGB]> = [
-  [0.0, [255, 255, 217]],
-  [0.25, [199, 233, 180]],
-  [0.5, [65, 182, 196]],
-  [0.75, [34, 94, 168]],
-  [1.0, [8, 29, 88]],
-];
-
-// Muted diverging blue → grey → red for direction agreement: the inner tones of
-// ColorBrewer RdBu, keeping the site's blue = down / red = up convention without
-// the saturated endpoints.
-const MUTED_BLUE_RED: Array<[number, RGB]> = [
-  [0.0, [67, 147, 195]],
-  [0.5, [238, 238, 238]],
-  [1.0, [214, 96, 77]],
-];
-
+// Ramps live in lib/palette.ts: significance (p, FDR) is Greens everywhere on
+// the site, breadth (counts / shares of studies) is Purples, direction is RdBu.
 export const COLOR_SCALES: Record<string, ColorScale> = {
   neglog_p: {
     label: "−log10(p)",
     kind: "sequential",
     domain: [1, 20],
-    stops: YLORRD,
-    note: "red = more significant",
+    stops: RAMP_SIGNIFICANCE,
+    note: "darker green = more significant",
     clusterNoiseFloor: 1, // p ≥ 0.1
   },
   neglog_q: {
@@ -115,8 +67,8 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     label: "−log10(FDR)",
     kind: "sequential",
     domain: [1, 2],
-    stops: PURPLES,
-    note: "purple = more significant",
+    stops: RAMP_SIGNIFICANCE,
+    note: "darker green = more significant",
     // Binan 2025 clamps non-hits to exactly q = 0.1, so ~94% of its cells sit on
     // this floor. Left in, they made most row pairs agree perfectly on "nothing
     // happened" and swamped the clustering (see matrix-clustering.ts).
@@ -127,7 +79,7 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     kind: "diverging",
     domain: [-5, 5],
     mid: 0,
-    stops: BLUE_RED,
+    stops: RAMP_DIVERGING,
     note: "blue = down, red = up in mutant",
     clusterNoiseFloor: 1, // |signed −log10(p)| ≤ 1 → p ≥ 0.1 in either direction
   },
@@ -136,19 +88,19 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     // back significant for a perturbed gene. Stored as log10(1 + n) because the
     // counts span 1 → ~3000 across datasets (a dense DE screen against a
     // 24-parameter behavior panel), and a linear ramp would leave everything but
-    // the DE screens pinned at the bottom of the bar. Greens, so it reads apart
-    // from the p / FDR bars — it isn't a significance value.
+    // the DE screens pinned at the bottom of the bar. Purples (breadth), so it
+    // reads apart from the green p / FDR bars — it isn't a significance value.
     label: "significant readouts",
     kind: "sequential",
     domain: [0, 3.5],
-    stops: GREENS,
+    stops: RAMP_BREADTH,
     note: "log scale; darker = more readouts affected",
     legendFormat: (v) => {
       const n = Math.round(Math.pow(10, v) - 1);
       return n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
     },
     // A gene with zero significant readouts *was* assayed — the cell is real and
-    // renders as the palest green, not as a gap. But for clustering it is the
+    // renders as the palest purple, not as a gap. But for clustering it is the
     // same "nothing here" every other empty cell says, and the widest-coverage
     // dataset is mostly empty: Binan 2025 summarizes 87 of the 90 genes and 63
     // of those are zero. Left in, the only cell most row pairs share is a
@@ -164,7 +116,7 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     label: "percentage of studies with a significant readout",
     kind: "sequential",
     domain: [0, 1],
-    stops: YLGNBU,
+    stops: RAMP_BREADTH,
     note: "k of the n studies that measured it; faded = only one study did",
     legendFormat: (v) => `${Math.round(v * 100)}%`,
     clusterNoiseFloor: 0, // no study significant
@@ -176,7 +128,7 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     kind: "diverging",
     domain: [-1, 1],
     mid: 0,
-    stops: MUTED_BLUE_RED,
+    stops: RAMP_DIRECTION_MUTED,
     note: "among significant studies; blue = down, red = up",
     legendFormat: (v) => (v < 0 ? "all down" : v > 0 ? "all up" : "mixed"),
   },
@@ -185,7 +137,7 @@ export const COLOR_SCALES: Record<string, ColorScale> = {
     kind: "diverging",
     domain: [0, 2],
     mid: 1,
-    stops: TEAL_BROWN,
+    stops: RAMP_RATIO,
     note: "brown = higher, teal = lower than WT",
     // No clusterNoiseFloor: a ratio at the pivot means "measured, unchanged",
     // which is real evidence — unlike a p-value pinned to its clamp.
@@ -228,27 +180,6 @@ export function isInformativeForClustering(
   return Math.abs(value - pivot) > scale.clusterNoiseFloor;
 }
 
-function lerp(a: number, b: number, t: number): number {
-  return Math.round(a + (b - a) * t);
-}
-
-/** Map t ∈ [0,1] onto a stop list, returning the interpolated `[r,g,b]`. */
-function rampRGB(stops: Array<[number, RGB]>, t: number): RGB {
-  const clamped = Math.min(Math.max(t, 0), 1);
-  let lo = stops[0];
-  let hi = stops[stops.length - 1];
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (clamped >= stops[i][0] && clamped <= stops[i + 1][0]) {
-      lo = stops[i];
-      hi = stops[i + 1];
-      break;
-    }
-  }
-  const span = hi[0] - lo[0] || 1;
-  const local = (clamped - lo[0]) / span;
-  return [0, 1, 2].map((k) => lerp(lo[1][k], hi[1][k], local)) as unknown as RGB;
-}
-
 /** Value → [0,1] ramp coordinate; diverging scales pivot at `mid`. */
 function normalize(
   value: number,
@@ -276,7 +207,7 @@ export function scaleColorRGB(
     scale.kind === "diverging"
       ? scale.mid ?? (domain[0] + domain[1]) / 2
       : undefined;
-  return rampRGB(scale.stops, normalize(value, domain, mid, scale.kind === "diverging"));
+  return rampAt(scale.stops, normalize(value, domain, mid, scale.kind === "diverging"));
 }
 
 export function scaleColor(

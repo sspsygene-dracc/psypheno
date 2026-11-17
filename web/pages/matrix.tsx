@@ -31,6 +31,7 @@ import type {
   CollatedMatrixResponse,
   MatrixMode,
 } from "@/lib/collated-matrix-types";
+import { ERROR_TEXT, LINK, TOGGLE_ON } from "@/lib/palette";
 
 const COLS_PER_DATASET_OPTIONS = [5, 25, 50, 100, 200];
 const READOUT_OPTIONS = [50, 100, 200, 500];
@@ -54,9 +55,9 @@ function ToggleButton({
       disabled={disabled}
       style={{
         padding: "4px 10px",
-        background: active ? "#e5e7eb" : "#ffffff",
-        border: "1px solid #d1d5db",
-        color: disabled ? "#9ca3af" : "#1f2937",
+        background: active ? TOGGLE_ON.background : "#ffffff",
+        border: `1px solid ${active ? TOGGLE_ON.background : "#d1d5db"}`,
+        color: active ? TOGGLE_ON.color : disabled ? "#9ca3af" : "#1f2937",
         borderRadius: 6,
         cursor: disabled ? "default" : "pointer",
         fontSize: 13,
@@ -144,13 +145,13 @@ function AgreementLegend() {
       <span style={{ display: "inline-flex", gap: 12, flexWrap: "wrap" }}>
         {swatch(AGREEMENT_COLORS.agree, "agree")}
         {swatch(AGREEMENT_COLORS.disagree, "disagree")}
-        <span style={{ color: "#9ca3af" }}>among 2+ significant studies</span>
+        <span style={{ color: "#6b7280" }}>among 2+ significant studies</span>
       </span>
       <span style={{ display: "inline-flex", gap: 12, flexWrap: "wrap" }}>
         {swatch(AGREEMENT_NOTHING_TO_COMPARE, "nothing to compare")}
-        <span style={{ color: "#9ca3af" }}>only one study found it significant</span>
+        <span style={{ color: "#6b7280" }}>only one study found it significant</span>
       </span>
-      <span style={{ color: "#9ca3af", fontSize: 11 }}>
+      <span style={{ color: "#6b7280", fontSize: 11 }}>
         a whole tile in one color = no study found it significant
       </span>
     </div>
@@ -185,7 +186,7 @@ function CellKey({ lowerMode }: { lowerMode: LowerTriangleMode }) {
         <span style={{ fontWeight: 600, color: "#374151" }}>Reading a cell</span>
         <span>upper left: how many of the studies found a significant change</span>
         <span>{lowerText}</span>
-        <span style={{ color: "#9ca3af", fontSize: 11 }}>
+        <span style={{ color: "#6b7280", fontSize: 11 }}>
           grey diagonal = never measured; faded = only one study measured it
         </span>
       </span>
@@ -247,7 +248,7 @@ function MetricLegend({
             <span
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              <span style={{ color: "#9ca3af" }}>{lo}</span>
+              <span style={{ color: "#6b7280" }}>{lo}</span>
               <span
                 aria-hidden="true"
                 style={{
@@ -259,10 +260,10 @@ function MetricLegend({
                   background: legendGradientCss(m.id, m.domain),
                 }}
               />
-              <span style={{ color: "#9ca3af" }}>{hi}</span>
+              <span style={{ color: "#6b7280" }}>{hi}</span>
             </span>
             {scale.note && (
-              <span style={{ color: "#9ca3af", fontSize: 11 }}>{scale.note}</span>
+              <span style={{ color: "#6b7280", fontSize: 11 }}>{scale.note}</span>
             )}
           </div>
         );
@@ -305,7 +306,7 @@ function MetricLegend({
                 }}
               />
             </span>
-            <span style={{ color: "#9ca3af", fontSize: 11 }}>
+            <span style={{ color: "#6b7280", fontSize: 11 }}>
               Some sources publish only their significant results; where a readout
               was a hit for another perturbation in the same screen, we infer it was
               measured here too. Click a cell for the basis.
@@ -349,7 +350,7 @@ function MetricLegend({
                 }}
               />
             </span>
-            <span style={{ color: "#9ca3af", fontSize: 11 }}>
+            <span style={{ color: "#6b7280", fontSize: 11 }}>
               This value also appears for this gene in another study, so it is one
               measurement published twice. Click a cell to see which study.
             </span>
@@ -492,7 +493,7 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             with significant measures in both directions counts as having no
             single direction and adds to neither side.{" "}The <strong>Lower triangle:
             Agreement</strong>{" "}switch recolors that triangle by concordance
-            instead: purple where two or more significant studies agree on
+            instead: dark slate where two or more significant studies agree on
             direction, orange where they disagree. Non-significant studies
             don&rsquo;t take part, since the sign of a non-significant effect is
             close to a coin flip. A significant cell with only one significant
@@ -639,7 +640,7 @@ function TablesFilterNote({
           Not in the matrix: {missing.join(", ")}.
         </span>
       )}{" "}
-      <Link href="/matrix" style={{ color: "#1d4ed8", fontWeight: 600 }}>
+      <Link href="/matrix" style={{ color: LINK.color, fontWeight: 600 }}>
         Show all datasets
       </Link>
     </div>
@@ -936,7 +937,7 @@ export default function MatrixPage() {
                 </ToggleButton>
               ))}
               {clusterCols && (
-                <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                <span style={{ fontSize: 12, color: "#6b7280" }}>
                   off while columns are clustered
                 </span>
               )}
@@ -1033,7 +1034,7 @@ export default function MatrixPage() {
           )}
 
           {error && (
-            <div style={{ color: "#dc2626", marginTop: 16 }}>{error}</div>
+            <div style={{ color: ERROR_TEXT, marginTop: 16 }}>{error}</div>
           )}
 
           {!error && data && genes.length === 0 && (
@@ -1068,13 +1069,13 @@ export default function MatrixPage() {
                     </span>
                   )}
                 {hidden.size > 0 && (
-                  <span style={{ color: "#9ca3af" }}>
+                  <span style={{ color: "#6b7280" }}>
                     {" "}
                     &mdash; {hidden.size} dataset{hidden.size === 1 ? "" : "s"} hidden
                   </span>
                 )}
                 {mode === "expanded" && meta?.expandedColumnsTruncated && (
-                  <span style={{ color: "#9ca3af" }}>
+                  <span style={{ color: "#6b7280" }}>
                     {" "}
                     &mdash; top {meta.colsPerDataset} per dataset shown
                   </span>
