@@ -74,8 +74,17 @@ EXPERIMENT_TYPES: tuple[str, ...] = (
     "other",
 )
 
-# Model systems that do not need anatomy terms (non-experimental resources).
-ANATOMY_OPTIONAL_MODEL_SYSTEMS: frozenset[str] = frozenset({"curated"})
+# Model systems that do not need anatomy terms: non-experimental resources, and
+# immortalized cell lines (HEK293T etc. are not tissue — name the line in
+# `stage_detail` instead of tagging the organ it was derived from).
+ANATOMY_OPTIONAL_MODEL_SYSTEMS: frozenset[str] = frozenset({"curated", "cell_line"})
+
+# Display labels that replace the UBERON label in the stored {id, label} terms
+# (chips). Mirrored by ANATOMY_LABEL_OVERRIDES in web/lib/dataset-tags.ts.
+ANATOMY_LABEL_OVERRIDES: dict[str, str] = {
+    # Plain "brain" reads oddly on a site where everything is brain data.
+    "UBERON:0000955": "Whole brain",
+}
 
 # Keys accepted at both dataset and table level.
 TAG_KEYS: tuple[str, ...] = (
@@ -95,8 +104,8 @@ TABLE_ONLY_TAG_KEYS: tuple[str, ...] = ("anatomy_column",)
 # with cerebral cortex because UBERON files a lobe under the cerebral hemisphere
 # rather than the cortex, yet datasets tag lobes for cortical samples. Tables
 # whose terms are not all in the brain go to `whole_organism` when they are
-# tagged with the whole organism, otherwise to `other_tissue` (e.g. HEK293T →
-# kidney); tables without anatomy (curated resources) get no region.
+# tagged with the whole organism, otherwise they get no region — as do tables
+# without anatomy (curated resources, cell lines).
 COARSE_REGIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "cerebral_cortex",
@@ -115,7 +124,6 @@ WHOLE_ORGANISM = "UBERON:0000468"
 COARSE_REGION_KEYS: tuple[str, ...] = (
     *(key for key, _ in COARSE_REGIONS),
     "whole_organism",
-    "other_tissue",
 )
 
 _DEFAULT_UBERON_TSV = (
@@ -174,7 +182,10 @@ class DatasetTags:
     def anatomy_terms(self) -> list[dict[str, str]]:
         """[{id, label}] in config order — the DB/API representation."""
         terms = uberon_terms()
-        return [{"id": t, "label": terms[t].label} for t in self.anatomy]
+        return [
+            {"id": t, "label": ANATOMY_LABEL_OVERRIDES.get(t, terms[t].label)}
+            for t in self.anatomy
+        ]
 
     def anatomy_closure(self) -> list[str]:
         """Every tagged term plus all its is_a/part_of ancestors, sorted.
@@ -202,7 +213,7 @@ class DatasetTags:
                 return key
         if WHOLE_ORGANISM in self.anatomy:
             return "whole_organism"
-        return "other_tissue"
+        return None
 
 
 def validate_tag_values(raw: dict[str, Any], *, context: str) -> dict[str, Any]:
@@ -320,7 +331,10 @@ def resolve_table_tags(
         not tags.anatomy
         and tags.model_system not in ANATOMY_OPTIONAL_MODEL_SYSTEMS
     ):
-        problems.append("no anatomy terms (required unless model_system is curated)")
+        problems.append(
+            "no anatomy terms (required unless model_system is "
+            f"{' or '.join(sorted(ANATOMY_OPTIONAL_MODEL_SYSTEMS))})"
+        )
     if tags.experiment_type is None:
         problems.append(
             f"no experiment_type (one of {', '.join(EXPERIMENT_TYPES)})"

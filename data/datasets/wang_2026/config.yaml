@@ -87,10 +87,9 @@ deployTo:
   - prod
 model_system: cell_line
 experiment_type: overexpression
-anatomy:
-  - UBERON:0002113  # kidney
+# No anatomy: HEK293T is a cell line, not tissue. stage_detail names the line.
 stage: in_vitro
-stage_detail: "HEK293T cells"
+stage_detail: "HEK293T (non-neural)"
 tables:
   - table: wang_2026_ppi
     changelog:

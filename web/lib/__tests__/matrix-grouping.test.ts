@@ -75,7 +75,7 @@ const columns: MatrixColumn[] = [
 const groups: Record<string, MatrixDatasetGroups> = {
   cui: { modelSystem: "ineurons", region: "forebrain", species: ["human"], experimentType: "crispr_ko" },
   shi: { modelSystem: "in_vivo", region: "brain", species: ["mouse"], experimentType: "crispr_ko" },
-  wang: { modelSystem: "cell_line", region: "other_tissue", species: ["human"], experimentType: "overexpression" },
+  wang: { modelSystem: "cell_line", region: null, species: ["human"], experimentType: "overexpression" },
   solo: { modelSystem: "ineurons", region: "cerebral_cortex", species: ["human"], experimentType: "crispri" },
   fish: { modelSystem: "in_vivo", region: "whole_organism", species: ["zebrafish"], experimentType: "crispr_ko" },
 };
@@ -135,7 +135,7 @@ describe("groupColumns", () => {
       "forebrain",
       "brain",
       "whole_organism",
-      "other_tissue",
+      "__none__",
     ]);
     expect(bands[0].label).toBe("Cerebral cortex");
   });

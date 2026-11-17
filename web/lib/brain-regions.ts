@@ -15,8 +15,7 @@
 // spread over the finer regions: it goes into a coarse bucket ("Cerebral
 // cortex, no lobe given", "Whole brain", ...) that the page shows next to the
 // drawing, and the regions the bucket spans list it as "broader". Tags with
-// no brain term at all (whole organism, a kidney cell line) go into "Not
-// region-specific".
+// no brain term at all (whole organism) go into "Not region-specific".
 //
 // This is the region → UBERON map, kept apart from the geometry: the drawings
 // (vendored SVGs in web/public/regions/, registered in lib/region-drawings.ts)
@@ -174,7 +173,7 @@ const NOT_REGION_SPECIFIC: RegionDef = {
   uberon: WHOLE_ORGANISM,
   match: [],
   note:
-    "Anatomy without any brain term: whole-animal readouts (e.g. zebrafish larval behaviour) and non-brain tissue or cell lines (e.g. HEK293T, kidney). These can't be placed on a brain region.",
+    "Anatomy without any brain term: whole-animal readouts (e.g. zebrafish larval behaviour) and any non-brain tissue. These can't be placed on a brain region.",
 };
 
 const HUMAN_REGIONS: RegionDef[] = [

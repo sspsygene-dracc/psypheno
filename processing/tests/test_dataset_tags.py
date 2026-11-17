@@ -116,6 +116,11 @@ def test_anatomy_closure_and_labels() -> None:
     assert KIDNEY not in closure
 
 
+def test_brain_displays_as_whole_brain() -> None:
+    tags = DatasetTags(model_system="in_vivo", anatomy=(BRAIN,))
+    assert tags.anatomy_terms() == [{"id": BRAIN, "label": "Whole brain"}]
+
+
 # ── Always-errors: unknown values ────────────────────────────────────────
 
 
@@ -189,6 +194,12 @@ def test_curated_needs_no_anatomy(tmp_path: Path, require_tags: None) -> None:
     cfg = _load(tmp_path, model_system="curated", experiment_type="curated")
     assert cfg.tables[0].tags.model_system == "curated"
     assert cfg.tables[0].tags.anatomy == ()
+
+
+def test_cell_line_needs_no_anatomy(tmp_path: Path, require_tags: None) -> None:
+    cfg = _load(tmp_path, model_system="cell_line", experiment_type="overexpression")
+    assert cfg.tables[0].tags.anatomy == ()
+    assert cfg.tables[0].tags.coarse_region() is None
 
 
 def test_table_override_to_curated_drops_anatomy_requirement(
@@ -385,7 +396,8 @@ WHOLE_ORGANISM = "UBERON:0000468"
         ((BRAIN,), "brain"),
         ((NEOCORTEX, BRAIN), "brain"),
         ((WHOLE_ORGANISM,), "whole_organism"),
-        ((KIDNEY,), "other_tissue"),
+        # Outside the brain and not the whole organism: no region.
+        ((KIDNEY,), None),
         ((), None),
     ],
 )

@@ -87,7 +87,7 @@ const VOCABULARIES: Record<Exclude<ColumnGroupKey, "modality">, Vocabulary> = {
     labels: ANATOMY_REGION_LABELS,
     descriptions: ANATOMY_REGION_DESCRIPTIONS,
     noneLabel: "No anatomy",
-    noneTooltip: "Datasets without anatomy terms (curated resources)",
+    noneTooltip: "Datasets without anatomy terms (curated resources, cell lines)",
   },
   species: {
     labels: SPECIES_LABELS,

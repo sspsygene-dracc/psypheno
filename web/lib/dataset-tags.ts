@@ -103,7 +103,6 @@ export const ANATOMY_REGION_LABELS: Record<string, string> = {
   forebrain: "Other forebrain",
   brain: "Brain (whole or unspecified)",
   whole_organism: "Whole organism",
-  other_tissue: "Non-brain tissue",
 };
 
 export const ANATOMY_REGION_DESCRIPTIONS: Record<string, string> = {
@@ -111,7 +110,6 @@ export const ANATOMY_REGION_DESCRIPTIONS: Record<string, string> = {
   forebrain: "All terms in the forebrain, not all in the cortex (e.g. telencephalon)",
   brain: "All terms in the brain, not all in the forebrain — incl. whole brain",
   whole_organism: "Whole animal (e.g. zebrafish larva behavior)",
-  other_tissue: "Tissue or cell line outside the brain (e.g. HEK293T: kidney)",
 };
 
 /** Organism keys (globals.yaml `organismTypes`), in display order. */
@@ -173,6 +171,15 @@ export function tagSelectSql(hasColumn: (column: string) => boolean): string {
   return TAG_COLUMNS.map((c) => (hasColumn(c) ? c : `NULL AS ${c}`)).join(", ");
 }
 
+/**
+ * Display labels that replace the stored UBERON label — mirrors
+ * ANATOMY_LABEL_OVERRIDES in dataset_tags.py, applied here too so a DB built
+ * before the override reads the same.
+ */
+export const ANATOMY_LABEL_OVERRIDES: Readonly<Record<string, string>> = {
+  "UBERON:0000955": "Whole brain",
+};
+
 export function parseAnatomy(raw: string | null | undefined): AnatomyTerm[] {
   if (!raw) return [];
   try {
@@ -183,7 +190,7 @@ export function parseAnatomy(raw: string | null | undefined): AnatomyTerm[] {
         (t): t is AnatomyTerm =>
           t && typeof t.id === "string" && typeof t.label === "string",
       )
-      .map((t) => ({ id: t.id, label: t.label }));
+      .map((t) => ({ id: t.id, label: ANATOMY_LABEL_OVERRIDES[t.id] ?? t.label }));
   } catch {
     return [];
   }
@@ -238,7 +245,7 @@ export const REGION_GROUPS: ReadonlyArray<{
   depth: number;
   exact?: boolean;
 }> = [
-  { id: "UBERON:0000955", label: "Brain", depth: 0 },
+  { id: "UBERON:0000955", label: "Any brain region", depth: 0 },
   { id: "UBERON:0001890", label: "Forebrain", depth: 1 },
   { id: "UBERON:0001893", label: "Telencephalon", depth: 2 },
   { id: "UBERON:0000956", label: "Cerebral cortex", depth: 3 },
@@ -261,7 +268,6 @@ export const REGION_GROUPS: ReadonlyArray<{
   { id: "UBERON:0002028", label: "Hindbrain", depth: 1 },
   { id: "UBERON:0002037", label: "Cerebellum", depth: 2 },
   { id: "UBERON:0000468", label: "Whole animal", depth: 0, exact: true },
-  { id: "UBERON:0002113", label: "Kidney (cell line)", depth: 0, exact: true },
 ];
 
 /** Region filter value for a REGION_GROUPS entry. */

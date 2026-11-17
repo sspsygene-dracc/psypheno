@@ -269,7 +269,7 @@ deployTo:
 # (see "Dataset tags" below for the allowed values)
 # ============================================================================
 model_system: ineurons              # exactly one value
-anatomy:                            # UBERON ids; omit only for `curated`
+anatomy:                            # UBERON ids; omit only for `curated` / `cell_line`
   - UBERON:0000955                  #   brain
 stage: in_vitro                     # optional
 stage_detail: "NGN2 day 28"         # optional short free text
@@ -1133,7 +1133,7 @@ experiment that produced them. They show as chips on /full-datasets and
 deployTo:
   - dev
 model_system: ineurons            # required, exactly one value (list below)
-anatomy:                          # UBERON CURIEs; required unless model_system: curated
+anatomy:                          # UBERON CURIEs; required unless model_system: curated / cell_line
   - UBERON:0000955                # brain
 stage: in_vitro                   # optional, one value (list below)
 stage_detail: "NGN2 induction, day 28"   # optional short free text
@@ -1150,7 +1150,7 @@ experiment_type: crispri          # required, exactly one value (list below)
 | `primary_culture` | primary cells cultured from tissue (e.g. fetal cortical radial glia) |
 | `ineurons` | iPSC/ESC-derived or directly induced **neurons** — NGN2 iNeurons, iPSC-derived glutamatergic / GABAergic neurons. Prefer this for any stem-cell-derived neuronal culture. |
 | `ipsc_other` | other stem-cell-derived 2D cultures that are not neurons (iPSC astrocytes, NPCs) |
-| `cell_line` | immortalized lines (HEK293T, ...) |
+| `cell_line` | immortalized lines (HEK293T, ...). No `anatomy`; name the line in `stage_detail`, e.g. `"HEK293T (non-neural)"` |
 | `curated` | non-experimental resources: databases, human genetics / association studies, curated gene lists (ClinVar, SFARI, MGI, ...) |
 
 **`anatomy`** — a list of UBERON ids. Choose the most specific term the source
@@ -1159,7 +1159,8 @@ cells get their *intended regional identity* (cortical organoid →
 `UBERON:0000956` cerebral cortex or `UBERON:0001950` neocortex; NGN2 iNeurons
 with no regional identity → `UBERON:0000955` brain). Whole brain →
 `UBERON:0000955`; whole larva → `UBERON:0000468` multicellular organism;
-HEK293T → `UBERON:0002113` kidney. Curated datasets omit `anatomy`. Look ids up
+Curated datasets and cell lines omit `anatomy` (a cell line is not tissue —
+put the line in `stage_detail` instead). Look ids up
 in [`data/ontology/uberon_terms.tsv`](../data/ontology/uberon_terms.tsv) (or
 EBI OLS) — never guess one. Note `UBERON:0001851` "cortex" is the generic organ
 cortex (kidney, adrenal, ...), *not* the cerebral cortex. The region filter
@@ -1204,8 +1205,8 @@ say which region they come from (e.g. a per-Brodmann-area table); the table's
 **Validation.** An unknown `model_system` / `stage` / `experiment_type` value,
 or an `anatomy` id not in the vendored UBERON list, fails `load-db` naming your
 file. An `anatomy_column` that isn't a column of the table fails too. A missing
-`model_system` or `experiment_type`, or missing `anatomy` on a non-curated
-dataset, is an error as well. If a real UBERON term is missing from the
+`model_system` or `experiment_type`, or missing `anatomy` on a dataset that
+is not `curated` or `cell_line`, is an error as well. If a real UBERON term is missing from the
 vendored list, ask a developer to add it (`data/ontology/makeDoc.txt`) rather
 than editing the TSV by hand.
 

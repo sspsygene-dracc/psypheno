@@ -24,6 +24,17 @@ describe("dataset tags", () => {
     expect(matchesRegion(tags.anatomy_closure, "UBERON:0002113")).toBe(false);
   });
 
+  it("labels the brain term as whole brain, even from an older DB", () => {
+    const tags = parseTags({
+      model_system: "in_vivo",
+      anatomy: JSON.stringify([{ id: "UBERON:0000955", label: "brain" }]),
+      anatomy_closure: null,
+      stage: null,
+      stage_detail: null,
+    });
+    expect(tags.anatomy).toEqual([{ id: "UBERON:0000955", label: "Whole brain" }]);
+  });
+
   it("treats malformed / missing JSON as untagged", () => {
     const tags = parseTags({
       model_system: null,
@@ -72,6 +83,7 @@ describe("matchesRegionFilter", () => {
   });
 
   it("only lists regions in the vendored hierarchy order", () => {
-    expect(REGION_GROUPS[0].label).toBe("Brain");
+    expect(REGION_GROUPS[0].label).toBe("Any brain region");
+    expect(REGION_GROUPS.some((g) => g.id === "UBERON:0002113")).toBe(false);
   });
 });
