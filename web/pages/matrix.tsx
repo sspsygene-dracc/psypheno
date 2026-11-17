@@ -434,13 +434,17 @@ function MatrixMethods({ data }: { data: CollatedMatrixResponse }) {
             &mdash; with the <em>Columns per dataset</em>{" "}control.
             &ldquo;Top&rdquo; is by cross-perturbation <strong>convergence</strong>:
             a target-gene column qualifies only when it is significant (FDR &lt; 0.05)
-            for at least {m.minSigGroupsFloor}{" "}distinct perturbed
-            genes, then qualifying columns are ranked by how many perturbed genes
-            they are significant in (most convergent first), ties broken by the
-            strongest p-value, and the top N per dataset are kept. Phenotype columns
-            aren&rsquo;t filtered this way &mdash; every distinct phenotype is shown.{" "}A
-            study that perturbed a single gene can never meet the
-            two-perturbation bar, so it is shown as a compact block instead: one
+            for at least {m.minSigGroupsFloor}{" "}distinct perturbations (a gene
+            perturbed in two genotypes counts as two), then qualifying columns are
+            ranked by how many perturbations they are significant in (most
+            convergent first), ties broken by the strongest p-value, and the top N
+            per dataset are kept. Only perturbations of genes shown as rows here
+            (the SSPsyGene consortium genes) count toward this tally. The
+            significance of a single readout does not decide whether it becomes a
+            column: one extremely significant response to one perturbation is not
+            enough. Phenotype columns aren&rsquo;t filtered this way &mdash; every
+            distinct phenotype is shown.{" "}Studies that perturbed a single gene
+            under several conditions are shown as a compact block instead: one
             column per condition (e.g. genotype &times; time point), whose cell
             counts the readouts significant in that condition.
           </dd>
