@@ -1,3 +1,4 @@
+import { REGIONS_ENABLED } from "@/lib/features";
 import { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { getDb, tableExists } from "@/lib/db";
@@ -57,6 +58,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<RegionGenesResponse | { error: string }>,
 ) {
+  if (!REGIONS_ENABLED) return res.status(404).json({ error: "Not found" });
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }

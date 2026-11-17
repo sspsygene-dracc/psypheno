@@ -1,3 +1,5 @@
+import type { GetServerSideProps } from "next";
+import { REGIONS_ENABLED } from "@/lib/features";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -114,6 +116,10 @@ function urlSuggestion(symbol: string | null): SearchSuggestion | null {
 }
 
 const str = (v: unknown) => (typeof v === "string" && v !== "" ? v : null);
+
+// Prototype page: 404 unless the build enables it (lib/features.ts).
+export const getServerSideProps: GetServerSideProps = async () =>
+  REGIONS_ENABLED ? { props: {} } : { notFound: true };
 
 export default function RegionsPage() {
   const router = useRouter();

@@ -174,6 +174,13 @@ the database in read-only mode.
 
 Visit `http://localhost:3000` after starting the dev server.
 
+**Brain-region navigator (`/regions`) is off by default.** It is a discussion
+prototype: the page and its APIs (`/api/region-genes`, `/api/gene-regions`)
+return 404, and the header link is hidden, unless the build sets
+`NEXT_PUBLIC_SSPSYGENE_REGIONS=1` (see `web/lib/features.ts`). The value is
+fixed at build time, so set it before `npm run dev` / `npm run build`. Deployed
+instances don't set it.
+
 ### Database auto-reload
 
 The web process auto-detects when the SQLite database has been rebuilt. On

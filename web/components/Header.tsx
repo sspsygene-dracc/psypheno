@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect, useRef } from "react";
 import { FEEDBACK_MAILTO } from "@/lib/contact";
+import { REGIONS_ENABLED } from "@/lib/features";
 
 // Top-level desktop links: only the most-used pages get a slot of their own.
 const PRIMARY_LINKS = [
@@ -9,7 +10,7 @@ const PRIMARY_LINKS = [
   { href: "/full-datasets", label: "Full datasets" },
   { href: "/publications", label: "Publications" },
   { href: "/matrix", label: "Overview matrix" },
-  { href: "/regions", label: "Brain regions" },
+  ...(REGIONS_ENABLED ? [{ href: "/regions", label: "Brain regions" }] : []),
 ];
 
 // Everything else is reachable via the "Other" dropdown on desktop, and
