@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties, type SyntheticEvent } from "react";
 import {
   EXPERIMENT_TYPE_DESCRIPTIONS,
   experimentTypeLabel,
@@ -24,6 +24,7 @@ const PALETTE = {
 /**
  * Model system, anatomy (UBERON region) and stage tags as small chips. Renders
  * nothing for an untagged dataset. `compact` shrinks them for list rows.
+ * Regions past `maxRegions` collapse into a "+N more" chip that toggles them.
  */
 export default function DatasetTagChips({
   tags,
@@ -45,13 +46,22 @@ export default function DatasetTagChips({
     stage_detail: tags.stage_detail ?? null,
   });
   const experiment = tags.experiment_type ?? null;
+  const [expanded, setExpanded] = useState(false);
   if (systems.length === 0 && anatomy.length === 0 && !stage && !experiment) return null;
 
   const size: CSSProperties = compact
     ? { fontSize: 11, padding: "0 7px" }
     : { fontSize: 12, padding: "1px 9px" };
-  const shown = anatomy.slice(0, maxRegions);
-  const hidden = anatomy.slice(maxRegions);
+  const overflow = anatomy.length - maxRegions;
+  const shown = expanded || overflow <= 0 ? anatomy : anatomy.slice(0, maxRegions);
+  // The chips can sit inside a clickable row (itself a <button>), so the
+  // toggle is a role="button" span rather than a nested <button>, and it keeps
+  // its clicks (and mousedowns) from reaching the row.
+  const toggle = (e: SyntheticEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpanded((v) => !v);
+  };
 
   return (
     <span
@@ -95,12 +105,33 @@ export default function DatasetTagChips({
           {t.label}
         </span>
       ))}
-      {hidden.length > 0 && (
+      {overflow > 0 && (
         <span
-          title={hidden.map((t) => `${t.label} (${t.id})`).join("\n")}
-          style={{ ...chipBase, ...size, ...PALETTE.region }}
+          role="button"
+          tabIndex={0}
+          aria-expanded={expanded}
+          title={expanded ? "Show fewer regions" : `Show all ${anatomy.length} regions`}
+          // A row can act on mousedown (the /full-datasets picker does, to beat
+          // the search box's blur): keep that from firing, and keep focus put.
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onClick={toggle}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") toggle(e);
+          }}
+          style={{
+            ...chipBase,
+            ...size,
+            ...PALETTE.region,
+            cursor: "pointer",
+            fontWeight: 600,
+            textDecoration: "underline",
+            textUnderlineOffset: 2,
+          }}
         >
-          +{hidden.length} more
+          {expanded ? "Show less" : `+${overflow} more`}
         </span>
       )}
       {stage && (
