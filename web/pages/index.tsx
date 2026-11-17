@@ -556,15 +556,7 @@ export default function Home() {
                 both fields to find consortium data on a specific
                 perturbation→readout pair — e.g. &ldquo;what happens to{" "}
                 <em>CNR1</em> when <em>FOXG1</em>{" "}
-                is knocked down?&rdquo;. Use the{" "}
-                <a
-                  href="/most-significant"
-                  style={{ color: "#2563eb", textDecoration: "none" }}
-                >
-                  cross-study significance ranking
-                </a>{" "}
-                to see which genes are most consistently implicated across the
-                whole consortium. You can also{" "}
+                is knocked down?&rdquo;. You can also{" "}
                 <a
                   href="/full-datasets"
                   style={{ color: "#2563eb", textDecoration: "none" }}
@@ -585,24 +577,7 @@ export default function Home() {
                 source paper&apos;s analysis and a multiple-testing-corrected
                 significance column (typically Benjamini–Hochberg FDR-adjusted)
                 — hover any column header to see the exact statistical method
-                and correction used. The{" "}
-                <a
-                  href="/most-significant"
-                  style={{ color: "#2563eb", textDecoration: "none" }}
-                >
-                  cross-study significance ranking
-                </a>
-                , by contrast, combines <strong>unadjusted</strong>{" "}
-                per-study p-values, so its combined values can be far smaller
-                than any
-                single study&apos;s adjusted p-value (see{" "}
-                <a
-                  href="/methods"
-                  style={{ color: "#2563eb", textDecoration: "none" }}
-                >
-                  methods
-                </a>{" "}
-                for details).
+                and correction used.
               </p>
             </div>
           )}
