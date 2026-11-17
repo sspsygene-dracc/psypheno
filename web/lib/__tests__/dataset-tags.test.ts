@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  datasetOrganisms,
+  sortSpecies,
   matchesRegion,
   matchesRegionFilter,
   REGION_GROUPS,
@@ -85,5 +87,12 @@ describe("matchesRegionFilter", () => {
   it("only lists regions in the vendored hierarchy order", () => {
     expect(REGION_GROUPS[0].label).toBe("Any brain region");
     expect(REGION_GROUPS.some((g) => g.id === "UBERON:0002113")).toBe(false);
+  });
+
+  it("takes species from organism_key, falling back to gene_species", () => {
+    expect(datasetOrganisms({ organism_key: ["zebrafish"], gene_species: "human" })).toEqual(["zebrafish"]);
+    expect(datasetOrganisms({ organism_key: [], gene_species: "human" })).toEqual(["human"]);
+    expect(datasetOrganisms({ organism_key: null, gene_species: "mouse" })).toEqual(["mouse"]);
+    expect(sortSpecies(["zebrafish", "rat", "human", "zebrafish"])).toEqual(["human", "zebrafish", "rat"]);
   });
 });

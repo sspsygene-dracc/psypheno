@@ -11,6 +11,7 @@ import type { DatasetLink } from "@/lib/links";
 import DestinationBadge from "@/components/DestinationBadge";
 import DatasetTagChips from "@/components/DatasetTagChips";
 import {
+  datasetOrganisms,
   EXPERIMENT_TYPE_LABELS,
   experimentTypeLabel,
   MODEL_SYSTEM_LABELS,
@@ -19,6 +20,8 @@ import {
   REGION_GROUPS,
   regionFilterValue,
   modelSystemLabel,
+  sortSpecies,
+  SPECIES_LABELS,
 } from "@/lib/dataset-tags";
 
 type DatasetData = {
@@ -694,7 +697,7 @@ const NO_TAG_FILTERS: TagFilters = {
 };
 
 function datasetMatchesFilters(d: Dataset, f: TagFilters): boolean {
-  if (f.species && d.gene_species !== f.species) return false;
+  if (f.species && !datasetOrganisms(d).includes(f.species)) return false;
   if (f.modelSystem && d.model_system !== f.modelSystem) return false;
   if (f.experimentType && d.experiment_type !== f.experimentType) return false;
   // A region matches the term itself or any subregion (ancestor closure).
@@ -726,12 +729,10 @@ function DatasetFilters({
       .length;
 
   const speciesOptions: FilterOption[] = useMemo(() => {
-    const keys = Array.from(new Set(datasets.map((d) => d.gene_species)))
-      .filter(Boolean)
-      .sort();
+    const keys = sortSpecies(datasets.flatMap(datasetOrganisms));
     return keys.map((k) => ({
       value: k,
-      label: capitalize(k),
+      label: SPECIES_LABELS[k] ?? capitalize(k),
       count: countWith({ species: k }),
     }));
   }, [datasets, filters]);

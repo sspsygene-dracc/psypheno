@@ -119,6 +119,30 @@ export const SPECIES_LABELS: Record<string, string> = {
   zebrafish: "Zebrafish",
 };
 
+/**
+ * The organism(s) a table's experiment was done in: its organism_key list, or
+ * the gene species when that is empty. Not gene_species alone — zebrafish
+ * screens key their genes by human ortholog, so their gene_species is human.
+ */
+export function datasetOrganisms(d: {
+  organism_key?: readonly string[] | null;
+  gene_species?: string | null;
+}): string[] {
+  const keys = d.organism_key ?? [];
+  if (keys.length > 0) return [...keys];
+  return d.gene_species ? [d.gene_species] : [];
+}
+
+/** Organism keys in SPECIES_LABELS order, unknown keys after, alphabetically. */
+export function sortSpecies(keys: Iterable<string>): string[] {
+  const order = Object.keys(SPECIES_LABELS);
+  const rank = (s: string) => {
+    const i = order.indexOf(s);
+    return i < 0 ? order.length : i;
+  };
+  return [...new Set(keys)].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
+
 export function modelSystemLabel(key: string): string {
   return MODEL_SYSTEM_LABELS[key] ?? key;
 }
