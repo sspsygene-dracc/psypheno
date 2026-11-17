@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect, useRef } from "react";
+import { FEEDBACK_MAILTO } from "@/lib/contact";
 
 // Top-level desktop links: only the most-used pages get a slot of their own.
 const PRIMARY_LINKS = [
@@ -226,6 +227,9 @@ export default function Header() {
               </div>
             )}
           </div>
+          <a href={FEEDBACK_MAILTO} style={linkStyle(false)}>
+            Feedback
+          </a>
         </nav>
 
         {/* Mobile hamburger button */}
@@ -290,6 +294,9 @@ export default function Header() {
                   {label}
                 </Link>
               ))}
+              <a href={FEEDBACK_MAILTO} style={mobileLinkStyle("")}>
+                Feedback
+              </a>
             </nav>
           )}
         </div>

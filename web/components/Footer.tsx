@@ -1,3 +1,5 @@
+import { FEEDBACK_EMAIL, FEEDBACK_MAILTO } from "@/lib/contact";
+
 export default function Footer() {
   return (
     <footer
@@ -11,9 +13,14 @@ export default function Footer() {
       }}
     >
       <p style={{ margin: 0, fontSize: 14 }}>
+        Questions, corrections or feedback:{" "}
+        <a href={FEEDBACK_MAILTO} style={{ color: "#2563eb" }}>
+          {FEEDBACK_EMAIL}
+        </a>
+      </p>
+      <p style={{ margin: "6px 0 0", fontSize: 14 }}>
         © {new Date().getFullYear()} The SSPsyGene Project
       </p>
     </footer>
   );
 }
-
