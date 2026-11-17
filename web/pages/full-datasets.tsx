@@ -180,34 +180,57 @@ export default function FullDatasets() {
   }, [selectedDataset]);
 
   useEffect(() => {
+    // Switching datasets supersedes any in-flight page/sort/filter fetch and
+    // pending filter debounce for the previous dataset.
+    pageAbort.current?.abort();
+    pageAbort.current = null;
+    setLoadingPage(false);
+    if (filterDebounce.current) {
+      clearTimeout(filterDebounce.current);
+      filterDebounce.current = null;
+    }
     if (!selectedDataset) {
       setDatasetData(null);
+      setLoadingData(false);
       return;
     }
 
+    // Ignore this response if the user has picked another dataset meanwhile,
+    // so a slow earlier dataset can't overwrite the newer one's rows or sort.
+    const controller = new AbortController();
+    let cancelled = false;
     const fetchDatasetData = async () => {
       setLoadingData(true);
+      setError(null);
       try {
         const res = await fetch(
-          `/api/dataset-data?tableName=${encodeURIComponent(selectedDataset)}`
+          `/api/dataset-data?tableName=${encodeURIComponent(selectedDataset)}`,
+          { signal: controller.signal },
         );
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const data = await res.json();
+        if (cancelled) return;
         setDatasetData(data);
         adoptEffectiveSort(data);
       } catch (e: any) {
+        if (cancelled) return;
         setError(e?.message || "Failed to load dataset data");
       } finally {
-        setLoadingData(false);
+        if (!cancelled) setLoadingData(false);
       }
     };
     fetchDatasetData().then(() => {
+      if (cancelled) return;
       requestAnimationFrame(() => {
         document
           .getElementById("dataset-table-top")
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [selectedDataset]);
 
 
@@ -249,18 +272,21 @@ export default function FullDatasets() {
     const controller = new AbortController();
     pageAbort.current = controller;
     setLoadingPage(true);
+    setError(null);
     try {
       const url = buildFetchUrl(page, overrideSortBy, overrideSortMode, overrideFilters);
       const res = await fetch(url, { signal: controller.signal });
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const data = await res.json();
+      if (controller.signal.aborted) return;
       setDatasetData(data);
       adoptEffectiveSort(data);
     } catch (e: any) {
-      if (e.name === "AbortError") return;
+      if (controller.signal.aborted) return;
       setError(e?.message || "Failed to load page");
     } finally {
-      setLoadingPage(false);
+      // An aborted fetch's replacement is still in flight; leave the flag on.
+      if (pageAbort.current === controller) setLoadingPage(false);
     }
   };
 
@@ -414,7 +440,9 @@ export default function FullDatasets() {
             <div style={{ color: "#dc2626", marginTop: 16 }}>{error}</div>
           )}
 
-          {!loading && !error && (
+          {/* Gate on the dataset list, not on `error`: a failed table fetch
+              must leave the picker up so another dataset can be chosen. */}
+          {!loading && datasets.length > 0 && (
             <DatasetFilters
               datasets={datasets}
               filters={tagFilters}
@@ -423,7 +451,7 @@ export default function FullDatasets() {
             />
           )}
 
-          {!loading && !error && (
+          {!loading && datasets.length > 0 && (
             <DatasetPicker
               datasets={filteredDatasets}
               selectedTableName={selectedDataset}

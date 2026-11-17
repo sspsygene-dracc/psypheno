@@ -675,6 +675,7 @@ export default function MatrixPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     fetch(
       `/api/collated-matrix?colsPerDataset=${colsPerDataset}&mode=${mode}` +
         `&readouts=${readouts}`

@@ -230,8 +230,15 @@ export default function Home() {
   }, [perturbed, target, restriction, router.isReady]);
 
   useEffect(() => {
+    // A newer pair (or restriction) supersedes this request: abort it and
+    // ignore whatever it returns, so a slow earlier response can neither
+    // overwrite pairData nor clear the newer request's loading flag.
+    const controller = new AbortController();
+    let cancelled = false;
     const fetchPair = async () => {
       if (!perturbed && !target) {
+        setLoading(false);
+        setError(null);
         setPairData([]);
         setAvailableAssays([]);
         setAvailableConditions([]);
@@ -244,6 +251,7 @@ export default function Home() {
       try {
         const res = await fetch("/api/gene-pair-data", {
           method: "POST",
+          signal: controller.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             perturbedCentralGeneId: perturbed?.centralGeneId || null,
@@ -255,6 +263,7 @@ export default function Home() {
         });
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const payload = await res.json();
+        if (cancelled) return;
         const results = Array.isArray(payload.results) ? payload.results : [];
         setPairData(results);
         setAvailableAssays(
@@ -275,12 +284,17 @@ export default function Home() {
         if (payload.organismTypeLabels)
           setOrganismTypeLabels(payload.organismTypeLabels);
       } catch (e: any) {
+        if (cancelled) return;
         setError(e?.message || "Failed to load data");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchPair();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [perturbed, target, restriction]);
 
   const showResults = perturbed != null || target != null;
