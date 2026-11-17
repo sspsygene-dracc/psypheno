@@ -38,7 +38,7 @@ stage_detail: "GW16–22 donor tissue, differentiation day 7"
 tables:
   - table: ding_2026_deg_human
     shortLabel: ding_2026_deg_human
-    mediumLabel: "Ding 2026 - 44-TF CRISPRi DEGs in Human Cortical Organoid RG Lineage"
+    mediumLabel: "Ding 2026 - 44-TF CRISPRi DEGs in Primary Fetal Cortical RG Lineage Culture"
     longLabel: "Differentially expressed genes from a single-cell CRISPRi screen of 44 transcription factors in primary human cortical radial-glia cultures (Ding et al. 2026)"
     description: >
       Per-gene DEG list from the day-7 differentiation timepoint of a
@@ -64,7 +64,7 @@ tables:
     categories:
       - CRISPRi
       - Perturb-seq
-      - cortical organoid
+      - primary fetal culture
       - radial glia lineage
     links:
       - url: https://www.nature.com/articles/s41586-025-09997-7
@@ -99,7 +99,7 @@ tables:
 
   - table: ding_2026_deg_arx_in_lmo1ric3
     shortLabel: ding_2026_arx_in_lmo1ric3
-    mediumLabel: "Ding 2026 - ARX-KD DEGs in IN_LMO1/RIC3 Ectopic Cluster (Cortical Organoid)"
+    mediumLabel: "Ding 2026 - ARX-KD DEGs in IN_LMO1/RIC3 Ectopic Cluster (Primary Fetal Culture)"
     longLabel: "Differentially expressed genes in the IN_LMO1/RIC3 ectopic interneuron cluster induced by ARX CRISPRi knockdown (Ding et al. 2026)"
     description: >
       Per-gene DEG list specifically within the IN_LMO1/RIC3 ectopic

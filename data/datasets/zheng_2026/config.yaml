@@ -105,14 +105,14 @@ tables:
       LR: "LR"
 
     fieldLabels:
-      perturbation: "Mouse NDD risk gene targeted by CRISPRi knockdown via AAV-delivered
+      perturbation: "Mouse NDD risk gene targeted by Cas9 knockout via AAV-delivered
         gRNAs in the developing mouse cortex (Zheng et al. 2026). These are mouse
         orthologs of human NDD risk genes selected for their disease relevance."
       gene: "Mouse gene symbol of the differentially expressed gene measured by
         single-nucleus RNA-seq (Zheng et al. 2026, Supplementary Table 3)."
       logfc: "EdgeR log2 fold change of the target gene in perturbed cells vs.
         NT2-g2 non-targeting controls, within the same cell type pseudobulk
-        (Zheng et al. 2026, Methods). Positive = upregulated upon knockdown."
+        (Zheng et al. 2026, Methods). Positive = upregulated upon knockout."
       logcpm: "Average log2 counts-per-million expression of the target gene
         across all samples (perturbed + controls) in this cell type — a measure
         of baseline expression level (EdgeR)."

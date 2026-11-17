@@ -102,7 +102,7 @@ tables:
       - in vivo Perturb-seq
       - transcription factors
       - cortical development
-    organism: Mus musculus (embryonic cortex)
+    organism: Mus musculus (cortex; perturbed in utero at E14.5, profiled at P7)
     organism_key: mouse
     in_path: deg_cleaned.txt
     separator: "\t"
@@ -179,7 +179,7 @@ tables:
       - in vivo Perturb-seq
       - cell fate
       - cortical development
-    organism: Mus musculus (embryonic cortex)
+    organism: Mus musculus (cortex; perturbed in utero at E14.5, profiled at P7)
     organism_key: mouse
     in_path: clusterprop_cleaned.txt
     separator: "\t"

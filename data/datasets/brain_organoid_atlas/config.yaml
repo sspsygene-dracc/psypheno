@@ -48,7 +48,7 @@ deployTo:
 model_system: organoid
 experiment_type: patient_lines
 anatomy:
-  - UBERON:0000956  # cerebral cortex
+  - UBERON:0001890  # forebrain (paper: predominantly forebrain, some diencephalon)
 stage: in_vitro
 stage_detail: "organoid DIV52"
 tables:

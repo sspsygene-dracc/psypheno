@@ -53,6 +53,7 @@ stage_detail: "NGN2 iGLUT neurons, day 7-21"
 tables:
   - table: SCZ_Risk_Arrayed_RNAseq_supp_1
     experiment_type: multiple  # arrayed CRISPRa and shRNA arms
+    stage_detail: "NPC-derived NGN2 iGLUT, day 21"
     changelog:
       - date: "2026-05-05"
         message: "Standardized title and added column tooltips. Resolved GENCODE clone IDs and AC-shaped accessions to HGNC symbols / ENSGs at preprocess time."

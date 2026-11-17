@@ -807,8 +807,9 @@ function DatasetFilters({
     key: keyof TagFilters,
     options: FilterOption[],
     anyLabel: string,
+    hint?: string,
   ) => (
-    <label htmlFor={id} style={labelStyle}>
+    <label htmlFor={id} style={labelStyle} title={hint}>
       {label}
       <select
         id={id}
@@ -852,7 +853,14 @@ function DatasetFilters({
         experimentTypeOptions,
         "All experiment types",
       )}
-      {facet("filter-region", "Region", "region", regionOptions, "All regions")}
+      {facet(
+        "filter-region",
+        "Region",
+        "region",
+        regionOptions,
+        "All regions",
+        "Where the samples come from. For in-vitro systems (organoids, iPSC-derived neurons): the brain region the system models.",
+      )}
       <div
         style={{
           display: "flex",

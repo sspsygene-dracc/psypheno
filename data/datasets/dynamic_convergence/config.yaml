@@ -139,7 +139,7 @@ tables:
     source: "Supplemental Data 3 download media-5.xlsx ; log10(pvalue) Baseline comparison behaviors of stable mutant to background-matched wild-type fish"
     longLabel: Mutant zebrafish baseline behavioral fingerprint pvalues
     description:
-      Comparing behaviors in stable mutant and background-matched wild-type fish pvalues.
+      Comparing behaviors in mutant (stable lines and F0 crispants) and background-matched wild-type fish pvalues.
       Mutant behavioral fingerprint across startle-OFF, startle-ON, and sleep-wake parameters.
     links:
       - url: https://www.biorxiv.org/content/10.1101/2024.08.23.609190v4.supplementary-material
