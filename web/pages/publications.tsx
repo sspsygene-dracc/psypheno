@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import DatasetItem, { type Dataset } from "@/components/DatasetItem";
 import DestinationBadge from "@/components/DestinationBadge";
 import DatasetTagChips from "@/components/DatasetTagChips";
+import PillLegend from "@/components/PillLegend";
 import InfoTooltip from "@/components/InfoTooltip";
 import { formatAuthors } from "@/lib/format-authors";
 import { useFitToViewport } from "@/lib/use-fit-to-viewport";
@@ -281,6 +282,11 @@ export default function PublicationsPage() {
               fontSize: 13,
             }}
           >
+            <PillLegend
+              dimensions={["species", "modelSystem", "experiment", "region", "stage"]}
+              status
+              style={{ marginBottom: 14 }}
+            />
             <div style={{ marginBottom: 16 }}>
               <label
                 htmlFor="pubs-author"

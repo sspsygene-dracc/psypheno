@@ -10,6 +10,7 @@ import type { Dataset } from "@/components/DatasetItem";
 import type { DatasetLink } from "@/lib/links";
 import DestinationBadge from "@/components/DestinationBadge";
 import DatasetTagChips from "@/components/DatasetTagChips";
+import PillLegend from "@/components/PillLegend";
 import {
   datasetOrganisms,
   EXPERIMENT_TYPE_LABELS,
@@ -977,18 +978,29 @@ function DatasetPicker({
 
   return (
     <div ref={containerRef} style={{ position: "relative", maxWidth: 640 }}>
-      <label
-        htmlFor="dataset-search"
+      <div
         style={{
-          display: "block",
-          fontSize: 13,
-          fontWeight: 600,
-          color: "#374151",
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: "4px 12px",
           marginBottom: 6,
         }}
       >
-        Find a dataset
-      </label>
+        <label
+          htmlFor="dataset-search"
+          style={{
+            display: "block",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#374151",
+          }}
+        >
+          Find a dataset
+        </label>
+        <PillLegend dimensions={["modelSystem", "experiment", "region", "stage"]} />
+      </div>
       <div style={{ position: "relative" }}>
         <input
           ref={inputRef}

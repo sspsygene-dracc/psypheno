@@ -10,6 +10,7 @@ import InfoTooltip from "@/components/InfoTooltip";
 import OrthologNote from "@/components/OrthologNote";
 import type { OrthologNotes } from "@/lib/orthologs";
 import DestinationBadge from "@/components/DestinationBadge";
+import PillLegend from "@/components/PillLegend";
 import GeneSignificanceSummary, {
   type CombinedPvalues,
   type ContributingTable,
@@ -496,7 +497,8 @@ export default function GeneResults({
           marginLeft: showToc && data.length === 0 ? 244 : undefined,
         }}
       >
-        <h2 style={{ marginBottom: 12 }}>Results for {geneDisplayName}</h2>
+        <h2 style={{ marginBottom: 4 }}>Results for {geneDisplayName}</h2>
+        <PillLegend dimensions={["assay"]} roles style={{ marginBottom: 12 }} />
         {/* The "all controls" sentinel isn't a real gene to describe, so it
             gets no side panel — otherwise it renders a misleading
             "Perturbed/Target gene: CONTROL" header over an empty blurb (#192). */}

@@ -3,6 +3,7 @@ import { REGIONS_ENABLED } from "@/lib/features";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import PillLegend from "@/components/PillLegend";
 import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -956,6 +957,7 @@ function SelectionPanel({
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
             {subtitle} · <UberonLink id={region.uberon} />
           </div>
+          <PillLegend dimensions={["experiment"]} inVitro roles={!!gene} style={{ marginTop: 6 }} />
         </div>
         <button
           type="button"
