@@ -8,6 +8,9 @@
    their content grows past the viewport (e.g. switching views on /regions). */
 html {
   scrollbar-gutter: stable;
+  /* Radio buttons / checkboxes in the link blue (LINK.color in lib/palette.ts),
+     never the browser default, which can be red and read as "up". */
+  accent-color: #2563eb;
 }
 
 body {
