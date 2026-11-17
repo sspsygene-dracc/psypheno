@@ -73,7 +73,7 @@ export default function GeneInfoBox({
           </p>
         </div>
       ) : (
-        <span style={{ color: "#9ca3af", fontStyle: "italic" }}>
+        <span style={{ color: "#6b7280", fontStyle: "italic" }}>
           No RefSeq gene description available for this gene.
         </span>
       )}
@@ -107,12 +107,12 @@ export default function GeneInfoBox({
         </>
       )}
       {hasLlmNoResults && (
-        <span style={{ color: "#9ca3af", fontStyle: "italic" }}>
+        <span style={{ color: "#6b7280", fontStyle: "italic" }}>
           LLM search returned no relevant results for this gene.
         </span>
       )}
       {hasLlmNotSearched && (
-        <span style={{ color: "#9ca3af", fontStyle: "italic" }}>
+        <span style={{ color: "#6b7280", fontStyle: "italic" }}>
           No LLM search has been performed for this gene yet.
         </span>
       )}

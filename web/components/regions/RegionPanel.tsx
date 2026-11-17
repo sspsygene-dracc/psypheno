@@ -14,6 +14,7 @@ import {
 } from "@/lib/brain-regions";
 import type { RegionGenesResponse, RegionGenesTable } from "@/pages/api/region-genes";
 import type { GeneRef, GeneRegionsTable } from "@/pages/api/gene-regions";
+import { IN_VITRO, LINK, ROLE, TAG, TAG_NAME } from "@/lib/palette";
 
 export type AssayLabeler = (d: Dataset) => string;
 
@@ -49,14 +50,6 @@ export function datasetTitle(d: Dataset): string {
   return d.medium_label ?? d.short_label ?? d.table_name;
 }
 
-const KIND_STYLE: Record<StudyKind, { color: string; background: string }> = {
-  perturbation: { color: "#1e3a8a", background: "#dbeafe" },
-  case_control: { color: "#92400e", background: "#fef3c7" },
-  cell_type_reference: { color: "#065f46", background: "#d1fae5" },
-  age_association: { color: "#374151", background: "#e5e7eb" },
-  observational: { color: "#374151", background: "#f3f4f6" },
-  other: { color: "#374151", background: "#f3f4f6" },
-};
 
 const chip: CSSProperties = {
   borderRadius: 9999,
@@ -68,7 +61,10 @@ const chip: CSSProperties = {
 
 export function KindChip({ kind }: { kind: StudyKind }) {
   return (
-    <span title={STUDY_KIND_DESCRIPTIONS[kind]} style={{ ...chip, ...KIND_STYLE[kind] }}>
+    <span
+      title={`${TAG_NAME.experiment}: ${STUDY_KIND_DESCRIPTIONS[kind]}`}
+      style={{ ...chip, ...TAG.experiment }}
+    >
       {STUDY_KIND_LABELS[kind]}
     </span>
   );
@@ -78,8 +74,8 @@ export function KindChip({ kind }: { kind: StudyKind }) {
 export function InVitroChip() {
   return (
     <span
-      title="In vitro: placed by the identity the cells were patterned towards, not tissue they came from"
-      style={{ ...chip, color: "#5b21b6", background: "#faf9ff", border: `1px dashed ${IN_VITRO_STROKE}` }}
+      title={`${TAG_NAME.modelSystem}: in vitro, placed by the identity the cells were patterned towards, not tissue they came from`}
+      style={{ ...chip, ...IN_VITRO.pill }}
     >
       in vitro
     </span>
@@ -95,7 +91,7 @@ const sectionHead: CSSProperties = {
   margin: "18px 0 8px",
 };
 
-export const linkStyle: CSSProperties = { color: "#1d4ed8", textDecoration: "none" };
+export const linkStyle: CSSProperties = { color: LINK.color, textDecoration: "none" };
 
 const MAX_TERMS = 6;
 
@@ -136,13 +132,11 @@ function GeneRoleLine({ d, gene }: { d: Dataset; gene: GeneInPanel }) {
     <div data-gene-role={role.role} style={{ fontSize: 12, marginTop: 2, color: "#111827" }}>
       <Link
         href={href}
-        title={title}
+        title={`Gene role: ${title}`}
         style={{
           ...chip,
           textDecoration: "none",
-          ...(role.role === "measured"
-            ? { color: "#374151", background: "#f3f4f6" }
-            : { color: "#1e3a8a", background: "#dbeafe" }),
+          ...(role.role === "measured" ? ROLE.measured : ROLE.perturbed),
         }}
       >
         {text}
@@ -248,14 +242,14 @@ export function DatasetGroups({
               ...(inVitro
                 ? {
                     border: `1.5px dashed ${IN_VITRO_STROKE}`,
-                    background: "#faf9ff",
+                    background: IN_VITRO.tint,
                     borderRadius: 8,
                     padding: "6px 10px",
                   }
                 : {}),
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: inVitro ? "#5b21b6" : "#1f2937" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: inVitro ? IN_VITRO.pill.color : "#1f2937" }}>
               {src.label} <span style={{ fontWeight: 400, color: "#6b7280" }}>({inSource.length})</span>
             </div>
             {inVitro && (

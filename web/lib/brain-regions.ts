@@ -25,6 +25,7 @@
 // these keys.
 
 import type { AnatomyTerm } from "@/lib/dataset-tags";
+import { COVERAGE_BINS, IN_VITRO } from "@/lib/palette";
 
 // ── Hand-curated part-of links ──────────────────────────────────────────
 //
@@ -693,18 +694,12 @@ export function matrixTablesHref(tables: readonly string[]): string {
 // ── Colour scale ────────────────────────────────────────────────────────
 
 /** Fill for a region with `n` tissue datasets (single-hue sequential). */
-export const COUNT_BINS: ReadonlyArray<{ min: number; label: string; fill: string }> = [
-  { min: 0, label: "0", fill: "#e1e5ea" },
-  { min: 1, label: "1", fill: "#cfe1f3" },
-  { min: 2, label: "2", fill: "#93bde4" },
-  { min: 3, label: "3–4", fill: "#4f93d0" },
-  { min: 5, label: "5+", fill: "#1f5f9e" },
-];
+export const COUNT_BINS = COVERAGE_BINS;
 
 /** Fill for a region that has in-vitro datasets only (plus the dashed ring). */
-export const IN_VITRO_ONLY_FILL = "#ede9fe";
+export const IN_VITRO_ONLY_FILL = IN_VITRO.fillOnly;
 /** Dashed ring / border colour that marks in-vitro data. */
-export const IN_VITRO_STROKE = "#7c3aed";
+export const IN_VITRO_STROKE = IN_VITRO.stroke;
 
 export function countFill(n: number): string {
   let fill = COUNT_BINS[0].fill;
@@ -714,7 +709,9 @@ export function countFill(n: number): string {
 
 /** Text colour that reads on countFill(n). */
 export function countInk(n: number): string {
-  return n >= 3 ? "#ffffff" : "#1f2937";
+  let ink = COUNT_BINS[0].ink;
+  for (const b of COUNT_BINS) if (n >= b.min) ink = b.ink;
+  return ink;
 }
 
 /**

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { ERROR_TEXT, STATUS } from "@/lib/palette";
 
 type ChangelogEntry = {
   date: string | null;
@@ -231,7 +232,7 @@ export default function DatasetChangelog() {
 
           {error && (
             <div
-              style={{ color: "#dc2626", textAlign: "center", marginTop: 32 }}
+              style={{ color: ERROR_TEXT, textAlign: "center", marginTop: 32 }}
             >
               {error}
             </div>
@@ -325,7 +326,7 @@ export default function DatasetChangelog() {
                           }}
                         >
                           {view === "all" && entry.is_initial ? (
-                            <span style={newChipStyle}>New</span>
+                            <span style={newChipStyle} title="Status: new dataset">New</span>
                           ) : null}
                           {entry.message ?? "—"}
                         </td>
@@ -361,8 +362,7 @@ const newChipStyle: React.CSSProperties = {
   marginRight: 6,
   padding: "1px 7px",
   borderRadius: 9999,
-  background: "#dcfce7",
-  color: "#166534",
+  ...STATUS.isNew,
   fontSize: 11,
   fontWeight: 600,
   verticalAlign: "1px",

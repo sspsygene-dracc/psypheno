@@ -14,6 +14,7 @@ import GeneSignificanceSummary, {
   type CombinedPvalues,
   type ContributingTable,
 } from "@/components/GeneSignificanceSummary";
+import { BOX, ROLE, ROLE_PANEL, TAG } from "@/lib/palette";
 
 // Lazy-load the volcano so recharts (~80 kB gz) stays out of the home /
 // gene-pair bundle until a result row that has effect+pvalue columns is
@@ -533,7 +534,7 @@ export default function GeneResults({
                   marginTop: 24,
                   marginBottom: 6,
                   padding: "8px 0",
-                  borderBottom: "2px solid #dbeafe",
+                  borderBottom: `2px solid ${TAG.assay.background}`,
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
@@ -544,8 +545,8 @@ export default function GeneResults({
                   style={{
                     fontSize: 13,
                     fontWeight: 600,
-                    color: "#1e40af",
-                    backgroundColor: "#dbeafe",
+                    color: TAG.assay.color,
+                    backgroundColor: TAG.assay.background,
                     borderRadius: 9999,
                     padding: "3px 10px",
                     textTransform: "uppercase",
@@ -775,9 +776,9 @@ export default function GeneResults({
                       style={{
                         padding: "8px 14px",
                         fontSize: 13,
-                        color: "#dc2626",
+                        color: BOX.error.color,
                         borderTop: "1px solid #e5e7eb",
-                        background: "#fef2f2",
+                        background: BOX.error.background,
                       }}
                     >
                       Failed to load page. {pageError}
@@ -941,33 +942,49 @@ function GeneSidePanel({
   assayTypeLabels: Record<string, string>;
   tone: "perturbed" | "target";
 }) {
-  // Match the volcano plot's red-up / blue-down convention so the perturbed
-  // (red) and target (blue) panels are visually distinct.
-  const tint =
-    tone === "perturbed"
-      ? { background: "#fef2f2", border: "#fecaca", labelColor: "#b91c1c" }
-      : { background: "#eff6ff", border: "#bfdbfe", labelColor: "#1e40af" };
+  // Neutral panels: red / blue mean direction of effect, never gene role.
+  // The role is a pill in the same style /regions uses for it.
+  const role = tone === "perturbed" ? ROLE.perturbed : ROLE.measured;
   return (
     <div
       style={{
         marginBottom: 16,
         padding: "12px 14px",
-        border: `1px solid ${tint.border}`,
-        background: tint.background,
+        border: `1px solid ${ROLE_PANEL.border}`,
+        background: ROLE_PANEL.background,
         borderRadius: 8,
       }}
     >
       <div
         style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
           fontSize: 13,
           fontWeight: 600,
-          color: tint.labelColor,
+          color: "#1f2937",
           marginBottom: 8,
           textTransform: "uppercase",
           letterSpacing: "0.04em",
         }}
       >
-        {label} gene: {geneSymbol}
+        <span
+          title={`Gene role: ${
+            tone === "perturbed"
+              ? "the gene a dataset knocked out / down, activated or mutated"
+              : "the gene measured as a readout"
+          }`}
+          style={{
+            ...role,
+            borderRadius: 9999,
+            padding: "0 8px",
+            fontSize: 11,
+            lineHeight: 1.6,
+          }}
+        >
+          {label}
+        </span>
+        <span>gene: {geneSymbol}</span>
       </div>
       <OrthologNote
         notes={info?.orthologNotes}

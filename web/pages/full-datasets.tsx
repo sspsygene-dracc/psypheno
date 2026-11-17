@@ -23,6 +23,7 @@ import {
   sortSpecies,
   SPECIES_LABELS,
 } from "@/lib/dataset-tags";
+import { ERROR_TEXT } from "@/lib/palette";
 
 type DatasetData = {
   tableName: string;
@@ -440,7 +441,7 @@ export default function FullDatasets() {
           )}
 
           {error && (
-            <div style={{ color: "#dc2626", marginTop: 16 }}>{error}</div>
+            <div style={{ color: ERROR_TEXT, marginTop: 16 }}>{error}</div>
           )}
 
           {/* Gate on the dataset list, not on `error`: a failed table fetch

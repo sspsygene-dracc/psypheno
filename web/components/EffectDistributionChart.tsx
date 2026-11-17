@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { DIRECTION, ERROR_TEXT, LINK } from "@/lib/palette";
 
 type GeneRow = {
   effect: number | null;
@@ -113,11 +114,11 @@ const SIG_THRESHOLD = 0.05;
 const VOLCANO_SAMPLE_CAP = 1000;
 const BACKGROUND_OPACITY = 0.35;
 
-const COLOR_UP = "#dc2626"; // red
-const COLOR_DOWN = "#2563eb"; // blue
-const COLOR_NS = "#cbd5e1"; // light grey
-const COLOR_GENE = "#f59e0b"; // amber for queried gene
-const COLOR_GENE_OUTLINE = "#111827";
+const COLOR_UP = DIRECTION.up;
+const COLOR_DOWN = DIRECTION.down;
+const COLOR_NS = DIRECTION.ns;
+const COLOR_GENE = DIRECTION.highlight; // queried gene, always outlined
+const COLOR_GENE_OUTLINE = DIRECTION.highlightOutline;
 const DOT_RADIUS = 4.5;
 // Slightly larger than the dot, so clicks needn't be exact.
 const DOT_HIT_RADIUS = 6;
@@ -241,7 +242,7 @@ export default function EffectDistributionChart({
   }
   if (error || !data) {
     return (
-      <div style={{ padding: 12, fontSize: 13, color: "#dc2626" }}>
+      <div style={{ padding: 12, fontSize: 13, color: ERROR_TEXT }}>
         Could not load volcano{error ? `: ${error}` : "."}
       </div>
     );
@@ -540,7 +541,7 @@ export default function EffectDistributionChart({
               {selectedHref ? (
                 <a
                   href={selectedHref}
-                  style={{ color: "#1d4ed8", textDecoration: "none" }}
+                  style={{ color: LINK.color, textDecoration: "none" }}
                 >
                   {selectedSymbol}
                 </a>
@@ -605,7 +606,7 @@ function DetailRow({
         <span
           style={{
             marginLeft: 4,
-            color: "#9ca3af",
+            color: "#6b7280",
             fontFamily:
               "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
             fontSize: 10.5,

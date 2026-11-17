@@ -56,6 +56,7 @@ import type { SearchSuggestion } from "@/state/SearchSuggestion";
 import type { RegionGenesResponse } from "@/pages/api/region-genes";
 import type { GeneRef, GeneRegionsResponse } from "@/pages/api/gene-regions";
 import type { Modality } from "@/pages/api/modalities";
+import { BOX, ERROR_TEXT, IN_VITRO, LINK, TOGGLE_ON } from "@/lib/palette";
 
 /**
  * /regions — brain-region dataset navigator. One human brain (lateral and
@@ -432,8 +433,8 @@ export default function RegionsPage() {
                   cursor: "pointer",
                   fontWeight: 600,
                   border: inVitro ? `1.5px dashed ${IN_VITRO_STROKE}` : "1.5px solid #9ca3af",
-                  background: on ? (inVitro ? "#ede9fe" : "#1f2937") : "#ffffff",
-                  color: on ? (inVitro ? "#4c1d95" : "#ffffff") : "#6b7280",
+                  background: on ? (inVitro ? IN_VITRO.pill.background : TOGGLE_ON.background) : "#ffffff",
+                  color: on ? (inVitro ? IN_VITRO.pill.color : TOGGLE_ON.color) : "#6b7280",
                 }}
               >
                 {on ? "✓ " : ""}
@@ -448,7 +449,7 @@ export default function RegionsPage() {
           )}
         </div>
 
-        {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
+        {error && <p style={{ color: ERROR_TEXT }}>{error}</p>}
 
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 560px", minWidth: 320, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -526,7 +527,7 @@ export default function RegionsPage() {
 const linkButton: CSSProperties = {
   background: "none",
   border: "none",
-  color: "#1d4ed8",
+  color: LINK.color,
   cursor: "pointer",
   fontSize: 13,
   padding: "2px 4px",
@@ -536,9 +537,9 @@ const linkButton: CSSProperties = {
 function toggleStyle(active: boolean): CSSProperties {
   return {
     padding: "5px 12px",
-    background: active ? "#1f2937" : "#ffffff",
-    color: active ? "#ffffff" : "#1f2937",
-    border: "1px solid #d1d5db",
+    background: active ? TOGGLE_ON.background : "#ffffff",
+    color: active ? TOGGLE_ON.color : "#1f2937",
+    border: `1px solid ${active ? TOGGLE_ON.background : "#d1d5db"}`,
     borderRadius: 6,
     cursor: "pointer",
     fontSize: 13,
@@ -670,7 +671,7 @@ function GeneBanner({
   if (loading || !data) return <div style={box}>Looking up the gene…</div>;
   if (data.notFound.length > 0) {
     return (
-      <div role="note" style={{ ...box, background: "#fffbeb", borderColor: "#fde68a" }}>
+      <div role="note" style={{ ...box, ...BOX.warning }}>
         No gene matches {data.notFound.map((s) => `“${s}”`).join(" or ")}.
       </div>
     );
@@ -721,7 +722,7 @@ function GeneBanner({
       {what}: <strong>{shown.length}</strong> on this page
       {hiddenBySource > 0 && <> ({hiddenBySource} more hidden by the source chips)</>}.
       {offPage > 0 && ` ${offPage} more have no anatomy tag (e.g. curated resources) and are not shown here.`}{" "}
-      <Link href={searchHref} style={{ color: "#1d4ed8" }}>
+      <Link href={searchHref} style={{ color: LINK.color }}>
         all results in the gene search
       </Link>
       {data.excluded.length > 0 && (

@@ -7,6 +7,7 @@ import {
   stageLabel,
   type DatasetTags,
 } from "@/lib/dataset-tags";
+import { TAG, TAG_NAME } from "@/lib/palette";
 
 const chipBase: CSSProperties = {
   borderRadius: 9999,
@@ -14,12 +15,6 @@ const chipBase: CSSProperties = {
   lineHeight: 1.5,
 };
 
-const PALETTE = {
-  model: { color: "#5b21b6", background: "#ede9fe" },
-  region: { color: "#92400e", background: "#fef3c7" },
-  stage: { color: "#374151", background: "#f3f4f6" },
-  experiment: { color: "#115e59", background: "#ccfbf1" },
-} as const;
 
 /**
  * Model system, anatomy (UBERON region) and stage tags as small chips. Renders
@@ -76,20 +71,20 @@ export default function DatasetTagChips({
       {systems.map((ms) => (
         <span
           key={ms}
-          title={`Model system: ${
+          title={`${TAG_NAME.modelSystem}: ${
             MODEL_SYSTEM_DESCRIPTIONS[ms] ?? modelSystemLabel(ms)
           }`}
-          style={{ ...chipBase, ...size, ...PALETTE.model }}
+          style={{ ...chipBase, ...size, ...TAG.modelSystem }}
         >
           {modelSystemLabel(ms)}
         </span>
       ))}
       {experiment && (
         <span
-          title={`Experiment type: ${
+          title={`${TAG_NAME.experiment}: ${
             EXPERIMENT_TYPE_DESCRIPTIONS[experiment] ?? experimentTypeLabel(experiment)
           }`}
-          style={{ ...chipBase, ...size, ...PALETTE.experiment }}
+          style={{ ...chipBase, ...size, ...TAG.experiment }}
         >
           {experimentTypeLabel(experiment)}
         </span>
@@ -97,10 +92,10 @@ export default function DatasetTagChips({
       {shown.map((t) => (
         <span
           key={t.id}
-          title={`Anatomy: ${t.label} (${t.id})${
+          title={`${TAG_NAME.region}: ${t.label} (${t.id})${
             tags.anatomy_column ? ` — rows split by column "${tags.anatomy_column}"` : ""
           }`}
-          style={{ ...chipBase, ...size, ...PALETTE.region }}
+          style={{ ...chipBase, ...size, ...TAG.region }}
         >
           {t.label}
         </span>
@@ -110,7 +105,7 @@ export default function DatasetTagChips({
           role="button"
           tabIndex={0}
           aria-expanded={expanded}
-          title={expanded ? "Show fewer regions" : `Show all ${anatomy.length} regions`}
+          title={`${TAG_NAME.region}: ${expanded ? "show fewer regions" : `show all ${anatomy.length} regions`}`}
           // A row can act on mousedown (the /full-datasets picker does, to beat
           // the search box's blur): keep that from firing, and keep focus put.
           onMouseDown={(e) => {
@@ -124,7 +119,7 @@ export default function DatasetTagChips({
           style={{
             ...chipBase,
             ...size,
-            ...PALETTE.region,
+            ...TAG.region,
             cursor: "pointer",
             fontWeight: 600,
             textDecoration: "underline",
@@ -136,8 +131,8 @@ export default function DatasetTagChips({
       )}
       {stage && (
         <span
-          title="Developmental stage / culture age"
-          style={{ ...chipBase, ...size, ...PALETTE.stage }}
+          title={`${TAG_NAME.stage}: developmental stage / culture age`}
+          style={{ ...chipBase, ...size, ...TAG.stage }}
         >
           {stage}
         </span>

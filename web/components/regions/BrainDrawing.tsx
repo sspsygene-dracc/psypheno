@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { RegionDrawing } from "@/lib/region-drawings";
 import { IN_VITRO_STROKE } from "@/lib/brain-regions";
+import { ERROR_TEXT, IN_VITRO, REGION_RING } from "@/lib/palette";
 
 export type RegionPaint = {
   fill: string;
@@ -33,9 +34,10 @@ const RING_CSS: Record<
   { stroke: string; width: string; dash: string | null; halo?: string }
 > = {
   // Bright, so it shows on the darkest and the palest fills alike.
-  selected: { stroke: "#f43f5e", width: "4", dash: null },
-  cover: { stroke: "#d97706", width: "3.5", dash: "9 5" },
-  invitro: { stroke: IN_VITRO_STROKE, width: "3", dash: "5 3" },
+  selected: { stroke: REGION_RING.selected, width: "4", dash: null },
+  cover: { stroke: REGION_RING.cover, width: "3.5", dash: "9 5" },
+  // White halo underneath, so the violet dashes read on the darkest blues too.
+  invitro: { stroke: IN_VITRO_STROKE, width: "3", dash: IN_VITRO.dash, halo: "5" },
 };
 
 // Drawings are static assets; fetch each once per page load.
@@ -173,7 +175,7 @@ export default function BrainDrawing({
         if (css.halo) {
           halo = ring.cloneNode(false) as SVGGraphicsElement;
           halo.setAttribute("data-ring", `${style}-halo`);
-          halo.style.stroke = "#ffffff";
+          halo.style.stroke = IN_VITRO.halo;
           halo.style.strokeWidth = css.halo;
           halo.style.strokeLinejoin = "round";
         }
@@ -240,7 +242,7 @@ export default function BrainDrawing({
   };
 
   if (error) {
-    return <p style={{ color: "#b91c1c", fontSize: 13 }}>Could not load the drawing ({error}).</p>;
+    return <p style={{ color: ERROR_TEXT, fontSize: 13 }}>Could not load the drawing ({error}).</p>;
   }
   return (
     <div

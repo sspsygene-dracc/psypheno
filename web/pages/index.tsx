@@ -16,6 +16,7 @@ import {
   buildAllControlsSuggestion,
   urlSymbol,
 } from "@/state/SearchSuggestion";
+import { BOX, ERROR_TEXT } from "@/lib/palette";
 
 // Homepage "What's new" box. Every href must exist on prod (the box is
 // shared across instances), so dev-only pages don't belong here yet.
@@ -335,7 +336,7 @@ export default function Home() {
       {error && (
         <div
           style={{
-            color: "#dc2626",
+            color: ERROR_TEXT,
             textAlign: "center",
             marginTop: 16,
           }}
@@ -658,8 +659,8 @@ export default function Home() {
                           margin: "20px auto 0",
                           boxSizing: "border-box",
                           padding: "16px 20px",
-                          background: "#fef3c7",
-                          border: "1px solid #fcd34d",
+                          background: BOX.warning.background,
+                          border: BOX.warning.border,
                           borderRadius: 8,
                           color: "#92400e",
                           fontSize: 14,

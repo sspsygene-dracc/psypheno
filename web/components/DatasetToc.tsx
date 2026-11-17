@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import DestinationBadge from "@/components/DestinationBadge";
 import { useFitToViewport } from "@/lib/use-fit-to-viewport";
+import { LINK, NAV_ACTIVE } from "@/lib/palette";
 
 export type TocItem = {
   tableName: string;
@@ -221,14 +222,14 @@ export default function DatasetToc({
                   padding: hasMultipleGroups
                     ? "6px 14px 6px 22px"
                     : "8px 14px",
-                  background: isActive ? "#dbeafe" : "transparent",
+                  background: isActive ? NAV_ACTIVE.background : "transparent",
                   border: "none",
                   borderLeft: isActive
-                    ? "3px solid #2563eb"
+                    ? `3px solid ${NAV_ACTIVE.bar}`
                     : "3px solid transparent",
                   cursor: "pointer",
                   fontSize: 13,
-                  color: "#2563eb",
+                  color: isActive ? NAV_ACTIVE.color : LINK.color,
                   fontWeight: isActive ? 700 : 400,
                   lineHeight: 1.4,
                 }}

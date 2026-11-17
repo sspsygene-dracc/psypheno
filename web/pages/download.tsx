@@ -7,6 +7,7 @@ import DatasetDescription from "@/components/DatasetDescription";
 import DatasetLinkAnchor from "@/components/DatasetLinkAnchor";
 import DatasetToc, { useAssayGroups, type TocItem } from "@/components/DatasetToc";
 import type { Dataset } from "@/components/DatasetItem";
+import { ERROR_TEXT, TAG } from "@/lib/palette";
 
 type DatasetsResponse = { datasets: Dataset[] };
 
@@ -289,7 +290,7 @@ export default function DownloadPage() {
           </details>
 
           {loading && <div style={{ color: "#6b7280" }}>Loading datasets...</div>}
-          {error && <div style={{ color: "#dc2626" }}>{error}</div>}
+          {error && <div style={{ color: ERROR_TEXT }}>{error}</div>}
 
           {!loading && !error && (
             <div
@@ -314,7 +315,7 @@ export default function DownloadPage() {
                             marginTop: 24,
                             marginBottom: 6,
                             padding: "8px 0",
-                            borderBottom: "2px solid #dbeafe",
+                            borderBottom: `2px solid ${TAG.assay.background}`,
                             display: "flex",
                             alignItems: "center",
                             gap: 8,
@@ -325,8 +326,8 @@ export default function DownloadPage() {
                             style={{
                               fontSize: 13,
                               fontWeight: 600,
-                              color: "#1e40af",
-                              backgroundColor: "#dbeafe",
+                              color: TAG.assay.color,
+                              backgroundColor: TAG.assay.background,
                               borderRadius: 9999,
                               padding: "3px 10px",
                               textTransform: "uppercase",

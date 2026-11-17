@@ -15,6 +15,7 @@ import type {
   PublicationEntry,
   PublicationTableEntry,
 } from "@/pages/api/publications";
+import { ERROR_TEXT, STATUS, TAG, TAG_NAME } from "@/lib/palette";
 
 const TITLE_CASE_RE = /\w\S*/g;
 
@@ -339,7 +340,7 @@ export default function PublicationsPage() {
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Year</div>
               {yearOptions.length === 0 ? (
-                <div style={{ color: "#9ca3af" }}>—</div>
+                <div style={{ color: "#6b7280" }}>—</div>
               ) : (
                 yearOptions.map((y) => (
                   <label
@@ -371,7 +372,7 @@ export default function PublicationsPage() {
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Organism</div>
               {organismOptions.length === 0 ? (
-                <div style={{ color: "#9ca3af" }}>—</div>
+                <div style={{ color: "#6b7280" }}>—</div>
               ) : (
                 organismOptions.map((opt) => (
                   <label
@@ -405,7 +406,7 @@ export default function PublicationsPage() {
                 Experiment / assay
               </div>
               {assayOptions.length === 0 ? (
-                <div style={{ color: "#9ca3af" }}>—</div>
+                <div style={{ color: "#6b7280" }}>—</div>
               ) : (
                 assayOptions.map((a) => (
                   <label
@@ -460,7 +461,7 @@ export default function PublicationsPage() {
             {loading ? (
               <div style={{ color: "#6b7280" }}>Loading publications…</div>
             ) : error ? (
-              <div style={{ color: "#dc2626" }}>Failed to load: {error}</div>
+              <div style={{ color: ERROR_TEXT }}>Failed to load: {error}</div>
             ) : (
               <>
                 {/* Shown filtered or not — the count alone left the ordering
@@ -638,12 +639,10 @@ function PublicationCard({
         >
           {pub.tables.length === 0 && (
             <span
-              title="This paper is listed for its links; no data table from it is loaded into the knowledge base."
+              title="Status: this paper is listed for its links; no data table from it is loaded into the knowledge base."
               style={{
                 fontSize: 12,
-                color: "#4b5563",
-                background: "#f3f4f6",
-                border: "1px solid #e5e7eb",
+                ...STATUS.noTable,
                 borderRadius: 9999,
                 padding: "1px 10px",
               }}
@@ -653,11 +652,10 @@ function PublicationCard({
           )}
           {pub.sspsygeneGrants.length > 0 && (
             <span
-              title="Funded by SSPsyGene"
+              title="Status: funded by SSPsyGene"
               style={{
                 fontSize: 12,
-                color: "#065f46",
-                background: "#d1fae5",
+                ...STATUS.funded,
                 borderRadius: 9999,
                 padding: "2px 10px",
                 fontWeight: 600,
@@ -669,10 +667,10 @@ function PublicationCard({
           {pub.organisms.map((o) => (
             <span
               key={o}
+              title={`${TAG_NAME.species}: ${o}`}
               style={{
                 fontSize: 12,
-                color: "#1e40af",
-                background: "#dbeafe",
+                ...TAG.species,
                 borderRadius: 9999,
                 padding: "2px 10px",
               }}
@@ -711,7 +709,7 @@ function PublicationCard({
               <li key={link.url}>
                 <DatasetLinkAnchor link={link} tooltipSize={13} />
                 {link.label && (
-                  <span style={{ color: "#9ca3af", fontSize: 12 }}>
+                  <span style={{ color: "#6b7280", fontSize: 12 }}>
                     {" "}— {hostFromUrl(link.url)}
                   </span>
                 )}
@@ -770,7 +768,7 @@ function PublicationCard({
               <li key={link.url}>
                 <DatasetLinkAnchor link={link} tooltipSize={13} />
                 {link.label && (
-                  <span style={{ color: "#9ca3af", fontSize: 12 }}>
+                  <span style={{ color: "#6b7280", fontSize: 12 }}>
                     {" "}— {hostFromUrl(link.url)}
                   </span>
                 )}

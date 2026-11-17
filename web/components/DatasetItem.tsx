@@ -5,6 +5,7 @@ import DatasetLinkAnchor from "@/components/DatasetLinkAnchor";
 import DestinationBadge from "@/components/DestinationBadge";
 import { type DatasetLink } from "@/lib/links";
 import type { DatasetTags } from "@/lib/dataset-tags";
+import { COLUMN_TYPE, TAG, TAG_NAME } from "@/lib/palette";
 
 export type Dataset = {
   table_name: string;
@@ -190,10 +191,11 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
         >
           {!compact && (dataset.organism || dataset.gene_species) && (
             <span
+              title={`${TAG_NAME.species}: the organism the data come from`}
               style={{
                 fontSize: 13,
-                color: "#374151",
-                backgroundColor: "#e5e7eb",
+                color: TAG.species.color,
+                backgroundColor: TAG.species.background,
                 borderRadius: 9999,
                 padding: "2px 8px",
               }}
@@ -213,10 +215,11 @@ export default function DatasetItem({ dataset, onSelect, assayTypeLabels = {}, i
               .map((a) => (
                 <span
                   key={`assay-${a}`}
+                  title={`${TAG_NAME.assay}: ${assayTypeLabels[a] ?? a}`}
                   style={{
                     fontSize: 13,
-                    color: "#1e40af",
-                    backgroundColor: "#dbeafe",
+                    color: TAG.assay.color,
+                    backgroundColor: TAG.assay.background,
                     borderRadius: 9999,
                     padding: "2px 8px",
                     fontWeight: 500,
@@ -422,15 +425,13 @@ function ColumnsList({
         <span style={{ fontWeight: 500 }}>Columns ({total})</span>
         {totalGeneCols > 0 && (
           <ColumnLegendDot
-            color="#2563eb"
-            bg="#dbeafe"
+            {...COLUMN_TYPE.gene}
             label={`${totalGeneCols} gene`}
           />
         )}
         {totalScalars > 0 && (
           <ColumnLegendDot
-            color="#92400e"
-            bg="#fef3c7"
+            {...COLUMN_TYPE.numeric}
             label={`${totalScalars} numeric`}
           />
         )}
@@ -462,9 +463,9 @@ function ColumnsList({
               key={c}
               title={
                 isGene
-                  ? "Gene identifier column"
+                  ? "Column type: gene identifier"
                   : isScalar
-                    ? "Numeric (scalar) column"
+                    ? "Column type: numeric (scalar)"
                     : undefined
               }
               style={{
@@ -473,18 +474,11 @@ function ColumnsList({
                   'ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace',
                 padding: "2px 8px",
                 borderRadius: 4,
-                background: isGene
-                  ? "#dbeafe"
+                ...(isGene
+                  ? COLUMN_TYPE.gene
                   : isScalar
-                    ? "#fef3c7"
-                    : "#f3f4f6",
-                color: isGene ? "#1e40af" : isScalar ? "#92400e" : "#374151",
-                border: "1px solid",
-                borderColor: isGene
-                  ? "#bfdbfe"
-                  : isScalar
-                    ? "#fde68a"
-                    : "#e5e7eb",
+                    ? COLUMN_TYPE.numeric
+                    : COLUMN_TYPE.other),
               }}
             >
               {c}
@@ -515,12 +509,12 @@ function ColumnsList({
 }
 
 function ColumnLegendDot({
-  color,
-  bg,
+  background,
+  border,
   label,
 }: {
-  color: string;
-  bg: string;
+  background: string;
+  border: string;
   label: string;
 }) {
   return (
@@ -538,8 +532,8 @@ function ColumnLegendDot({
           width: 9,
           height: 9,
           borderRadius: 2,
-          background: bg,
-          border: `1px solid ${color}33`,
+          background,
+          border,
           display: "inline-block",
         }}
       />

@@ -6,6 +6,7 @@ import DataTable from "@/components/DataTable";
 import DatasetToc, { useAssayGroups } from "@/components/DatasetToc";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { TAG } from "@/lib/palette";
 
 const PAGE_SIZE = 10;
 
@@ -707,7 +708,7 @@ export default function SignificantRowsPage() {
                             marginTop: 24,
                             marginBottom: 6,
                             padding: "8px 0",
-                            borderBottom: "2px solid #dbeafe",
+                            borderBottom: `2px solid ${TAG.assay.background}`,
                             display: "flex",
                             alignItems: "center",
                             gap: 8,
@@ -717,8 +718,8 @@ export default function SignificantRowsPage() {
                             style={{
                               fontSize: 13,
                               fontWeight: 600,
-                              color: "#1e40af",
-                              backgroundColor: "#dbeafe",
+                              color: TAG.assay.color,
+                              backgroundColor: TAG.assay.background,
                               borderRadius: 9999,
                               padding: "3px 10px",
                               textTransform: "uppercase",

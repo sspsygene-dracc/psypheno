@@ -1,6 +1,7 @@
 import { SearchSuggestion } from "@/state/SearchSuggestion";
 import { ALL_CONTROLS_SENTINEL_ID } from "@/lib/gene-query";
 import { useEffect, useRef, useState } from "react";
+import { STATUS } from "@/lib/palette";
 
 // Module-level LRU keyed by the full request URL. Populated on every
 // successful fetch so that backspaces / re-typing a previously-seen prefix
@@ -288,13 +289,11 @@ export default function SearchBar({
                       fontWeight: 700,
                       letterSpacing: 0.5,
                       textTransform: "uppercase",
-                      color: "#7c2d12",
-                      background: "#fed7aa",
-                      border: "1px solid #fdba74",
+                      ...STATUS.control,
                       borderRadius: 4,
                       padding: "1px 6px",
                     }}
-                    title="Perturbation control — searchable, but excluded from per-gene aggregates."
+                    title="Status: perturbation control — searchable, but excluded from per-gene aggregates."
                   >
                     control
                   </span>

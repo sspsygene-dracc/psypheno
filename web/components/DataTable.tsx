@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import InfoTooltip from "@/components/InfoTooltip";
 import SignificanceLegend from "@/components/SignificanceLegend";
 import { formatCellValue } from "@/lib/format-number";
+import { SIGNIFICANT_ROW } from "@/lib/palette";
 
 function normalizeColName(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, "_");
@@ -320,11 +321,11 @@ export default function DataTable({
                 key={idx}
                 style={{
                   borderTop: "1px solid #e5e7eb",
-                  background: significant ? "#f0fdf4" : undefined,
+                  background: significant ? SIGNIFICANT_ROW.background : undefined,
                 }}
                 title={significant ? sigTitle : undefined}
               >
-                {effectiveColumns.map((col) => {
+                {effectiveColumns.map((col, colIdx) => {
                   const val = row[col];
                   const colNorm = normalizeColName(col);
                   const isGeneCol = geneColumns?.some(
@@ -406,6 +407,12 @@ export default function DataTable({
                       style={{
                         padding: "12px 16px",
                         color: "#1f2937",
+                        // Accent bar on significant rows, so the tint isn't the
+                        // only marker. An inset shadow takes no layout space.
+                        boxShadow:
+                          significant && colIdx === 0
+                            ? `inset 3px 0 0 ${SIGNIFICANT_ROW.accent}`
+                            : undefined,
                       }}
                     >
                       {isGeneCol && text ? (

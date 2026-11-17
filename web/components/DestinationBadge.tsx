@@ -1,3 +1,4 @@
+import { STATUS } from "@/lib/palette";
 /**
  * "Not on production" marker for a dataset (#225).
  *
@@ -48,18 +49,16 @@ export default function DestinationBadge({
   const compact = size === "compact";
   return (
     <span
-      title={info.title}
+      title={`Status: ${info.title}`}
       style={{
         display: "inline-block",
         verticalAlign: "middle",
         marginLeft: compact ? 4 : 8,
         padding: compact ? "0 5px" : "2px 8px",
         borderRadius: 999,
-        // Amber rather than red: this is the *expected* state for an
-        // embargoed dataset, not an error.
-        background: "#fef3c7",
-        border: "1px solid #fcd34d",
-        color: "#92400e",
+        // Outlined amber, like every status badge: this is the *expected*
+        // state for an embargoed dataset, not an error.
+        ...STATUS.notOnProd,
         fontSize: compact ? 10 : 12,
         fontWeight: 700,
         lineHeight: compact ? "15px" : "18px",

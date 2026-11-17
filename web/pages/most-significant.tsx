@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 import InfoTooltip from "@/components/InfoTooltip";
 import DoubleScrollX from "@/components/DoubleScrollX";
 import DatasetRestrictor from "@/components/DatasetRestrictor";
+import { BOX } from "@/lib/palette";
 
 const PAGE_SIZE = 10;
 const NUM_COLS = 6; // rank, gene, pvalue, tables, pvalues, gene info
@@ -1194,10 +1195,8 @@ export default function MostSignificantPage() {
             style={{
               padding: "16px 20px",
               marginBottom: 16,
-              background: "#fef3c7",
-              border: "1px solid #fcd34d",
+              ...BOX.warning,
               borderRadius: 8,
-              color: "#92400e",
               fontSize: 14,
             }}
           >

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { SearchSuggestion } from "@/state/SearchSuggestion";
+import { ERROR_TEXT } from "@/lib/palette";
 
 type ApiResponse = {
   genes: SearchSuggestion[];
@@ -156,7 +157,7 @@ export default function AllGenes() {
               </div>
             )}
             {error && (
-              <div style={{ color: "#dc2626", marginTop: 8 }}>{error}</div>
+              <div style={{ color: ERROR_TEXT, marginTop: 8 }}>{error}</div>
             )}
           </div>
 
