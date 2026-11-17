@@ -17,6 +17,44 @@ import {
   urlSymbol,
 } from "@/state/SearchSuggestion";
 
+// Homepage "What's new" box. Every href must exist on prod (the box is
+// shared across instances), so dev-only pages don't belong here yet.
+type NewsItem = { title: string; href?: string; blurb: string };
+const NEWS_DATE = "November 2026";
+const NEWS_ITEMS: NewsItem[] = [
+  {
+    title: "Overview matrix",
+    href: "/matrix",
+    blurb:
+      "which perturbed SSPsyGene genes have data in which study, plus a view by readout across studies.",
+  },
+  {
+    title: "Dataset filters",
+    href: "/full-datasets",
+    blurb: "narrow the dataset list by species, model system and brain region.",
+  },
+  {
+    title: "Sorted full-dataset tables",
+    href: "/full-datasets",
+    blurb:
+      "tables open sorted by FDR or p-value, and column headers describe what each column holds.",
+  },
+  {
+    title: "Volcano plots",
+    blurb:
+      "click a dot to see its gene and values; tables without an FDR are coloured by p-value.",
+  },
+];
+const NEWS_MORE = {
+  label: "17 datasets added since May: see the dataset changelog →",
+  href: "/dataset-changelog",
+};
+const NEWS_LINK_STYLE = {
+  color: "#2563eb",
+  textDecoration: "underline",
+  fontWeight: 600,
+} as const;
+
 export default function Home() {
   const router = useRouter();
   const [perturbed, setPerturbed] = useState<SearchSuggestion | null>(null);
@@ -369,67 +407,29 @@ export default function Home() {
           >
             <div>
               <span style={{ fontWeight: 600 }}>New</span>{" "}
-              <span style={{ color: "#6b7280", fontSize: 12 }}>(May 2026)</span>
+              <span style={{ color: "#6b7280", fontSize: 12 }}>
+                ({NEWS_DATE})
+              </span>
             </div>
             <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
-              <li>
-                <a
-                  href="/most-significant"
-                  style={{
-                    color: "#2563eb",
-                    textDecoration: "underline",
-                    fontWeight: 600,
-                  }}
-                >
-                  Up/down-regulation split in cross-study ranking
-                </a>{" "}
-                — pick a direction to filter the meta-analysis.
-              </li>
-              <li>
-                <a
-                  href="/full-datasets"
-                  style={{
-                    color: "#2563eb",
-                    textDecoration: "underline",
-                    fontWeight: 600,
-                  }}
-                >
-                  Per-column filters in full-dataset tables
-                </a>{" "}
-                — filter any column by text or numeric range.
-              </li>
-              <li>
-                <strong>Faster, more meaningful volcano plots</strong> —
-                background filtered by perturbed gene and sampled on the fly.
-              </li>
-              <li>
-                <strong>Controls are searchable</strong> — type{" "}
-                <code
-                  style={{
-                    background: "#dbeafe",
-                    padding: "0 4px",
-                    borderRadius: 3,
-                  }}
-                >
-                  CONTROL
-                </code>{" "}
-                to match all controls, or search named ones (NonTarget1,
-                SafeTarget, …) directly.
-              </li>
-              <li>
-                <a
-                  href="/gene-parser"
-                  style={{
-                    color: "#2563eb",
-                    textDecoration: "underline",
-                    fontWeight: 600,
-                  }}
-                >
-                  New "How gene names are parsed" doc page
-                </a>{" "}
-                — covers ENSG → symbol, GENCODE clones, and silencer rules.
-              </li>
+              {NEWS_ITEMS.map((item) => (
+                <li key={item.title}>
+                  {item.href ? (
+                    <a href={item.href} style={NEWS_LINK_STYLE}>
+                      {item.title}
+                    </a>
+                  ) : (
+                    <strong>{item.title}</strong>
+                  )}{" "}
+                  — {item.blurb}
+                </li>
+              ))}
             </ul>
+            <div style={{ marginTop: 6 }}>
+              <a href={NEWS_MORE.href} style={NEWS_LINK_STYLE}>
+                {NEWS_MORE.label}
+              </a>
+            </div>
           </div>
 
           <div
